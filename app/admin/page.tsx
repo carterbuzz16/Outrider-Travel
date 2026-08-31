@@ -44,6 +44,9 @@ export default async function AdminDashboardPage() {
       <p>
         <Link href="/admin/payments">Failed / needs-authentication installments only</Link>
       </p>
+      <p>
+        <Link href="/admin/trips">Manage trips</Link>
+      </p>
 
       {(!bookings || bookings.length === 0) && <p>No bookings yet.</p>}
 
