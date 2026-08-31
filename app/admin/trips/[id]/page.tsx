@@ -1,16 +1,32 @@
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { setTripStatus, addTier } from "@/app/admin/trips/actions";
+import {
+  setTripStatus,
+  updateTrip,
+  deleteTrip,
+  deleteTier,
+  addTier,
+  uploadTripImage,
+  removeTripImage,
+} from "@/app/admin/trips/actions";
 
 // See app/admin/page.tsx for why force-dynamic is needed here too.
 export const dynamic = "force-dynamic";
 
-export default async function AdminTripDetailPage({ params }: { params: { id: string } }) {
+export default async function AdminTripDetailPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: { error?: string };
+}) {
   const admin = createAdminClient();
 
   const { data: trip } = await admin
     .from("trips")
-    .select("id, name, destination, start_date, end_date, description, status, tiers(id, name, price, description, max_capacity, inclusions)")
+    .select(
+      "id, name, destination, start_date, end_date, description, status, images, tiers(id, name, price, description, max_capacity, inclusions)"
+    )
     .eq("id", params.id)
     .single();
 
@@ -21,10 +37,34 @@ export default async function AdminTripDetailPage({ params }: { params: { id: st
   return (
     <main>
       <h1>{trip.name}</h1>
-      <p>
-        {trip.destination} — {trip.start_date} to {trip.end_date}
-      </p>
-      {trip.description && <p>{trip.description}</p>}
+
+      {searchParams.error && <p>{searchParams.error}</p>}
+
+      <h2>Details</h2>
+      <form action={updateTrip}>
+        <input type="hidden" name="trip_id" value={trip.id} />
+        <div>
+          <label htmlFor="name">Name</label>
+          <input id="name" name="name" type="text" defaultValue={trip.name} required />
+        </div>
+        <div>
+          <label htmlFor="destination">Destination</label>
+          <input id="destination" name="destination" type="text" defaultValue={trip.destination} required />
+        </div>
+        <div>
+          <label htmlFor="start_date">Start date</label>
+          <input id="start_date" name="start_date" type="date" defaultValue={trip.start_date} required />
+        </div>
+        <div>
+          <label htmlFor="end_date">End date</label>
+          <input id="end_date" name="end_date" type="date" defaultValue={trip.end_date} required />
+        </div>
+        <div>
+          <label htmlFor="description">Description</label>
+          <textarea id="description" name="description" defaultValue={trip.description ?? ""} />
+        </div>
+        <button type="submit">Save details</button>
+      </form>
 
       <form action={setTripStatus}>
         <input type="hidden" name="trip_id" value={trip.id} />
@@ -37,6 +77,36 @@ export default async function AdminTripDetailPage({ params }: { params: { id: st
         <button type="submit">Update status</button>
       </form>
 
+      <form action={deleteTrip}>
+        <input type="hidden" name="trip_id" value={trip.id} />
+        <button type="submit">Delete trip</button>
+      </form>
+
+      <h2>Photos</h2>
+      {trip.images.length === 0 && <p>No photos yet.</p>}
+      {trip.images.length > 0 && (
+        <ul>
+          {trip.images.map((url) => (
+            <li key={url}>
+              {/* eslint-disable-next-line @next/next/no-img-element -- admin tool, not a customer-facing perf-sensitive page */}
+              <img src={url} alt="" width={160} />
+              <form action={removeTripImage}>
+                <input type="hidden" name="trip_id" value={trip.id} />
+                <input type="hidden" name="image_url" value={url} />
+                <button type="submit">Remove</button>
+              </form>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <form action={uploadTripImage} encType="multipart/form-data">
+        <input type="hidden" name="trip_id" value={trip.id} />
+        <label htmlFor="image">Add a photo (JPEG/PNG/WebP, under 5MB)</label>
+        <input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp" required />
+        <button type="submit">Upload</button>
+      </form>
+
       <h2>Tiers</h2>
       {trip.tiers.length === 0 && <p>No tiers yet — add one below before publishing.</p>}
       {trip.tiers.length > 0 && (
@@ -46,6 +116,11 @@ export default async function AdminTripDetailPage({ params }: { params: { id: st
               <strong>{tier.name}</strong> — ${tier.price} (max {tier.max_capacity})
               {tier.description && <p>{tier.description}</p>}
               {tier.inclusions && tier.inclusions.length > 0 && <p>Includes: {tier.inclusions.join(", ")}</p>}
+              <form action={deleteTier}>
+                <input type="hidden" name="trip_id" value={trip.id} />
+                <input type="hidden" name="tier_id" value={tier.id} />
+                <button type="submit">Delete tier</button>
+              </form>
             </li>
           ))}
         </ul>

@@ -58,6 +58,10 @@ export async function createBooking(formData: FormData) {
     .select("id")
     .single();
 
+  if (bookingError?.message === "tier_at_capacity") {
+    redirect("/bookings/new?error=That tier just sold out. Please pick another.");
+  }
+
   if (bookingError || !booking) {
     throw new Error(bookingError?.message ?? "Failed to create booking");
   }
@@ -90,4 +94,51 @@ export async function createBooking(formData: FormData) {
   }
 
   redirect(`/bookings/${booking.id}/pay`);
+}
+
+// Self-service cancellation only covers pending/deposit_paid — a
+// paid_in_full booking needs human judgment (how much of the trip cost is
+// recoverable this close to departure), not a button. Status-only: no
+// Stripe refund is issued automatically. If a deposit was already charged,
+// treat it as non-refundable unless a refund is handled manually — wire in
+// stripe.refunds.create() here instead if that's not the intended policy.
+export async function cancelBooking(formData: FormData) {
+  const bookingId = String(formData.get("booking_id") ?? "");
+
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  // RLS ("Users can view own bookings") already scopes this to the
+  // signed-in user's own rows.
+  const { data: booking } = await supabase.from("bookings").select("id, status").eq("id", bookingId).single();
+
+  if (!booking || !["pending", "deposit_paid"].includes(booking.status)) {
+    redirect("/bookings?error=That booking can't be cancelled online — contact us directly.");
+  }
+
+  const admin = createAdminClient();
+
+  const { error: bookingError } = await admin.from("bookings").update({ status: "cancelled" }).eq("id", bookingId);
+  if (bookingError) {
+    throw new Error(bookingError.message);
+  }
+
+  // Stop the installment cron from charging a cancelled booking's
+  // remaining scheduled payments.
+  const { error: paymentsError } = await admin
+    .from("payments")
+    .update({ status: "canceled" })
+    .eq("booking_id", bookingId)
+    .eq("status", "scheduled");
+  if (paymentsError) {
+    throw new Error(paymentsError.message);
+  }
+
+  redirect("/bookings");
 }

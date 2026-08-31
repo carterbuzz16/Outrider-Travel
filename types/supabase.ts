@@ -194,6 +194,7 @@ export type Database = {
           destination: string
           end_date: string
           id: string
+          images: string[]
           name: string
           start_date: string
           status: Database["public"]["Enums"]["trip_status"]
@@ -203,6 +204,7 @@ export type Database = {
           destination: string
           end_date: string
           id?: string
+          images?: string[]
           name: string
           start_date: string
           status?: Database["public"]["Enums"]["trip_status"]
@@ -212,6 +214,7 @@ export type Database = {
           destination?: string
           end_date?: string
           id?: string
+          images?: string[]
           name?: string
           start_date?: string
           status?: Database["public"]["Enums"]["trip_status"]

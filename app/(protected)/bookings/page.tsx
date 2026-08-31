@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { cancelBooking } from "@/app/(protected)/bookings/actions";
 
-export default async function BookingsPage() {
+export default async function BookingsPage({ searchParams }: { searchParams: { error?: string } }) {
   const supabase = createClient();
   const {
     data: { user },
@@ -22,6 +23,7 @@ export default async function BookingsPage() {
         <Link href="/bookings/new">Book a new trip</Link>
       </p>
 
+      {searchParams.error && <p>{searchParams.error}</p>}
       {(!bookings || bookings.length === 0) && <p>No bookings yet.</p>}
 
       <ul>
@@ -40,6 +42,13 @@ export default async function BookingsPage() {
                   {" "}
                   · <Link href={`/bookings/${booking.id}/pay`}>Pay deposit</Link>
                 </>
+              )}
+              {(booking.status === "pending" || booking.status === "deposit_paid") && (
+                <form action={cancelBooking} style={{ display: "inline" }}>
+                  <input type="hidden" name="booking_id" value={booking.id} />
+                  {" · "}
+                  <button type="submit">Cancel booking</button>
+                </form>
               )}
               {needsAuth && (
                 <p>

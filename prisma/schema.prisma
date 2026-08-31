@@ -49,6 +49,7 @@ model Trip {
   endDate     DateTime   @map("end_date") @db.Date
   description String?
   status      TripStatus @default(draft)
+  images      String[]   @default([])
 
   tiers    Tier[]
   bookings Booking[]

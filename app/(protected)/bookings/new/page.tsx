@@ -11,7 +11,7 @@ export default async function NewBookingPage({
   const { data: trips } = await supabase
     .from("trips")
     .select(
-      "id, name, destination, start_date, end_date, description, tiers(id, name, price, description, max_capacity)"
+      "id, name, destination, start_date, end_date, description, images, tiers(id, name, price, description, max_capacity)"
     )
     .eq("status", "published")
     .order("start_date");
@@ -25,6 +25,10 @@ export default async function NewBookingPage({
 
       {trips?.map((trip) => (
         <section key={trip.id}>
+          {trip.images[0] && (
+            // eslint-disable-next-line @next/next/no-img-element -- placeholder markup; real UI pass will use next/image
+            <img src={trip.images[0]} alt={trip.name} width={320} />
+          )}
           <h2>
             {trip.name} — {trip.destination}
           </h2>
