@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe } from "@/lib/stripe";
 import { computeDepositAmount } from "@/lib/deposit";
 import { getOrCreateStripeCustomerId } from "@/lib/customers";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function createBooking(formData: FormData) {
   const tripId = String(formData.get("tripId") ?? "");
@@ -18,6 +19,14 @@ export async function createBooking(formData: FormData) {
 
   if (!user) {
     redirect("/login");
+  }
+
+  // A legitimate customer books a handful of trips a year at most — this
+  // is generous headroom for real usage while still blocking a scripted
+  // loop hammering tier capacity / creating Stripe PaymentIntents.
+  const allowed = await checkRateLimit(`booking:${user.id}`, 10, 60 * 60);
+  if (!allowed) {
+    redirect("/bookings/new?error=Too many booking attempts. Please try again in a bit.");
   }
 
   // Re-fetch the tier server-side rather than trusting a client-supplied

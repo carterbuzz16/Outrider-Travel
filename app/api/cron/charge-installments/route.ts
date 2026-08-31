@@ -1,8 +1,20 @@
 import { NextResponse } from "next/server";
+import { timingSafeEqual, createHash } from "crypto";
 import Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { INSTALLMENT_RETRY_AFTER_DAYS, MAX_INSTALLMENT_ATTEMPTS } from "@/lib/payments";
+
+// Plain !== leaks timing information proportional to how many leading
+// characters match, which could help an attacker guess CRON_SECRET one
+// byte at a time. Hashing both sides to a fixed-length digest first avoids
+// needing equal-length inputs (timingSafeEqual throws on a length
+// mismatch) while keeping the actual comparison constant-time.
+function timingSafeStringEqual(a: string, b: string): boolean {
+  const hashA = createHash("sha256").update(a).digest();
+  const hashB = createHash("sha256").update(b).digest();
+  return timingSafeEqual(hashA, hashB);
+}
 
 // Triggered daily by Vercel Cron (see vercel.json). Finds installments that
 // are due (or due for a retry) and attempts an off-session charge against
@@ -13,8 +25,8 @@ import { INSTALLMENT_RETRY_AFTER_DAYS, MAX_INSTALLMENT_ATTEMPTS } from "@/lib/pa
 // was made (stripe_payment_intent_id, last_attempted_at), which the retry
 // gate below depends on.
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const authHeader = request.headers.get("authorization") ?? "";
+  if (!timingSafeStringEqual(authHeader, `Bearer ${process.env.CRON_SECRET}`)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
