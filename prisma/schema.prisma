@@ -1,0 +1,146 @@
+// Prisma schema for Outrider — connection settings live in prisma.config.ts (Prisma v7).
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// id is not app-generated: it's set to the matching auth.users.id by the
+// handle_new_user trigger (see the link_users_to_auth_and_sync_trigger
+// migration), and Prisma never inserts User rows directly.
+model User {
+  id        String   @id @db.Uuid
+  email     String   @unique
+  name      String?
+  phone     String?
+  role      UserRole @default(customer)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Populated on first deposit checkout (see lib/customers.ts). authenticated
+  // only has column-level UPDATE on name/phone (see the
+  // add_installment_payment_plan migration) — these two are service-role-only
+  // writes, since a user rewriting them could redirect future installment
+  // charges onto a different Stripe Customer's saved card.
+  stripeCustomerId              String? @unique @map("stripe_customer_id")
+  stripeDefaultPaymentMethodId  String? @map("stripe_default_payment_method_id")
+
+  bookings Booking[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  customer
+  admin
+
+  @@map("user_role")
+}
+
+model Trip {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
+  destination String
+  startDate   DateTime   @map("start_date") @db.Date
+  endDate     DateTime   @map("end_date") @db.Date
+  description String?
+  status      TripStatus @default(draft)
+
+  tiers    Tier[]
+  bookings Booking[]
+
+  @@map("trips")
+}
+
+enum TripStatus {
+  draft
+  published
+  closed
+
+  @@map("trip_status")
+}
+
+model Tier {
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tripId      String  @map("trip_id") @db.Uuid
+  name        String
+  price       Decimal @db.Decimal(10, 2)
+  description String?
+  inclusions  String[]
+  maxCapacity Int     @map("max_capacity")
+
+  trip     Trip      @relation(fields: [tripId], references: [id])
+  bookings Booking[]
+
+  @@index([tripId])
+  @@map("tiers")
+}
+
+model Booking {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String        @map("user_id") @db.Uuid
+  tripId        String        @map("trip_id") @db.Uuid
+  tierId        String        @map("tier_id") @db.Uuid
+  status        BookingStatus @default(pending)
+  totalAmount   Decimal       @map("total_amount") @db.Decimal(10, 2)
+  depositAmount Decimal       @map("deposit_amount") @db.Decimal(10, 2)
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  user     User      @relation(fields: [userId], references: [id])
+  trip     Trip      @relation(fields: [tripId], references: [id])
+  tier     Tier      @relation(fields: [tierId], references: [id])
+  payments Payment[]
+
+  @@index([userId])
+  @@index([tripId])
+  @@index([status])
+  @@map("bookings")
+}
+
+enum BookingStatus {
+  pending
+  deposit_paid
+  paid_in_full
+  cancelled
+
+  @@map("booking_status")
+}
+
+model Payment {
+  id                    String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bookingId             String        @map("booking_id") @db.Uuid
+  stripePaymentIntentId String?       @unique @map("stripe_payment_intent_id")
+  amount                Decimal       @db.Decimal(10, 2)
+  status                PaymentStatus @default(scheduled)
+  scheduledDate         DateTime?     @map("scheduled_date") @db.Date
+  paidAt                DateTime?     @map("paid_at")
+  // Installment retry tracking (lib/payments.ts handlePaymentIntentFailed /
+  // app/api/cron/charge-installments). attemptCount only increments on a
+  // real decline, never on requires_action (SCA isn't a failed attempt).
+  attemptCount          Int           @default(0) @map("attempt_count")
+  lastAttemptedAt       DateTime?     @map("last_attempted_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId])
+  @@index([status])
+  @@map("payments")
+}
+
+enum PaymentStatus {
+  scheduled
+  pending
+  succeeded
+  failed
+  refunded
+  canceled
+  // Off-session installment confirm hit SCA/3DS and needs the customer to
+  // authenticate on-session before it can be retried automatically.
+  requires_action
+
+  @@map("payment_status")
+}
