@@ -16,9 +16,17 @@ export default async function UserNav() {
     );
   }
 
+  const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
+
   return (
     <nav>
-      <span>{user.email}</span>{" "}
+      <Link href="/bookings">Your bookings</Link>{" "}
+      {profile?.role === "admin" && (
+        <>
+          · <Link href="/admin">Admin</Link>{" "}
+        </>
+      )}
+      · <span>{user.email}</span>{" "}
       <form action={logout} style={{ display: "inline" }}>
         <button type="submit">Log out</button>
       </form>

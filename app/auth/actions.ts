@@ -4,19 +4,29 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
+// `next` comes from a user-controlled query param (set by middleware.ts
+// when it bounces an unauthenticated user off a protected route) — only
+// accept a same-site relative path, never an absolute URL, to avoid an
+// open redirect.
+function safeRedirectPath(path: FormDataEntryValue | null): string {
+  const value = String(path ?? "");
+  return value.startsWith("/") && !value.startsWith("//") ? value : "/bookings";
+}
+
 export async function login(formData: FormData) {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
+  const next = safeRedirectPath(formData.get("next"));
 
   const supabase = createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`);
+    redirect(`/login?error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`);
   }
 
   revalidatePath("/", "layout");
-  redirect("/bookings");
+  redirect(next);
 }
 
 export async function signup(formData: FormData) {

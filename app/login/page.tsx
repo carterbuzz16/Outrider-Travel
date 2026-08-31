@@ -4,7 +4,7 @@ import { login } from "@/app/auth/actions";
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: { error?: string; message?: string };
+  searchParams: { error?: string; message?: string; next?: string };
 }) {
   return (
     <main>
@@ -14,6 +14,7 @@ export default function LoginPage({
       {searchParams.error && <p>Error: {searchParams.error}</p>}
 
       <form action={login}>
+        <input type="hidden" name="next" value={searchParams.next ?? ""} />
         <div>
           <label htmlFor="email">Email</label>
           <input id="email" name="email" type="email" required autoComplete="email" />
