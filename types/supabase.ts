@@ -55,6 +55,7 @@ export type Database = {
         Row: {
           created_at: string
           deposit_amount: number
+          group_code: string | null
           id: string
           status: Database["public"]["Enums"]["booking_status"]
           tier_id: string
@@ -65,6 +66,7 @@ export type Database = {
         Insert: {
           created_at?: string
           deposit_amount: number
+          group_code?: string | null
           id?: string
           status?: Database["public"]["Enums"]["booking_status"]
           tier_id: string
@@ -75,6 +77,7 @@ export type Database = {
         Update: {
           created_at?: string
           deposit_amount?: number
+          group_code?: string | null
           id?: string
           status?: Database["public"]["Enums"]["booking_status"]
           tier_id?: string

@@ -11,7 +11,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: { e
   const { data: bookings } = await supabase
     .from("bookings")
     .select(
-      "id, status, deposit_amount, trips(name, destination), tiers(name), payments(id, status, amount, scheduled_date)"
+      "id, status, deposit_amount, group_code, trips(name, destination), tiers(name), payments(id, status, amount, scheduled_date)"
     )
     .order("created_at", { ascending: false });
 
@@ -37,6 +37,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: { e
             <li key={booking.id}>
               {booking.trips?.name} ({booking.tiers?.name}) — {booking.status} — deposit $
               {booking.deposit_amount}
+              {booking.group_code && <> — group code: <strong>{booking.group_code}</strong></>}
               {booking.status === "pending" && (
                 <>
                   {" "}

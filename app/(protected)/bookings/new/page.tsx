@@ -45,6 +45,10 @@ export default async function NewBookingPage({
                 <form action={createBooking}>
                   <input type="hidden" name="tripId" value={trip.id} />
                   <input type="hidden" name="tierId" value={tier.id} />
+                  <label htmlFor={`group-code-${tier.id}`}>
+                    Traveling with friends? Enter their group code to join them (optional)
+                  </label>
+                  <input id={`group-code-${tier.id}`} name="group_code" type="text" maxLength={6} placeholder="e.g. K7XPQ2" />
                   <button type="submit">
                     Select — ${computeDepositAmount(tier.price).toFixed(2)} deposit due now
                   </button>

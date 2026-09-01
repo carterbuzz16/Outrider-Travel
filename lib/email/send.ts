@@ -68,9 +68,10 @@ export async function sendBookingConfirmationEmail(opts: {
   tierName: string;
   totalAmount: number;
   depositAmount: number;
+  groupCode: string | null;
   upcomingPayments: UpcomingPayment[];
 }) {
-  const { to, name, bookingId, trip, tierName, totalAmount, depositAmount, upcomingPayments } = opts;
+  const { to, name, bookingId, trip, tierName, totalAmount, depositAmount, groupCode, upcomingPayments } = opts;
   const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi,";
   const remaining = totalAmount - depositAmount;
 
@@ -98,6 +99,12 @@ export async function sendBookingConfirmationEmail(opts: {
     <p style="white-space: pre-wrap;">${escapeHtml(trip.logistics)}</p>`
     : "";
 
+  const groupCodeHtml = groupCode
+    ? `
+    <p style="margin: 24px 0 8px; font-weight: 600;">Traveling with friends?</p>
+    <p>Share your group code so we know to room you together: <strong style="letter-spacing: 2px;">${escapeHtml(groupCode)}</strong></p>`
+    : "";
+
   const bodyHtml = `
     <p>${greeting}</p>
     <p>Your deposit is confirmed for <strong>${escapeHtml(trip.name)}</strong> — you're booked in.</p>
@@ -109,6 +116,7 @@ export async function sendBookingConfirmationEmail(opts: {
     </table>
     ${scheduleHtml}
     ${logisticsHtml}
+    ${groupCodeHtml}
   `;
 
   await sendEmail({

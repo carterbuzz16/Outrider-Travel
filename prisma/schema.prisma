@@ -90,6 +90,7 @@ model Booking {
   status        BookingStatus @default(pending)
   totalAmount   Decimal       @map("total_amount") @db.Decimal(10, 2)
   depositAmount Decimal       @map("deposit_amount") @db.Decimal(10, 2)
+  groupCode     String?       @map("group_code")
   createdAt     DateTime      @default(now()) @map("created_at")
 
   user     User      @relation(fields: [userId], references: [id])
@@ -100,6 +101,7 @@ model Booking {
   @@index([userId])
   @@index([tripId])
   @@index([status])
+  @@index([tripId, groupCode])
   @@map("bookings")
 }
 

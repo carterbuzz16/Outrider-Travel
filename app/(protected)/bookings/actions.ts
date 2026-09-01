@@ -7,10 +7,12 @@ import { getStripe } from "@/lib/stripe";
 import { computeDepositAmount } from "@/lib/deposit";
 import { getOrCreateStripeCustomerId } from "@/lib/customers";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { resolveGroupCode } from "@/lib/group-code";
 
 export async function createBooking(formData: FormData) {
   const tripId = String(formData.get("tripId") ?? "");
   const tierId = String(formData.get("tierId") ?? "");
+  const requestedGroupCode = String(formData.get("group_code") ?? "").trim() || null;
 
   const supabase = createClient();
   const {
@@ -54,6 +56,11 @@ export async function createBooking(formData: FormData) {
   // directly by an authenticated client.
   const admin = createAdminClient();
 
+  const groupCodeResult = await resolveGroupCode(admin, tripId, requestedGroupCode);
+  if ("error" in groupCodeResult) {
+    redirect(`/bookings/new?error=${encodeURIComponent(groupCodeResult.error)}`);
+  }
+
   const { data: booking, error: bookingError } = await admin
     .from("bookings")
     .insert({
@@ -63,6 +70,7 @@ export async function createBooking(formData: FormData) {
       status: "pending",
       total_amount: totalAmount,
       deposit_amount: depositAmount,
+      group_code: groupCodeResult.code,
     })
     .select("id")
     .single();

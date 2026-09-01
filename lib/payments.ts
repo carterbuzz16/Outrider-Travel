@@ -26,7 +26,7 @@ async function getBookingContext(admin: SupabaseClient<Database>, bookingId: str
   const { data } = await admin
     .from("bookings")
     .select(
-      "total_amount, deposit_amount, users(email, name), trips(name, destination, start_date, end_date, logistics), tiers(name)"
+      "total_amount, deposit_amount, group_code, users(email, name), trips(name, destination, start_date, end_date, logistics), tiers(name)"
     )
     .eq("id", bookingId)
     .single();
@@ -196,6 +196,7 @@ export async function handlePaymentIntentSucceeded(paymentIntent: Stripe.Payment
           tierName: context.tiers!.name,
           totalAmount: context.total_amount,
           depositAmount: context.deposit_amount,
+          groupCode: context.group_code,
           upcomingPayments: (upcoming ?? []).map((p) => ({
             amount: p.amount,
             scheduledDate: p.scheduled_date,
