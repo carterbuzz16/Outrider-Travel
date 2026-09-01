@@ -119,7 +119,7 @@ export default async function AdminTripDetailPage({
         <ul>
           {trip.tiers.map((tier) => (
             <li key={tier.id}>
-              <strong>{tier.name}</strong> — ${tier.price} (max {tier.max_capacity})
+              <strong>{tier.name}</strong> — ${tier.price} ({tier.max_capacity === null ? "no capacity limit" : `max ${tier.max_capacity}`})
               {tier.description && <p>{tier.description}</p>}
               {tier.inclusions && tier.inclusions.length > 0 && <p>Includes: {tier.inclusions.join(", ")}</p>}
               <form action={deleteTier}>
@@ -144,8 +144,8 @@ export default async function AdminTripDetailPage({
           <input id="tier-price" name="price" type="number" step="0.01" min="0" required />
         </div>
         <div>
-          <label htmlFor="tier-max-capacity">Max capacity</label>
-          <input id="tier-max-capacity" name="max_capacity" type="number" min="1" required />
+          <label htmlFor="tier-max-capacity">Max capacity (leave blank for no limit)</label>
+          <input id="tier-max-capacity" name="max_capacity" type="number" min="1" />
         </div>
         <div>
           <label htmlFor="tier-description">Description</label>

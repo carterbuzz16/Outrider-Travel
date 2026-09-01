@@ -155,7 +155,7 @@ export type Database = {
           description: string | null
           id: string
           inclusions: string[] | null
-          max_capacity: number
+          max_capacity: number | null
           name: string
           price: number
           trip_id: string
@@ -164,7 +164,7 @@ export type Database = {
           description?: string | null
           id?: string
           inclusions?: string[] | null
-          max_capacity: number
+          max_capacity?: number | null
           name: string
           price: number
           trip_id: string
@@ -173,7 +173,7 @@ export type Database = {
           description?: string | null
           id?: string
           inclusions?: string[] | null
-          max_capacity?: number
+          max_capacity?: number | null
           name?: string
           price?: number
           trip_id?: string

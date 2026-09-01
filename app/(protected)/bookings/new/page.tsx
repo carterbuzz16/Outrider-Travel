@@ -40,7 +40,7 @@ export default async function NewBookingPage({
           <ul>
             {trip.tiers.map((tier) => (
               <li key={tier.id}>
-                <strong>{tier.name}</strong> — ${tier.price} (max {tier.max_capacity})
+                <strong>{tier.name}</strong> — ${tier.price} ({tier.max_capacity === null ? "no capacity limit" : `max ${tier.max_capacity}`})
                 {tier.description && <p>{tier.description}</p>}
                 <form action={createBooking}>
                   <input type="hidden" name="tripId" value={trip.id} />

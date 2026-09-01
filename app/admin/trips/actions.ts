@@ -222,7 +222,8 @@ export async function addTier(formData: FormData) {
   const name = String(formData.get("name") ?? "");
   const price = Number(formData.get("price"));
   const description = String(formData.get("description") ?? "") || null;
-  const maxCapacity = Number(formData.get("max_capacity"));
+  const maxCapacityRaw = String(formData.get("max_capacity") ?? "").trim();
+  const maxCapacity = maxCapacityRaw === "" ? null : Number(maxCapacityRaw);
   const inclusionsRaw = String(formData.get("inclusions") ?? "");
   const inclusions = inclusionsRaw
     .split(",")

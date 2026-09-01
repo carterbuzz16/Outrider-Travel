@@ -1,6 +1,19 @@
 import { Resend } from "resend";
 import { renderEmailLayout, formatCurrency, formatDate } from "@/lib/email/layout";
 
+// resend.emails.send() resolves with { data, error } rather than throwing
+// on an API-level failure (e.g. an unverified domain) — it only throws on
+// a network-level error. Without this wrapper, a real send failure would
+// silently return undefined instead of surfacing anywhere, including
+// through the sendEmailSafely try/catch in lib/payments.ts.
+async function sendEmail(params: Parameters<Resend["emails"]["send"]>[0]) {
+  const { data, error } = await getResend().emails.send(params);
+  if (error) {
+    throw new Error(`Resend send failed: ${error.name} — ${error.message}`);
+  }
+  return data;
+}
+
 let resendInstance: Resend | undefined;
 
 // Lazily constructed, same reasoning as lib/stripe.ts: a missing
@@ -98,7 +111,7 @@ export async function sendBookingConfirmationEmail(opts: {
     ${logisticsHtml}
   `;
 
-  await getResend().emails.send({
+  await sendEmail({
     from: getFromAddress(),
     to,
     subject: `You're booked: ${trip.name}`,
@@ -132,7 +145,7 @@ export async function sendInstallmentChargedEmail(opts: {
     }</p>
   `;
 
-  await getResend().emails.send({
+  await sendEmail({
     from: getFromAddress(),
     to,
     subject: `Payment received: ${tripName}`,
@@ -166,7 +179,7 @@ export async function sendPaymentFailedEmail(opts: {
     }</p>
   `;
 
-  await getResend().emails.send({
+  await sendEmail({
     from: getFromAddress(),
     to,
     subject: `Action needed: payment failed for ${tripName}`,
@@ -196,7 +209,7 @@ export async function sendActionRequiredEmail(opts: {
     <p>Nothing will be charged until you complete verification.</p>
   `;
 
-  await getResend().emails.send({
+  await sendEmail({
     from: getFromAddress(),
     to,
     subject: `Action needed: verify your payment for ${tripName}`,

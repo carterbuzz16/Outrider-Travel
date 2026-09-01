@@ -73,7 +73,7 @@ model Tier {
   price       Decimal @db.Decimal(10, 2)
   description String?
   inclusions  String[]
-  maxCapacity Int     @map("max_capacity")
+  maxCapacity Int?    @map("max_capacity")
 
   trip     Trip      @relation(fields: [tripId], references: [id])
   bookings Booking[]
