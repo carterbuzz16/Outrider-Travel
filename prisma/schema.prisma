@@ -48,6 +48,7 @@ model Trip {
   startDate   DateTime   @map("start_date") @db.Date
   endDate     DateTime   @map("end_date") @db.Date
   description String?
+  logistics   String?
   status      TripStatus @default(draft)
   images      String[]   @default([])
 

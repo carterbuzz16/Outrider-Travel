@@ -26,6 +26,12 @@ export default function NewTripPage() {
           <textarea id="description" name="description" />
         </div>
         <div>
+          <label htmlFor="logistics">
+            Logistics (flights, packing, meeting point — included in the confirmation email)
+          </label>
+          <textarea id="logistics" name="logistics" />
+        </div>
+        <div>
           <label htmlFor="status">Status</label>
           <select id="status" name="status" defaultValue="draft">
             <option value="draft">Draft (hidden from customers)</option>

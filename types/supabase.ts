@@ -195,6 +195,7 @@ export type Database = {
           end_date: string
           id: string
           images: string[]
+          logistics: string | null
           name: string
           start_date: string
           status: Database["public"]["Enums"]["trip_status"]
@@ -205,6 +206,7 @@ export type Database = {
           end_date: string
           id?: string
           images?: string[]
+          logistics?: string | null
           name: string
           start_date: string
           status?: Database["public"]["Enums"]["trip_status"]
@@ -215,6 +217,7 @@ export type Database = {
           end_date?: string
           id?: string
           images?: string[]
+          logistics?: string | null
           name?: string
           start_date?: string
           status?: Database["public"]["Enums"]["trip_status"]

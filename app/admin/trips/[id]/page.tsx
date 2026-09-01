@@ -25,7 +25,7 @@ export default async function AdminTripDetailPage({
   const { data: trip } = await admin
     .from("trips")
     .select(
-      "id, name, destination, start_date, end_date, description, status, images, tiers(id, name, price, description, max_capacity, inclusions)"
+      "id, name, destination, start_date, end_date, description, logistics, status, images, tiers(id, name, price, description, max_capacity, inclusions)"
     )
     .eq("id", params.id)
     .single();
@@ -62,6 +62,12 @@ export default async function AdminTripDetailPage({
         <div>
           <label htmlFor="description">Description</label>
           <textarea id="description" name="description" defaultValue={trip.description ?? ""} />
+        </div>
+        <div>
+          <label htmlFor="logistics">
+            Logistics (flights, packing, meeting point — included in the confirmation email)
+          </label>
+          <textarea id="logistics" name="logistics" defaultValue={trip.logistics ?? ""} />
         </div>
         <button type="submit">Save details</button>
       </form>

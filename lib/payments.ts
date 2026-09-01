@@ -2,6 +2,36 @@ import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { scheduleInstallments } from "@/lib/installments";
+import {
+  sendBookingConfirmationEmail,
+  sendInstallmentChargedEmail,
+  sendPaymentFailedEmail,
+  sendActionRequiredEmail,
+} from "@/lib/email/send";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/supabase";
+
+// Best-effort: a failed email send shouldn't fail the webhook (Stripe
+// retries on non-2xx, which would just fail the same way again and delay
+// retrying the part that matters — the DB write already succeeded above).
+async function sendEmailSafely(send: () => Promise<unknown>) {
+  try {
+    await send();
+  } catch (err) {
+    console.error(`Email send failed: ${err instanceof Error ? err.message : err}`);
+  }
+}
+
+async function getBookingContext(admin: SupabaseClient<Database>, bookingId: string) {
+  const { data } = await admin
+    .from("bookings")
+    .select(
+      "total_amount, deposit_amount, users(email, name), trips(name, destination, start_date, end_date, logistics), tiers(name)"
+    )
+    .eq("id", bookingId)
+    .single();
+  return data;
+}
 
 // Retry after 3 days on a real decline; flag (stop auto-retrying) once this
 // many total attempts have failed. Doesn't count requires_action — SCA
@@ -77,6 +107,27 @@ export async function handlePaymentIntentSucceeded(paymentIntent: Stripe.Payment
     if (!outstanding || outstanding.length === 0) {
       await admin.from("bookings").update({ status: "paid_in_full" }).eq("id", bookingId);
     }
+
+    const context = await getBookingContext(admin, bookingId);
+    if (context?.users?.email) {
+      const { data: remainingRows } = await admin
+        .from("payments")
+        .select("amount")
+        .eq("booking_id", bookingId)
+        .neq("status", "succeeded");
+      const remainingBalance = (remainingRows ?? []).reduce((sum, p) => sum + p.amount, 0);
+
+      await sendEmailSafely(() =>
+        sendInstallmentChargedEmail({
+          to: context.users!.email,
+          name: context.users!.name,
+          bookingId,
+          tripName: context.trips!.name,
+          amount: paymentIntent.amount / 100,
+          remainingBalance,
+        })
+      );
+    }
     return;
   }
 
@@ -120,6 +171,38 @@ export async function handlePaymentIntentSucceeded(paymentIntent: Stripe.Payment
 
   if (booking) {
     await scheduleInstallments(admin, booking);
+
+    const context = await getBookingContext(admin, bookingId);
+    if (context?.users?.email) {
+      const { data: upcoming } = await admin
+        .from("payments")
+        .select("amount, scheduled_date")
+        .eq("booking_id", bookingId)
+        .eq("status", "scheduled")
+        .order("scheduled_date");
+
+      await sendEmailSafely(() =>
+        sendBookingConfirmationEmail({
+          to: context.users!.email,
+          name: context.users!.name,
+          bookingId,
+          trip: {
+            name: context.trips!.name,
+            destination: context.trips!.destination,
+            startDate: context.trips!.start_date,
+            endDate: context.trips!.end_date,
+            logistics: context.trips!.logistics,
+          },
+          tierName: context.tiers!.name,
+          totalAmount: context.total_amount,
+          depositAmount: context.deposit_amount,
+          upcomingPayments: (upcoming ?? []).map((p) => ({
+            amount: p.amount,
+            scheduledDate: p.scheduled_date,
+          })),
+        })
+      );
+    }
   }
 }
 
@@ -157,15 +240,44 @@ export async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentInt
       .from("payments")
       .update({ status: "requires_action", stripe_payment_intent_id: paymentIntent.id })
       .eq("id", paymentId);
+
+    const context = await getBookingContext(admin, bookingId);
+    if (context?.users?.email) {
+      await sendEmailSafely(() =>
+        sendActionRequiredEmail({
+          to: context.users!.email,
+          name: context.users!.name,
+          bookingId,
+          paymentId,
+          tripName: context.trips!.name,
+          amount: paymentIntent.amount / 100,
+        })
+      );
+    }
     return;
   }
 
   const { data: current } = await admin.from("payments").select("attempt_count").eq("id", paymentId).single();
   const attemptCount = (current?.attempt_count ?? 0) + 1;
-  const status = attemptCount >= MAX_INSTALLMENT_ATTEMPTS ? "failed" : "scheduled";
+  const willRetry = attemptCount < MAX_INSTALLMENT_ATTEMPTS;
+  const status = willRetry ? "scheduled" : "failed";
 
   await admin
     .from("payments")
     .update({ status, attempt_count: attemptCount, stripe_payment_intent_id: paymentIntent.id })
     .eq("id", paymentId);
+
+  const context = await getBookingContext(admin, bookingId);
+  if (context?.users?.email) {
+    await sendEmailSafely(() =>
+      sendPaymentFailedEmail({
+        to: context.users!.email,
+        name: context.users!.name,
+        bookingId,
+        tripName: context.trips!.name,
+        amount: paymentIntent.amount / 100,
+        willRetry,
+      })
+    );
+  }
 }

@@ -39,6 +39,7 @@ export async function createTrip(formData: FormData) {
   const startDate = String(formData.get("start_date") ?? "");
   const endDate = String(formData.get("end_date") ?? "");
   const description = String(formData.get("description") ?? "") || null;
+  const logistics = String(formData.get("logistics") ?? "") || null;
   const status = parseTripStatus(formData.get("status"));
 
   const admin = createAdminClient();
@@ -50,6 +51,7 @@ export async function createTrip(formData: FormData) {
       start_date: startDate,
       end_date: endDate,
       description,
+      logistics,
       status,
     })
     .select("id")
@@ -87,11 +89,12 @@ export async function updateTrip(formData: FormData) {
   const startDate = String(formData.get("start_date") ?? "");
   const endDate = String(formData.get("end_date") ?? "");
   const description = String(formData.get("description") ?? "") || null;
+  const logistics = String(formData.get("logistics") ?? "") || null;
 
   const admin = createAdminClient();
   const { error } = await admin
     .from("trips")
-    .update({ name, destination, start_date: startDate, end_date: endDate, description })
+    .update({ name, destination, start_date: startDate, end_date: endDate, description, logistics })
     .eq("id", tripId);
 
   if (error) {
