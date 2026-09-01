@@ -13,11 +13,17 @@ function getResend(): Resend {
   return resendInstance;
 }
 
-// Resend's sandbox sender (onboarding@resend.dev) works with no domain
-// verification, so this has a working default before a real domain is
-// set up — swap EMAIL_FROM_ADDRESS once one is verified in Resend.
+// Resend requires a verified sending domain — there's no zero-setup
+// sandbox sender anymore. EMAIL_FROM_ADDRESS must use a domain verified in
+// Resend's dashboard (Domains -> Add Domain), or every send fails with a
+// "domain is invalid" 422.
 function getFromAddress(): string {
-  return process.env.EMAIL_FROM_ADDRESS ?? "Outrider <onboarding@resend.dev>";
+  if (!process.env.EMAIL_FROM_ADDRESS) {
+    throw new Error(
+      "EMAIL_FROM_ADDRESS is not set. Verify a domain in Resend (Domains -> Add Domain) and set this to an address on it, e.g. 'Outrider <bookings@yourdomain.com>'."
+    );
+  }
+  return process.env.EMAIL_FROM_ADDRESS;
 }
 
 // VERCEL_URL has no protocol and is only set on Vercel; NEXT_PUBLIC_APP_URL
