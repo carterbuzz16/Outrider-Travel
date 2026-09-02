@@ -5,6 +5,7 @@ import React, { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
+import './parallax-scrolling.css';
 
 export function ParallaxComponent() {
   const parallaxRef = useRef<HTMLDivElement>(null);

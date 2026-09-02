@@ -1,0 +1,140 @@
+/* Placeholder brand palette (navy/gold), matching lib/email/layout.ts —
+   swap both together once real brand colors exist. */
+
+.parallax {
+  position: relative;
+  background: #0f1b2d;
+}
+
+.parallax__header {
+  position: relative;
+  height: 100svh;
+  min-height: 480px;
+  overflow: hidden;
+}
+
+.parallax__visuals {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* Taller than its container so the yPercent transforms in the component
+   have room to move without ever revealing empty space at the edges. */
+.parallax__layers {
+  position: relative;
+  width: 100%;
+  height: 130%;
+}
+
+.parallax__layer-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Layer 4 (yPercent 10 — moves least): full-bleed background plate. */
+.parallax__layer-img[data-parallax-layer="4"] {
+  z-index: 1;
+  filter: brightness(0.55) saturate(1.05);
+}
+
+/* Layer 1 (yPercent 70 — moves most): the "floating" framed photo up front. */
+.parallax__layer-img[data-parallax-layer="1"] {
+  top: 8%;
+  left: 50%;
+  z-index: 3;
+  width: min(70vw, 640px);
+  height: 60%;
+  object-position: center 30%;
+  border-radius: 4px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+  transform: translateX(-50%);
+}
+
+/* Layer 2 (yPercent 55): a softer duplicate just behind layer 1, giving the
+   frame a sense of depth as the two drift apart on scroll. */
+.parallax__layer-img[data-parallax-layer="2"] {
+  top: 8%;
+  left: 50%;
+  z-index: 2;
+  width: min(70vw, 640px);
+  height: 60%;
+  object-position: center 30%;
+  border-radius: 4px;
+  opacity: 0.35;
+  transform: translateX(-50%) scale(1.06);
+}
+
+/* Layer 3 (yPercent 40): the title, drifting at a rate between the two
+   photo layers so it reads as sitting in front of the background but
+   behind the floating frame. */
+.parallax__layer-title {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 8%;
+  pointer-events: none;
+}
+
+.parallax__title {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.5rem, 8vw, 6rem);
+  letter-spacing: 0.08em;
+  color: #c9a227;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+
+.parallax__black-line-overflow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  height: 2px;
+  background: #0f1b2d;
+}
+
+.parallax__fade {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 5;
+  height: 25%;
+  background: linear-gradient(to bottom, transparent, #0f1b2d);
+  pointer-events: none;
+}
+
+.parallax__content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1.5rem;
+  background: #0f1b2d;
+}
+
+.osmo-icon-svg {
+  width: 48px;
+  height: 48px;
+  color: #c9a227;
+}
+
+@media (min-width: 768px) {
+  .parallax__content {
+    padding: 6rem 1.5rem;
+  }
+
+  .osmo-icon-svg {
+    width: 64px;
+    height: 64px;
+  }
+}
