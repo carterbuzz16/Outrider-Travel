@@ -135,6 +135,14 @@ model Payment {
   @@map("payments")
 }
 
+model WaitlistSignup {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("waitlist_signups")
+}
+
 enum PaymentStatus {
   scheduled
   pending
