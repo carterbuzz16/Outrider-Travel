@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import UserNav from "@/components/UserNav";
 
 // Admin routes require both a logged-in user and role = 'admin'. The role
 // check reads public.users through the signed-in user's own Supabase
@@ -25,5 +26,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect("/bookings");
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <UserNav />
+      {children}
+    </>
+  );
 }

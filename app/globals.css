@@ -5,6 +5,22 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /*
+   * Outrider brand colours, sampled from the source comps rather than picked
+   * by eye. The nominal values are the PDFs' own fill operands; the hexes are
+   * those colours after the comps' ICC profile resolves to sRGB, which is
+   * what the artboard actually looks like on screen.
+   *
+   * The brief named a sage-grey (#9AA09A) left panel and a cream (#F1E9DC)
+   * wordmark; the comps use the teal and the dimmer warm grey below. The
+   * comps win here because they were the stated visual reference, but each is
+   * a one-line change if the brief was the newer intent.
+   */
+  --outrider-teal: #4c8591;            /* nominal 0.3 0.52 0.57   */
+  --outrider-mark: #1a557b;            /* nominal 0.055 0.282 0.463 */
+  --outrider-cream: #e0d9d3;           /* nominal 0.878 0.851 0.827 */
+  --outrider-photo-backdrop: #141c0a;  /* nominal 0.08 0.11 0.04  */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -24,4 +40,17 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+/* Visually hidden, still read aloud. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }

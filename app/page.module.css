@@ -1,0 +1,113 @@
+/*
+ * Coming-soon landing page.
+ *
+ * Every number below is measured from the source comp (OUTRIDER 1.pdf, a
+ * 1224x792pt artboard) rather than eyeballed, so the layout is the comp at
+ * any viewport size:
+ *
+ *   split          left panel is 0..612 of 1224          -> 50 / 50
+ *   mark           ink 99.393 x 83.367pt, centre (306,396)
+ *                  -> dead centre of the left panel, both axes
+ *                  -> 99.393 / 612 = 16.2407% of that panel's width
+ *   wordmark       ink 106.2 x 14.425pt, right edge at x=1188
+ *                  -> centre y is also exactly 396, i.e. the mark and the
+ *                     wordmark sit on one shared centreline
+ *                  -> 106.2 / 612 = 17.3529% of the photo panel's width
+ *                  -> 1224-1188 = 36pt inset = 5.8824% of that panel
+ *
+ * Both marks are sized with min(% of panel, vh) so they hold the comp's
+ * proportions instead of ballooning on a wide window or overflowing a short
+ * one. The two terms are equal at the comp's own 1224x792 aspect, so at that
+ * ratio this renders the artboard exactly; away from it, whichever axis is
+ * scarcer wins.
+ */
+
+.page {
+  display: flex;
+  /* svh keeps the split honest under mobile browser chrome; the vh above it
+     is the fallback for engines that don't know the small-viewport units. */
+  height: 100vh;
+  height: 100svh;
+  /* The whole page is the hero: nothing scrolls. */
+  overflow: hidden;
+}
+
+/* ---- left: brand panel ------------------------------------------------ */
+
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50%;
+  background: var(--outrider-teal);
+}
+
+.mark {
+  width: min(16.2407%, 12.549vh);
+  height: auto;
+  color: var(--outrider-mark);
+}
+
+/* ---- right: photo panel ----------------------------------------------- */
+
+.photo {
+  position: relative;
+  width: 50%;
+  /* Shows through only while the photo decodes, and behind its edges on
+     aspect ratios the crop cannot quite fill. Taken from the comp, which
+     paints this flat colour under the image for the same reason. */
+  background: var(--outrider-photo-backdrop);
+}
+
+.photoImage {
+  object-fit: cover;
+}
+
+.wordmark {
+  position: absolute;
+  /* Vertically centred, matching the mark's centreline in the comp. */
+  top: 50%;
+  right: 5.8824%;
+  width: min(17.3529%, 13.409vh);
+  height: auto;
+  margin: 0;
+  transform: translateY(-50%);
+  color: var(--outrider-cream);
+}
+
+/* ---- stacked layout ---------------------------------------------------- */
+
+/*
+ * Below the split's useful width the two panels stack: brand band on top,
+ * photo filling the rest. The comp gives no guidance here, so the band takes
+ * the 38 / 62 share the brief asks for, and the wordmark moves to the lower
+ * right — on a tall crop of a portrait photo, centring it would drop it onto
+ * the subject's face.
+ */
+@media (max-width: 48rem) {
+  .page {
+    flex-direction: column;
+  }
+
+  .brand {
+    width: 100%;
+    height: 38%;
+  }
+
+  .mark {
+    width: min(32%, 19vh);
+  }
+
+  .photo {
+    width: 100%;
+    height: 62%;
+  }
+
+  .wordmark {
+    top: auto;
+    bottom: 7%;
+    right: 8%;
+    width: min(34%, 9vh);
+    transform: none;
+  }
+}

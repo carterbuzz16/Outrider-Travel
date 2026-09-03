@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import UserNav from "@/components/UserNav";
 
 // Wraps any route that requires a logged-in user (e.g. booking pages).
 // Middleware already redirects logged-out requests before they get here —
@@ -15,5 +16,10 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     redirect("/login");
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <UserNav />
+      {children}
+    </>
+  );
 }
