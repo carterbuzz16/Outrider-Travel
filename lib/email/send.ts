@@ -230,6 +230,21 @@ export async function sendActionRequiredEmail(opts: {
   });
 }
 
+// Optional heads-up to the team when someone joins the waitlist. Silent
+// no-op unless WAITLIST_NOTIFY_TO is set, so the coming-soon page works
+// without it; the caller treats any failure here as non-fatal.
+export async function sendWaitlistNotification(email: string) {
+  const to = process.env.WAITLIST_NOTIFY_TO;
+  if (!to) return;
+
+  await sendEmail({
+    from: getFromAddress(),
+    to,
+    subject: "Outrider — new waitlist signup",
+    text: email,
+  });
+}
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")

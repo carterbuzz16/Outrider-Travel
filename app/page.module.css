@@ -1,113 +1,198 @@
 /*
- * Coming-soon landing page.
+ * Coming-soon landing page — a single full-viewport teal panel with the mark,
+ * wordmark, tagline and waitlist form stacked down the middle, and a slowly
+ * rotating badge pinned bottom-right.
  *
- * Every number below is measured from the source comp (OUTRIDER 1.pdf, a
- * 1224x792pt artboard) rather than eyeballed, so the layout is the comp at
- * any viewport size:
- *
- *   split          left panel is 0..612 of 1224          -> 50 / 50
- *   mark           ink 99.393 x 83.367pt, centre (306,396)
- *                  -> dead centre of the left panel, both axes
- *                  -> 99.393 / 612 = 16.2407% of that panel's width
- *   wordmark       ink 106.2 x 14.425pt, right edge at x=1188
- *                  -> centre y is also exactly 396, i.e. the mark and the
- *                     wordmark sit on one shared centreline
- *                  -> 106.2 / 612 = 17.3529% of the photo panel's width
- *                  -> 1224-1188 = 36pt inset = 5.8824% of that panel
- *
- * Both marks are sized with min(% of panel, vh) so they hold the comp's
- * proportions instead of ballooning on a wide window or overflowing a short
- * one. The two terms are equal at the comp's own 1224x792 aspect, so at that
- * ratio this renders the artboard exactly; away from it, whichever axis is
- * scarcer wins.
+ * Sizes are the comp's own clamp()/min() expressions, so the page holds its
+ * proportions from a phone up to a large display without breakpoints. The
+ * mark and wordmark are the brand vectors (components/Outrider*.tsx), which
+ * carry their own aspect ratios — only width is set here.
  */
 
 .page {
+  position: relative;
   display: flex;
-  /* svh keeps the split honest under mobile browser chrome; the vh above it
-     is the fallback for engines that don't know the small-viewport units. */
-  height: 100vh;
-  height: 100svh;
-  /* The whole page is the hero: nothing scrolls. */
-  overflow: hidden;
-}
-
-/* ---- left: brand panel ------------------------------------------------ */
-
-.brand {
-  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 50%;
+  min-height: 100vh;
+  min-height: 100svh;
+  width: 100%;
+  padding: clamp(56px, 10vh, 110px) 24px;
+  overflow: hidden;
   background: var(--outrider-teal);
+  color: var(--outrider-cream);
+  font-family: var(--font-dm-mono), ui-monospace, monospace;
+  font-weight: 300;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(22px, 4vh, 38px);
+  width: 100%;
+  max-width: 520px;
 }
 
 .mark {
-  width: min(16.2407%, 12.549vh);
+  width: clamp(64px, 10vh, 92px);
   height: auto;
-  color: var(--outrider-mark);
-}
-
-/* ---- right: photo panel ----------------------------------------------- */
-
-.photo {
-  position: relative;
-  width: 50%;
-  /* Shows through only while the photo decodes, and behind its edges on
-     aspect ratios the crop cannot quite fill. Taken from the comp, which
-     paints this flat colour under the image for the same reason. */
-  background: var(--outrider-photo-backdrop);
-}
-
-.photoImage {
-  object-fit: cover;
+  animation: rise 1s 0.15s both cubic-bezier(0.2, 0.7, 0.3, 1);
 }
 
 .wordmark {
-  position: absolute;
-  /* Vertically centred, matching the mark's centreline in the comp. */
-  top: 50%;
-  right: 5.8824%;
-  width: min(17.3529%, 13.409vh);
+  width: min(320px, 68vw);
   height: auto;
   margin: 0;
-  transform: translateY(-50%);
-  color: var(--outrider-cream);
+  animation: rise 1s 0.3s both cubic-bezier(0.2, 0.7, 0.3, 1);
 }
 
-/* ---- stacked layout ---------------------------------------------------- */
+.tagline {
+  margin: 0;
+  font-size: 13px;
+  line-height: 2.1;
+  letter-spacing: 0.2em;
+  text-align: center;
+  text-transform: uppercase;
+  text-wrap: balance;
+  color: rgb(241 233 220 / 0.85);
+  animation: rise 1s 0.45s both ease-out;
+}
+
+/* ---- waitlist form ----------------------------------------------------- */
+
+.form {
+  width: min(400px, 88vw);
+  animation: rise 1s 0.6s both ease-out;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid rgb(241 233 220 / 0.4);
+}
+
+.input {
+  flex: 1;
+  /* Without this the input's default intrinsic width refuses to shrink and
+     pushes the button off the edge on a narrow screen. */
+  min-width: 0;
+  padding: 12px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  outline: none;
+}
+
+.input::placeholder {
+  color: rgb(241 233 220 / 0.4);
+}
+
+.input:focus-visible {
+  /* The field's own underline is the focus affordance — brighten it rather
+     than painting a ring across a borderless input. */
+  box-shadow: 0 1px 0 0 var(--outrider-cream);
+}
+
+.submit {
+  padding: 12px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.submit:hover,
+.submit:focus-visible {
+  opacity: 1;
+}
+
+.input:disabled,
+.submit:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.status {
+  margin: 12px 0 0;
+  /* Holds the line even when empty, so a result never nudges the layout. */
+  min-height: 12px;
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgb(241 233 220 / 0.5);
+}
+
+/* ---- rotating badge ---------------------------------------------------- */
+
+.badge {
+  position: fixed;
+  right: clamp(24px, 4vw, 56px);
+  bottom: clamp(24px, 4vw, 56px);
+  width: clamp(108px, 12vw, 138px);
+  height: clamp(108px, 12vw, 138px);
+  opacity: 0.72;
+  animation: rise 1.2s 0.85s both ease-out;
+}
+
+.badgeSpin {
+  width: 100%;
+  height: 100%;
+  animation: spin 60s linear infinite;
+}
+
+.badgeText {
+  fill: var(--outrider-cream);
+  font-family: var(--font-dm-mono), ui-monospace, monospace;
+  font-size: 14.5px;
+  letter-spacing: 3px;
+}
+
+/* ---- motion ------------------------------------------------------------ */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 /*
- * Below the split's useful width the two panels stack: brand band on top,
- * photo filling the rest. The comp gives no guidance here, so the band takes
- * the 38 / 62 share the brief asks for, and the wordmark moves to the lower
- * right — on a tall crop of a portrait photo, centring it would drop it onto
- * the subject's face.
+ * The entrance stagger is decoration, and a 60s infinite rotation is exactly
+ * the kind of persistent movement that triggers vestibular symptoms — so for
+ * anyone who has asked for less motion, everything simply starts in its
+ * final state.
  */
-@media (max-width: 48rem) {
-  .page {
-    flex-direction: column;
-  }
-
-  .brand {
-    width: 100%;
-    height: 38%;
-  }
-
-  .mark {
-    width: min(32%, 19vh);
-  }
-
-  .photo {
-    width: 100%;
-    height: 62%;
-  }
-
-  .wordmark {
-    top: auto;
-    bottom: 7%;
-    right: 8%;
-    width: min(34%, 9vh);
-    transform: none;
+@media (prefers-reduced-motion: reduce) {
+  .mark,
+  .wordmark,
+  .tagline,
+  .form,
+  .badge,
+  .badgeSpin {
+    animation: none;
   }
 }
