@@ -15,7 +15,13 @@ export type JoinResult = { ok: true } | { ok: false; message: string };
 // sending only, in which case give this one a key that can write contacts;
 // otherwise it falls back and the single key does both.
 function contactsClient(): Resend {
-  return new Resend(process.env.RESEND_CONTACTS_API_KEY || process.env.RESEND_API_KEY);
+  const key = process.env.RESEND_CONTACTS_API_KEY || process.env.RESEND_API_KEY;
+  // new Resend(undefined) throws rather than returning an error, so check
+  // first and let the caller turn it into an ordinary failed sync.
+  if (!key) {
+    throw new Error("Neither RESEND_CONTACTS_API_KEY nor RESEND_API_KEY is set.");
+  }
+  return new Resend(key);
 }
 
 function clientIp(): string {
@@ -41,7 +47,26 @@ export async function joinWaitlist(rawEmail: string): Promise<JoinResult> {
   // on the slower one rather than the sum. The table is the durable record
   // we control; the Resend audience is what the list actually gets mailed
   // from. Neither is allowed to sink the other.
-  const [stored, synced] = await Promise.all([storeSignup(email), addToAudience(email)]);
+  //
+  // allSettled, not all: `all` rejects the moment one side throws, which on
+  // a serverless host tears the invocation down with the other write still
+  // in flight — that silently dropped signups depending on which finished
+  // first. Settling both means the insert is always awaited to completion.
+  const [storedResult, syncedResult] = await Promise.allSettled([
+    storeSignup(email),
+    addToAudience(email),
+  ]);
+
+  const stored =
+    storedResult.status === "fulfilled" ? storedResult.value : { ok: false, isNew: false };
+  const synced = syncedResult.status === "fulfilled" && syncedResult.value;
+
+  if (storedResult.status === "rejected") {
+    console.error("Waitlist insert threw:", storedResult.reason);
+  }
+  if (syncedResult.status === "rejected") {
+    console.error("Resend audience sync threw:", syncedResult.reason);
+  }
 
   // Only a total loss is worth telling them about: if either side captured
   // the address, they are on the list and saying otherwise would push them
