@@ -1,19 +1,24 @@
-// Table-based layout with inline styles — not a stylistic choice, it's
-// what's actually required for this to render consistently across email
-// clients (Outlook desktop renders HTML via Word's engine, which ignores
-// most modern CSS and strips <style> blocks in many contexts).
+// Table-based layout with inline styles. Not a stylistic choice, it is what
+// is actually required to render consistently across email clients (Outlook
+// desktop renders HTML through Word's engine, which ignores most modern CSS
+// and strips <style> blocks in many contexts).
 //
-// Colors/wordmark here are a placeholder, not real brand assets — swap
-// BRAND.name for a real <img> logo and adjust the palette once a proper
-// brand pass happens.
+// The palette is the real one from app/globals.css. Two constraints carried
+// over from there, because they apply just as much in an inbox:
+//   - brand teal (#4C8591) is a mid tone and is not legible at text size, so
+//     anything read uses --color-teal-deep (#37646E), which clears 5.4:1
+//     against cream;
+//   - cream on charcoal is 14.4:1, which is what the header relies on.
 const BRAND = {
   name: "OUTRIDER",
-  navy: "#0F1B2D",
-  gold: "#C9A227",
-  text: "#1F2937",
-  muted: "#6B7280",
-  border: "#E5E7EB",
-  bg: "#F3F4F6",
+  charcoal: "#1A1A1A",
+  teal: "#37646E",
+  cream: "#F1E9DC",
+  paper: "#FAF6EF",
+  text: "#1A1A1A",
+  muted: "#6B6B6B",
+  border: "#E6DCCC",
+  bg: "#F1E9DC",
 };
 
 export function formatCurrency(amount: number): string {
@@ -49,8 +54,8 @@ export function renderEmailLayout(opts: { preheader: string; bodyHtml: string; c
       <td style="padding: 8px 32px 32px;">
         <table role="presentation" cellpadding="0" cellspacing="0" border="0">
           <tr>
-            <td style="border-radius: 6px; background-color: ${BRAND.navy};">
-              <a href="${ctaUrl}" target="_blank" style="display: inline-block; padding: 16px 32px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 16px; font-weight: 600; color: #FFFFFF; text-decoration: none;">${ctaLabel}</a>
+            <td style="border-radius: 2px; background-color: ${BRAND.teal};">
+              <a href="${ctaUrl}" target="_blank" style="display: inline-block; padding: 16px 32px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 16px; font-weight: 600; color: ${BRAND.cream}; text-decoration: none;">${ctaLabel}</a>
             </td>
           </tr>
         </table>
@@ -72,8 +77,8 @@ export function renderEmailLayout(opts: { preheader: string; bodyHtml: string; c
       <td align="center" style="padding: 32px 16px;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%; max-width: 600px; background-color: #FFFFFF; border-radius: 8px; overflow: hidden; border: 1px solid ${BRAND.border};">
           <tr>
-            <td style="background-color: ${BRAND.navy}; padding: 24px 32px;">
-              <span style="font-family: Georgia, 'Times New Roman', serif; font-size: 22px; letter-spacing: 2px; color: ${BRAND.gold};">${BRAND.name}</span>
+            <td style="background-color: ${BRAND.charcoal}; padding: 24px 32px;">
+              <span style="font-family: 'SFMono-Regular', Menlo, Consolas, monospace; font-size: 20px; letter-spacing: 4px; color: ${BRAND.cream};">${BRAND.name}</span>
             </td>
           </tr>
           <tr>

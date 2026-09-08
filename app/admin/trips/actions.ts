@@ -20,7 +20,7 @@ function parseTripStatus(value: FormDataEntryValue | null): TripStatus {
 // triggering page ever rendered — the admin/layout.tsx gate alone isn't
 // enough. Same role check, duplicated here for defense in depth.
 async function requireAdmin() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

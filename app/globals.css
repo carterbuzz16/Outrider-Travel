@@ -2,51 +2,545 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ==========================================================================
+   OUTRIDER — design tokens
+   --------------------------------------------------------------------------
+   Three layers, in order:
+     1. Brand      the seven fixed brand colours, plus values derived from them
+     2. Semantic   what a colour is *for* (surface, text, rule, accent)
+     3. Scheme     a scope that re-points the semantic layer, so a component
+                   dropped on a dark panel restyles itself with no props
+   Components read the semantic layer only. Nothing below this file should
+   reference a brand hex directly.
+   ========================================================================== */
 
-  /*
-   * Outrider brand colours. Both are the landing comp's own values, and both
-   * match the vectors the mark and wordmark were lifted from.
-   */
-  --outrider-teal: #4c8591;
-  --outrider-cream: #f1e9dc;
+:root {
+  /* ---- 1. brand ---------------------------------------------------------- */
+  --color-teal: #4c8591;
+  --color-sage: #9aa09a;
+  --color-burnt-orange: #c6672d;
+  --color-forest: #1f2a0f;
+  --color-sky: #a9c2d4;
+  --color-cream: #f1e9dc;
+  --color-charcoal: #1a1a1a;
+
+  /* Derived — mixed from the brand seven, never sampled from anywhere else.
+     Kept as literals rather than color-mix() so they're stable in every
+     browser and legible in devtools. */
+  --color-teal-deep: #37646e;   /* teal, two steps down — 6.1:1 on paper      */
+  --color-teal-ink: #2a4e57;    /* deeper still — pressed states, hovers      */
+  --color-teal-light: #759ea4;  /* teal lifted toward cream — 6.0:1 on charcoal */
+  --color-teal-tint: #e2ecee;   /* teal at ~12% on paper — quiet fills        */
+  --color-ember-ink: #9e501f;   /* burnt orange, darkened — 5.4:1 on paper    */
+  --color-paper: #faf6ef;       /* cream lifted toward white — page ground    */
+  --color-bone: #e6dccc;        /* cream dropped a step — inset panels        */
+  --color-ash: #6b6b6b;         /* 5.0:1 on paper — secondary text on light   */
+  --color-stone: #686765;       /* 5.2:1 on paper — muted text on light       */
+
+  /* Contrast, decided once and encoded here rather than re-litigated per page:
+     brand teal (#4C8591) is a mid-tone. It clears 3:1 against paper and against
+     cream, so it is safe as a *surface*, a rule or a graphic — but nothing at
+     text size is legible on it or in it. Small text in teal uses --color-teal-deep;
+     a filled teal button uses that same value as its ground. Burnt orange behaves
+     the same way: fine as a 1px rule or a marker square, --color-ember-ink when
+     it has to be read. */
+
+  /* Channel triplets, for the handful of places that need an alpha ramp
+     (hairlines, scrims, focus rings) without a second hard-coded colour. */
+  --rgb-cream: 241 233 220;
+  --rgb-charcoal: 26 26 26;
+  --rgb-teal: 76 133 145;
+  --rgb-forest: 31 42 15;
+
+  /* ---- 2. semantic (light / paper is the default scheme) ----------------- */
+  --surface: var(--color-paper);
+  --surface-raised: #ffffff;
+  /* Fills and graphics only. Bone is a mid tone: --text-secondary sits on it
+     at 3.9:1 and --flag-ink at 4.3:1, both under AA. Anything carrying small
+     secondary text belongs on --surface-raised. */
+  --surface-inset: var(--color-bone);
+  --surface-inverse: var(--color-forest);
+
+  --text: var(--color-charcoal);
+  --text-secondary: var(--color-ash);
+  --text-muted: var(--color-stone);
+  --text-on-accent: var(--color-cream);
+
+  --rule: rgb(var(--rgb-charcoal) / 0.16);      /* the hairline. 1px, always. */
+  --rule-strong: rgb(var(--rgb-charcoal) / 0.42);
+  --rule-faint: rgb(var(--rgb-charcoal) / 0.08);
+
+  /* --accent is the readable one (text, rules); --accent-solid is the ground a
+     filled control sits on, and --accent-contrast the label that goes on it. */
+  --accent: var(--color-teal-deep);
+  --accent-solid: var(--color-teal-deep);
+  --accent-solid-hover: var(--color-teal-ink);
+  --accent-contrast: var(--color-cream);
+
+  --flag: var(--color-burnt-orange);            /* sparing. status, not decor. */
+  --flag-ink: var(--color-ember-ink);           /* the same flag, at text size */
+
+  --focus-ring: var(--color-teal-deep);
+  --scrim: rgb(var(--rgb-forest) / 0.55);
+
+  /* ---- typography -------------------------------------------------------- */
+  /* The signature pairing: a technical mono for display and labels against a
+     warm text serif for anything you actually read at length. */
+  --font-display: var(--font-dm-mono), ui-monospace, "SFMono-Regular", monospace;
+  --font-body: var(--font-source-serif), "Iowan Old Style", Georgia, serif;
+  --font-mono: var(--font-dm-mono), ui-monospace, monospace;
+
+  /* Fluid, viewport-aware, no breakpoints. Display sizes track tight;
+     body copy is set generously and never gets tighter than 1.6. */
+  --step-display-xl: clamp(2.75rem, 1.6rem + 5.6vw, 6rem);
+  --step-display-l: clamp(2.25rem, 1.5rem + 3.4vw, 4rem);
+  --step-display-m: clamp(1.75rem, 1.3rem + 1.9vw, 2.75rem);
+  --step-display-s: clamp(1.25rem, 1.05rem + 0.9vw, 1.75rem);
+  --step-body-l: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);
+  --step-body: 1.0625rem;
+  --step-body-s: 0.9375rem;
+  --step-label: 0.75rem;
+  --step-micro: 0.6875rem;
+
+  --leading-display: 1.02;
+  --leading-title: 1.14;
+  --leading-body: 1.7;
+  --leading-loose: 1.85;
+
+  --tracking-display: -0.035em;   /* mono at size needs pulling in hard */
+  --tracking-title: -0.02em;
+  --tracking-label: 0.18em;       /* nav, eyebrows, buttons */
+  --tracking-stamp: 0.32em;       /* passport-stamp lettering */
+
+  /* ---- measure & rhythm --------------------------------------------------- */
+  --measure: 68ch;                /* body copy never runs wider than this */
+  --measure-tight: 46ch;
+  --gutter: clamp(1.25rem, 4vw, 3rem);
+  --shell: 1280px;                /* outer page width */
+  --shell-narrow: 780px;
+
+  /* ---- shape -------------------------------------------------------------- */
+  /* Near-square by design. Radii exist only to take the razor off a 1px box;
+     nothing in this system is a pill or a blob. */
+  --radius: 2px;
+  --radius-sm: 1px;
+  --hairline: 1px;
+
+  /* ---- motion ------------------------------------------------------------- */
+  /* Subtle only: things fade and lift a few pixels. Nothing bounces. */
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 140ms;
+  --dur: 260ms;
+  --dur-slow: 620ms;
+  --lift: 8px;                    /* travel on a scroll reveal */
+
+  /* ---- back-compat -------------------------------------------------------- */
+  /* The coming-soon page (app/coming-soon/page.module.css) was built against these. */
+  --outrider-teal: var(--color-teal);
+  --outrider-cream: var(--color-cream);
+  --background: var(--surface);
+  --foreground: var(--text);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ---- 3. schemes -----------------------------------------------------------
+   Put one of these on any section and every component inside it — nav,
+   buttons, inputs, cards, rules — restyles itself. This is how the nav goes
+   transparent over a dark hero and solid over paper without a single prop.
+   -------------------------------------------------------------------------- */
+
+.scheme-light {
+  --surface: var(--color-paper);
+  --surface-raised: #ffffff;
+  --surface-inset: var(--color-bone);
+  --text: var(--color-charcoal);
+  --text-secondary: var(--color-ash);
+  --text-muted: var(--color-stone);
+  --rule: rgb(var(--rgb-charcoal) / 0.16);
+  --rule-strong: rgb(var(--rgb-charcoal) / 0.42);
+  --rule-faint: rgb(var(--rgb-charcoal) / 0.08);
+  --accent: var(--color-teal-deep);
+  --accent-solid: var(--color-teal-deep);
+  --accent-solid-hover: var(--color-teal-ink);
+  --accent-contrast: var(--color-cream);
+  --flag-ink: var(--color-ember-ink);
+  --focus-ring: var(--color-teal-deep);
+}
+
+/* Retained for photography-led panels and one-off use — no longer a page
+   ground. See the note on .scheme-charcoal. */
+.scheme-forest {
+  --surface: var(--color-forest);
+  --surface-raised: #26330f;
+  --surface-inset: #172007;
+  --text: var(--color-cream);
+  --text-secondary: rgb(var(--rgb-cream) / 0.72);
+  --text-muted: rgb(var(--rgb-cream) / 0.62);
+  --rule: rgb(var(--rgb-cream) / 0.22);
+  --rule-strong: rgb(var(--rgb-cream) / 0.5);
+  --rule-faint: rgb(var(--rgb-cream) / 0.1);
+  --accent: var(--color-sky);
+  --accent-solid: var(--color-sky);
+  --accent-solid-hover: var(--color-cream);
+  --accent-contrast: var(--color-forest);
+  --flag-ink: var(--color-burnt-orange);
+  --focus-ring: var(--color-sky);
+}
+
+/*
+ * Brand teal as a full-bleed panel. Cream on it is 3.4:1 — enough for display
+ * type, tracked labels and UI, not enough for a paragraph. So this scheme runs
+ * every text token at full-strength cream (a transparency ramp would only make
+ * it worse) and is reserved for short, large copy: the hero panel, a pull
+ * quote, a stat band. When a teal section has to carry body copy, use
+ * .scheme-teal-deep below, which clears 5.4:1.
+ */
+.scheme-teal {
+  --surface: var(--color-teal);
+  --surface-raised: var(--color-teal-deep);
+  --surface-inset: var(--color-teal-deep);
+  --text: var(--color-cream);
+  --text-secondary: var(--color-cream);
+  --text-muted: var(--color-cream);
+  --rule: rgb(var(--rgb-cream) / 0.32);
+  --rule-strong: rgb(var(--rgb-cream) / 0.6);
+  --rule-faint: rgb(var(--rgb-cream) / 0.16);
+  --accent: var(--color-cream);
+  --accent-solid: var(--color-cream);
+  --accent-solid-hover: var(--color-sky);
+  --accent-contrast: var(--color-forest);
+  --flag-ink: var(--color-cream);
+  --focus-ring: var(--color-cream);
+}
+
+/*
+ * The teal that can hold a paragraph. It's built on --color-teal-ink rather
+ * than --color-teal-deep for a reason: deep only clears 5.4:1 against cream,
+ * which leaves no room underneath it — a "secondary" tier would have to sit at
+ * 90% cream to stay legible, by which point it isn't secondary. Ink gives
+ * 7.5:1, so the three text tiers can actually be told apart and all pass.
+ */
+.scheme-teal-ink {
+  --surface: var(--color-teal-ink);
+  --surface-raised: var(--color-teal-deep);
+  --surface-inset: #22414a;
+  --text: var(--color-cream);
+  --text-secondary: rgb(var(--rgb-cream) / 0.82);
+  --text-muted: rgb(var(--rgb-cream) / 0.7);
+  --rule: rgb(var(--rgb-cream) / 0.26);
+  --rule-strong: rgb(var(--rgb-cream) / 0.55);
+  --rule-faint: rgb(var(--rgb-cream) / 0.12);
+  --accent: var(--color-sky);
+  --accent-solid: var(--color-sky);
+  --accent-solid-hover: var(--color-cream);
+  --accent-contrast: var(--color-forest);
+  --flag-ink: var(--color-cream);
+  --focus-ring: var(--color-sky);
+}
+
+/*
+ * The dark ground for the whole site.
+ *
+ * Forest and brand-teal panels were retired as section grounds: alternating
+ * them down a page produced a green-to-blue drift that read as two different
+ * brands. Structure is now charcoal and cream only, and teal appears solely as
+ * an accent — rules, small type, one filled button. Colour otherwise enters the
+ * page through photography.
+ *
+ * The accent here is --color-teal-light rather than sky: sky is a blue, and it
+ * was half the reason the palette drifted. Brand teal itself is far too dark on
+ * charcoal (2.7:1), so the accent is teal lifted toward cream.
+ */
+.scheme-charcoal {
+  --surface: var(--color-charcoal);
+  --surface-raised: #242424;
+  --surface-inset: #101010;
+  --text: var(--color-cream);
+  --text-secondary: rgb(var(--rgb-cream) / 0.7);
+  --text-muted: rgb(var(--rgb-cream) / 0.58);
+  --rule: rgb(var(--rgb-cream) / 0.2);
+  --rule-strong: rgb(var(--rgb-cream) / 0.48);
+  --rule-faint: rgb(var(--rgb-cream) / 0.09);
+  --accent: var(--color-teal-light);
+  --accent-solid: var(--color-teal-light);
+  --accent-solid-hover: var(--color-cream);
+  --accent-contrast: var(--color-charcoal);
+  --flag-ink: var(--color-burnt-orange);
+  --focus-ring: var(--color-teal-light);
+}
+
+/* A scheme class only carries variables; add .scheme-paint where you also want
+   it to actually paint its surface (sections do, the nav doesn't). */
+.scheme-paint {
+  background-color: var(--surface);
+  color: var(--text);
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--surface);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: var(--step-body);
+    line-height: var(--leading-body);
+    font-synthesis-weight: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    line-height: var(--leading-title);
+    letter-spacing: var(--tracking-title);
+    text-wrap: balance;
+  }
+
+  p { margin: 0; }
+
+  a {
+    color: inherit;
+    text-decoration-color: var(--rule-strong);
+    text-underline-offset: 0.22em;
+    text-decoration-thickness: from-font;
+  }
+
+  /* One focus treatment everywhere: a squared-off ring in the scheme's accent.
+     Never removed, only ever shown on keyboard focus. */
+  :focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  ::selection {
+    background: var(--color-teal);
+    color: var(--color-cream);
+  }
+
+  .scheme-teal ::selection {
+    background: var(--color-cream);
+    color: var(--color-teal);
+  }
+
+  img, svg, video { display: block; max-width: 100%; }
+
+  hr {
+    border: 0;
+    border-top: var(--hairline) solid var(--rule);
+    margin: 0;
+  }
+
+  input, textarea, select, button { font: inherit; color: inherit; }
+
+  /* Honour the OS setting: reveals resolve instantly, hovers stop moving. */
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-}
+/* ==========================================================================
+   Composed classes
+   Only the pieces that are genuinely awkward as utilities live here: the
+   typographic voices, the ephemera shapes, and the reveal.
+   ========================================================================== */
 
-::selection {
-  background: var(--outrider-cream);
-  color: var(--outrider-teal);
+@layer components {
+
+  /* ---- typographic voices ------------------------------------------------ */
+
+  .t-display {
+    font-family: var(--font-display);
+    font-size: var(--step-display-xl);
+    line-height: var(--leading-display);
+    letter-spacing: var(--tracking-display);
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+
+  .t-title {
+    font-family: var(--font-display);
+    font-size: var(--step-display-l);
+    line-height: var(--leading-title);
+    letter-spacing: var(--tracking-display);
+  }
+
+  .t-heading {
+    font-family: var(--font-display);
+    font-size: var(--step-display-m);
+    line-height: var(--leading-title);
+    letter-spacing: var(--tracking-title);
+  }
+
+  .t-subheading {
+    font-family: var(--font-display);
+    font-size: var(--step-display-s);
+    line-height: 1.3;
+    letter-spacing: var(--tracking-title);
+  }
+
+  /* The all-caps tracked-out mono that carries nav, eyebrows and buttons. */
+  .t-label {
+    font-family: var(--font-display);
+    font-size: var(--step-label);
+    line-height: 1;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+
+  .t-micro {
+    font-family: var(--font-display);
+    font-size: var(--step-micro);
+    line-height: 1.4;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+  }
+
+  .t-body {
+    font-family: var(--font-body);
+    font-size: var(--step-body);
+    line-height: var(--leading-body);
+    max-width: var(--measure);
+  }
+
+  .t-lede {
+    font-family: var(--font-body);
+    font-size: var(--step-body-l);
+    line-height: var(--leading-loose);
+    max-width: var(--measure);
+    color: var(--text-secondary);
+  }
+
+  /* ---- layout ------------------------------------------------------------ */
+
+  .shell {
+    width: 100%;
+    max-width: var(--shell);
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+  }
+
+  .shell-narrow {
+    width: 100%;
+    max-width: var(--shell-narrow);
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+  }
+
+  /* ---- ephemera ----------------------------------------------------------
+     Vintage travel-paper devices. Used sparingly — dividers, status badges,
+     the odd accent — never as a default frame on everything. */
+
+  /* A ticket stub: square corners with two punched notches on the short ends
+     and a perforated tear line where the counterfoil separates. */
+  .stub {
+    position: relative;
+    background: var(--surface-raised);
+    border: var(--hairline) solid var(--rule);
+    -webkit-mask-image:
+      radial-gradient(circle 9px at 0 50%, transparent 98%, #000 100%),
+      radial-gradient(circle 9px at 100% 50%, transparent 98%, #000 100%);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      radial-gradient(circle 9px at 0 50%, transparent 98%, #000 100%),
+      radial-gradient(circle 9px at 100% 50%, transparent 98%, #000 100%);
+    mask-composite: intersect;
+  }
+
+  /* The perforation itself — a dashed rule you can drop inside any container. */
+  .perforation {
+    border: 0;
+    border-top: var(--hairline) dashed var(--rule-strong);
+    opacity: 0.7;
+  }
+
+  /* Double hairline, the way a luggage tag or a visa page is ruled. */
+  .rule-double {
+    border-top: var(--hairline) solid var(--rule);
+    box-shadow: 0 3px 0 -2px var(--rule);
+  }
+
+  /* Passport-stamp lettering: hard tracking, slightly inked-out weight. */
+  .stamp-type {
+    font-family: var(--font-display);
+    letter-spacing: var(--tracking-stamp);
+    text-transform: uppercase;
+    font-size: var(--step-micro);
+    line-height: 1;
+  }
+
+  /* ---- motion ------------------------------------------------------------ */
+
+  /* Scroll reveal.
+     The hidden state is gated behind `html.js`, which an inline script in the
+     document head sets. That matters: if scripting is off or the bundle fails
+     to load, the observer never runs, and an unconditional `opacity: 0` here
+     would leave the whole page blank.
+     It does NOT protect against JS being merely slow: between first paint and
+     hydration every .reveal is still hidden, so anything wrapped in one is
+     invisible for as long as the bundle takes. The rule is therefore that
+     above-the-fold content is never wrapped in <Reveal> — heroes and page
+     mastheads render plainly, and only content below the fold animates in,
+     where being hidden pre-hydration costs nothing. */
+  .reveal {
+    transition:
+      opacity var(--dur-slow) var(--ease-out),
+      transform var(--dur-slow) var(--ease-out);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+
+  /* No `will-change` here on purpose. Because this rule stops matching the
+     moment the element is revealed, the hint would be added and then withdrawn
+     mid-transition — which drops the promoted layer part-way and can leave the
+     element painting blank even though it computes to opacity 1. A short fade
+     on a handful of elements doesn't need the hint anyway. */
+  .js .reveal[data-revealed="false"] {
+    opacity: 0;
+    transform: translateY(var(--lift));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .js .reveal[data-revealed="false"] { opacity: 1; transform: none; }
+  }
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-}
+  .text-balance { text-wrap: balance; }
+  .text-pretty { text-wrap: pretty; }
 
-/* Visually hidden, still read aloud. */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
+  /* Visually hidden, still read aloud. */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
 }

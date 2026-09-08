@@ -27,6 +27,13 @@ yarn-error.log*
 
 # local env files
 .env*.local
+# ...and any copy of one. `.env*.local` does not match `.env.local.bak`,
+# `.env.local.save`, `.env.local copy` and friends, which is exactly how a
+# full set of production keys ends up in a commit.
+.env*.local.*
+.env.local*
+*.env.bak
+.env.*.bak
 
 # vercel
 .vercel

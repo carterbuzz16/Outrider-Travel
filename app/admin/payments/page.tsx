@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import FlaggedPaymentsView from "./FlaggedPaymentsView";
 
 // No dynamic route segment, so without this Next attempts to prerender it
 // at build time — executing createAdminClient() along the way, which
@@ -22,37 +23,5 @@ export default async function FlaggedPaymentsPage() {
     .in("status", ["failed", "requires_action"])
     .order("scheduled_date");
 
-  return (
-    <main>
-      <h1>Flagged installments</h1>
-      <p>Payments that failed twice or are stuck waiting on customer authentication.</p>
-
-      {(!flagged || flagged.length === 0) && <p>Nothing flagged.</p>}
-
-      <table>
-        <thead>
-          <tr>
-            <th>Customer</th>
-            <th>Trip</th>
-            <th>Amount</th>
-            <th>Due</th>
-            <th>Status</th>
-            <th>Attempts</th>
-          </tr>
-        </thead>
-        <tbody>
-          {flagged?.map((payment) => (
-            <tr key={payment.id}>
-              <td>{payment.bookings?.users?.email}</td>
-              <td>{payment.bookings?.trips?.name}</td>
-              <td>${payment.amount}</td>
-              <td>{payment.scheduled_date}</td>
-              <td>{payment.status}</td>
-              <td>{payment.attempt_count}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </main>
-  );
+  return <FlaggedPaymentsView payments={flagged ?? []} />;
 }

@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
+import DashboardView from "./DashboardView";
 
 // No dynamic route segment, so without this Next attempts to prerender it
 // at build time — executing createAdminClient() along the way, which
@@ -23,86 +23,5 @@ export default async function AdminDashboardPage() {
     )
     .order("created_at", { ascending: false });
 
-  const flaggedCount = (bookings ?? []).reduce((count, booking) => {
-    const flagged = (booking.payments ?? []).filter(
-      (payment) =>
-        payment.status === "failed" ||
-        payment.status === "requires_action" ||
-        (payment.status === "scheduled" && payment.scheduled_date && payment.scheduled_date < today)
-    );
-    return count + flagged.length;
-  }, 0);
-
-  return (
-    <main>
-      <h1>Admin dashboard</h1>
-      <p>
-        {flaggedCount > 0
-          ? `${flaggedCount} installment payment${flaggedCount === 1 ? "" : "s"} need attention (overdue, failed, or needs authentication) — flagged below.`
-          : "No overdue or failed installments."}
-      </p>
-      <p>
-        <Link href="/admin/payments">Failed / needs-authentication installments only</Link>
-      </p>
-      <p>
-        <Link href="/admin/trips">Manage trips</Link>
-      </p>
-
-      {(!bookings || bookings.length === 0) && <p>No bookings yet.</p>}
-
-      {bookings && bookings.length > 0 && (
-        <table>
-          <thead>
-            <tr>
-              <th>Customer</th>
-              <th>Trip</th>
-              <th>Tier</th>
-              <th>Group code</th>
-              <th>Booking status</th>
-              <th>Total</th>
-              <th>Deposit</th>
-              <th>Payment schedule</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bookings.map((booking) => (
-              <tr key={booking.id}>
-                <td>{booking.users?.email}</td>
-                <td>{booking.trips?.name}</td>
-                <td>{booking.tiers?.name}</td>
-                <td>{booking.group_code ?? "—"}</td>
-                <td>{booking.status}</td>
-                <td>${booking.total_amount}</td>
-                <td>${booking.deposit_amount}</td>
-                <td>
-                  {booking.payments && booking.payments.length > 0 ? (
-                    <ul>
-                      {booking.payments.map((payment) => {
-                        const overdue =
-                          payment.status === "scheduled" &&
-                          !!payment.scheduled_date &&
-                          payment.scheduled_date < today;
-                        const flagged = overdue || payment.status === "failed" || payment.status === "requires_action";
-
-                        return (
-                          <li key={payment.id}>
-                            ${payment.amount} due {payment.scheduled_date ?? "—"} — {payment.status}
-                            {overdue && " (OVERDUE)"}
-                            {payment.attempt_count > 0 && ` (${payment.attempt_count} attempt${payment.attempt_count === 1 ? "" : "s"})`}
-                            {flagged && " ⚠"}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </main>
-  );
+  return <DashboardView bookings={bookings ?? []} today={today} />;
 }

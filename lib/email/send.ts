@@ -1,5 +1,8 @@
 import { Resend } from "resend";
 import { renderEmailLayout, formatCurrency, formatDate } from "@/lib/email/layout";
+// One implementation, shared with the Supabase auth redirects in
+// app/auth/actions.ts — see lib/site-url.ts for the resolution order.
+import { getAppUrl } from "@/lib/site-url";
 
 // resend.emails.send() resolves with { data, error } rather than throwing
 // on an API-level failure (e.g. an unverified domain) — it only throws on
@@ -37,14 +40,6 @@ function getFromAddress(): string {
     );
   }
   return process.env.EMAIL_FROM_ADDRESS;
-}
-
-// VERCEL_URL has no protocol and is only set on Vercel; NEXT_PUBLIC_APP_URL
-// is the explicit override for a custom domain.
-function getAppUrl(): string {
-  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "http://localhost:3000";
 }
 
 interface TripInfo {
@@ -91,7 +86,7 @@ export async function sendBookingConfirmationEmail(opts: {
         .join("")}
     </table>
     <p style="font-size: 13px; color: #6B7280;">These will be charged automatically to the card you used today.</p>`
-      : `<p style="margin: 24px 0;">Your trip is paid in full — nothing more to do on the payment side.</p>`;
+      : `<p style="margin: 24px 0;">Your trip is paid in full. Nothing more to do on the payment side.</p>`;
 
   const logisticsHtml = trip.logistics
     ? `
@@ -107,7 +102,7 @@ export async function sendBookingConfirmationEmail(opts: {
 
   const bodyHtml = `
     <p>${greeting}</p>
-    <p>Your deposit is confirmed for <strong>${escapeHtml(trip.name)}</strong> — you're booked in.</p>
+    <p>Your deposit is confirmed for <strong>${escapeHtml(trip.name)}</strong>. You're booked in.</p>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 24px 0; font-size: 14px;">
       <tr><td style="padding: 4px 0; color: #6B7280; width: 140px;">Destination</td><td style="padding: 4px 0;">${escapeHtml(trip.destination)}</td></tr>
       <tr><td style="padding: 4px 0; color: #6B7280;">Dates</td><td style="padding: 4px 0;">${formatDate(trip.startDate)} – ${formatDate(trip.endDate)}</td></tr>
@@ -149,7 +144,7 @@ export async function sendInstallmentChargedEmail(opts: {
     <p>${
       remainingBalance > 0
         ? `Remaining balance: <strong>${formatCurrency(remainingBalance)}</strong>.`
-        : `That was your final payment — you're all paid up!`
+        : `That was your final payment. You're all paid up.`
     }</p>
   `;
 
@@ -183,7 +178,7 @@ export async function sendPaymentFailedEmail(opts: {
     <p>${
       willRetry
         ? "We'll automatically try again in a few days. If your card has expired or changed, please reach out so we can update it before then."
-        : "We've tried a couple of times now without success — please reach out so we can sort out payment directly rather than risk another failed attempt."
+        : "We've tried a couple of times now without success. Please reach out so we can sort out payment directly rather than risk another failed attempt."
     }</p>
   `;
 
@@ -213,7 +208,7 @@ export async function sendActionRequiredEmail(opts: {
 
   const bodyHtml = `
     <p>${greeting}</p>
-    <p>Your bank needs you to verify your upcoming <strong>${formatCurrency(amount)}</strong> payment for <strong>${escapeHtml(tripName)}</strong> before we can complete it — this is a routine extra security step some banks require, not a decline.</p>
+    <p>Your bank needs you to verify your upcoming <strong>${formatCurrency(amount)}</strong> payment for <strong>${escapeHtml(tripName)}</strong> before we can complete it. This is a routine extra security step some banks require, not a decline.</p>
     <p>Nothing will be charged until you complete verification.</p>
   `;
 
@@ -240,7 +235,7 @@ export async function sendWaitlistNotification(email: string) {
   await sendEmail({
     from: getFromAddress(),
     to,
-    subject: "Outrider — new waitlist signup",
+    subject: "Outrider: new waitlist signup",
     text: email,
   });
 }

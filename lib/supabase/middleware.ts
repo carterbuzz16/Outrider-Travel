@@ -5,8 +5,16 @@ import { NextResponse, type NextRequest } from "next/server";
 // edge-runtime gate (redirect-if-logged-out only) — role-based checks like
 // the admin gate live in the relevant layout, close to the data, since
 // middleware here can't reach the database.
-const PROTECTED_PREFIXES = ["/bookings"];
-const ADMIN_PREFIX = "/admin";
+export const PROTECTED_PREFIXES = ["/bookings"];
+export const ADMIN_PREFIX = "/admin";
+
+/** Does this path require a signed-in user? */
+export function requiresAuth(pathname: string): boolean {
+  return (
+    PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||
+    pathname.startsWith(ADMIN_PREFIX)
+  );
+}
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -37,11 +45,7 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const requiresAuth =
-    PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||
-    pathname.startsWith(ADMIN_PREFIX);
-
-  if (!user && requiresAuth) {
+  if (!user && requiresAuth(pathname)) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("next", pathname);

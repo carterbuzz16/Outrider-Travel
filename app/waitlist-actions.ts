@@ -1,10 +1,10 @@
 "use server";
 
-import { headers } from "next/headers";
 import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { sendWaitlistNotification } from "@/lib/email/send";
+import { clientIp } from "@/lib/client-ip";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const UNIQUE_VIOLATION = "23505";
@@ -24,9 +24,6 @@ function contactsClient(): Resend {
   return new Resend(key);
 }
 
-function clientIp(): string {
-  return headers().get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-}
 
 export async function joinWaitlist(rawEmail: string): Promise<JoinResult> {
   const email = String(rawEmail ?? "").trim().toLowerCase();
@@ -38,7 +35,7 @@ export async function joinWaitlist(rawEmail: string): Promise<JoinResult> {
   // Server actions are public endpoints like any other, and this one is
   // pre-auth, so there's no user id to throttle on — fall back to IP, the
   // same way the booking flow's anonymous steps do.
-  const allowed = await checkRateLimit(`waitlist:${clientIp()}`, 5, 60 * 60);
+  const allowed = await checkRateLimit(`waitlist:${(await clientIp())}`, 5, 60 * 60);
   if (!allowed) {
     return { ok: false, message: "Too many attempts. Try again later." };
   }

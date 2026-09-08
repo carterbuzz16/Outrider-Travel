@@ -2,7 +2,7 @@
 
 import { useId, useState } from "react";
 import { joinWaitlist } from "@/app/waitlist-actions";
-import styles from "@/app/page.module.css";
+import styles from "@/app/coming-soon/page.module.css";
 
 export default function WaitlistForm() {
   const [email, setEmail] = useState("");

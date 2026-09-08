@@ -26,7 +26,18 @@ function timingSafeStringEqual(a: string, b: string): boolean {
 // gate below depends on.
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization") ?? "";
-  if (!timingSafeStringEqual(authHeader, `Bearer ${process.env.CRON_SECRET}`)) {
+    /*
+   * Fail closed when unset. Otherwise the template literal below produces the
+   * literal string "Bearer undefined", and anyone who sends that header is
+   * authorised to drive the charger.
+   */
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    console.error("CRON_SECRET is not set. Refusing to run the installment charger.");
+    return NextResponse.json({ error: "Not configured" }, { status: 500 });
+  }
+
+  if (!timingSafeStringEqual(authHeader, `Bearer ${cronSecret}`)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -81,15 +92,31 @@ export async function GET(request: Request) {
 
     attempted++;
     try {
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(payment.amount * 100),
-        currency: "usd",
-        customer: saved.customerId,
-        payment_method: saved.paymentMethodId,
-        off_session: true,
-        confirm: true,
-        metadata: { bookingId: payment.booking_id, paymentId: payment.id },
-      });
+      /*
+       * The idempotency key is the safety net that matters here.
+       *
+       * This route deliberately does not write `status` or `attempt_count`
+       * (Stripe is the source of truth, via the webhook), so between charging
+       * and the webhook arriving the row still looks due. If the webhook is
+       * delayed, misconfigured, or this endpoint is called twice, the same
+       * installment would be charged again.
+       *
+       * Keyed on the payment row id and the attempt number, so a genuine retry
+       * after a decline still goes through while a repeat of the same attempt
+       * is collapsed by Stripe into the original charge.
+       */
+      const paymentIntent = await stripe.paymentIntents.create(
+        {
+          amount: Math.round(payment.amount * 100),
+          currency: "usd",
+          customer: saved.customerId,
+          payment_method: saved.paymentMethodId,
+          off_session: true,
+          confirm: true,
+          metadata: { bookingId: payment.booking_id, paymentId: payment.id },
+        },
+        { idempotencyKey: `installment-${payment.id}-attempt-${payment.attempt_count}` },
+      );
 
       await admin
         .from("payments")

@@ -8,13 +8,28 @@ import { computeDepositAmount } from "@/lib/deposit";
 import { getOrCreateStripeCustomerId } from "@/lib/customers";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { resolveGroupCode } from "@/lib/group-code";
+import { recordAcceptance } from "@/lib/legal-acceptance";
+import { BOOKINGS_OPEN } from "@/lib/booking-window";
 
 export async function createBooking(formData: FormData) {
   const tripId = String(formData.get("tripId") ?? "");
   const tierId = String(formData.get("tierId") ?? "");
   const requestedGroupCode = String(formData.get("group_code") ?? "").trim() || null;
+  // Checked before anything is created. A booking that exists without an
+  // acceptance record is exactly the situation this is here to prevent.
+  const acceptedTerms = formData.get("accept_terms") === "on";
 
-  const supabase = createClient();
+  // Bookings are not open yet. Checked here as well as in the UI, because a
+  // hidden button is presentation, not a control: this action is a POST
+  // endpoint that anyone can call directly.
+  if (!BOOKINGS_OPEN) {
+    redirect(
+      "/trips?error=" +
+        encodeURIComponent("Booking is not open yet. Dates and pricing are final; we will be taking spots shortly."),
+    );
+  }
+
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -61,6 +76,15 @@ export async function createBooking(formData: FormData) {
     redirect(`/bookings/new?error=${encodeURIComponent(groupCodeResult.error)}`);
   }
 
+  if (!acceptedTerms) {
+    redirect(
+      "/bookings/new?error=" +
+        encodeURIComponent(
+          "Please accept the Terms of Service and the Assumption of Risk to book.",
+        ),
+    );
+  }
+
   const { data: booking, error: bookingError } = await admin
     .from("bookings")
     .insert({
@@ -82,6 +106,13 @@ export async function createBooking(formData: FormData) {
   if (bookingError || !booking) {
     throw new Error(bookingError?.message ?? "Failed to create booking");
   }
+
+  // Before the PaymentIntent, deliberately. If this throws, the booking is
+  // still `pending` and no card has been charged, which is a far better
+  // failure than money taken against a booking with no record of what the
+  // traveller agreed to. recordAcceptance stores the document versions, not a
+  // boolean, so the exact text accepted can be reproduced later.
+  await recordAcceptance({ bookingId: booking.id, userId: user.id });
 
   // setup_future_usage attaches the payment method used here to the Stripe
   // Customer on success, so the installment cron can charge it off-session
@@ -122,7 +153,7 @@ export async function createBooking(formData: FormData) {
 export async function cancelBooking(formData: FormData) {
   const bookingId = String(formData.get("booking_id") ?? "");
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -136,7 +167,7 @@ export async function cancelBooking(formData: FormData) {
   const { data: booking } = await supabase.from("bookings").select("id, status").eq("id", bookingId).single();
 
   if (!booking || !["pending", "deposit_paid"].includes(booking.status)) {
-    redirect("/bookings?error=That booking can't be cancelled online — contact us directly.");
+    redirect("/bookings?error=That booking can't be cancelled online. Get in touch and we'll sort it out.");
   }
 
   const admin = createAdminClient();

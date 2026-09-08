@@ -1,77 +1,51 @@
-import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { cancelBooking } from "@/app/(protected)/bookings/actions";
+import BookingsView, { type BookingRow } from "./BookingsView";
 
-export default async function BookingsPage({ searchParams }: { searchParams: { error?: string } }) {
-  const supabase = createClient();
+/**
+ * The account dashboard: a thin loader in front of BookingsView.
+ *
+ * Everything the screen renders is decided in that component, so the shape of
+ * the query below is the whole contract between them.
+ */
+export default async function BookingsPage(props: { searchParams: Promise<{ error?: string }> }) {
+  const searchParams = await props.searchParams;
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: bookings } = await supabase
-    .from("bookings")
-    .select(
-      "id, status, deposit_amount, group_code, trips(name, destination), tiers(name), payments(id, status, amount, scheduled_date)"
-    )
-    .order("created_at", { ascending: false });
+  if (!user) {
+    redirect("/login");
+  }
+
+  // RLS ("Users can view own bookings", and the matching policies on trips,
+  // tiers and payments) scopes every row below to this session's own account,
+  // which is why there is no user_id filter here.
+  const [{ data: bookings }, { data: profile }] = await Promise.all([
+    supabase
+      .from("bookings")
+      .select(
+        "id, status, total_amount, deposit_amount, group_code, created_at, trips(name, destination, start_date, end_date), tiers(name), payments(id, status, amount, scheduled_date)"
+      )
+      .order("created_at", { ascending: false }),
+    supabase.from("users").select("name").eq("id", user.id).single(),
+  ]);
+
+  // The users row is written by the handle_new_user trigger, but the name only
+  // lands there if signup supplied one — fall back to the auth metadata before
+  // giving up and showing the email alone.
+  const name =
+    profile?.name?.trim() ||
+    (typeof user.user_metadata?.name === "string" ? user.user_metadata.name.trim() : "") ||
+    null;
 
   return (
-    <main>
-      <h1>Your bookings</h1>
-      <p>Logged in as {user?.email}.</p>
-      <p>
-        <Link href="/bookings/new">Book a new trip</Link>
-      </p>
-
-      {searchParams.error && <p>{searchParams.error}</p>}
-      {(!bookings || bookings.length === 0) && <p>No bookings yet.</p>}
-
-      <ul>
-        {bookings?.map((booking) => {
-          const needsAuth = booking.payments.find((p) => p.status === "requires_action");
-          const upcoming = booking.payments
-            .filter((p) => p.status === "scheduled")
-            .sort((a, b) => (a.scheduled_date ?? "").localeCompare(b.scheduled_date ?? ""));
-
-          return (
-            <li key={booking.id}>
-              {booking.trips?.name} ({booking.tiers?.name}) — {booking.status} — deposit $
-              {booking.deposit_amount}
-              {booking.group_code && <> — group code: <strong>{booking.group_code}</strong></>}
-              {booking.status === "pending" && (
-                <>
-                  {" "}
-                  · <Link href={`/bookings/${booking.id}/pay`}>Pay deposit</Link>
-                </>
-              )}
-              {(booking.status === "pending" || booking.status === "deposit_paid") && (
-                <form action={cancelBooking} style={{ display: "inline" }}>
-                  <input type="hidden" name="booking_id" value={booking.id} />
-                  {" · "}
-                  <button type="submit">Cancel booking</button>
-                </form>
-              )}
-              {needsAuth && (
-                <p>
-                  ⚠ Your bank needs to verify your next installment (${needsAuth.amount}) —{" "}
-                  <Link href={`/bookings/${booking.id}/installments/${needsAuth.id}`}>
-                    complete verification
-                  </Link>
-                </p>
-              )}
-              {!needsAuth && upcoming.length > 0 && (
-                <ul>
-                  {upcoming.map((p) => (
-                    <li key={p.id}>
-                      Installment ${p.amount} due {p.scheduled_date}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    </main>
+    <BookingsView
+      email={user.email ?? ""}
+      name={name}
+      bookings={(bookings ?? []) as BookingRow[]}
+      error={searchParams.error}
+    />
   );
 }

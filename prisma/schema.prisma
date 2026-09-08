@@ -26,10 +26,11 @@ model User {
   // add_installment_payment_plan migration) — these two are service-role-only
   // writes, since a user rewriting them could redirect future installment
   // charges onto a different Stripe Customer's saved card.
-  stripeCustomerId              String? @unique @map("stripe_customer_id")
-  stripeDefaultPaymentMethodId  String? @map("stripe_default_payment_method_id")
+  stripeCustomerId             String? @unique @map("stripe_customer_id")
+  stripeDefaultPaymentMethodId String? @map("stripe_default_payment_method_id")
 
-  bookings Booking[]
+  bookings         Booking[]
+  legalAcceptances LegalAcceptance[]
 
   @@map("users")
 }
@@ -67,13 +68,13 @@ enum TripStatus {
 }
 
 model Tier {
-  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tripId      String  @map("trip_id") @db.Uuid
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tripId      String   @map("trip_id") @db.Uuid
   name        String
-  price       Decimal @db.Decimal(10, 2)
+  price       Decimal  @db.Decimal(10, 2)
   description String?
   inclusions  String[]
-  maxCapacity Int?    @map("max_capacity")
+  maxCapacity Int?     @map("max_capacity")
 
   trip     Trip      @relation(fields: [tripId], references: [id])
   bookings Booking[]
@@ -93,10 +94,11 @@ model Booking {
   groupCode     String?       @map("group_code")
   createdAt     DateTime      @default(now()) @map("created_at")
 
-  user     User      @relation(fields: [userId], references: [id])
-  trip     Trip      @relation(fields: [tripId], references: [id])
-  tier     Tier      @relation(fields: [tierId], references: [id])
-  payments Payment[]
+  user             User              @relation(fields: [userId], references: [id])
+  trip             Trip              @relation(fields: [tripId], references: [id])
+  tier             Tier              @relation(fields: [tierId], references: [id])
+  payments         Payment[]
+  legalAcceptances LegalAcceptance[]
 
   @@index([userId])
   @@index([tripId])
@@ -112,6 +114,32 @@ enum BookingStatus {
   cancelled
 
   @@map("booking_status")
+}
+
+/// Evidence that a traveller accepted the Terms and the Assumption of Risk when
+/// they booked. Append-only: a booking is governed by the document versions in
+/// force at the moment it was made, so rows here are never updated or deleted.
+/// Written server-side with the service role only (see lib/legal-acceptance.ts);
+/// RLS lets a traveller read their own and nothing else.
+model LegalAcceptance {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bookingId       String   @map("booking_id") @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  /// "terms" | "assumption-of-risk", matching the slugs in lib/legal.ts
+  documentSlug    String   @map("document_slug")
+  /// The exact version shown, so the text accepted can be reproduced later.
+  documentVersion String   @map("document_version")
+  acceptedAt      DateTime @default(now()) @map("accepted_at")
+  ipAddress       String?  @map("ip_address")
+  userAgent       String?  @map("user_agent")
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([bookingId, documentSlug])
+  @@index([bookingId])
+  @@index([userId])
+  @@map("legal_acceptances")
 }
 
 model Payment {

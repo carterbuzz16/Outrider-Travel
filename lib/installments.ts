@@ -5,7 +5,7 @@ import type { Database } from "@/types/supabase";
 // dates relative to the trip, not the booking date — a booking made close
 // to departure will simply have installments whose dates are already in
 // the past, which the cron picks up on its very next run.
-export const INSTALLMENT_OFFSETS_DAYS = [90, 30];
+export const INSTALLMENT_OFFSETS_DAYS = [60, 30];
 
 // Called once, right after the deposit's payment_intent.succeeded webhook
 // flips the booking pending -> deposit_paid (see lib/payments.ts). Splits

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
+import { Alert, Button } from "@/components/ui";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -21,7 +22,7 @@ export default function CompleteAuthenticationForm({ clientSecret }: { clientSec
 
     const stripe = await stripePromise;
     if (!stripe) {
-      setError("Payment system failed to load. Please refresh and try again.");
+      setError("The payment form did not load. Refresh the page and try again.");
       setSubmitting(false);
       return;
     }
@@ -29,7 +30,7 @@ export default function CompleteAuthenticationForm({ clientSecret }: { clientSec
     const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(clientSecret);
 
     if (confirmError) {
-      setError(confirmError.message ?? "Authentication failed.");
+      setError(confirmError.message ?? "Your bank did not accept the verification.");
       setSubmitting(false);
       return;
     }
@@ -39,16 +40,31 @@ export default function CompleteAuthenticationForm({ clientSecret }: { clientSec
       router.refresh();
     } else {
       setSubmitting(false);
-      setError("Payment did not complete. Please try again or contact support.");
+      setError("The payment did not complete. Try again, or get in touch and we will sort it out.");
     }
   }
 
   return (
-    <div>
-      <button onClick={handleClick} disabled={submitting}>
-        {submitting ? "Authenticating…" : "Complete authentication"}
-      </button>
-      {error && <p>{error}</p>}
+    <div className="flex flex-col gap-5">
+      <Button
+        type="button"
+        variant="primary"
+        size="md"
+        onClick={handleClick}
+        disabled={submitting}
+        // aria-busy rather than swapping the label alone, so the wait is
+        // announced and not only read.
+        aria-busy={submitting}
+        className="self-start"
+      >
+        {submitting ? "Verifying" : "Verify with your bank"}
+      </Button>
+
+      {error && (
+        <Alert tone="error" title="Verification failed">
+          {error}
+        </Alert>
+      )}
     </div>
   );
 }

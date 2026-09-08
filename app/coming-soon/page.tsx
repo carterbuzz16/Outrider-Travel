@@ -5,8 +5,10 @@ import styles from "./page.module.css";
 
 const BADGE_TEXT = "COMING SOON · WINTER 2026 · TELLURIDE · ";
 
-// The whole site, for now: one full-viewport panel. The only interactive
-// thing on it is the waitlist form, which is the only client component.
+// The original coming-soon panel, kept intact after the marketing site took
+// over "/". Still reachable at /coming-soon, so it can be put back in front —
+// point "/" here, or add a rewrite — if a departure needs to go quiet again.
+// The only interactive thing on it is the waitlist form.
 export default function Home() {
   return (
     <main className={styles.page}>
