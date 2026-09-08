@@ -94,7 +94,11 @@ export default async function TripsPage() {
           <p className="t-micro mb-10 text-[--text-muted]">On the map</p>
         </Reveal>
 
-        <div className="grid gap-px border border-[--rule] bg-[--rule] md:grid-cols-2">
+        <div
+          className={`grid gap-px border border-[--rule] bg-[--rule] ${
+            UPCOMING_CATEGORIES.length > 1 ? "md:grid-cols-2" : ""
+          }`}
+        >
           {UPCOMING_CATEGORIES.map((category, i) => (
             <Reveal key={category.name} delay={i * 80}>
               <div className="flex h-full flex-col gap-4 bg-[--surface-raised] p-6 md:p-8">
