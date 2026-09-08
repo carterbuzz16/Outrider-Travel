@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default function AboutPage() {
-  const hasFounderStory = FOUNDER.story.length > 0;
+  const hasFounderStory = FOUNDER.bio.length > 0;
   const hasPartnerCopy = PARTNER.confirmed && PARTNER.body.length > 0;
 
   return (
@@ -41,7 +41,7 @@ export default function AboutPage() {
         <div className="grid gap-12 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:gap-20">
           <Reveal>
             <div className="flex items-baseline gap-5 md:sticky md:top-32">
-              <span className="stamp-type text-[--text-muted]">The problem</span>
+              <h2 className="t-heading text-[--accent]">The problem</h2>
             </div>
           </Reveal>
           <Reveal delay={80}>
@@ -52,7 +52,7 @@ export default function AboutPage() {
                   className={
                     i === 0
                       ? "font-body text-lede leading-[1.8] text-[--text]"
-                      : "font-body text-body leading-[1.85] text-[--text-secondary]"
+                      : "font-body text-body leading-[1.85] text-[--text]"
                   }
                 >
                   {paragraph}
@@ -112,6 +112,12 @@ export default function AboutPage() {
                 {/* Quote, then everything else folded away. The story and the
                     longer bio are one continuous read, so they share a single
                     disclosure rather than splitting across two. */}
+                {/* One line stays visible so the section is not just a quote
+                    and a toggle. The rest is behind the disclosure. */}
+                <p className="font-body text-body leading-[1.85] text-[--text]">
+                  {FOUNDER.bio[0]}
+                </p>
+
                 <details className="group border-t border-[--rule] pt-6">
                   <summary
                     className={[
@@ -131,7 +137,7 @@ export default function AboutPage() {
                   </summary>
 
                   <div className="mt-6 flex flex-col gap-6">
-                    {[...FOUNDER.story, ...FOUNDER.bio].map((paragraph) => (
+                    {FOUNDER.bio.slice(1).map((paragraph) => (
                       <p
                         key={paragraph.slice(0, 32)}
                         className="font-body text-body leading-[1.85] text-[--text-secondary]"

@@ -26,9 +26,10 @@ export default async function TripsPage() {
         <div>
           <h1 className="t-display mt-6 max-w-[14ch] text-[--text]">Trips</h1>
           <p className="t-lede mt-8 max-w-measure">
-            Every departure is booked before it appears here. Dates go up once
-            the property is held and the reservations are made, which is why
-            there are never many at once.
+            Every Outrider trip lives here. We are always scouting new places,
+            and a departure only goes up once it is finished: the property held,
+            the details arranged, the price fixed. Working that way does not
+            scale to a long list, which is rather the point.
           </p>
         </div>
       </header>

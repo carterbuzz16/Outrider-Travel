@@ -53,11 +53,10 @@ export default function TripCard({
         className,
       )}
     >
-      {/* Header strip: record number left, status right, ruled off underneath. */}
-      <div className="flex items-center justify-between gap-3 border-b border-[--rule] px-4 py-3">
-        <span className="stamp-type text-[--text-muted]">
-          {destination}
-        </span>
+      {/* Status strip. The destination is NOT repeated here: it already sits
+          above the trip name below, and putting it in both printed
+          "Telluride, Colorado" twice on every card. */}
+      <div className="flex items-center justify-end border-b border-[--rule] px-4 py-3">
         {!BOOKINGS_OPEN ? (
           <Badge tone="neutral">{COMING_SOON_LABEL}</Badge>
         ) : (

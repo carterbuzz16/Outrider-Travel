@@ -145,11 +145,8 @@ const css = `
 .ocmp .ocmp-short { display: none; }
 
 .ocmp-top {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 48px;
-  margin-bottom: 56px;
+  display: block;
+  margin-bottom: 48px;
 }
 .ocmp-eyebrow {
   font-family: var(--font-display);
@@ -168,13 +165,13 @@ const css = `
   letter-spacing: -0.015em;
   text-wrap: balance;
 }
-.ocmp-standfirst {
+.ocmp .ocmp-standfirst {
   font-family: var(--font-body);
   font-size: 18px;
-  line-height: 1.6;
-  color: var(--ash);
-  max-width: 30ch;
-  padding-bottom: 6px;
+  line-height: 1.65;
+  color: var(--charcoal);
+  max-width: 52ch;
+  margin-top: 18px;
 }
 
 /* Desktop: label / usual / teal panel. Rows are subgrids so the teal column
@@ -199,7 +196,7 @@ const css = `
   text-transform: uppercase;
 }
 .ocmp-colhead--usual {
-  color: var(--ash);
+  color: var(--charcoal);
   padding: 0 32px 14px 0;
   border-bottom: 1px solid var(--rule);
 }
@@ -230,7 +227,7 @@ const css = `
   line-height: 1.65;
 }
 .ocmp-cell--usual {
-  color: var(--ash);
+  color: var(--charcoal);
   padding: 26px 32px 26px 0;
   border-bottom: 1px solid var(--rule);
 }

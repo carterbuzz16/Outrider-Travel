@@ -90,16 +90,12 @@ export const FOUNDER: {
   portrait: { src: string; alt: string } | null;
   secondaryImage: { src: string; alt: string } | null;
   pullQuote: string;
-  /** Shown straight away, above the fold of the leadership section. */
-  story: string[];
-  /** Behind a "Read bio" disclosure, for anyone who wants the whole thing. */
+  /** One condensed piece. Previously split across two arrays that told the
+   *  same story twice and repeated the pull quote almost word for word. */
   bio: string[];
 } = {
   name: "Carter Busby",
   role: "President and Founder",
-  /* Action shots only. A studio headshot against a bedroom wall says
-     "student"; a founder on a summit before sunrise says the thing the
-     company is actually selling. */
   portrait: {
     src: "/images/team/carter-ridge.jpg",
     alt: "Carter Busby on a summit ridge above treeline.",
@@ -108,17 +104,10 @@ export const FOUNDER: {
   pullQuote:
     "Everybody already knows what is wrong with booking travel in college. Nobody had bothered to fix it.",
   bio: [
-    "I have been to twelve countries. Travel is the thing I care most about, and most of what I know about running a trip I learned by getting it wrong first, on behalf of other people, in college.",
-    "I was social chair at ATO and then president, which meant I was the one booking formals, moving large groups, chasing deposits and answering the phone when something went wrong. I planned trips for people the whole way through school.",
-    "What struck me was that everybody complained about the same handful of things and nobody did anything about them. They were not hard problems. They were just nobody's job. So I made them mine.",
-    "You are going to have fun in college whether or not you book anything from me. That is not what I am selling. The difference I care about is between a weekend you half remember and a trip you are still talking about in ten years: where you stay, who is handling it, and the fact that none of it lands on you.",
-    "A trip you take with your friends at this age stays with you. I wanted to build the company I would have booked, one you can hand your money to without wondering, where by the second day it is obvious you got more than you paid for.",
-  ],
-  story: [
-    "I went to Auburn. I was social chair of my fraternity, and then president of it, which means I spent a good part of college booking travel for other people. Anyone who has done that job knows how it goes. You are chasing deposits, you are guessing at a total, and you are hoping the place looks like the photos.",
-    "Everybody already knows what is wrong with it. Nobody had bothered to fix it. So I started Outrider to run these trips the way I wanted them run when I was the one organising them: one price, stated up front, with everything in it, and no line item that turns up later.",
-    "The other half of it is what you actually get. We are not a party trip. We book real properties, we work with brands and hotels that hold a standard, and the trip is planned so it feels like something you were invited to rather than something you signed up for. If that is what you want out of travelling in college, that is what this is.",
-    "You should finish an Outrider trip feeling like you got more than you paid for. Not less, and not something you have to talk yourself into.",
+    "I went to Auburn, where I was social chair of ATO and then president. Social chair is the job nobody volunteers for twice. You book the formals, move 200 people across state lines, chase deposits for months, and you're the one everybody texts when the rooms are wrong.",
+    "I have been to twelve countries and travel is the thing I care most about. Nearly everything I know about running a trip I learned by getting it wrong first, on somebody else's behalf.",
+    "So Outrider is the company I would have booked. One price with everything already inside it. One property, held before it goes on sale. Someone on the ground for the whole trip. Nobody fronting money for their friends and spending the spring trying to get it back.",
+    "This isn't your typical party trip. Sure, college is all about having fun, and there will be plenty of that with Outrider, but what we care most about is your experience. That high-end exclusive feel you've been chasing. The part worth paying for is a place that holds a standard, a group small enough to actually know, and a few days you're still talking about in ten years.",
   ],
 };
 
@@ -211,7 +200,7 @@ export const UPCOMING_CATEGORIES = [
     name: "Spring break",
     destination: "Destination to be announced",
     window: "Spring 2027",
-    note: "Warm water, same format. One property, one small group, everything handled before anyone lands.",
+    note: "Somewhere warm, with the same standard applied. Real properties, a group small enough to know, and days worth flying for rather than just surviving.",
   },
   {
     name: "Formals",
