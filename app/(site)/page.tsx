@@ -14,7 +14,7 @@ import { formatDateRange, formatPrice, getPublishedTrips, nightCount } from "@/l
 export const metadata: Metadata = {
   // The layout's template appends "· Outrider"; the home page is the one place
   // that should read as the brand alone.
-  title: { absolute: "Outrider · Ski weeks, spring break and formals" },
+  title: { absolute: "Outrider · Small-group ski weeks and spring break" },
   description:
     "Small-group travel for college. One property booked whole, everything arranged before you land, and the whole price settled up front.",
 };
@@ -40,7 +40,7 @@ export default async function HomePage() {
     <>
       <Hero
         video={{ src: "/video/hero.mp4", poster: "/video/hero-poster.jpg" }}
-        eyebrow="Ski weeks · Spring break · Formals"
+        eyebrow="Ski weeks · Spring break"
         headline="Someone rides ahead"
         tagline="One property, booked whole. Everything arranged before you land, transport both directions, staff on the ground, and the price settled long before you go."
         stampText="Outrider · Scouted · Prepared"

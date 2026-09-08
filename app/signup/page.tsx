@@ -62,7 +62,7 @@ export default function SignupPage(
           <p className="font-body text-body leading-[1.7] text-[--text-secondary]">
             {fromBooking
               ? "Your deposit holds the room, and a deposit needs an account to sit against. Set one up here and you land back on the trip you picked."
-              : "One account covers every departure we run: ski weeks, spring break, formals."}
+              : "One account covers every departure we run."}
           </p>
         </div>
 

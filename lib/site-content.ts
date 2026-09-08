@@ -6,7 +6,7 @@
  *   - No "curated", "seamless", "elevate", "crafted", "journey", "unlock",
  *     "designed to", "ensures", or "it's not just X, it's Y".
  *   - Concrete over evocative. "Fourteen people" beats "an intimate group".
- *   - Outrider runs ski weeks, spring break and formals. Copy outside a
+ *   - Outrider runs ski weeks and spring break trips. Copy outside a
  *     specific trip page should not read as though skiing is the whole company.
  *
  * Anything only the Outrider team can know is marked NEEDS REAL COPY.
@@ -201,11 +201,5 @@ export const UPCOMING_CATEGORIES = [
     destination: "Destination to be announced",
     window: "Spring 2027",
     note: "Somewhere warm, with the same standard applied. Real properties, a group small enough to know, and days worth flying for rather than just surviving.",
-  },
-  {
-    name: "Formals",
-    destination: "Destination to be announced",
-    window: "2027",
-    note: "Chapter and organisation trips, planned and staffed the way the ski weeks are.",
   },
 ];

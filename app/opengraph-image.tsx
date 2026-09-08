@@ -13,7 +13,7 @@ import { MARK_D, WORDMARK_D } from "@/components/ui/Logo";
  * artwork is already vector. Only the small supporting text needs a face.
  */
 
-export const alt = "Outrider. Small-group ski weeks, spring break and formals.";
+export const alt = "Outrider. Small-group ski weeks and spring break trips.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -85,7 +85,7 @@ export default async function OpengraphImage() {
                 color: CREAM,
               }}
             >
-              Ski weeks. Spring break. Formals.
+              Ski weeks. Spring break.
             </div>
             <div
               style={{

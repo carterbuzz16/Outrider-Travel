@@ -1,7 +1,7 @@
 # AGENTS.md
 
 Outrider — a luxury small-group adventure travel company (ski trips now; spring
-break and formals trips planned). Next.js 14 App Router, TypeScript, Tailwind,
+break planned; formals held back until later). Next.js 14 App Router, TypeScript, Tailwind,
 Supabase (Postgres + Auth), Prisma, Stripe, Resend. Deployed on Vercel.
 
 ## Dev environment

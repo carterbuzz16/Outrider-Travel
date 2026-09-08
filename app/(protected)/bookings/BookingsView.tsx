@@ -262,7 +262,7 @@ function EmptyState() {
       <p className="stamp-type text-[--text-muted]">Nothing booked yet</p>
       <h2 className="t-subheading max-w-[20ch] text-[--text]">No trips on your account</h2>
       <p className="max-w-measure-tight font-body text-body leading-[1.7] text-[--text-secondary]">
-        Ski weeks, spring break and formals open a few departures at a time. Pick one and a deposit
+        We open a few departures at a time. Pick one and a deposit
         holds the room while the balance is split into scheduled payments.
       </p>
       <Button href="/trips" variant="primary" size="md">

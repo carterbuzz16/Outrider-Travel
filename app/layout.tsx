@@ -43,20 +43,20 @@ export const metadata: Metadata = {
     template: "%s · Outrider",
   },
   description:
-    "Small-group travel for college. Ski weeks, spring break and formals, run end to end by the people who booked them.",
+    "Small-group travel for college. Ski weeks and spring break, run end to end by the people who booked them.",
   openGraph: {
     type: "website",
     siteName: "Outrider",
     title: "Outrider",
     description:
-      "Small-group travel for college. Ski weeks, spring break and formals, run end to end by the people who booked them.",
+      "Small-group travel for college. Ski weeks and spring break, run end to end by the people who booked them.",
     url: "/",
   },
   twitter: {
     card: "summary_large_image",
     title: "Outrider",
     description:
-      "Small-group travel for college. Ski weeks, spring break and formals, run end to end by the people who booked them.",
+      "Small-group travel for college. Ski weeks and spring break, run end to end by the people who booked them.",
   },
 };
 
