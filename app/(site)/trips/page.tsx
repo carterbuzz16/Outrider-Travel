@@ -4,6 +4,7 @@ import {
   Reveal,
   SectionDivider,
   TripCard,
+  WaitlistCTA,
   type Trip,
 } from "@/components/ui";
 import { UPCOMING_CATEGORIES } from "@/lib/site-content";
@@ -77,6 +78,13 @@ export default async function TripsPage() {
           </Reveal>
         )}
       </section>
+
+      {/* Sits under the cards on purpose: this is the moment someone has
+          just read "Coming soon" and wants to know when that changes. */}
+      <WaitlistCTA
+        heading="Know before the dates go live"
+        body="Departures open to this list first. One email when Telluride goes on sale, and nothing in between."
+      />
 
       {/* ---- what's coming --------------------------------------------------
           Deliberately not trip cards: these have no dates, no price and nothing

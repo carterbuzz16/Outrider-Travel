@@ -6,6 +6,7 @@ import {
   Reveal,
   SectionDivider,
   TripCard,
+  WaitlistCTA,
   type Trip,
 } from "@/components/ui";
 import { UPCOMING_CATEGORIES, VALUE_PROPS } from "@/lib/site-content";
@@ -179,6 +180,10 @@ export default async function HomePage() {
               </Reveal>
             ))}
           </div>
+
+          <Reveal>
+            <WaitlistCTA tone="light" className="mt-6" />
+          </Reveal>
         </section>
 
         {/* ---- close ---------------------------------------------------------

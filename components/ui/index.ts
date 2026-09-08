@@ -55,3 +55,4 @@ export { default as CookieConsent } from "./CookieConsent";
 export { cn } from "./cn";
 
 export { OrganizationSchema, TripSchema } from "./StructuredData";
+export { default as WaitlistCTA } from "./WaitlistCTA";
