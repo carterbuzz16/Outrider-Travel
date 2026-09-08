@@ -7,6 +7,7 @@ import Logo from "./Logo";
 import Button from "./Button";
 import { cn } from "./cn";
 import { BOOKINGS_OPEN } from "@/lib/booking-window";
+import { ACCOUNT_LINK, type NavLink } from "./nav-links";
 
 /**
  * Nav bar — transparent over a hero, solid once you leave it.
@@ -21,7 +22,8 @@ import { BOOKINGS_OPEN } from "@/lib/booking-window";
  * from the top.
  */
 
-export type NavLink = { label: string; href: string };
+export type { NavLink };
+export { ACCOUNT_LINK };
 
 // Every entry here has a page behind it. A nav that links to a 404 is worse
 // than a short nav, so this grows when the routes do.
@@ -34,10 +36,12 @@ export default function NavBar({
   links = DEFAULT_LINKS,
   overHero = true,
   cta = { label: BOOKINGS_OPEN ? "Reserve a spot" : "View trips", href: "/trips" },
+  account = ACCOUNT_LINK,
 }: {
   links?: NavLink[];
   overHero?: boolean;
   cta?: { label: string; href: string } | null;
+  account?: NavLink | null;
 }) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -130,7 +134,21 @@ export default function NavBar({
           })}
         </ul>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-5 md:gap-6">
+          {account && (
+            <Link
+              href={account.href}
+              className={cn(
+                "t-label -my-2.5 hidden py-2.5 no-underline transition-colors duration-fast md:block",
+                solid
+                  ? "text-[--text-secondary] hover:text-[--text]"
+                  : "text-[--text] hover:text-[--accent]",
+              )}
+            >
+              {account.label}
+            </Link>
+          )}
+
           {cta && (
             <Button href={cta.href} variant="secondary" size="sm" className="hidden md:inline-flex">
               {cta.label}
@@ -164,6 +182,16 @@ export default function NavBar({
               </Link>
             </li>
           ))}
+          {account && (
+            <li className="border-t border-[--rule] pt-0">
+              <Link
+                href={account.href}
+                className="t-label block py-4 no-underline text-[--text]"
+              >
+                {account.label}
+              </Link>
+            </li>
+          )}
         </ul>
         {cta && (
           <div className="shell pb-6 pt-2">

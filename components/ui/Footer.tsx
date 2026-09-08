@@ -2,6 +2,7 @@ import Link from "next/link";
 import Logo from "./Logo";
 import Button from "./Button";
 import SectionDivider from "./SectionDivider";
+import { ACCOUNT_LINK } from "./nav-links";
 import { CONTACT } from "@/lib/site-content";
 import { LEGAL_DOCUMENTS } from "@/lib/legal";
 
@@ -26,6 +27,9 @@ const COLUMNS: Column[] = [
       { label: "All departures", href: "/trips" },
       { label: "About Outrider", href: "/about" },
       { label: "Contact", href: "/contact" },
+      // Same href as the nav's account entry, so there is one way in and it
+      // behaves identically from either end of the page.
+      { label: ACCOUNT_LINK.label, href: ACCOUNT_LINK.href },
     ],
   },
   {
