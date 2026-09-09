@@ -27,10 +27,10 @@ export const revalidate = 300;
 
 /** One per value prop, in the order VALUE_PROPS declares them. */
 const SPREAD_IMAGES = [
-  { src: "/images/telluride/group.jpg", alt: "A small group together on the mountain." },
+  { src: "/images/telluride/group.jpg", alt: "A lift cabin running above a skier on an open pitch." },
   { src: "/images/telluride/winter-town.jpg", alt: "Skis racked outside a slopeside lodge in Telluride." },
-  { src: "/images/telluride/apres.jpg", alt: "Apres after a day on the mountain." },
-  { src: "/images/telluride/ridge.jpg", alt: "A guide leading the way along a ridge." },
+  { src: "/images/telluride/apres.jpg", alt: "A skier turning through deep snow." },
+  { src: "/images/telluride/ridge.jpg", alt: "Last light on the peaks above the canyon." },
 ];
 
 export default async function HomePage() {

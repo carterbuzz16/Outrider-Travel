@@ -25,7 +25,9 @@ const COLUMNS: Column[] = [
     heading: "Trips",
     links: [
       { label: "All departures", href: "/trips" },
+      { label: "Destinations", href: "/destinations" },
       { label: "About Outrider", href: "/about" },
+      { label: "Questions", href: "/faq" },
       { label: "Contact", href: "/contact" },
       // Same href as the nav's account entry, so there is one way in and it
       // behaves identically from either end of the page.
