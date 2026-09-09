@@ -81,9 +81,15 @@ export const ORIGIN = {
   title: "Why Outrider",
   lede:
     "An outrider is the one who goes first. They ride ahead of the party, scout the route, clear what is in the way, and have the ground ready before anyone else arrives.",
+  /* Carter's words lead this, and they are the argument the company is built
+   * on: the destination is the product. The logistics paragraph used to open
+   * here and now follows, because how a trip is run is the consequence of that
+   * choice rather than the reason for it. */
   body: [
-    "College group travel breaks in the same places every time. Twenty people spread across four rentals. Nobody bought tickets in advance. A group chat still arguing about money in March over a trip taken in January. The trip is rarely the problem. The logistics are.",
-    "So Outrider runs the whole thing. One property, booked whole. Reservations and activities arranged before anyone lands. Transport both directions. Staff on the ground for the duration. Everything priced up front and paid in installments, so the cost is settled long before anyone gets on a plane.",
+    "Student group travel has run on the same formula for twenty years: fill the cheapest hotel with as many people as possible and sell the party. That formula no longer matches what this generation of students actually wants.",
+    "They want the place. A mountain worth skiing, a town worth walking, a dinner nobody leaves early. So we build the trip around the destination instead of the crowd.",
+    "That one decision sets everything after it. The property is chosen first and booked whole, which is what fixes the size of the group, rather than selling spots until the rooms run out. A departure only goes on sale once somebody has walked the place, eaten the dinners and slept in the rooms.",
+    "The old way breaks in the same places every time. Twenty people spread across four rentals on the wrong side of town. Nobody bought lift tickets in advance. A group chat still arguing about money in March over a trip taken in January. So Outrider runs the whole thing: reservations and activities arranged before anyone lands, transport both directions, staff on the ground for the duration, and everything priced up front and paid in installments.",
     "What is left is the part worth flying for.",
   ],
 };
