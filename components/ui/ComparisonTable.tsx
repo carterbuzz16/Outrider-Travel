@@ -55,15 +55,15 @@ const ROWS: Row[] = [
       "One person fronts the money and spends the next three months chasing a group chat.",
     usualShort: "One person fronts it and chases the group chat",
     outriderLong:
-      "Each traveller books their own spot. A deposit holds it, the balance is split into scheduled payments, and nobody owes a friend anything.",
+      "Each traveler books their own spot. A deposit holds it, the balance is split into scheduled payments, and nobody owes a friend anything.",
     outriderShort: "Everyone books their own spot, on a payment plan",
   },
   {    label: "On the trip",
     usualLong:
-      "Whoever organised it becomes the help desk for four days and never really gets a holiday.",
-    usualShort: "The organiser becomes the help desk",
+      "Whoever organized it becomes the help desk for four days and never really gets a holiday.",
+    usualShort: "The organizer becomes the help desk",
     outriderLong:
-      "Outrider staff are on the ground for the duration. The person who organised it gets to actually ski.",
+      "Outrider staff are on the ground for the duration. The person who organized it gets to actually ski.",
     outriderShort: "Outrider staff on the ground",
   },
   {    label: "How many people",

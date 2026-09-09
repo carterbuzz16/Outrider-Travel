@@ -110,7 +110,7 @@ export async function createBooking(formData: FormData) {
   // Before the PaymentIntent, deliberately. If this throws, the booking is
   // still `pending` and no card has been charged, which is a far better
   // failure than money taken against a booking with no record of what the
-  // traveller agreed to. recordAcceptance stores the document versions, not a
+  // traveler agreed to. recordAcceptance stores the document versions, not a
   // boolean, so the exact text accepted can be reproduced later.
   await recordAcceptance({ bookingId: booking.id, userId: user.id });
 

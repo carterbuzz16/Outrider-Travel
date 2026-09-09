@@ -11,7 +11,7 @@ import LegalDocument, { LegalList, LegalSection } from "../legal/LegalDocument";
  * Terms of Service.
  *
  * The payment mechanics described here are not invented: the deposit
- * percentage, the installment schedule, the retry rules and the SCA behaviour
+ * percentage, the installment schedule, the retry rules and the SCA behavior
  * are all imported from or read directly out of lib/deposit.ts,
  * lib/installments.ts, lib/payments.ts and app/api/cron/charge-installments.
  * Importing the constants rather than typing the numbers means the document
@@ -56,7 +56,7 @@ export default function TermsPage() {
         <p>
           To book a trip you must be at least 18 years old, able to enter into a
           binding contract, and booking for yourself or for someone who has
-          authorised you to accept these terms on their behalf.
+          authorized you to accept these terms on their behalf.
         </p>
         <p>
           Booking requires an Outrider account. Keep the email address on it
@@ -131,7 +131,7 @@ export default function TermsPage() {
         <p>
           The card you use to pay the deposit is saved with our payment
           processor and set as the card your future installments are charged to.
-          By paying the deposit you authorise those later charges. You can tell
+          By paying the deposit you authorize those later charges. You can tell
           us to use a different card by contacting {CONTACT.email}.
         </p>
       </LegalSection>
@@ -186,7 +186,7 @@ export default function TermsPage() {
           Keep a valid card on file. If the saved card expires, is replaced, is
           reported lost, or is cancelled by your bank, the charge will fail and
           section {sectionIndex("failed-payments")} applies. Telling us about a
-          new card before an installment is due is the traveller&rsquo;s
+          new card before an installment is due is the traveler&rsquo;s
           responsibility.
         </p>
       </LegalSection>
@@ -247,22 +247,22 @@ export default function TermsPage() {
         ---------------------------------------------------------------------
         ⚠️  ATTORNEY REVIEW REQUIRED BEFORE LAUNCH. This section is written to
         Carter's specification and is deliberately plain rather than dense,
-        because it is the section travellers actually read. It is still binding
+        because it is the section travelers actually read. It is still binding
         language and must be reviewed by a licensed attorney before it is
         treated as final, in particular:
 
           • The MISSED-INSTALLMENT clause, which converts a failed payment into
-            a traveller-initiated cancellation and forfeits money already paid.
+            a traveler-initiated cancellation and forfeits money already paid.
             Automatic forfeiture triggered by a payment failure is the clause
             most likely to be challenged, and the cure period is still a
             placeholder pending Carter's decision.
           • The FORCE MAJEURE clause, and whether "full refund OR full credit,
-            at Outrider's discretion" is enforceable in the states travellers
+            at Outrider's discretion" is enforceable in the states travelers
             book from. Some jurisdictions require a cash refund and will not
             let an operator satisfy the obligation with credit alone.
 
         Also unresolved: nothing in the booking flow currently records that a
-        traveller accepted these terms, so there is no evidence of assent to
+        traveler accepted these terms, so there is no evidence of assent to
         point at if this is ever disputed.
       */}
       <LegalSection doc={TERMS} id="cancellation">
@@ -406,7 +406,7 @@ export default function TermsPage() {
           already <strong>paid in full</strong> cannot be cancelled online, email {CONTACT.email} and we will handle it.
         </p>
         <p>
-          Cancelling stops future charges; it does not automatically return
+          Canceling stops future charges; it does not automatically return
           money already taken. Refunds under this policy are calculated by hand
           and issued to the original card. Cancellation takes effect on the day
           we receive it, through the bookings page or in writing at{" "}
@@ -424,7 +424,7 @@ export default function TermsPage() {
         <p>
           If <strong>Outrider</strong> cancels a trip for a reason that is not an
           event outside our control, you choose one of the following. This is a
-          different outcome from cancelling yourself, and deliberately so: you
+          different outcome from canceling yourself, and deliberately so: you
           are not being asked to absorb a decision you did not make.
         </p>
         <LegalList
@@ -437,7 +437,7 @@ export default function TermsPage() {
           ]}
         />
         <p>
-          We may also make changes short of cancelling: a change of lodging
+          We may also make changes short of canceling: a change of lodging
           within the same category, a change of dates, a change of itinerary, or
           a substitution of an included element for one of comparable standard.
           Where a change is <strong>significant</strong>, a material change of
@@ -575,9 +575,9 @@ export default function TermsPage() {
           <strong>
             It does not create a joint booking or any shared liability.
           </strong>{" "}
-          Each traveller has their own booking, pays their own deposit and their
+          Each traveler has their own booking, pays their own deposit and their
           own installments on their own card, and can cancel independently of
-          everyone else in the group. One person cancelling does not cancel
+          everyone else in the group. One person canceling does not cancel
           anyone else, does not change what anyone else owes, and does not
           entitle anyone else to a refund. Being in a group does not guarantee a
           specific room, a specific room-mate or a specific suite: those depend
@@ -586,7 +586,7 @@ export default function TermsPage() {
 
         <h3>Transfers and name changes</h3>
         <p>
-          A booking is personal to the traveller named on it. You cannot resell
+          A booking is personal to the traveler named on it. You cannot resell
           it or transfer it privately.
         </p>
         <p>
@@ -619,7 +619,7 @@ export default function TermsPage() {
               closed or out-of-bounds terrain;
             </>,
             <>
-              treat other travellers, staff, suppliers and their property with
+              treat other travelers, staff, suppliers and their property with
               respect, and not harass, threaten or endanger anyone;
             </>,
             <>
@@ -637,7 +637,7 @@ export default function TermsPage() {
           <strong>
             We may remove you from a trip, immediately and without a refund,
           </strong>{" "}
-          if in our reasonable judgement your behaviour endangers you or anyone
+          if in our reasonable judgment your behavior endangers you or anyone
           else, is seriously disruptive, is unlawful, or is likely to damage
           property or Outrider&rsquo;s relationship with a supplier. If you are
           removed, getting home is at your own cost, and you remain liable for
@@ -664,7 +664,7 @@ export default function TermsPage() {
           By booking a trip you confirm that you have read and accept{" "}
           <Link href="/assumption-of-risk">
             the Assumption of Risk, Release and Waiver of Liability
-          </Link>, which forms part of this agreement and which every traveller is
+          </Link>, which forms part of this agreement and which every traveler is
           required to sign before departure. Read it. It asks you to accept
           those risks and to give up legal claims, and it is written to be
           understood rather than hidden.
@@ -747,7 +747,7 @@ export default function TermsPage() {
           </strong>{" "}
           A later change does not reach back into a booking already made. Where a
           change materially affects what you owe or what you can claim, we will
-          tell travellers with live bookings and, where it applies to their
+          tell travelers with live bookings and, where it applies to their
           booking, ask them to accept it.
         </p>
       </LegalSection>

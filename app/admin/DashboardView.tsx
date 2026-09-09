@@ -242,7 +242,7 @@ function Missing() {
 /**
  * The installment plan for one booking, one line per payment.
  *
- * A flagged line is the only place colour appears in the table body: the rule
+ * A flagged line is the only place color appears in the table body: the rule
  * down its left edge and the label both switch to the flag, so a schedule that
  * needs chasing is findable by scanning the column rather than by reading it.
  */

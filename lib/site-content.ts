@@ -14,7 +14,7 @@
 
 /* -- the company ------------------------------------------------------------
  * The registered entity. Used wherever a document has to name the party a
- * traveller is contracting with or releasing, so the terms, the privacy policy
+ * traveler is contracting with or releasing, so the terms, the privacy policy
  * and the waiver cannot drift apart from each other or from the footer. A
  * release that names an entity which does not exist is worth less than one that
  * names the right one, so this is the only place it should ever be written.
@@ -23,7 +23,7 @@ export const LEGAL_NAME = "Outrider Travel, LLC";
 
 /* -- contact ---------------------------------------------------------------
  * bookings@outrider.travel is the one address the repo can vouch for: it is the
- * verified Resend sender in EMAIL_FROM_ADDRESS. Change it here if enquiries
+ * verified Resend sender in EMAIL_FROM_ADDRESS. Change it here if inquiries
  * should land somewhere else.
  * ------------------------------------------------------------------------- */
 export const CONTACT = {
@@ -66,13 +66,13 @@ export const VALUE_PROPS = [
     eyebrow: "One price",
     title: "The number on the page is the number",
     body:
-      "Lodging, activities, ground transport, private events, a welcome package and on-trip staff are inside the price. No resort fee at check in. No separate charge for the shuttle. Each traveller books their own spot and pays in installments, so nobody fronts money for friends and nobody chases a group chat in March.",
+      "Lodging, activities, ground transport, private events, a welcome package and on-trip staff are inside the price. No resort fee at check in. No separate charge for the shuttle. Each traveler books their own spot and pays in installments, so nobody fronts money for friends and nobody chases a group chat in March.",
   },
   {
     eyebrow: "Someone goes first",
     title: "The trip is scouted before it is sold",
     body:
-      "We go to the property, hold the rooms, buy the tickets and arrange the transport before a single spot is offered. Outrider staff are there for the whole trip. Whoever would normally organise it gets to be on the trip instead of running it.",
+      "We go to the property, hold the rooms, buy the tickets and arrange the transport before a single spot is offered. Outrider staff are there for the whole trip. Whoever would normally organize it gets to be on the trip instead of running it.",
   },
 ];
 
@@ -123,7 +123,7 @@ export const FOUNDER: {
 /* -- partner: Chptr --------------------------------------------------------
  * Description drafted from what Chptr publishes about itself at chptr.house:
  * a management platform for fraternity and sorority chapters, whose vendor
- * partnership programme is the "Chptr Collective". Their own brand styling is
+ * partnership program is the "Chptr Collective". Their own brand styling is
  * "Chptr", not "CHPTR".
  *
  * NOTE FOR CARTER: the description of Chptr is theirs and is accurate as far
@@ -137,7 +137,7 @@ export const PARTNER = {
   url: "https://chptr.house/",
   confirmed: true,
   body: [
-    "Chptr is the platform fraternity and sorority chapters use to run themselves: budgeting, events, attendance, records and the vendors they work with, in one place. Their vendor programme, the Chptr Collective, vets who chapters deal with and negotiates the terms centrally.",
+    "Chptr is the platform fraternity and sorority chapters use to run themselves: budgeting, events, attendance, records and the vendors they work with, in one place. Their vendor program, the Chptr Collective, vets who chapters deal with and negotiates the terms centrally.",
     "Outrider works with Chptr because it puts us on the same footing as every other part of a chapter's operations. A social chair is not taking a stranger's word for it and wiring a deposit somewhere. They are booking through a system their chapter already runs on, with someone who has been checked before they ever got in front of them.",
   ],
 };
@@ -186,12 +186,12 @@ export const COMPARISON = [
   {
     label: "Paying for it",
     usual: "One person fronts the money and spends the next three months chasing a group chat.",
-    ours: "Each traveller books their own spot. A deposit holds it, the balance is split into scheduled payments, and nobody owes a friend anything.",
+    ours: "Each traveler books their own spot. A deposit holds it, the balance is split into scheduled payments, and nobody owes a friend anything.",
   },
   {
     label: "On the trip",
-    usual: "Whoever organised it becomes the help desk for four days and never really gets a holiday.",
-    ours: "Outrider staff are on the ground for the duration. The person who organised it gets to actually ski.",
+    usual: "Whoever organized it becomes the help desk for four days and never really gets a holiday.",
+    ours: "Outrider staff are on the ground for the duration. The person who organized it gets to actually ski.",
   },
   {
     label: "How many people",

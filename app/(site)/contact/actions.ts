@@ -21,7 +21,7 @@ const MAX_NAME = 200;
 
 export type ContactResult = { ok: true } | { ok: false; message: string };
 
-/** Where enquiries land. Falls back to the waitlist inbox, then the public
+/** Where inquiries land. Falls back to the waitlist inbox, then the public
  *  address, so a fresh environment still delivers somewhere real. */
 function inbox(): string | null {
   return (
@@ -74,7 +74,7 @@ export async function sendContactMessage(input: {
       // The visitor's address goes in reply-to, never in `from`: sending as
       // them would fail SPF on a verified domain and land the lot in spam.
       replyTo: email,
-      subject: `Outrider enquiry from ${name}`,
+      subject: `Outrider inquiry from ${name}`,
       text: `From: ${name} <${email}>\n\n${message}`,
     });
 

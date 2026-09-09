@@ -8,7 +8,7 @@ import { cn } from "./cn";
  *
  * Every control is a hairline box on a transparent ground with its label set
  * above it in tracked mono — a customs form, not an app. There is no filled
- * grey input, no rounded pill, no floating label. Focus darkens the rule to the
+ * gray input, no rounded pill, no floating label. Focus darkens the rule to the
  * scheme's accent and the browser's own focus ring sits outside it.
  *
  * `Field` owns the label/hint/error scaffolding and hands its child a set of

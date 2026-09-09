@@ -116,11 +116,11 @@ enum BookingStatus {
   @@map("booking_status")
 }
 
-/// Evidence that a traveller accepted the Terms and the Assumption of Risk when
+/// Evidence that a traveler accepted the Terms and the Assumption of Risk when
 /// they booked. Append-only: a booking is governed by the document versions in
 /// force at the moment it was made, so rows here are never updated or deleted.
 /// Written server-side with the service role only (see lib/legal-acceptance.ts);
-/// RLS lets a traveller read their own and nothing else.
+/// RLS lets a traveler read their own and nothing else.
 model LegalAcceptance {
   id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   bookingId       String   @map("booking_id") @db.Uuid

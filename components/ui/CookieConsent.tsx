@@ -18,7 +18,7 @@ import {
  *
  * 1. **It usually does not render.** `TRACKING_ENABLED` in lib/consent.ts is
  *    false while the site sets nothing but strictly-necessary cookies, and a
- *    banner asking permission for cookies that need no permission is theatre
+ *    banner asking permission for cookies that need no permission is theater
  *    that teaches people to click through consent UI without reading it. See
  *    the audit note at the top of lib/consent.ts.
  *

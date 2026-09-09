@@ -9,7 +9,7 @@ import { LEGAL_DOCUMENTS } from "@/lib/legal";
 /**
  * Footer — the back of the ticket.
  *
- * Set on forest, opened with a perforation, and organised like the reverse of
+ * Set on forest, opened with a perforation, and organized like the reverse of
  * a printed travel document: the lockup and the definition of the name on the
  * left, three short link columns, then a ruled-off line of fine print with the
  * stamped issue line at the far right.

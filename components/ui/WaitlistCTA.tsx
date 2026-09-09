@@ -133,9 +133,9 @@ export default function WaitlistCTA({
                 aria-live="polite"
                 className={cn(
                   "t-micro min-h-[1.4em]",
-                  // Burnt orange is the flag colour everywhere, but on charcoal
+                  // Burnt orange is the flag color everywhere, but on charcoal
                   // it measures 4.46:1, which misses AA for 11px text. Cream
-                  // carries the error there instead; on paper the flag colour
+                  // carries the error there instead; on paper the flag color
                   // clears AA comfortably and stays the more legible signal.
                   status === "error"
                     ? dark

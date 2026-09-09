@@ -42,7 +42,7 @@ export default function SectionDivider({
     );
   }
 
-  const centre =
+  const center =
     variant === "mark" ? (
       <OutriderMark className="w-7 text-[--text-muted]" />
     ) : (
@@ -56,7 +56,7 @@ export default function SectionDivider({
       aria-label={variant === "label" ? label : undefined}
     >
       <span className="h-px flex-1 bg-[--rule]" />
-      {centre}
+      {center}
       <span className="h-px flex-1 bg-[--rule]" />
     </div>
   );

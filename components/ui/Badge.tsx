@@ -6,7 +6,7 @@ import { cn } from "./cn";
  * Deliberately tiny and typographic: tracked-out mono in a hairline box, with
  * a single square marker where a rubber stamp would have its ink. Burnt orange
  * appears on exactly one status ("few spots left"), which is the whole reason
- * that colour exists in the palette — if it starts showing up anywhere else it
+ * that color exists in the palette — if it starts showing up anywhere else it
  * stops meaning "act now".
  */
 
@@ -32,7 +32,7 @@ const TONES: Record<BadgeTone, { box: string; dot: string }> = {
     box: "bg-transparent border-[--rule] text-[--text-muted]",
     dot: "bg-[--text-muted] opacity-50",
   },
-  // The only filled badge, and deliberately so: sky is a dark-scheme colour
+  // The only filled badge, and deliberately so: sky is a dark-scheme color
   // (1.9:1 on paper), so an outlined sky badge would be unreadable on the very
   // surface trip cards use. Inverting it keeps "just announced" the loudest
   // status on the page and accessible on every scheme.

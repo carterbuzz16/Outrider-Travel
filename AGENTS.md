@@ -51,7 +51,7 @@ brand → semantic → scheme, and components consume the semantic layer only.
 - `/style` renders the whole library. It is gated in `middleware.ts`; set
   `ENABLE_STYLEGUIDE=1` to expose it on a deployed environment.
 
-When changing colours, verify contrast rather than eyeballing it — every
+When changing colors, verify contrast rather than eyeballing it — every
 text/background pair on a page should clear 4.5:1 (3:1 for large text).
 
 ## Data

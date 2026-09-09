@@ -80,7 +80,7 @@ export default function TripCard({
           />
         ) : (
           // No photograph yet: a teal plate with the mark, which is a decent
-          // placeholder rather than a grey box with a broken-image glyph.
+          // placeholder rather than a gray box with a broken-image glyph.
           <div className="grid h-full w-full place-items-center">
             <OutriderMark className="w-16 text-[--color-cream] opacity-30" />
           </div>

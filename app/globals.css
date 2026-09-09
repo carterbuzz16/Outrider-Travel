@@ -6,8 +6,8 @@
    OUTRIDER — design tokens
    --------------------------------------------------------------------------
    Three layers, in order:
-     1. Brand      the seven fixed brand colours, plus values derived from them
-     2. Semantic   what a colour is *for* (surface, text, rule, accent)
+     1. Brand      the seven fixed brand colors, plus values derived from them
+     2. Semantic   what a color is *for* (surface, text, rule, accent)
      3. Scheme     a scope that re-points the semantic layer, so a component
                    dropped on a dark panel restyles itself with no props
    Components read the semantic layer only. Nothing below this file should
@@ -46,7 +46,7 @@
      it has to be read. */
 
   /* Channel triplets, for the handful of places that need an alpha ramp
-     (hairlines, scrims, focus rings) without a second hard-coded colour. */
+     (hairlines, scrims, focus rings) without a second hard-coded color. */
   --rgb-cream: 241 233 220;
   --rgb-charcoal: 26 26 26;
   --rgb-teal: 76 133 145;
@@ -244,7 +244,7 @@
  * Forest and brand-teal panels were retired as section grounds: alternating
  * them down a page produced a green-to-blue drift that read as two different
  * brands. Structure is now charcoal and cream only, and teal appears solely as
- * an accent — rules, small type, one filled button. Colour otherwise enters the
+ * an accent — rules, small type, one filled button. Color otherwise enters the
  * page through photography.
  *
  * The accent here is --color-teal-light rather than sky: sky is a blue, and it
@@ -350,7 +350,7 @@
 
   input, textarea, select, button { font: inherit; color: inherit; }
 
-  /* Honour the OS setting: reveals resolve instantly, hovers stop moving. */
+  /* Honor the OS setting: reveals resolve instantly, hovers stop moving. */
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
     *, *::before, *::after {

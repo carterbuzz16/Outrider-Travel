@@ -8,18 +8,18 @@ import LegalDocument, { LegalList, LegalSection } from "../legal/LegalDocument";
  * Assumption of Risk, Release and Waiver of Liability.
  *
  * The most consequential document on the site and the one least safe to take
- * from a template: it asks travellers to give up claims arising from an
+ * from a template: it asks travelers to give up claims arising from an
  * activity that injures and kills people every season, and whether any of it
  * is enforceable is a question of the law of a particular state.
  *
  * Two things are deliberately true of the draft below. It is written to be
  * understood, a release a court finds ambiguous or buried protects nobody, and
- * one a traveller does not understand is not consent in any sense worth having.
+ * one a traveler does not understand is not consent in any sense worth having.
  * And it says out loud, in the page itself, where it may not hold: waiver law
  * varies by state, several states limit or void pre-injury releases, and
  * essentially none of them enforce a release against gross negligence.
  *
- * Nothing in the application currently records a traveller signing this. See
+ * Nothing in the application currently records a traveler signing this. See
  * the flag in the acknowledgement section.
  */
 
@@ -61,7 +61,7 @@ export default function AssumptionOfRiskPage() {
           {LEGAL_NAME}, its owners, officers, employees, contractors,
           guides, trip staff, volunteers, agents, successors and assigns.
           <strong> &ldquo;I&rdquo;</strong> and{" "}
-          <strong>&ldquo;me&rdquo;</strong> mean the traveller signing, and also
+          <strong>&ldquo;me&rdquo;</strong> mean the traveler signing, and also
           that person&rsquo;s heirs, next of kin, executors, administrators,
           assigns and personal representatives.
         </p>
@@ -70,7 +70,7 @@ export default function AssumptionOfRiskPage() {
           departure and everything in and around it: lodging, transport,
           skiing and snowboarding on and off marked terrain, lift use, lessons
           and guiding, meals, events, and any free time or activity taking place
-          during the trip dates, whether or not it is an organised part of the
+          during the trip dates, whether or not it is an organized part of the
           itinerary and whether or not Outrider staff are present.
         </p>
       </LegalSection>
@@ -136,16 +136,16 @@ export default function AssumptionOfRiskPage() {
               including headache, nausea, sleeplessness, dehydration, acute
               mountain sickness and, rarely, life-threatening pulmonary or
               cerebral oedema. The resorts Outrider visits sit well above the
-              elevations most travellers live at.
+              elevations most travelers live at.
             </>,
             <>
-              <strong>My own equipment and its behaviour.</strong> Bindings that
+              <strong>My own equipment and its behavior.</strong> Bindings that
               release when they should not, or fail to release when they should;
               equipment failure of any kind; and injury caused by my own or
               another person&rsquo;s equipment.
             </>,
             <>
-              <strong>My own judgement and condition.</strong> Fatigue, over-
+              <strong>My own judgment and condition.</strong> Fatigue, over-
               confidence, skiing beyond my ability, misjudging conditions, and
               the effect of alcohol, medication, illness or altitude on my
               decisions.
@@ -194,7 +194,7 @@ export default function AssumptionOfRiskPage() {
               expensive;
             </>,
             <>
-              acts of other travellers on the trip, of local people, and of third
+              acts of other travelers on the trip, of local people, and of third
               parties, over whom Outrider has no control.
             </>,
           ]}
@@ -263,7 +263,7 @@ export default function AssumptionOfRiskPage() {
         />
         <p>
           Outrider may refuse to let me take part in an activity, or may remove
-          me from one, if in its judgement I am not fit for it or my
+          me from one, if in its judgment I am not fit for it or my
           participation endangers me or anyone else. That is a decision made for
           safety and does not entitle me to a refund.
         </p>
@@ -339,7 +339,7 @@ export default function AssumptionOfRiskPage() {
       <LegalSection doc={ASSUMPTION_OF_RISK} id="medical">
         <p>
           If I am injured or become ill on the trip and cannot consent for
-          myself, I authorise Outrider staff, ski patrol, guides and emergency
+          myself, I authorize Outrider staff, ski patrol, guides and emergency
           responders to arrange and consent to medical care, first aid, ambulance
           transport, evacuation and hospital treatment on my behalf.
         </p>
@@ -353,7 +353,7 @@ export default function AssumptionOfRiskPage() {
         <p>
           Outrider is not responsible for the quality, availability, timeliness
           or outcome of medical care provided by anyone else, and arranging care
-          in an emergency does not make Outrider responsible for it. I authorise
+          in an emergency does not make Outrider responsible for it. I authorize
           Outrider to share relevant health information with medical personnel
           and with my emergency contact, and I will keep an up-to-date emergency
           contact on file.
@@ -364,7 +364,7 @@ export default function AssumptionOfRiskPage() {
         <p>
           Outrider photographs and films its trips. I grant Outrider permission
           to record my image, likeness and voice during the trip, and a
-          non-exclusive, royalty-free, worldwide licence to use that material to
+          non-exclusive, royalty-free, worldwide license to use that material to
           promote Outrider, on its website, in social media, in email and in
           printed material, without further approval or payment.
         </p>
@@ -417,7 +417,7 @@ export default function AssumptionOfRiskPage() {
 
       <LegalSection doc={ASSUMPTION_OF_RISK} id="minors">
         <p>
-          Where a traveller is under 18, this document must be signed by a parent
+          Where a traveler is under 18, this document must be signed by a parent
           or legal guardian, who signs both on their own behalf and on behalf of
           the minor, and who accepts responsibility for the minor&rsquo;s conduct
           and supervision on the trip.
@@ -439,7 +439,7 @@ export default function AssumptionOfRiskPage() {
           part is to be limited or removed to the minimum extent necessary, and
           the rest of it remains in full force and effect. In particular, if a
           release of ordinary negligence is unenforceable in the applicable
-          jurisdiction, the assumption of risk, indemnity, medical authorisation
+          jurisdiction, the assumption of risk, indemnity, medical authorization
           and every other provision continue to apply, and the release continues
           to apply to the fullest extent that jurisdiction does permit.
         </p>

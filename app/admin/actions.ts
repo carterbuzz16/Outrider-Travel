@@ -40,7 +40,7 @@ async function requireAdmin() {
  * back office wants.
  *
  * Scheduled payments are cancelled in the same breath. Leaving them behind is
- * how a cancelled traveller gets charged an installment a month later.
+ * how a cancelled traveler gets charged an installment a month later.
  */
 export async function cancelBookingAsAdmin(formData: FormData) {
   await requireAdmin();

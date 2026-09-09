@@ -62,7 +62,7 @@ export default function PrivacyPage() {
         <h3>Booking information</h3>
         <p>
           When you book we record which trip and tier you chose, the total price
-          and deposit, the booking status, your group code if you are travelling
+          and deposit, the booking status, your group code if you are traveling
           with people you know, and the date you booked. Against that booking we
           record each payment: the amount, its status, the date it is scheduled
           for, when it was paid, how many charge attempts have been made, and a
@@ -365,7 +365,7 @@ export default function PrivacyPage() {
 
       <LegalSection doc={PRIVACY} id="eea-uk">
         <p>
-          This site is aimed at travellers in the United States, and your
+          This site is aimed at travelers in the United States, and your
           information is stored and processed there. If you are in the European
           Economic Area or the United Kingdom and the GDPR applies to our
           handling of your information, we rely on these legal bases: performance
@@ -395,7 +395,7 @@ export default function PrivacyPage() {
           our authentication provider and are never visible to us. Card details
           never reach our systems at all. Access to booking and payment records
           in our database is restricted by row-level security so that a signed-in
-          traveller can read their own records and no one else&rsquo;s, and the
+          traveler can read their own records and no one else&rsquo;s, and the
           writes that create bookings and payments are made only by the server.
         </p>
         <p>

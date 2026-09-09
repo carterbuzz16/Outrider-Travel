@@ -205,7 +205,7 @@ export default function TripEditor({ trip, error }: { trip: EditorTrip; error?: 
 
           <Panel
             title="Tiers"
-            description="What a traveller picks between. Price and capacity here drive the booking flow."
+            description="What a traveler picks between. Price and capacity here drive the booking flow."
             bleed
           >
             {tiers.length === 0 ? (
@@ -458,7 +458,7 @@ export default function TripEditor({ trip, error }: { trip: EditorTrip; error?: 
             {isPublished && tiers.length === 0 && (
               <div className="mt-4">
                 <Alert tone="error" title="Published with no tiers">
-                  There is nothing for a traveller to book. Add a tier or move this back to draft.
+                  There is nothing for a traveler to book. Add a tier or move this back to draft.
                 </Alert>
               </div>
             )}

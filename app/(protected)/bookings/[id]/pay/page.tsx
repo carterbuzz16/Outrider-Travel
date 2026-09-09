@@ -12,7 +12,7 @@ import CheckoutForm from "@/components/CheckoutForm";
  * The deposit screen.
  *
  * Everything above the card field exists to answer the three questions a
- * traveller has with their wallet already out: what am I buying, what comes off
+ * traveler has with their wallet already out: what am I buying, what comes off
  * the card right now, and what happens to the rest. The reading order is the
  * DOM order — a single column, card field last — so the answers can't be
  * scrolled past on a narrow screen.
@@ -133,7 +133,7 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
         <div className="mt-6">
           <Alert tone="warning" title="The deposit is non-refundable">
             Once this payment clears, the deposit is not refundable, whatever the reason for
-            cancelling. Anything you pay above it is refunded on a sliding scale that closes 30 days
+            canceling. Anything you pay above it is refunded on a sliding scale that closes 30 days
             before the trip. Read the{" "}
             <Link href="/terms#cancellation" className="text-[--accent] decoration-[--accent]">
               cancellation terms
@@ -171,7 +171,7 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
 }
 
 /**
- * The schedule the traveller is about to agree to, worked out the same way
+ * The schedule the traveler is about to agree to, worked out the same way
  * lib/installments.ts will work it out for real.
  *
  * The rows do not exist yet: they are written only once the deposit's

@@ -6,11 +6,11 @@ import { cn } from "./cn";
  *
  * All three are square-cornered and set in the tracked mono label voice. They
  * read as stamped instructions rather than app chrome: no pill shapes, no drop
- * shadows, no gradient. Hover only ever changes colour and rule weight; the
+ * shadows, no gradient. Hover only ever changes color and rule weight; the
  * one moving part is the ghost variant's underline, which draws in from the
  * left over 260ms.
  *
- * Colours come from the semantic layer, so a button inside `.scheme-forest`
+ * Colors come from the semantic layer, so a button inside `.scheme-forest`
  * flips to sky-on-forest with nothing passed in.
  */
 
@@ -24,7 +24,7 @@ const BASE =
   "disabled:pointer-events-none disabled:opacity-45";
 
 const VARIANTS: Record<ButtonVariant, string> = {
-  // Filled: the one place a solid block of colour is allowed to sit in a layout.
+  // Filled: the one place a solid block of color is allowed to sit in a layout.
   // The ground is --accent-solid rather than --accent because brand teal can't
   // carry a 12px label — see the contrast note in globals.css. Hover and its
   // reverse are both scheme-supplied, so no variant overrides are needed here.

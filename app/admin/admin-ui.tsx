@@ -8,7 +8,7 @@ import type { Database } from "@/types/supabase";
  * Everything here is deliberately quieter and denser than the public site.
  * The marketing pages are read; these are scanned and operated, so there are
  * no stamps, no display type and no decorative dividers — just the system's
- * hairlines, tracked mono labels and semantic colour tokens, so it still
+ * hairlines, tracked mono labels and semantic color tokens, so it still
  * reads as the same product.
  *
  * All Server Components: the admin screens are forms posting server actions

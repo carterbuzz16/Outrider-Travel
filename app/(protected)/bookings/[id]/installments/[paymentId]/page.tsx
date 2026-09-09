@@ -8,7 +8,7 @@ import CompleteAuthenticationForm from "@/components/CompleteAuthenticationForm"
 /**
  * The 3DS re-authentication screen for a scheduled installment.
  *
- * A traveller lands here from an email or from the alert on their bookings
+ * A traveler lands here from an email or from the alert on their bookings
  * page, usually with no idea why a trip they already booked is asking about
  * money again. So the page leads with what this is not — not a new charge, not
  * a decline, not a price change — before it offers the button, and says what

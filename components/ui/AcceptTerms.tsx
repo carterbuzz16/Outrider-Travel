@@ -8,7 +8,7 @@ import { cn } from "./cn";
  * The tick that has to be there before money moves.
  *
  * Deliberately not pre-checked and not implied by "clicking Book means you
- * agree". A traveller is giving up legal claims arising from an activity with
+ * agree". A traveler is giving up legal claims arising from an activity with
  * real physical risk, so the acceptance is an affirmative act, the documents
  * are linked directly, and the linked text opens in a new tab so nobody loses
  * a part-filled booking form to read it.

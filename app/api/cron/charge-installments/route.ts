@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     /*
    * Fail closed when unset. Otherwise the template literal below produces the
    * literal string "Bearer undefined", and anyone who sends that header is
-   * authorised to drive the charger.
+   * authorized to drive the charger.
    */
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) {

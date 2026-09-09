@@ -66,7 +66,7 @@ export default function Gallery({
     <div className={cn("flex flex-col gap-5", className)}>
       <ul
         ref={trackRef}
-        // A labelled, focusable scroll region: keyboard users can reach it and
+        // A labeled, focusable scroll region: keyboard users can reach it and
         // drive it with the arrow keys without needing the buttons.
         tabIndex={0}
         aria-label="Trip photographs"

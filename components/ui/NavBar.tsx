@@ -79,7 +79,7 @@ export default function NavBar({
         // variables, and `color` is inherited from body as an already-resolved
         // value. Sections fix that with .scheme-paint, but the bar must not
         // paint a background in its transparent state — so it re-resolves the
-        // colour here instead, and anything inside it inherits correctly.
+        // color here instead, and anything inside it inherits correctly.
         "text-[--text]",
         solid
           ? "scheme-light border-b border-[--rule] bg-[--surface]"

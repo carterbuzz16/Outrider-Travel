@@ -5,7 +5,7 @@ import { OutriderMark } from "./Logo";
  * Circular stamp badge — the passport/luggage-label device.
  *
  * A double hairline ring with type set around the inside of it and the eye
- * mark at the centre. Use it as a seal on a hero corner, a section opener, or
+ * mark at the center. Use it as a seal on a hero corner, a section opener, or
  * a "chartered" mark on a trip page. One per screen, at most: the moment there
  * are two of these in view the whole conceit reads as decoration.
  */
@@ -15,7 +15,7 @@ type StampProps = {
   text: string;
   /** Slow rotation, 32s a turn. Off by default; honours reduced-motion. */
   spin?: boolean;
-  /** Rendered at the centre. Defaults to the eye mark. */
+  /** Rendered at the center. Defaults to the eye mark. */
   center?: React.ReactNode;
   className?: string;
 };
@@ -108,7 +108,7 @@ export default function Stamp({
           </text>
         </svg>
 
-        {/* Counter-rotation would be the fussy answer; instead the centre simply
+        {/* Counter-rotation would be the fussy answer; instead the center simply
           sits outside the spinning SVG and never moves. */}
         <span className="pointer-events-none absolute inset-0 grid place-items-center">
           {center ?? <OutriderMark className="w-[26%]" />}

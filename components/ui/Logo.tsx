@@ -8,9 +8,9 @@ import { cn } from "./cn";
  * lifted straight from the source artwork, so the letterforms and proportions
  * are the comp's own — no web font to load, nothing to flash on first paint.
  *
- * Colour is a prop rather than a wrapper's responsibility because the logo has
+ * Color is a prop rather than a wrapper's responsibility because the logo has
  * to sit on cream, on charcoal and on teal, and `tone="inherit"` (the default)
- * lets it simply take the colour of whatever scheme it lands in.
+ * lets it simply take the color of whatever scheme it lands in.
  */
 
 export type LogoTone = "inherit" | "cream" | "charcoal" | "teal" | "forest" | "sky";
@@ -34,7 +34,7 @@ type PieceProps = {
   tone?: LogoTone;
 };
 
-/** The mark on its own — favicons, loading states, a stamp centre. */
+/** The mark on its own — favicons, loading states, a stamp center. */
 export function OutriderMark({ className, tone = "inherit" }: PieceProps) {
   return (
     <svg

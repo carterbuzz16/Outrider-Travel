@@ -90,7 +90,7 @@ function Swatch({
           {token}
         </span>
       </div>
-      {dark && <span className="sr-only">Use cream text on this colour.</span>}
+      {dark && <span className="sr-only">Use cream text on this color.</span>}
     </div>
   );
 }
@@ -166,11 +166,11 @@ export default function StylePage() {
       </header>
 
       <main className="scheme-light scheme-paint">
-        {/* ---- colour ------------------------------------------------------ */}
+        {/* ---- color ------------------------------------------------------ */}
         <Section
           n="01"
-          title="Colour"
-          note="Seven brand colours and a short list of values mixed from them. Burnt orange is an accent with one job — it marks scarcity and nothing else."
+          title="Color"
+          note="Seven brand colors and a short list of values mixed from them. Burnt orange is an accent with one job — it marks scarcity and nothing else."
         >
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             <Swatch name="Teal" token="--color-teal" hex="#4C8591" dark />
@@ -224,7 +224,7 @@ export default function StylePage() {
               Brand teal and burnt orange are mid-tones: both clear 3:1 against
               paper, so they are safe as surfaces, rules and marks, and neither
               is legible at text size. Anything you have to <em>read</em> in
-              those colours uses the deepened value beside it — which is why a
+              those colors uses the deepened value beside it — which is why a
               filled button sits on{" "}
               <span className="font-display text-micro tracking-label">
                 --accent-solid
@@ -353,7 +353,7 @@ export default function StylePage() {
         <Section
           n="03"
           title="Logo"
-          note="The eye on the horizon line, and the wordmark. One component, four lockups, colour passed as a prop so it survives any ground."
+          note="The eye on the horizon line, and the wordmark. One component, four lockups, color passed as a prop so it survives any ground."
         >
           <div className="grid gap-px border border-[--rule] bg-[--rule] sm:grid-cols-2 lg:grid-cols-4">
             <div className="grid place-items-center bg-[--color-paper] p-10">
@@ -375,7 +375,7 @@ export default function StylePage() {
         <Section
           n="04"
           title="Buttons"
-          note="Three variants, three sizes, square corners. Hover changes colour and rule weight only."
+          note="Three variants, three sizes, square corners. Hover changes color and rule weight only."
         >
           <div className="flex flex-col gap-8">
             <div className="flex flex-wrap items-center gap-4">
@@ -445,7 +445,7 @@ export default function StylePage() {
                 <StatusBadge status="soldOut" />
                 <StatusBadge status="waitlist" />
                 <StatusBadge status="announced" />
-                <Badge plain>7 travellers</Badge>
+                <Badge plain>7 travelers</Badge>
               </div>
 
               <div className="flex flex-col gap-6">

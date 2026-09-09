@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
  *
  * Cancellation, refunds, the deposit and the installment plan are one set of
  * rules, and the worst outcome here is two documents that both describe them
- * and quietly disagree after somebody edits one. A traveller reading a standalone
+ * and quietly disagree after somebody edits one. A traveler reading a standalone
  * cancellation policy that contradicts the terms they agreed to is a dispute
  * waiting to happen, so there is exactly one source of truth: section 7 of the
  * Terms of Service, with the payment plan and the force-majeure rules either

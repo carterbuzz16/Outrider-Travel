@@ -15,7 +15,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Brand — reach for these only when a colour is the point (the logo,
+        // Brand — reach for these only when a color is the point (the logo,
         // a deliberate teal panel). Everything else uses the semantic set.
         teal: {
           DEFAULT: "var(--color-teal)",

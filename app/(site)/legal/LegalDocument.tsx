@@ -169,7 +169,7 @@ export function LegalSection({
 
 /**
  * A bulleted list inside a section. Square markers rather than discs, set on
- * the hairline colour, the same graphic vocabulary as the rest of the system.
+ * the hairline color, the same graphic vocabulary as the rest of the system.
  */
 export function LegalList({ items }: { items: React.ReactNode[] }) {
   return (

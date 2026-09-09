@@ -18,7 +18,7 @@ deliberately names nobody. The right is **With Outrider**.
 | **Lift tickets and gear** | Bought at the window on day one | Arranged before you land |
 | **Getting there** | Sort your own ride from the airport | Transport both directions, included |
 | **Paying for it** | One person fronts it and chases the group chat | Everyone books their own spot, on a payment plan |
-| **On the trip** | The organiser becomes the help desk | Outrider staff on the ground |
+| **On the trip** | The organizer becomes the help desk | Outrider staff on the ground |
 | **How many people** | As many as will pay | Capped. Six to eight per suite. |
 
 If seven rows is too many for the format, the four that carry the most weight
@@ -46,11 +46,11 @@ are **the price**, **where you stay**, **paying for it**, and **on the trip**.
 
 **Paying for it**
 - Usually: One person fronts the money and spends the next three months chasing a group chat.
-- Outrider: Each traveller books their own spot. A deposit holds it, the balance is split into scheduled payments, and nobody owes a friend anything.
+- Outrider: Each traveler books their own spot. A deposit holds it, the balance is split into scheduled payments, and nobody owes a friend anything.
 
 **On the trip**
-- Usually: Whoever organised it becomes the help desk for four days and never really gets a holiday.
-- Outrider: Outrider staff are on the ground for the duration. The person who organised it gets to actually ski.
+- Usually: Whoever organized it becomes the help desk for four days and never really gets a holiday.
+- Outrider: Outrider staff are on the ground for the duration. The person who organized it gets to actually ski.
 
 **How many people**
 - Usually: As many as will pay, because volume is the business model.
@@ -60,7 +60,7 @@ are **the price**, **where you stay**, **paying for it**, and **on the trip**.
 
 ## Brand specs
 
-**Colours**
+**Colors**
 
 | Role | Hex |
 | --- | --- |
@@ -93,7 +93,7 @@ are **the price**, **where you stay**, **paying for it**, and **on the trip**.
 
 - **Width:** 1600px minimum (the container is 1184px on desktop, so this is 2x-ish). 2368px if you want true 2x.
 - **Aspect:** whatever the content needs. It renders full width and scales.
-- **Format:** PNG if it has flat colour and type (it will). JPG only if it ends up photographic.
+- **Format:** PNG if it has flat color and type (it will). JPG only if it ends up photographic.
 - **Background:** not transparent. Paint it `#FAF6EF` or `#FFFFFF` so it sits correctly on the page in both light and dark.
 
 **Mobile matters here.** At 375px a 7-row, 3-column graphic becomes unreadable.

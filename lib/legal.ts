@@ -12,12 +12,12 @@
  * ---------------------------------------------------------------------------
  * Every document carries a semver-shaped `version`. The parts mean:
  *
- *   MAJOR  A term that materially changes what a traveller owes, gives up, or
+ *   MAJOR  A term that materially changes what a traveler owes, gives up, or
  *          can claim, refund windows, the deposit, liability, the release, the
  *          arbitration/venue clause, what data is shared with whom. A MAJOR bump
  *          needs counsel sign-off, a new `effectiveDate`, and notice to anyone
  *          with a live booking. Existing bookings stay on the version that was
- *          in force when they were made unless the traveller accepts the new one.
+ *          in force when they were made unless the traveler accepts the new one.
  *   MINOR  A new section, or a clarification that adds obligations without
  *          changing existing ones (a new supplier category, a new data
  *          recipient). Move `effectiveDate` forward; no re-acceptance needed.
@@ -37,7 +37,7 @@
  *
  * Do not set a document to "in-force" as part of a copy edit. That flip is the
  * business's decision to make after review, and it changes what the page tells
- * travellers about whether the terms bind them.
+ * travelers about whether the terms bind them.
  * ---------------------------------------------------------------------------
  */
 
@@ -70,7 +70,7 @@ export const TERMS: LegalDocumentMeta = {
   shortTitle: "Terms of Service",
   description:
     "The agreement between you and Outrider when you book a departure: deposits, the installment plan, cancellation, weather, suppliers, insurance and liability.",
-  version: "1.0.1",
+  version: "1.0.2",
   status: "in-force",
   effectiveDate: "2026-09-08",
   lastUpdated: "2026-09-08",
@@ -103,7 +103,7 @@ export const PRIVACY: LegalDocumentMeta = {
   shortTitle: "Privacy Policy",
   description:
     "What Outrider collects when you join the waitlist or book a trip, where card details actually go, who your information is shared with, and how to have it deleted.",
-  version: "1.0.1",
+  version: "1.0.2",
   status: "in-force",
   effectiveDate: "2026-09-08",
   lastUpdated: "2026-09-08",
@@ -132,8 +132,8 @@ export const ASSUMPTION_OF_RISK: LegalDocumentMeta = {
   title: "Assumption of Risk, Release and Waiver of Liability",
   shortTitle: "Assumption of Risk",
   description:
-    "The risks of skiing, snowboarding and mountain travel on an Outrider departure, and the assumption of risk, release, indemnity and medical authorisation every traveller is asked to sign.",
-  version: "1.0.1",
+    "The risks of skiing, snowboarding and mountain travel on an Outrider departure, and the assumption of risk, release, indemnity and medical authorization every traveler is asked to sign.",
+  version: "1.0.2",
   status: "in-force",
   effectiveDate: "2026-09-08",
   lastUpdated: "2026-09-08",
@@ -147,11 +147,11 @@ export const ASSUMPTION_OF_RISK: LegalDocumentMeta = {
     { id: "equipment", title: "Equipment" },
     { id: "release", title: "Release and covenant not to sue" },
     { id: "indemnity", title: "Indemnification" },
-    { id: "medical", title: "Medical treatment authorisation" },
+    { id: "medical", title: "Medical treatment authorization" },
     { id: "media", title: "Photography and media release" },
     { id: "insurance", title: "Insurance acknowledgement" },
     { id: "conduct", title: "Alcohol, drugs and conduct" },
-    { id: "minors", title: "Travellers under 18" },
+    { id: "minors", title: "Travelers under 18" },
     { id: "law", title: "Governing law and venue" },
     { id: "severability", title: "Severability and survival" },
     { id: "acknowledgement", title: "Acknowledgement" },

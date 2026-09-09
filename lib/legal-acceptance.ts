@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { LEGAL_DOCUMENTS } from "@/lib/legal";
 
 /**
- * Recording that a traveller accepted the Terms and the Assumption of Risk.
+ * Recording that a traveler accepted the Terms and the Assumption of Risk.
  *
  * This exists so there is an answer to "what did they agree to, and when".
  * Without it, Outrider takes deposits for an activity with real physical risk
@@ -19,7 +19,7 @@ import { LEGAL_DOCUMENTS } from "@/lib/legal";
  *     was made, so these rows are never updated or deleted.
  */
 
-/** The documents a traveller must accept to book. */
+/** The documents a traveler must accept to book. */
 export const REQUIRED_DOCUMENTS = ["terms", "assumption-of-risk"] as const;
 export type RequiredDocument = (typeof REQUIRED_DOCUMENTS)[number];
 
@@ -70,7 +70,7 @@ export async function recordAcceptance(opts: {
   }
 }
 
-/** What a traveller accepted, for their own booking page. */
+/** What a traveler accepted, for their own booking page. */
 export async function getAcceptances(bookingId: string) {
   const { data, error } = await createAdminClient()
     .from("legal_acceptances")

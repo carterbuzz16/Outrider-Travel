@@ -3,7 +3,7 @@ import { cn } from "./cn";
 /**
  * Loading placeholder.
  *
- * A blank hairline block in the scheme's own rule colour, not a grey chip and
+ * A blank hairline block in the scheme's own rule color, not a gray chip and
  * not a shimmering gradient sweep — the system's motion budget is a fade, so
  * this fades in place and nothing travels across it.
  *

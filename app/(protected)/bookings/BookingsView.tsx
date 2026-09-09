@@ -37,7 +37,7 @@ export type BookingRow = {
 };
 
 /**
- * Booking status as the traveller experiences it, not as the column spells it.
+ * Booking status as the traveler experiences it, not as the column spells it.
  * "pending" is the one that earns burnt orange: it is the only state where
  * money is owed right now and the spot is not yet held. Everything else is
  * information, so it stays in the accent or in the muted rule.
@@ -49,7 +49,7 @@ const STATUS: Record<BookingStatus, { tone: BadgeTone; label: string }> = {
   cancelled: { tone: "closed", label: "Cancelled" },
 };
 
-/** Statuses a traveller can still stand down themselves — see cancelBooking. */
+/** Statuses a traveler can still stand down themselves — see cancelBooking. */
 const CANCELLABLE: BookingStatus[] = ["pending", "deposit_paid"];
 
 export default function BookingsView({
@@ -71,7 +71,7 @@ export default function BookingsView({
 
         <div className="mt-10 flex flex-wrap items-end justify-between gap-x-10 gap-y-6 border-t border-[--rule] pt-7">
           <div className="min-w-0">
-            <p className="stamp-type text-[--text-muted]">Traveller</p>
+            <p className="stamp-type text-[--text-muted]">Traveler</p>
             {name && (
               <p className="mt-3 font-display text-display-s tracking-title text-[--text]">{name}</p>
             )}
