@@ -3,7 +3,7 @@ import { use } from "react";
 
 import Link from "next/link";
 import { Alert, Button, Field, Input, Logo } from "@/components/ui";
-import { login } from "@/app/auth/actions";
+import { login, resendConfirmation } from "@/app/auth/actions";
 
 /*
  * Client component, and only for one reason: `Field` takes its control as a
@@ -154,7 +154,41 @@ export default function LoginPage(
           </Button>
         </form>
 
-        <div className="mt-10 border-t border-[--rule] pt-6">
+        {/* Confirmation mail gets filtered, delayed and deleted. Without this
+            the only way back is creating another account, which cannot work,
+            because the address is already taken. Folded away so it does not
+            compete with the login form. */}
+        <details className="group mt-10 border-t border-[--rule] pt-6">
+          <summary
+            className={[
+              "flex cursor-pointer list-none items-center gap-3 py-2.5 -my-2.5",
+              "t-label text-[--accent] transition-colors duration-fast",
+              "hover:text-[--text] [&::-webkit-details-marker]:hidden",
+            ].join(" ")}
+          >
+            <span>Didn&rsquo;t get the confirmation email?</span>
+            <span
+              aria-hidden="true"
+              className="transition-transform duration-fast group-open:rotate-45"
+            >
+              +
+            </span>
+          </summary>
+
+          <form action={resendConfirmation} className="mt-5 flex flex-col gap-4">
+            <input type="hidden" name="next" value={next} />
+            <Field label="Email" hint="We will send the confirmation link again." required>
+              {(field) => (
+                <Input {...field} name="email" type="email" autoComplete="email" required />
+              )}
+            </Field>
+            <Button type="submit" variant="secondary" size="sm" className="self-start">
+              Resend confirmation
+            </Button>
+          </form>
+        </details>
+
+        <div className="mt-8 border-t border-[--rule] pt-6">
           <p className="font-body text-body-s text-[--text-secondary]">
             First trip with us?{" "}
             <Link

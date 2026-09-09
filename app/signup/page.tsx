@@ -23,7 +23,7 @@ function safeNext(value: string | string[] | undefined): string | null {
 
 function describeError(raw: string): string {
   if (/already registered|already exists/i.test(raw)) {
-    return "That email already has an account. Log in instead, or use a different address.";
+    return "That email already has an account. Log in instead, or reset your password if you have forgotten it.";
   }
   // Supabase's own length complaint quotes the dashboard minimum, which can
   // be lower than ours — restate our rule instead so the two never disagree.

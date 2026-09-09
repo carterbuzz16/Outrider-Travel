@@ -109,15 +109,97 @@ export async function signup(formData: FormData) {
 
   revalidatePath("/", "layout");
 
+  /*
+   * Supabase answers a signup for an address that already has an account with
+   * 200 and a user object whose `identities` array is empty. It does that on
+   * purpose, so the form cannot be used to test whether somebody is a member.
+   * The important part is that it sends no email.
+   *
+   * The old copy here said "Check your email to confirm your account", which
+   * stranded anyone in that case waiting on mail that was never going to
+   * arrive. The message below is deliberately the same in both cases, so it
+   * still gives nothing away, but it now names the other possibility and
+   * points at the resend control on the login page.
+   */
+  if (data.user && (data.user.identities?.length ?? 0) === 0) {
+    /*
+     * Deliberate trade: this tells the visitor plainly that the address is
+     * taken, which also tells anyone else that the address has an account.
+     * Supabase's silence exists to prevent exactly that, but silence sent a
+     * real customer away to wait on an email nobody was ever going to send,
+     * which is the worse failure for a company taking deposits. The IP throttle
+     * above (3 an hour) is what keeps this from being a bulk membership oracle.
+     */
+    redirect(
+      `/signup?error=${encodeURIComponent(
+        "An account already exists for that email. Log in instead, or reset your password if you have forgotten it."
+      )}&${nextQuery}`
+    );
+  }
+
   // No session yet means the project requires email confirmation before
   // the account can log in.
   if (!data.session) {
     redirect(
-      `/login?message=${encodeURIComponent("Check your email to confirm your account, then log in.")}&${nextQuery}`
+      `/login?message=${encodeURIComponent(
+        "Check your email for a confirmation link, then log in. If it does not arrive, you can send it again below."
+      )}&${nextQuery}`
     );
   }
 
   redirect(next);
+}
+
+/**
+ * Send the confirmation email again.
+ *
+ * Confirmation mail gets filtered, delayed and deleted, and without this the
+ * only route back is creating another account, which cannot work because the
+ * address is already taken. Supabase's own rate limits still apply on top of
+ * the throttle here.
+ *
+ * Like the reset flow, the response is identical whether or not the address
+ * has an unconfirmed account, so this cannot be used to enumerate members.
+ */
+export async function resendConfirmation(formData: FormData) {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const next = safePath(formData.get("next"), "/bookings");
+  const nextQuery = `next=${encodeURIComponent(next)}`;
+
+  if (!EMAIL_PATTERN.test(email)) {
+    redirect(`/login?error=${encodeURIComponent("Enter a valid email address.")}&${nextQuery}`);
+  }
+
+  const allowed = await checkRateLimit(`resend:${(await clientIp())}`, 3, 15 * 60);
+  if (!allowed) {
+    redirect(
+      `/login?error=${encodeURIComponent("Too many requests. Try again in a few minutes.")}&${nextQuery}`
+    );
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email,
+    options: {
+      // Same destination the original signup used, or the link in the resent
+      // mail lands somewhere else entirely.
+      emailRedirectTo: `${getAppUrl()}/auth/callback?type=signup&next=${encodeURIComponent(
+        `/auth/confirmed?next=${encodeURIComponent(next)}`
+      )}`,
+    },
+  });
+
+  if (error) {
+    // Logged, never surfaced: the text would say whether the address exists.
+    console.error("Resend confirmation failed:", error.message);
+  }
+
+  redirect(
+    `/login?message=${encodeURIComponent(
+      "If that address has an account waiting to be confirmed, a new link is on its way."
+    )}&${nextQuery}`
+  );
 }
 
 /**

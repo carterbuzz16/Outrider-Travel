@@ -16,6 +16,14 @@ export const metadata: Metadata = {
   // The layout's template appends "· Outrider"; the home page is the one place
   // that should read as the brand alone.
   title: { absolute: "Outrider · Small-group travel for college" },
+  /*
+   * Stated explicitly. The root layout sets `canonical: "./"`, which resolves
+   * correctly for every route except this one: at the root it produces
+   * "/index", so the home page was declaring a URL nobody links to as its
+   * canonical, and the real root as a duplicate of it. /index serves 200, so
+   * the two were competing.
+   */
+  alternates: { canonical: "/" },
   description:
     "Small-group travel for college. One property booked whole, everything arranged before you land, and the whole price settled up front.",
 };
