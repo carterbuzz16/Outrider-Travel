@@ -28,8 +28,8 @@ export default function AboutPage() {
           that should feel like the mountain rather than like a document. */}
       <div className="relative mt-12 h-[30vh] min-h-[210px] w-full overflow-hidden md:mt-24 md:h-[62vh]">
         <Image
-          src="/images/telluride/ridge.jpg"
-          alt="A guide on the ridge above Telluride, first light."
+          src="/images/rider.jpg"
+          alt="A lone rider crossing open high country at dusk, mountains behind."
           fill
           sizes="100vw"
           className="object-cover"
