@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Gallery, Reveal, SectionDivider, WaitlistCTA } from "@/components/ui";
+import {
+  Gallery,
+  Reveal,
+  SectionDivider,
+  WaitlistCTA,
+  cellGridClass,
+} from "@/components/ui";
 import { UPCOMING_CATEGORIES } from "@/lib/site-content";
 
 export const metadata: Metadata = {
@@ -181,11 +187,7 @@ export default function DestinationsPage() {
         <Reveal>
           <h2 className="t-heading max-w-[20ch] text-[--text]">Where we are looking next</h2>
         </Reveal>
-        <div
-          className={`mt-10 grid gap-px border border-[--rule] bg-[--rule] ${
-            UPCOMING_CATEGORIES.length > 1 ? "md:grid-cols-2" : ""
-          }`}
-        >
+        <div className={cellGridClass(UPCOMING_CATEGORIES.length, "mt-10")}>
           {UPCOMING_CATEGORIES.map((category, i) => (
             <Reveal key={category.name} delay={i * 80}>
               <div className="flex h-full flex-col gap-4 bg-[--surface-raised] p-6 md:p-8">
@@ -204,6 +206,7 @@ export default function DestinationsPage() {
       </section>
 
       <WaitlistCTA
+        id="waitlist"
         heading="Know where we go next"
         body="New destinations open to this list before they reach the site. One email when a departure is live, and nothing in between."
       />

@@ -6,6 +6,7 @@ import {
   TripCard,
   WaitlistCTA,
   type Trip,
+  cellGridClass,
 } from "@/components/ui";
 import { UPCOMING_CATEGORIES } from "@/lib/site-content";
 import { formatDateRange, formatPrice, getPublishedTrips, nightCount } from "@/lib/trips";
@@ -93,6 +94,7 @@ export default async function TripsPage() {
       {/* Sits under the cards on purpose: this is the moment someone has
           just read "Coming soon" and wants to know when that changes. */}
       <WaitlistCTA
+        id="waitlist"
         heading="Know before the dates go live"
         body="Departures open to this list first. One email when Telluride goes on sale, and nothing in between."
       />
@@ -105,11 +107,7 @@ export default async function TripsPage() {
           <p className="t-micro mb-10 text-[--text-muted]">On the map</p>
         </Reveal>
 
-        <div
-          className={`grid gap-px border border-[--rule] bg-[--rule] ${
-            UPCOMING_CATEGORIES.length > 1 ? "md:grid-cols-2" : ""
-          }`}
-        >
+        <div className={cellGridClass(UPCOMING_CATEGORIES.length)}>
           {UPCOMING_CATEGORIES.map((category, i) => (
             <Reveal key={category.name} delay={i * 80}>
               <div className="flex h-full flex-col gap-4 bg-[--surface-raised] p-6 md:p-8">

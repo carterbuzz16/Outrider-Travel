@@ -23,12 +23,15 @@ export default function WaitlistCTA({
   body = "Departures open to this list before they go on sale. One email when that happens, nothing else.",
   className,
   tone = "dark",
+  /** Anchor target, so /trips#waitlist and /#waitlist land on the form. */
+  id,
 }: {
   heading?: string;
   body?: string;
   className?: string;
   /** `dark` for a full-width band, `light` for a bordered block on paper. */
   tone?: "dark" | "light";
+  id?: string;
 }) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "busy" | "done" | "error">("idle");
@@ -63,7 +66,10 @@ export default function WaitlistCTA({
 
   return (
     <section
+      id={id}
+      // Clears the fixed header when linked to by anchor.
       className={cn(
+        id && "scroll-mt-24 md:scroll-mt-32",
         dark ? "scheme-charcoal scheme-paint" : "border border-[--rule] bg-[--surface-raised]",
         className,
       )}

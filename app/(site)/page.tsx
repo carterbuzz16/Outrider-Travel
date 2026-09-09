@@ -8,6 +8,7 @@ import {
   TripCard,
   WaitlistCTA,
   type Trip,
+  cellGridClass,
 } from "@/components/ui";
 import { UPCOMING_CATEGORIES, VALUE_PROPS } from "@/lib/site-content";
 import { formatDateRange, formatPrice, getPublishedTrips, nightCount } from "@/lib/trips";
@@ -177,11 +178,7 @@ export default async function HomePage() {
             </p>
           </Reveal>
 
-          <div
-            className={`mt-12 grid gap-px border border-[--rule] bg-[--rule] ${
-              UPCOMING_CATEGORIES.length > 1 ? "md:grid-cols-2" : ""
-            }`}
-          >
+          <div className={cellGridClass(UPCOMING_CATEGORIES.length, "mt-12")}>
             {UPCOMING_CATEGORIES.map((category, i) => (
               <Reveal key={category.name} delay={i * 80}>
                 <div className="flex h-full flex-col gap-3 bg-[--surface-raised] p-6 md:p-8">
@@ -198,7 +195,7 @@ export default async function HomePage() {
           </div>
 
           <Reveal>
-            <WaitlistCTA tone="light" className="mt-6" />
+            <WaitlistCTA id="waitlist" tone="light" className="mt-6" />
           </Reveal>
         </section>
 

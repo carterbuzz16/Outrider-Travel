@@ -26,6 +26,7 @@ const COLUMNS: Column[] = [
     links: [
       { label: "All departures", href: "/trips" },
       { label: "Destinations", href: "/destinations" },
+      { label: "Join the list", href: "/waitlist" },
       { label: "About Outrider", href: "/about" },
       { label: "FAQ", href: "/faq" },
       { label: "Contact", href: "/contact" },
