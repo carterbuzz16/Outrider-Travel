@@ -423,6 +423,12 @@ export default function PrivacyPage() {
           {LEGAL_NAME}, {CONTACT.base}. Privacy questions and requests:{" "}
           <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>.
         </p>
+        {CONTACT.postalAddress ? (
+          <p>
+            Written requests can be sent to{" "}
+            {CONTACT.postalAddress.join(", ")}.
+          </p>
+        ) : null}
         <p>
           Related documents: <Link href="/terms">Terms of Service</Link> ·{" "}
           <Link href="/assumption-of-risk">Assumption of Risk</Link>.

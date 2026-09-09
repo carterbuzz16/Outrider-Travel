@@ -1,6 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FOUNDER } from "@/lib/site-content";
 
 /* ===========================================================================
  * BRAND
@@ -57,39 +59,12 @@ const BRAND = `
 
 const MENU = ["Trips", "Destinations", "About", "FAQ", "Contact"];
 
-/* One person. The page is still built as a list so a second name is a data
- * change rather than a layout change, but there is one member today.
- *
- * The name and role are real. The bio is placeholder and is labelled as such:
- * the written bio already lives in lib/site-content.ts as FOUNDER.bio, so drop
- * that in here, or import it, once you decide which voice this page should use.
- */
-const TEAM = [
-  {
-    name: "Carter Busby",
-    role: "President and Founder",
-    bio: [
-      "PLACEHOLDER BIO. Two or three sentences on who this person is and what they did before Outrider. Keep it concrete: places, numbers, things they were responsible for.",
-      "PLACEHOLDER BIO. A second paragraph, shorter, for the part that is personal rather than professional.",
-    ],
-  },
-];
-
-/* A flat block rather than a stock photograph, so nothing here can be mistaken
- * for a real person or ship by accident. Square, no border, no radius. */
-function PortraitPlaceholder({ label }: { label: string }) {
-  return (
-    <div
-      className="flex aspect-[4/5] w-full items-end bg-[color:var(--brand-rule)] p-4"
-      role="img"
-      aria-label={`Placeholder portrait for ${label}`}
-    >
-      <span className="font-[family-name:var(--brand-display)] text-[11px] uppercase tracking-[0.2em] text-[color:var(--brand-ink)] opacity-60">
-        Placeholder portrait
-      </span>
-    </div>
-  );
-}
+/* One person, read from lib/site-content so his name, role, portrait and bio
+ * have a single home. The brief asked for a single self-contained file; this is
+ * the one import worth breaking that for, because the alternative is a second
+ * copy of the bio that quietly disagrees with the About page after the next
+ * edit. */
+const TEAM = [FOUNDER];
 
 export default function TeamPage() {
   const [open, setOpen] = useState(false);
@@ -180,15 +155,28 @@ export default function TeamPage() {
           className="m-0 font-[family-name:var(--brand-body)] text-[17px] leading-[1.6]"
           style={{ maxWidth: "min(46ch, 40vw)", marginBottom: "120px" }}
         >
-          PLACEHOLDER INTRO. Two or three sentences on who runs Outrider and why
-          that matters to someone deciding whether to hand over a deposit.
+          Outrider is run by the person who used to be on the other end of it:
+          booking the rooms, moving the group, and answering for it when
+          something went wrong. That is the whole reason it works the way it
+          does.
         </p>
 
         <ul className="m-0 flex list-none flex-col gap-[120px] p-0">
           {TEAM.map((person) => (
             <li key={person.name}>
               <article className="grid grid-cols-1 gap-10 md:grid-cols-[minmax(0,0.7fr)_minmax(0,1fr)] md:items-start md:gap-16">
-                <PortraitPlaceholder label={person.name} />
+                {person.portrait ? (
+                  <div className="relative aspect-[4/5] w-full overflow-hidden">
+                    <Image
+                      src={person.portrait.src}
+                      alt={person.portrait.alt}
+                      fill
+                      sizes="(min-width: 768px) 40vw, 100vw"
+                      className="object-cover"
+                      priority
+                    />
+                  </div>
+                ) : null}
 
                 <div>
                   <h2
@@ -200,6 +188,15 @@ export default function TeamPage() {
                   <p className="mb-8 mt-4 font-[family-name:var(--brand-display)] text-[13px] uppercase tracking-[0.2em] opacity-70">
                     {person.role}
                   </p>
+
+                  {person.pullQuote ? (
+                    <blockquote
+                      className="m-0 mb-10 max-w-[34ch] border-l border-[color:var(--brand-rule)] pl-6 font-[family-name:var(--brand-display)] leading-[1.35]"
+                      style={{ fontSize: "clamp(20px, 2.2vw, 30px)" }}
+                    >
+                      &ldquo;{person.pullQuote}&rdquo;
+                    </blockquote>
+                  ) : null}
 
                   <div className="flex flex-col gap-6">
                     {person.bio.map((paragraph, i) => (

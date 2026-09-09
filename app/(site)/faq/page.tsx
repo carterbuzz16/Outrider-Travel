@@ -90,10 +90,10 @@ const GROUPS: Group[] = [
         q: "How many people are on a trip?",
         a: (
           <>
-            Capped before it goes on sale rather than grown until it stops
-            selling. Rooms are booked as buyouts for six or eight, and where
-            there is guiding it is one instructor per six. You will know
-            everyone by the second day, which is the entire point.
+            About 100 to 200. It is meant to feel like a small club rather than
+            a tour: the number is set before a departure goes on sale and does
+            not move to fit demand, and rooms are still booked as buyouts of four,
+            six or eight, so the group you are actually living with stays small.
           </>
         ),
       },
@@ -123,11 +123,11 @@ const GROUPS: Group[] = [
         q: "Is this a party trip?",
         a: (
           <>
-            No. College is fun and there will be plenty of that. But the thing
-            we are selling is the place: somewhere worth the flight, a group
-            small enough to know, and a few days you are still talking about in
-            ten years. If you want the cheapest hotel filled with as many people
-            as possible, that already exists and it is not us.
+            We build our trips around the experience, the place, and the
+            high-touch, high-end feel you are not going to get on another trip.
+            College is fun and there will be plenty of that. What we care about
+            is that the days are worth the flight, the standard holds the whole
+            way through, and you are still talking about it in ten years.
           </>
         ),
       },

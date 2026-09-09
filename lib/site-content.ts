@@ -32,14 +32,19 @@ export const CONTACT = {
   phone: null as string | null,
   base: "Auburn, Alabama",
   /**
-   * NEEDS REAL COPY. Required in two places before launch: CAN-SPAM obliges a
-   * physical postal address on marketing email, and the privacy policy has to
-   * name one for data requests. Every consumer of this renders nothing while it
-   * is null, so filling it in here is the only change needed.
-   * Format as separate lines, e.g. [LEGAL_NAME, "123 Example St",
-   * "Washington, DC 20001"].
+   * Deliberately not surfaced in the layout. It appears in exactly two places,
+   * both of which are obligations rather than marketing: the privacy policy's
+   * contact section, because a policy has to name a physical address for data
+   * requests, and the footer of marketing email, because CAN-SPAM requires one
+   * there. It is not in the site footer or on the contact page.
+   *
+   * No ZIP yet. A mailing address without one is not properly deliverable and
+   * CAN-SPAM expects a valid postal address, so add it when confirmed.
    */
-  postalAddress: null as string[] | null,
+  postalAddress: [
+    "145 East Magnolia Avenue",
+    "Auburn, Alabama",
+  ] as string[] | null,
   instagram: "https://www.instagram.com/outridertravel/",
   instagramHandle: "@outridertravel",
   responseTime: "We answer every message within a day.",
@@ -54,7 +59,7 @@ export const VALUE_PROPS = [
     eyebrow: "Small groups",
     title: "The number of people is a decision, not a ceiling",
     body:
-      "Most operators grow a trip until it stops selling. We cap it before it goes on sale, because a group you can actually know is the entire point. Rooms are booked for six or eight, and where there is a guide it is one per six. You will know everyone by the second day.",
+      "Most operators grow a trip until it stops selling. We cap it before it goes on sale and the number does not move to fit demand. Rooms are booked for four, six or eight, and where there is a guide it is one per six, so the people you actually spend the days with are a handful rather than a crowd.",
   },
   {
     eyebrow: "High touch",
@@ -202,7 +207,7 @@ export const COMPARISON = [
   {
     label: "How many people",
     usual: "As many as will pay, because volume is the business model.",
-    ours: "Capped by design. Suites are booked as buyouts for six or eight, and guiding is one instructor per six.",
+    ours: "Capped by design. Suites are booked as buyouts for four, six or eight, and guiding is one instructor per six.",
   },
 ];
 

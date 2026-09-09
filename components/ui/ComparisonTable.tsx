@@ -70,7 +70,7 @@ const ROWS: Row[] = [
     usualLong: "As many as will pay, because volume is the business model.",
     usualShort: "As many as will pay",
     outriderLong:
-      "The cap is set before a single spot goes on sale, and it does not move to fit demand. Suites hold six or eight and guiding is one instructor per six. Exclusive because it is small, not because it is expensive.",
+      "The cap is set before a single spot goes on sale, and it does not move to fit demand. Suites hold four, six or eight and guiding is one instructor per six. Exclusive because it is small, not because it is expensive.",
     outriderShort: "Capped before it sells. Small by design.",
   },
 ];

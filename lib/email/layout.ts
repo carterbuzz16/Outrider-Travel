@@ -1,3 +1,4 @@
+import { CONTACT, LEGAL_NAME } from "@/lib/site-content";
 // Table-based layout with inline styles. Not a stylistic choice, it is what
 // is actually required to render consistently across email clients (Outlook
 // desktop renders HTML through Word's engine, which ignores most modern CSS
@@ -9,6 +10,13 @@
 //     anything read uses --color-teal-deep (#37646E), which clears 5.4:1
 //     against cream;
 //   - cream on charcoal is 14.4:1, which is what the header relies on.
+/* CAN-SPAM requires a physical postal address in commercial email. Rendered
+ * from the same constant the privacy policy uses, so the two cannot disagree,
+ * and it stays out of the site layout entirely. */
+const POSTAL_LINE = CONTACT.postalAddress
+  ? `${LEGAL_NAME}, ${CONTACT.postalAddress.join(", ")}`
+  : "";
+
 const BRAND = {
   name: "OUTRIDER",
   charcoal: "#1A1A1A",
@@ -90,6 +98,8 @@ export function renderEmailLayout(opts: { preheader: string; bodyHtml: string; c
           <tr>
             <td style="padding: 24px 32px; border-top: 1px solid ${BRAND.border}; color: ${BRAND.muted}; font-size: 12px; line-height: 1.5;">
               You're receiving this because you have a booking with Outrider. Questions? Just reply to this email.
+              <br /><br />
+              ${POSTAL_LINE}
             </td>
           </tr>
         </table>
