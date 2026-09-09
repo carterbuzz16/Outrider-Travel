@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Logo from "./Logo";
 import Button from "./Button";
+import WaitlistButton from "./WaitlistModal";
 import { cn } from "./cn";
 import { BOOKINGS_OPEN } from "@/lib/booking-window";
 import { ACCOUNT_LINK, type NavLink } from "./nav-links";
@@ -159,10 +160,18 @@ export default function NavBar({
             </Link>
           )}
 
-          {cta && (
-            <Button href={cta.href} variant="secondary" size="sm" className="hidden md:inline-flex">
-              {cta.label}
-            </Button>
+          {/* Before bookings open the useful action is joining the list, not
+              looking at departures nobody can book. The dialog keeps that one
+              click from anywhere, rather than sending people to scroll for a
+              form. */}
+          {BOOKINGS_OPEN ? (
+            cta && (
+              <Button href={cta.href} variant="secondary" size="sm" className="hidden md:inline-flex">
+                {cta.label}
+              </Button>
+            )
+          ) : (
+            <WaitlistButton variant="secondary" size="sm" className="hidden md:inline-flex" />
           )}
 
           <button
@@ -203,13 +212,17 @@ export default function NavBar({
             </li>
           )}
         </ul>
-        {cta && (
-          <div className="shell pb-6 pt-2">
-            <Button href={cta.href} variant="primary" size="md" block>
-              {cta.label}
-            </Button>
-          </div>
-        )}
+        <div className="shell pb-6 pt-2">
+          {BOOKINGS_OPEN ? (
+            cta && (
+              <Button href={cta.href} variant="primary" size="md" block>
+                {cta.label}
+              </Button>
+            )
+          ) : (
+            <WaitlistButton variant="primary" size="md" className="w-full" />
+          )}
+        </div>
       </div>
     </header>
   );

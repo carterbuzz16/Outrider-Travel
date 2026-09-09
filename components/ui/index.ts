@@ -57,3 +57,4 @@ export { cn } from "./cn";
 export { OrganizationSchema, TripSchema } from "./StructuredData";
 export { default as WaitlistCTA } from "./WaitlistCTA";
 export { cellGridClass, cellSpanClass } from "./cell-grid";
+export { default as WaitlistButton, WaitlistModal } from "./WaitlistModal";
