@@ -51,7 +51,8 @@ export default function DestinationsPage() {
       {/* ---- Telluride ------------------------------------------------------ */}
       <section className="pt-16 md:pt-20">
         <div className="shell">
-          <Reveal>
+          {/* Above the fold, so it renders plainly. */}
+          <div>
             <h2 className="t-title max-w-[18ch] text-[--text]">
               Telluride, Colorado
             </h2>
@@ -60,7 +61,7 @@ export default function DestinationsPage() {
               8,725 feet and the ski area runs to 13,150, which is why the
               skiing starts where most resorts have already finished.
             </p>
-          </Reveal>
+          </div>
         </div>
 
         <div className="relative mt-12 h-[46vh] min-h-[280px] w-full overflow-hidden md:mt-16 md:h-[70vh]">
@@ -96,7 +97,7 @@ export default function DestinationsPage() {
       </section>
 
       {/* ---- why here ------------------------------------------------------- */}
-      <section className="shell pb-16 md:pb-20">
+      <section className="shell py-16 md:py-20">
         <div className="grid gap-12 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:gap-20">
           <Reveal>
             <h2 className="t-heading text-[--accent] md:sticky md:top-32">Why here</h2>
@@ -127,7 +128,7 @@ export default function DestinationsPage() {
       </section>
 
       {/* ---- gallery -------------------------------------------------------- */}
-      <section className="pb-16 md:pb-20">
+      <section className="py-16 md:py-20">
         <div className="shell">
           <Reveal>
             <h2 className="t-heading max-w-[20ch] text-[--text]">
@@ -151,7 +152,7 @@ export default function DestinationsPage() {
       </section>
 
       {/* ---- getting there --------------------------------------------------- */}
-      <section className="shell pb-16 md:pb-20">
+      <section className="shell py-16 md:py-20">
         <div className="grid gap-12 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:gap-20">
           <Reveal>
             <h2 className="t-heading text-[--accent] md:sticky md:top-32">Getting there</h2>
@@ -176,7 +177,7 @@ export default function DestinationsPage() {
       </section>
 
       {/* ---- what is next ---------------------------------------------------- */}
-      <section className="shell pb-16 md:pb-20">
+      <section className="shell py-16 md:py-20">
         <Reveal>
           <h2 className="t-heading max-w-[20ch] text-[--text]">Where we are looking next</h2>
         </Reveal>
@@ -193,7 +194,7 @@ export default function DestinationsPage() {
                   <span className="t-micro text-[--text-muted]">{category.window}</span>
                 </div>
                 <p className="t-micro text-[--text-secondary]">{category.destination}</p>
-                <p className="font-body text-body-s leading-[1.7] text-[--text-secondary]">
+                <p className="max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
                   {category.note}
                 </p>
               </div>

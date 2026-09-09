@@ -48,7 +48,9 @@ export default function TripCard({
   return (
     <article
       className={cn(
-        "relative flex flex-col border border-[--rule] bg-[--surface-raised]",
+        // `group` is what makes the image hover at the media block fire. Without
+        // it the card was inert despite the docblock describing the hover.
+        "group relative flex flex-col border border-[--rule] bg-[--surface-raised]",
         "transition-colors duration-[--dur] ease-out hover:border-[--rule-strong]",
         className,
       )}
@@ -66,7 +68,9 @@ export default function TripCard({
 
       <div
         className={cn(
-          "relative w-full overflow-hidden bg-[--color-teal]",
+          // Matches Plate: full-chroma brand teal under a 30% cream mark measures
+          // about 1.4:1 and is effectively invisible. See Plate.tsx.
+          "relative w-full overflow-hidden bg-[--surface-inset]",
           feature ? "aspect-[4/5]" : "aspect-[4/3]",
         )}
       >
@@ -82,7 +86,7 @@ export default function TripCard({
           // No photograph yet: a teal plate with the mark, which is a decent
           // placeholder rather than a gray box with a broken-image glyph.
           <div className="grid h-full w-full place-items-center">
-            <OutriderMark className="w-16 text-[--color-cream] opacity-30" />
+            <OutriderMark className="w-16 text-[--text-muted] opacity-40" />
           </div>
         )}
       </div>

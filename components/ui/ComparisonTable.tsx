@@ -134,11 +134,11 @@ const css = `
   --charcoal: var(--text, #1A1A1A);
   --ash: var(--text-secondary, #6B6B6B);
   --teal: var(--accent, #37646E);
-  --rule: var(--rule, rgba(26, 26, 26, 0.16));
+  --ocmp-rule: var(--rule, rgba(26, 26, 26, 0.16));
   --rule-inverse: rgba(241, 233, 220, 0.22);
   background: var(--paper);
   color: var(--charcoal);
-  padding: 88px 0 96px;
+  padding: 0;
 }
 .ocmp *, .ocmp *::before, .ocmp *::after { box-sizing: border-box; }
 .ocmp p, .ocmp h2, .ocmp h3 { margin: 0; }
@@ -158,7 +158,7 @@ const css = `
   margin-bottom: 14px;
 }
 .ocmp-heading {
-  font-family: var(--font-body);
+  font-family: var(--font-display);
   font-weight: 400;
   font-size: clamp(34px, 4.4vw, 52px);
   line-height: 1.08;
@@ -198,7 +198,7 @@ const css = `
 .ocmp-colhead--usual {
   color: var(--charcoal);
   padding: 0 32px 14px 0;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1px solid var(--ocmp-rule);
 }
 .ocmp-colhead--outrider {
   color: var(--paper);
@@ -211,7 +211,7 @@ const css = `
   align-items: baseline;
   gap: 14px;
   padding: 26px 32px 26px 0;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1px solid var(--ocmp-rule);
   font-family: var(--font-display);
   font-weight: 500;
   font-size: 15px;
@@ -229,7 +229,7 @@ const css = `
 .ocmp-cell--usual {
   color: var(--charcoal);
   padding: 26px 32px 26px 0;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1px solid var(--ocmp-rule);
 }
 .ocmp-cell--outrider {
   color: var(--paper);
@@ -268,6 +268,8 @@ const css = `
     text-transform: uppercase;
     color: var(--ash);
   }
-  .ocmp-tag--outrider { color: rgba(250, 246, 239, 0.75); }
+    /* 0.75 measured 4.22:1 at 11px against the teal panel, under the 4.5:1 AA
+     floor for small text. Full cream clears it. */
+  .ocmp-tag--outrider { color: var(--paper); }
 }
 `;

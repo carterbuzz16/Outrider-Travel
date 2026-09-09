@@ -43,7 +43,7 @@ export default async function HomePage() {
         video={{ src: "/video/hero.mp4", poster: "/video/hero-poster.jpg" }}
         eyebrow="Ski weeks · Spring break"
         headline="We ride ahead"
-        tagline="One property, booked whole. Everything arranged before you land, transport both directions, staff on the ground, and the price settled long before you go."
+        tagline="College travel, everywhere the crowd isn't."
         stampText="Outrider · Scouted · Prepared"
         cta={{ label: "View trips", href: "/trips" }}
         secondaryCta={{ label: "Why Outrider", href: "/about" }}
@@ -107,7 +107,11 @@ export default async function HomePage() {
           </Reveal>
 
           {featured.length > 0 ? (
-            <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div
+              className={`mt-12 grid gap-6 sm:grid-cols-2 ${
+                featured.length > 2 ? "lg:grid-cols-3" : ""
+              }`}
+            >
               {featured.map((trip, i) => {
                 const card: Trip = {
                   name: trip.name,
@@ -156,7 +160,7 @@ export default async function HomePage() {
             not a ski company. */}
         <section className="shell pb-20 md:pb-28">
           <Reveal>
-            <h2 className="t-heading max-w-[20ch] text-[--text]">
+            <h2 className="t-title max-w-[20ch] text-[--text]">
               Telluride is where this starts, not what it is
             </h2>
             <p className="t-lede mt-6 max-w-measure">
@@ -177,7 +181,7 @@ export default async function HomePage() {
                     <h3 className="t-subheading text-[--text]">{category.name}</h3>
                     <span className="t-micro text-[--text-muted]">{category.window}</span>
                   </div>
-                  <p className="font-body text-body-s leading-[1.7] text-[--text-secondary]">
+                  <p className="max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
                     {category.note}
                   </p>
                 </div>

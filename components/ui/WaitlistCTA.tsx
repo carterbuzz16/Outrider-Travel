@@ -20,7 +20,7 @@ import { cn } from "./cn";
  */
 export default function WaitlistCTA({
   heading = "Be first to know",
-  body = "Departures open to this list before they go on the site. One email when the dates drop, nothing else.",
+  body = "Departures open to this list before they go on sale. One email when that happens, nothing else.",
   className,
   tone = "dark",
 }: {
@@ -68,7 +68,7 @@ export default function WaitlistCTA({
         className,
       )}
     >
-      <div className={cn(dark ? "shell py-16 md:py-20" : "p-8 md:p-10")}>
+      <div className={cn(dark ? "shell py-20 md:py-28" : "p-8 md:p-10")}>
         <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-end md:gap-16">
           <div>
             <h2 className="t-heading max-w-[16ch] text-[--text]">{heading}</h2>
@@ -118,8 +118,8 @@ export default function WaitlistCTA({
                 />
                 <Button
                   type="submit"
-                  variant="ghost"
-                  size="sm"
+                  variant="primary"
+                  size="md"
                   disabled={status === "busy"}
                   className="self-start"
                 >

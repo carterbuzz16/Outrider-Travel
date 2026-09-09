@@ -102,6 +102,11 @@ export default function Hero({
             {headline}
           </h1>
 
+          {/* PREVIEW ONLY: one line so the first screen says what this is. */}
+          <p className="-mt-3 max-w-[46ch] font-body text-lede leading-[1.6] text-[--text]">
+            {tagline}
+          </p>
+
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Button href={cta.href} variant="primary" size="lg">
               {cta.label}

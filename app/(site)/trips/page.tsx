@@ -37,9 +37,16 @@ export default async function TripsPage() {
 
       <SectionDivider variant="rule" className="shell" />
 
-      <section className="shell py-16 md:py-20">
+      <section className="shell py-16 md:py-20" aria-labelledby="departures">
+        <h2 id="departures" className="sr-only">
+          Departures
+        </h2>
         {trips.length > 0 ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div
+            className={`grid gap-6 sm:grid-cols-2 ${
+              trips.length > 2 ? "lg:grid-cols-3" : ""
+            }`}
+          >
             {trips.map((trip, i) => {
               const card: Trip = {
                 name: trip.name,
@@ -55,7 +62,11 @@ export default async function TripsPage() {
                   : undefined,
                 href: `/trips/${trip.id}`,
               };
-              return (
+              // The first card is above the fold on most screens, so it renders
+              // plainly rather than sitting at opacity 0 until hydration.
+              return i === 0 ? (
+                <TripCard key={trip.id} trip={card} className="h-full" />
+              ) : (
                 <Reveal key={trip.id} delay={i * 80}>
                   <TripCard trip={card} className="h-full" />
                 </Reveal>
@@ -89,7 +100,7 @@ export default async function TripsPage() {
       {/* ---- what's coming --------------------------------------------------
           Deliberately not trip cards: these have no dates, no price and nothing
           to book, and dressing them as departures would imply otherwise. */}
-      <section className="shell pb-24 md:pb-32">
+      <section className="shell pb-24 pt-20 md:pb-32 md:pt-28">
         <Reveal>
           <p className="t-micro mb-10 text-[--text-muted]">On the map</p>
         </Reveal>
@@ -109,7 +120,7 @@ export default async function TripsPage() {
                 <p className="t-micro text-[--text-secondary]">
                   {category.destination}
                 </p>
-                <p className="font-body text-body-s leading-[1.7] text-[--text-secondary]">
+                <p className="max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
                   {category.note}
                 </p>
               </div>

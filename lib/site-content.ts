@@ -91,7 +91,7 @@ export const ORIGIN = {
     "Student group travel has run on the same formula for twenty years: fill the cheapest hotel with as many people as possible and sell the party. That formula no longer matches what this generation of students actually wants.",
     "They want the place. A mountain worth skiing, a town worth walking, a dinner nobody leaves early. So we build the trip around the destination instead of the crowd.",
     "That one decision sets everything after it. The property is chosen first and booked whole, which is what fixes the size of the group, rather than selling spots until the rooms run out. A departure only goes on sale once somebody has walked the place, eaten the dinners and slept in the rooms.",
-    "The old way breaks in the same places every time. Twenty people spread across four rentals on the wrong side of town. Nobody bought lift tickets in advance. A group chat still arguing about money in March over a trip taken in January. So Outrider runs the whole thing: reservations and activities arranged before anyone lands, transport both directions, staff on the ground for the duration, and everything priced up front and paid in installments.",
+    "Everything after that exists to serve it. Reservations and activities arranged before anyone lands, transport both directions, staff on the ground for the duration, one price settled up front and paid in installments. Not because logistics are the product, but because they are what usually stands between a group and the place they came for.",
     "What is left is the part worth flying for.",
   ],
 };
@@ -128,26 +128,19 @@ export const FOUNDER: {
   ],
 };
 
-/* -- partner: the Chptr Collective ------------------------------------------
- * Written from what Chptr publishes about the Collective: a group purchasing
- * organization for Greek life, vendors chosen through a procurement process and
- * held to quarterly reviews.
- *
- * NOTE FOR CARTER: the description of the Collective is theirs. The sentence
- * naming Outrider as its travel partner is the part only you can confirm, and
- * their public categories page lists merchandise, composites, dumpsters and
- * meal plans without travel yet. Make sure the claim matches what Chptr say
- * before this leans on it any harder.
+/* -- partner: Chptr ---------------------------------------------------------
+ * Carter's copy, confirmed with Chptr. The order matters: Chptr the platform,
+ * then the Collective, then where Outrider sits inside it.
  * ------------------------------------------------------------------------- */
 export const PARTNER = {
-  name: "Chptr Collective",
+  name: "Chptr",
   eyebrow: "Vetted partner",
   url: "https://chptr.house/",
   confirmed: true,
   body: [
-    "The Chptr Collective is a group purchasing organization built for Greek life, the first of its kind. It pools the buying power of chapters across the country and puts it behind a small number of selected vendors, negotiating pricing, terms and service standards in categories like merchandise, composites, dumpsters and meal plans.",
-    "Outrider is its travel partner. Vendors are not simply listed: they are chosen through a procurement process run by Chptr's own leadership, with founder Parker Duffey involved in the negotiations directly, alongside Tom Beaty and Resultiv, who built Insight Sourcing Group into one of the larger sourcing advisory firms in the country. Selection is not the end of it either. Pricing and service are reviewed quarterly.",
-    "That matters most to the person actually doing the booking. A social chair is not taking a stranger's word for it and wiring a deposit somewhere. They are booking a vendor their own organization's purchasing program has already checked, negotiated with, and holds answerable afterwards.",
+    "Chptr is the all-in-one operations platform built for fraternities and sororities. Organizations use Chptr to manage everything from communication, attendance and events to payments and vendors, giving leaders one place to manage their chapters.",
+    "Through the Chptr Collective, fraternities and sororities are connected with trusted, vetted partners across the services they already need, taking the guesswork out of finding the right vendors.",
+    "Outrider is Chptr's vetted ski trip and mountain travel partner within the Collective. When it is time for group travel, organizations have a trusted partner already in place, one that specializes in creating group travel experiences for college students.",
   ],
 };
 

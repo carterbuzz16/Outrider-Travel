@@ -33,6 +33,8 @@ export default function AboutPage() {
           fill
           sizes="100vw"
           className="object-cover"
+          // Sits inside the first screen at 375px, so it is the LCP element.
+          priority
         />
       </div>
 
@@ -77,7 +79,10 @@ export default function AboutPage() {
           Given its own section rather than a footnote under the origin story:
           this is a founder-led company and the person is the credential. */}
       {hasFounderStory && FOUNDER.name && (
-        <section id="leadership" className="shell py-20 md:py-28">
+        <section id="leadership" className="shell py-20 md:py-28" aria-labelledby="leadership-heading">
+          <h2 id="leadership-heading" className="sr-only">
+            Leadership
+          </h2>
           <Reveal>
             <div>
               <span className="stamp-type text-[--text-muted]">Leadership</span>
@@ -121,7 +126,7 @@ export default function AboutPage() {
                 <details className="group border-t border-[--rule] pt-6">
                   <summary
                     className={[
-                      "flex cursor-pointer list-none items-center gap-3 py-1",
+                      "flex cursor-pointer list-none items-center gap-3 py-2.5 -my-2.5",
                       "t-label text-[--accent] transition-colors duration-fast",
                       "hover:text-[--text] [&::-webkit-details-marker]:hidden",
                     ].join(" ")}
@@ -156,7 +161,10 @@ export default function AboutPage() {
       <SectionDivider variant="rule" className="shell" />
 
       {/* ---- partner --------------------------------------------------------- */}
-      <section id="partner" className="shell py-20 md:py-28">
+      <section id="partner" className="shell py-20 md:py-28" aria-labelledby="partner-heading">
+        <h2 id="partner-heading" className="sr-only">
+          Vetted partner
+        </h2>
         <Reveal>
           <div>
             <span className="stamp-type text-[--text-muted]">{PARTNER.eyebrow}</span>
@@ -176,15 +184,18 @@ export default function AboutPage() {
                 rel="noreferrer noopener"
                 className="flex w-full items-center justify-center border border-[--rule] bg-white px-8 py-10 transition-colors duration-fast hover:border-[--rule-strong] md:px-10 md:py-14"
               >
-                {/* The Collective's own lockup, which is nearly square rather
-                    than the wide chptr wordmark, so it is sized taller to carry
-                    the same visual weight. */}
+                {/* The Collective lockup, supplied transparent. Their export
+                    arrives on a canvas several times the size of the artwork,
+                    which would render the mark small inside this plate, so the
+                    file here is trimmed to the mark itself. The COLLECTIVE band
+                    is white, so it needs the white plate behind it to read as
+                    intended rather than the page's warm paper. */}
                 <Image
-                  src="/images/partners/chptr-collective.webp"
-                  alt={`${PARTNER.name} logo`}
-                  width={579}
-                  height={460}
-                  className="h-auto w-full max-w-[240px] md:max-w-[320px]"
+                  src="/images/partners/chptr-collective.png"
+                  alt={`${PARTNER.name} Collective logo`}
+                  width={780}
+                  height={628}
+                  className="h-auto w-full max-w-[240px] md:max-w-[300px]"
                 />
               </a>
               <a

@@ -27,9 +27,9 @@ export default function ContactPage() {
 
       <section className="shell py-16 md:py-24">
         <div className="grid gap-12 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] md:gap-20">
-          <Reveal>
-            <ContactForm contactEmail={CONTACT.email} />
-          </Reveal>
+          {/* Not wrapped in Reveal: it is above the fold, and a .reveal sits at
+              opacity 0 until hydration. See the motion note in globals.css. */}
+          <ContactForm contactEmail={CONTACT.email} />
 
           <Reveal delay={90}>
             <aside className="flex flex-col gap-8">

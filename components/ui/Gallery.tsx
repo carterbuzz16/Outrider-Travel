@@ -41,6 +41,11 @@ export default function Gallery({
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [visible, setVisible] = useState(false);
+  /* Once the reader has driven it themselves, it stops for good. A carousel
+   * that resumes yanking the track after a swipe is worse than one that never
+   * moved: mouseenter does not exist on a phone, so touch needs its own
+   * signal. */
+  const [surrendered, setSurrendered] = useState(false);
 
   /**
    * The width of one slide including the gap after it.
@@ -131,11 +136,11 @@ export default function Gallery({
   }, [autoplay]);
 
   useEffect(() => {
-    if (!autoplay || paused || !visible || images.length < 2) return;
+    if (!autoplay || paused || surrendered || !visible || images.length < 2) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const id = window.setInterval(() => goTo(index + 1, true), interval);
     return () => window.clearInterval(id);
-  }, [autoplay, paused, visible, index, interval, images.length, goTo]);
+  }, [autoplay, paused, surrendered, visible, index, interval, images.length, goTo]);
 
   if (images.length === 0) return null;
 
@@ -151,6 +156,9 @@ export default function Gallery({
         // drive it with the arrow keys without needing the buttons.
         tabIndex={0}
         aria-label={label}
+        onPointerDown={autoplay ? () => setSurrendered(true) : undefined}
+        onTouchStart={autoplay ? () => setSurrendered(true) : undefined}
+        onKeyDown={autoplay ? () => setSurrendered(true) : undefined}
         onMouseEnter={autoplay ? () => setPaused(true) : undefined}
         onMouseLeave={autoplay ? () => setPaused(false) : undefined}
         onFocus={autoplay ? () => setPaused(true) : undefined}
@@ -196,14 +204,20 @@ export default function Gallery({
           <GalleryButton
             label="Previous photograph"
             disabled={!autoplay && atStart}
-            onClick={() => goTo(index - 1, autoplay)}
+            onClick={() => {
+              setSurrendered(true);
+              goTo(index - 1, autoplay);
+            }}
           >
             <Arrow direction="left" />
           </GalleryButton>
           <GalleryButton
             label="Next photograph"
             disabled={!autoplay && atEnd}
-            onClick={() => goTo(index + 1, autoplay)}
+            onClick={() => {
+              setSurrendered(true);
+              goTo(index + 1, autoplay);
+            }}
           >
             <Arrow direction="right" />
           </GalleryButton>

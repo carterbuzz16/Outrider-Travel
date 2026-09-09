@@ -59,6 +59,16 @@ export default function NavBar({
   // Close the mobile sheet on navigation.
   useEffect(() => setOpen(false), [pathname]);
 
+  // Escape closes the sheet, the same way it closes any other overlay.
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+
   // Lock the page behind the open sheet.
   useEffect(() => {
     if (!open) return;

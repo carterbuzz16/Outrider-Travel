@@ -14,7 +14,14 @@ import { useEffect, useRef, useState } from "react";
  * Always muted and inline: a hero that makes noise is never acceptable, and on
  * iOS an unmuted or non-inline video refuses to autoplay at all and takes over
  * the screen instead.
+ *
+ * Phones get the poster and no video at all. The file is 2.3MB of 2560x1440
+ * decoration, `preload="metadata"` is defeated the moment play() is called, and
+ * this is the entire above-the-fold payload on the page most people land on.
+ * The poster alone is a perfectly good hero, and it is what someone on a phone
+ * on a hotel wifi actually wants.
  */
+const MOBILE = "(max-width: 767px)";
 export default function HeroVideo({
   src,
   poster,
@@ -24,8 +31,21 @@ export default function HeroVideo({
 }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [reduced, setReduced] = useState(false);
+  // Starts true so the first client render matches the server, which cannot
+  // know the viewport. The effect corrects it before anything is fetched,
+  // because the <video> is only mounted once this is false.
+  const [small, setSmall] = useState(true);
 
   useEffect(() => {
+    const mq = window.matchMedia(MOBILE);
+    const apply = () => setSmall(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  useEffect(() => {
+    if (small) return;
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     const apply = () => {
       setReduced(mq.matches);
@@ -43,7 +63,21 @@ export default function HeroVideo({
     apply();
     mq.addEventListener("change", apply);
     return () => mq.removeEventListener("change", apply);
-  }, []);
+  }, [small]);
+
+  if (small) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- a full-bleed
+      // background frame, already the correct size, and next/image adds nothing
+      // it does not already have.
+      <img
+        src={poster}
+        alt=""
+        aria-hidden="true"
+        className="h-full w-full object-cover"
+      />
+    );
+  }
 
   return (
     <video
