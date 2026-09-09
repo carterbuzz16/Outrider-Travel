@@ -1,5 +1,5 @@
 import { Reveal, SectionDivider, cn } from "@/components/ui";
-import { CONTACT } from "@/lib/site-content";
+import { CONTACT, LEGAL_NAME } from "@/lib/site-content";
 import {
   formatLegalDate,
   sectionNumber,
@@ -118,7 +118,7 @@ export default function LegalDocument({
             <a href={`mailto:${CONTACT.email}`} className="text-[--accent]">
               {CONTACT.email}
             </a>
-            . Outrider Travel Co. is based in {CONTACT.base}.
+            . {LEGAL_NAME} is based in {CONTACT.base}.
           </p>
         </div>
       </section>

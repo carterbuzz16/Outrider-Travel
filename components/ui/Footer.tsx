@@ -3,7 +3,7 @@ import Logo from "./Logo";
 import Button from "./Button";
 import SectionDivider from "./SectionDivider";
 import { ACCOUNT_LINK } from "./nav-links";
-import { CONTACT } from "@/lib/site-content";
+import { CONTACT, LEGAL_NAME } from "@/lib/site-content";
 import { LEGAL_DOCUMENTS } from "@/lib/legal";
 
 /**
@@ -133,13 +133,9 @@ export default function Footer({
           </nav>
         </div>
 
-        <div className="flex flex-col gap-4 border-t border-[--rule] py-7 sm:flex-row sm:items-center sm:justify-between">
+        <div className="border-t border-[--rule] py-7">
           <p className="stamp-type text-[--text-muted]">
-            © {year} Outrider Travel Co.
-          </p>
-          {/* The stamped issue line — the ephemera motif's quietest appearance. */}
-          <p className="stamp-type text-[--text-muted]">
-            Issued · {CONTACT.base} · Series {year}
+            © {year} {LEGAL_NAME}. All rights reserved.
           </p>
         </div>
       </div>

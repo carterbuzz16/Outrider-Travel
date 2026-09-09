@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ASSUMPTION_OF_RISK } from "@/lib/legal";
-import { CONTACT } from "@/lib/site-content";
+import { CONTACT, LEGAL_NAME } from "@/lib/site-content";
 import LegalDocument, { LegalList, LegalSection } from "../legal/LegalDocument";
 
 /**
@@ -57,8 +57,8 @@ export default function AssumptionOfRiskPage() {
 
       <LegalSection doc={ASSUMPTION_OF_RISK} id="applies-to">
         <p>
-          In this document, <strong>&ldquo;Outrider&rdquo;</strong> means
-          Outrider Travel Co., its owners, officers, employees, contractors,
+          In this document, <strong>&ldquo;Outrider&rdquo;</strong> means{" "}
+          {LEGAL_NAME}, its owners, officers, employees, contractors,
           guides, trip staff, volunteers, agents, successors and assigns.
           <strong> &ldquo;I&rdquo;</strong> and{" "}
           <strong>&ldquo;me&rdquo;</strong> mean the traveller signing, and also

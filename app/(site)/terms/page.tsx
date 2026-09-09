@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { TERMS } from "@/lib/legal";
-import { CONTACT } from "@/lib/site-content";
+import { CONTACT, LEGAL_NAME } from "@/lib/site-content";
 import { DEPOSIT_PERCENTAGE } from "@/lib/deposit";
 import { INSTALLMENT_OFFSETS_DAYS } from "@/lib/installments";
 import { MAX_INSTALLMENT_ATTEMPTS, INSTALLMENT_RETRY_AFTER_DAYS } from "@/lib/payments";
@@ -36,8 +36,8 @@ export default function TermsPage() {
     <LegalDocument doc={TERMS}>
       <LegalSection doc={TERMS} id="about">
         <p>
-          These Terms of Service are the agreement between you and Outrider
-          Travel Co. (&ldquo;Outrider&rdquo;, &ldquo;we&rdquo;,
+          These Terms of Service are the agreement between you and{" "}
+          {LEGAL_NAME} (&ldquo;Outrider&rdquo;, &ldquo;we&rdquo;,
           &ldquo;us&rdquo;), a travel company based in {CONTACT.base}, covering
           your use of this website and any trip you book through it.
         </p>
@@ -754,7 +754,7 @@ export default function TermsPage() {
 
       <LegalSection doc={TERMS} id="contact">
         <p>
-          Outrider Travel Co., {CONTACT.base}. Questions about these terms, a
+          {LEGAL_NAME}, {CONTACT.base}. Questions about these terms, a
           booking, a cancellation or a payment:{" "}
           <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>.
         </p>

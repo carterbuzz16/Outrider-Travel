@@ -70,7 +70,7 @@ export const TERMS: LegalDocumentMeta = {
   shortTitle: "Terms of Service",
   description:
     "The agreement between you and Outrider when you book a departure: deposits, the installment plan, cancellation, weather, suppliers, insurance and liability.",
-  version: "1.0.0",
+  version: "1.0.1",
   status: "in-force",
   effectiveDate: "2026-09-08",
   lastUpdated: "2026-09-08",
@@ -103,7 +103,7 @@ export const PRIVACY: LegalDocumentMeta = {
   shortTitle: "Privacy Policy",
   description:
     "What Outrider collects when you join the waitlist or book a trip, where card details actually go, who your information is shared with, and how to have it deleted.",
-  version: "1.0.0",
+  version: "1.0.1",
   status: "in-force",
   effectiveDate: "2026-09-08",
   lastUpdated: "2026-09-08",
@@ -133,7 +133,7 @@ export const ASSUMPTION_OF_RISK: LegalDocumentMeta = {
   shortTitle: "Assumption of Risk",
   description:
     "The risks of skiing, snowboarding and mountain travel on an Outrider departure, and the assumption of risk, release, indemnity and medical authorisation every traveller is asked to sign.",
-  version: "1.0.0",
+  version: "1.0.1",
   status: "in-force",
   effectiveDate: "2026-09-08",
   lastUpdated: "2026-09-08",

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PRIVACY } from "@/lib/legal";
-import { CONTACT } from "@/lib/site-content";
+import { CONTACT, LEGAL_NAME } from "@/lib/site-content";
 import LegalDocument, { LegalList, LegalSection } from "../legal/LegalDocument";
 
 /**
@@ -31,7 +31,7 @@ export default function PrivacyPage() {
     <LegalDocument doc={PRIVACY}>
       <LegalSection doc={PRIVACY} id="scope">
         <p>
-          This policy explains what Outrider Travel Co. (&ldquo;Outrider&rdquo;,
+          This policy explains what {LEGAL_NAME} (&ldquo;Outrider&rdquo;,
           &ldquo;we&rdquo;, &ldquo;us&rdquo;) collects about you, why, who it
           goes to, and what you can do about it. It covers this website, the
           booking flow, and the emails we send you about a booking.
@@ -420,7 +420,7 @@ export default function PrivacyPage() {
 
       <LegalSection doc={PRIVACY} id="contact">
         <p>
-          Outrider Travel Co., {CONTACT.base}. Privacy questions and requests:{" "}
+          {LEGAL_NAME}, {CONTACT.base}. Privacy questions and requests:{" "}
           <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>.
         </p>
         <p>

@@ -12,6 +12,15 @@
  * Anything only the Outrider team can know is marked NEEDS REAL COPY.
  */
 
+/* -- the company ------------------------------------------------------------
+ * The registered entity. Used wherever a document has to name the party a
+ * traveller is contracting with or releasing, so the terms, the privacy policy
+ * and the waiver cannot drift apart from each other or from the footer. A
+ * release that names an entity which does not exist is worth less than one that
+ * names the right one, so this is the only place it should ever be written.
+ * ------------------------------------------------------------------------- */
+export const LEGAL_NAME = "Outrider Travel, LLC";
+
 /* -- contact ---------------------------------------------------------------
  * bookings@outrider.travel is the one address the repo can vouch for: it is the
  * verified Resend sender in EMAIL_FROM_ADDRESS. Change it here if enquiries
@@ -27,7 +36,7 @@ export const CONTACT = {
    * physical postal address on marketing email, and the privacy policy has to
    * name one for data requests. Every consumer of this renders nothing while it
    * is null, so filling it in here is the only change needed.
-   * Format as separate lines, e.g. ["Outrider Travel Co.", "123 Example St",
+   * Format as separate lines, e.g. [LEGAL_NAME, "123 Example St",
    * "Washington, DC 20001"].
    */
   postalAddress: null as string[] | null,
