@@ -29,7 +29,9 @@ export { ACCOUNT_LINK };
 // than a short nav, so this grows when the routes do.
 export const DEFAULT_LINKS: NavLink[] = [
   { label: "Trips", href: "/trips" },
+  { label: "Destinations", href: "/destinations" },
   { label: "About", href: "/about" },
+  { label: "FAQ", href: "/faq" },
 ];
 
 export default function NavBar({
