@@ -3,7 +3,7 @@
 import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { sendWaitlistNotification } from "@/lib/email/send";
+import { sendWaitlistNotification, sendWaitlistWelcome } from "@/lib/email/send";
 import { clientIp } from "@/lib/client-ip";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -55,7 +55,7 @@ export async function joinWaitlist(rawEmail: string): Promise<JoinResult> {
   ]);
 
   const stored =
-    storedResult.status === "fulfilled" ? storedResult.value : { ok: false, isNew: false };
+    storedResult.status === "fulfilled" ? storedResult.value : { ok: false, isNew: false, token: undefined };
   const synced = syncedResult.status === "fulfilled" && syncedResult.value;
 
   if (storedResult.status === "rejected") {
@@ -76,6 +76,19 @@ export async function joinWaitlist(rawEmail: string): Promise<JoinResult> {
   // upserts a repeat signup to the same contact id and so can't tell us
   // whether this address is new.
   if (stored.isNew) {
+    // The welcome is what carries the unsubscribe link. Until it existed the
+    // first message anyone got was going to be a bulk announcement, so the
+    // "unsubscribe link in any of those messages" the privacy policy promises
+    // did not yet exist anywhere. Failure is logged, never surfaced: they are
+    // on the list either way, and telling them otherwise invites a resubmit.
+    if (stored.token) {
+      try {
+        await sendWaitlistWelcome(email, stored.token);
+      } catch (err) {
+        console.error("Waitlist welcome failed (signup still recorded):", err);
+      }
+    }
+
     try {
       await sendWaitlistNotification(email);
     } catch (err) {
@@ -86,15 +99,30 @@ export async function joinWaitlist(rawEmail: string): Promise<JoinResult> {
   return { ok: true };
 }
 
-async function storeSignup(email: string): Promise<{ ok: boolean; isNew: boolean }> {
+async function storeSignup(
+  email: string,
+): Promise<{ ok: boolean; isNew: boolean; token?: string }> {
   // Service-role: waitlist_signups has no INSERT policy for anon, the same
-  // shape as the other pre-auth writes in this app.
-  const { error } = await createAdminClient().from("waitlist_signups").insert({ email });
+  // shape as the other pre-auth writes in this app. The token comes back on
+  // the same round trip, because the welcome email cannot be sent without it.
+  const { data, error } = await createAdminClient()
+    .from("waitlist_signups")
+    .insert({ email })
+    .select("unsubscribe_token")
+    .single();
 
-  if (!error) return { ok: true, isNew: true };
+  if (!error) return { ok: true, isNew: true, token: data?.unsubscribe_token };
 
   // Signing up twice is a normal thing for someone to do, not a failure.
-  if (error.code === UNIQUE_VIOLATION) return { ok: true, isNew: false };
+  if (error.code === UNIQUE_VIOLATION) {
+    // Someone who left and came back is opting in again, so clear the flag
+    // rather than leaving them marked unsubscribed and silently unreachable.
+    await createAdminClient()
+      .from("waitlist_signups")
+      .update({ unsubscribed_at: null })
+      .eq("email", email);
+    return { ok: true, isNew: false };
+  }
 
   console.error(`Waitlist insert failed: ${error.code} — ${error.message}`);
   return { ok: false, isNew: false };

@@ -225,6 +225,59 @@ export async function sendActionRequiredEmail(opts: {
   });
 }
 
+/**
+ * Welcome mail, sent to the person who joined.
+ *
+ * This is the message that carries the unsubscribe link, which is why it
+ * matters more than a courtesy. The privacy policy promises "use the
+ * unsubscribe link in any of those messages", and until this existed the first
+ * message anyone received was going to be a bulk announcement, so there was no
+ * link to use. Gmail and Yahoo also require List-Unsubscribe with one-click
+ * support from bulk senders, and a domain whose first send is a cold blast to
+ * hundreds of addresses is a domain that lands in spam. A welcome people open
+ * is what teaches inboxes otherwise.
+ */
+export async function sendWaitlistWelcome(email: string, token: string) {
+  const url = `${getAppUrl()}/unsubscribe?t=${encodeURIComponent(token)}`;
+
+  await sendEmail({
+    from: getFromAddress(),
+    to: email,
+    subject: "You are on the Outrider list",
+    headers: {
+      // RFC 8058. The POST endpoint is what Gmail's own unsubscribe button
+      // calls, without the reader ever leaving their inbox.
+      "List-Unsubscribe": `<${getAppUrl()}/api/unsubscribe?t=${encodeURIComponent(token)}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    },
+    html: renderEmailLayout({
+      preheader: "Departures open to this list before they go on sale.",
+      bodyHtml: `
+        <p style="margin:0 0 16px;">You are on the list.</p>
+        <p style="margin:0 0 16px;">
+          Departures open to this list before they go on sale. When Telluride is
+          live, you will hear from us first.
+        </p>
+        <p style="margin:0 0 16px;">
+          That is the only reason we will email you. No newsletter, nothing
+          weekly.
+        </p>
+        <p style="margin:24px 0 0;font-size:12px;color:#6B6B6B;">
+          <a href="${url}" style="color:#6B6B6B;">Unsubscribe</a>
+        </p>`,
+    }),
+    text: [
+      "You are on the list.",
+      "",
+      "Departures open to this list before they go on sale. When Telluride is live, you will hear from us first.",
+      "",
+      "That is the only reason we will email you. No newsletter, nothing weekly.",
+      "",
+      `Unsubscribe: ${url}`,
+    ].join("\n"),
+  });
+}
+
 // Optional heads-up to the team when someone joins the waitlist. Silent
 // no-op unless WAITLIST_NOTIFY_TO is set, so the coming-soon page works
 // without it; the caller treats any failure here as non-fatal.
