@@ -1,7 +1,19 @@
+import type { Metadata } from "next";
 import OutriderMark from "@/components/OutriderMark";
 import OutriderWordmark from "@/components/OutriderWordmark";
 import WaitlistForm from "@/components/WaitlistForm";
 import styles from "./page.module.css";
+
+/*
+ * Kept out of search. This page says much the same thing as "/" and carries the
+ * same waitlist form, so if it were indexed it would compete with the real home
+ * page for the brand's own name. It exists to be switched back on, not to be
+ * found.
+ */
+export const metadata: Metadata = {
+  title: "Coming soon",
+  robots: { index: false, follow: false },
+};
 
 const BADGE_TEXT = "COMING SOON · WINTER 2026 · TELLURIDE · ";
 

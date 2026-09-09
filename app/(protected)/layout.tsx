@@ -1,6 +1,18 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import UserNav from "@/components/UserNav";
+
+/*
+ * Signed-in pages. robots.txt already disallows /bookings, but a Disallow only
+ * asks a crawler not to fetch: a URL linked from elsewhere can still be indexed
+ * without ever being crawled. `noindex` is the instruction that actually keeps
+ * these out of results, and it costs nothing to state both.
+ */
+export const metadata: Metadata = {
+  title: { default: "Your account", template: "%s · Outrider" },
+  robots: { index: false, follow: false },
+};
 
 // Wraps any route that requires a logged-in user (e.g. booking pages).
 // Middleware already redirects logged-out requests before they get here —

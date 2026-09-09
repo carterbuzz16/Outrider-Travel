@@ -15,7 +15,7 @@ import { formatDateRange, formatPrice, getPublishedTrips, nightCount } from "@/l
 export const metadata: Metadata = {
   // The layout's template appends "· Outrider"; the home page is the one place
   // that should read as the brand alone.
-  title: { absolute: "Outrider · Small-group ski weeks and spring break" },
+  title: { absolute: "Outrider · Small-group travel for college" },
   description:
     "Small-group travel for college. One property booked whole, everything arranged before you land, and the whole price settled up front.",
 };

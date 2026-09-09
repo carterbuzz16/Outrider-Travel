@@ -248,9 +248,15 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
           <div className="pl-[max(1.25rem,calc((100vw-var(--shell))/2+var(--gutter)))] pr-gutter">
             <Reveal>
               <Gallery
-                images={gallery.map((src) => ({
+                /* Numbered because the photo URLs arrive from the database
+                   without any description of what is in them, so the honest
+                   alternative to a real caption is at least telling somebody
+                   using a screen reader that these are distinct photographs
+                   rather than the same one repeated eight times. Proper per
+                   image alt text needs a column alongside the URL. */
+                images={gallery.map((src, i) => ({
                   src,
-                  alt: `${trip.name}, ${trip.destination}`,
+                  alt: `${trip.name}, ${trip.destination}. Photo ${i + 1} of ${gallery.length}.`,
                 }))}
               />
             </Reveal>

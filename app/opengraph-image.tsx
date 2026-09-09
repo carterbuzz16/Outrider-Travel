@@ -13,7 +13,7 @@ import { MARK_D, WORDMARK_D } from "@/components/ui/Logo";
  * artwork is already vector. Only the small supporting text needs a face.
  */
 
-export const alt = "Outrider. Small-group ski weeks and spring break trips.";
+export const alt = "Outrider. Small-group travel for college.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

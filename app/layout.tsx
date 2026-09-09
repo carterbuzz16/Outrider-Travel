@@ -38,6 +38,18 @@ const sourceSerif = Source_Serif_4({
  */
 export const metadata: Metadata = {
   metadataBase: new URL(getAppUrl()),
+  /*
+   * "./" resolves per route against metadataBase, so every page declares its
+   * own canonical URL on the real domain.
+   *
+   * This matters because the site answers on outrider-travel.vercel.app as well
+   * as www.outrider.travel, and that deployment serves the whole thing at 200
+   * rather than redirecting. Without a canonical those are two indexable copies
+   * of every page competing with each other. NEXT_PUBLIC_APP_URL is set in
+   * Vercel, so metadataBase is the custom domain even when the vercel.app host
+   * is the one answering, and the duplicate points at the original.
+   */
+  alternates: { canonical: "./" },
   title: {
     default: "Outrider",
     template: "%s · Outrider",

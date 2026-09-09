@@ -1,7 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import UserNav from "@/components/UserNav";
+
+/* Same reasoning as the protected layout: Disallow is a request, noindex is
+ * the instruction. Admin should never appear in a result under any conditions. */
+export const metadata: Metadata = {
+  title: { default: "Admin", template: "%s · Outrider admin" },
+  robots: { index: false, follow: false },
+};
 
 // Admin routes require both a logged-in user and role = 'admin'. The role
 // check reads public.users through the signed-in user's own Supabase
