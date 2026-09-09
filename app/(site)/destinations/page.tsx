@@ -135,9 +135,17 @@ export default function DestinationsPage() {
             </h2>
           </Reveal>
         </div>
-        <div className="mt-10 pl-[max(1.25rem,calc((100vw-var(--shell))/2+var(--gutter)))] pr-gutter">
+        {/* 100% rather than 100vw: 100vw includes the scrollbar, which pushed
+            the track about 7px right of the heading above it. This lines the
+            first photograph up with the rest of the page and still lets the
+            track bleed off the right edge. */}
+        <div className="mt-10 pl-[max(1.25rem,calc((100%-var(--shell))/2+var(--gutter)))] pr-gutter">
           <Reveal>
-            <Gallery images={GALLERY} />
+            <Gallery
+              images={GALLERY}
+              label="Telluride photographs"
+              autoplay
+            />
           </Reveal>
         </div>
       </section>
