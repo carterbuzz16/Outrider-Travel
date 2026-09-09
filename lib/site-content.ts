@@ -37,13 +37,10 @@ export const CONTACT = {
    * contact section, because a policy has to name a physical address for data
    * requests, and the footer of marketing email, because CAN-SPAM requires one
    * there. It is not in the site footer or on the contact page.
-   *
-   * No ZIP yet. A mailing address without one is not properly deliverable and
-   * CAN-SPAM expects a valid postal address, so add it when confirmed.
    */
   postalAddress: [
     "145 East Magnolia Avenue",
-    "Auburn, Alabama",
+    "Auburn, Alabama 36830",
   ] as string[] | null,
   instagram: "https://www.instagram.com/outridertravel/",
   instagramHandle: "@outridertravel",
