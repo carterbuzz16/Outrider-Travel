@@ -168,7 +168,7 @@ const GROUPS: Group[] = [
           <>
             Yes. Everyone books their own spot, and a group code keeps you
             together for rooming. The difference from the usual arrangement is
-            that no single person is holding everyone else's money.
+            that no single person is holding everyone else&rsquo;s money.
           </>
         ),
       },
