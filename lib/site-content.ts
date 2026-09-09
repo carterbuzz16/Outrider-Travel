@@ -119,8 +119,8 @@ export const FOUNDER: {
   pullQuote:
     "Everybody already knows what is wrong with booking travel in college. Nobody had bothered to fix it.",
   bio: [
-    "I went to Auburn, where I was social chair of ATO and then president. Social chair is the job nobody volunteers for twice. You book the formals, move 200 people across state lines, chase deposits for months, and you're the one everybody texts when the rooms are wrong.",
-    "Travel is the thing I care most about, and nearly everything I know about running a trip I learned by getting it wrong first, on somebody else's behalf. Being the person who has to fix it with two hundred people already on the ground teaches you quickly what matters and what nobody notices.",
+    "I went to Auburn, where I was social chair of ATO and then president. Between the two I planned more than thirty trips. Social chair is the job nobody volunteers for twice. You book the formals, move 200 people across state lines, chase deposits for months, and you're the one everybody texts when the rooms are wrong.",
+    "Travel is the thing I care most about, and nearly everything I know about running a trip I learned by getting it wrong first, on somebody else's behalf. Being the person who has to fix it with 200 people already on the ground teaches you quickly what matters and what nobody notices.",
     "So Outrider is the company I would have booked. One price with everything already inside it. One property, held before it goes on sale. Someone on the ground for the whole trip. Nobody fronting money for their friends and spending the spring trying to get it back.",
     "This isn't your typical party trip. Sure, college is all about having fun, and there will be plenty of that with Outrider, but what we care most about is your experience. That high-end exclusive feel you've been chasing. The part worth paying for is a place that holds a standard, a group small enough to actually know, and a few days you're still talking about in ten years.",
   ],
