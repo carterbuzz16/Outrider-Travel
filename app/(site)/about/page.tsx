@@ -174,14 +174,17 @@ export default function AboutPage() {
                 href={PARTNER.url}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="inline-flex w-fit border border-[--rule] bg-white px-10 py-9 transition-colors duration-fast hover:border-[--rule-strong] md:px-12 md:py-11"
+                className="flex w-full items-center justify-center border border-[--rule] bg-white px-8 py-10 transition-colors duration-fast hover:border-[--rule-strong] md:px-10 md:py-14"
               >
+                {/* The Collective's own lockup, which is nearly square rather
+                    than the wide chptr wordmark, so it is sized taller to carry
+                    the same visual weight. */}
                 <Image
-                  src="/images/partners/chptr.png"
+                  src="/images/partners/chptr-collective.webp"
                   alt={`${PARTNER.name} logo`}
-                  width={554}
-                  height={207}
-                  className="h-14 w-auto md:h-20"
+                  width={579}
+                  height={460}
+                  className="h-auto w-full max-w-[240px] md:max-w-[320px]"
                 />
               </a>
               <a

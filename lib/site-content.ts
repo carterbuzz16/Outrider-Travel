@@ -128,25 +128,26 @@ export const FOUNDER: {
   ],
 };
 
-/* -- partner: Chptr --------------------------------------------------------
- * Description drafted from what Chptr publishes about itself at chptr.house:
- * a management platform for fraternity and sorority chapters, whose vendor
- * partnership program is the "Chptr Collective". Their own brand styling is
- * "Chptr", not "CHPTR".
+/* -- partner: the Chptr Collective ------------------------------------------
+ * Written from what Chptr publishes about the Collective: a group purchasing
+ * organization for Greek life, vendors chosen through a procurement process and
+ * held to quarterly reviews.
  *
- * NOTE FOR CARTER: the description of Chptr is theirs and is accurate as far
- * as their site goes, but the sentence describing the Outrider relationship is
- * the part only you can confirm. Read it, correct it if the arrangement is
- * different, and it is good to go.
+ * NOTE FOR CARTER: the description of the Collective is theirs. The sentence
+ * naming Outrider as its travel partner is the part only you can confirm, and
+ * their public categories page lists merchandise, composites, dumpsters and
+ * meal plans without travel yet. Make sure the claim matches what Chptr say
+ * before this leans on it any harder.
  * ------------------------------------------------------------------------- */
 export const PARTNER = {
-  name: "Chptr",
-  eyebrow: "In partnership with",
+  name: "Chptr Collective",
+  eyebrow: "Vetted partner",
   url: "https://chptr.house/",
   confirmed: true,
   body: [
-    "Chptr is the platform fraternity and sorority chapters use to run themselves: budgeting, events, attendance, records and the vendors they work with, in one place. Their vendor program, the Chptr Collective, vets who chapters deal with and negotiates the terms centrally.",
-    "Outrider works with Chptr because it puts us on the same footing as every other part of a chapter's operations. A social chair is not taking a stranger's word for it and wiring a deposit somewhere. They are booking through a system their chapter already runs on, with someone who has been checked before they ever got in front of them.",
+    "The Chptr Collective is a group purchasing organization built for Greek life, the first of its kind. It pools the buying power of chapters across the country and puts it behind a small number of selected vendors, negotiating pricing, terms and service standards in categories like merchandise, composites, dumpsters and meal plans.",
+    "Outrider is its travel partner. Vendors are not simply listed: they are chosen through a procurement process run by Chptr's own leadership, with founder Parker Duffey involved in the negotiations directly, alongside Tom Beaty and Resultiv, who built Insight Sourcing Group into one of the larger sourcing advisory firms in the country. Selection is not the end of it either. Pricing and service are reviewed quarterly.",
+    "That matters most to the person actually doing the booking. A social chair is not taking a stranger's word for it and wiring a deposit somewhere. They are booking a vendor their own organization's purchasing program has already checked, negotiated with, and holds answerable afterwards.",
   ],
 };
 
