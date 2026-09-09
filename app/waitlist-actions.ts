@@ -85,8 +85,21 @@ export async function joinWaitlist(rawEmail: string): Promise<JoinResult> {
       try {
         await sendWaitlistWelcome(email, stored.token);
       } catch (err) {
-        console.error("Waitlist welcome failed (signup still recorded):", err);
+        // Loud and specific. The first time this failed in production it was a
+        // missing EMAIL_FROM_ADDRESS, and the only evidence was silence: the
+        // row was written, the Resend contact was created, and the person got
+        // nothing. Nobody reads a log that does not say what broke.
+        console.error(
+          "WAITLIST WELCOME FAILED — the signup was recorded and the contact synced, but no email was sent.",
+          err,
+        );
       }
+    } else {
+      // Previously skipped in silence, which is how the same failure could
+      // happen again without leaving a trace.
+      console.error(
+        "WAITLIST WELCOME SKIPPED — no unsubscribe token came back from the insert, so no email could be sent.",
+      );
     }
 
     try {
