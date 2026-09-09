@@ -42,7 +42,7 @@ export default async function HomePage() {
       <Hero
         video={{ src: "/video/hero.mp4", poster: "/video/hero-poster.jpg" }}
         eyebrow="Ski weeks · Spring break"
-        headline="Someone rides ahead"
+        headline="We ride ahead"
         tagline="One property, booked whole. Everything arranged before you land, transport both directions, staff on the ground, and the price settled long before you go."
         stampText="Outrider · Scouted · Prepared"
         cta={{ label: "View trips", href: "/trips" }}
