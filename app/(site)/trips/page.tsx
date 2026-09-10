@@ -9,6 +9,7 @@ import {
   cellGridClass,
 } from "@/components/ui";
 import { UPCOMING_CATEGORIES } from "@/lib/site-content";
+import { BOOKINGS_OPEN } from "@/lib/booking-window";
 import { formatDateRange, formatPrice, getPublishedTrips, nightCount } from "@/lib/trips";
 
 export const metadata: Metadata = {
@@ -53,7 +54,15 @@ export default async function TripsPage() {
                 name: trip.name,
                 destination: trip.destination,
                 dates: formatDateRange(trip.startDate, trip.endDate),
-                price: `From ${formatPrice(trip.priceFrom)}`,
+                // No figure while nothing can be bought. A price with no way to act on
+                  // it invites the reader to shop it against something else.
+                  // Omitted rather than set to "Coming soon": the status badge
+                  // at the top of the card already says that, and printing it
+                  // twice on one card is the duplication that got fixed once
+                  // before with the destination line.
+                  price: BOOKINGS_OPEN
+                    ? `From ${formatPrice(trip.priceFrom)}`
+                    : undefined,
                 summary:
                   trip.description ??
                   `${nightCount(trip.startDate, trip.endDate)} nights, everything arranged.`,

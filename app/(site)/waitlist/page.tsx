@@ -6,6 +6,7 @@ import {
   cellGridClass,
   cellSpanClass,
 } from "@/components/ui";
+import { BOOKINGS_OPEN } from "@/lib/booking-window";
 import { UPCOMING_CATEGORIES } from "@/lib/site-content";
 import { formatDateRange, formatPrice, getPublishedTrips } from "@/lib/trips";
 
@@ -71,8 +72,8 @@ export default async function WaitlistPage() {
                   <p className="t-micro text-[--text-secondary]">{trip.destination}</p>
                   <h3 className="t-subheading text-[--text]">{trip.name}</h3>
                   <p className="t-micro text-[--text-muted]">
-                    {formatDateRange(trip.startDate, trip.endDate)} · From{" "}
-                    {formatPrice(trip.priceFrom)}
+                    {formatDateRange(trip.startDate, trip.endDate)}
+                    {BOOKINGS_OPEN ? ` · From ${formatPrice(trip.priceFrom)}` : ""}
                   </p>
                 </div>
               </Reveal>
