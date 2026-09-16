@@ -28,8 +28,19 @@ export const metadata: Metadata = pageMetadata({
    * so the two were competing.
    */
   path: "/",
+  /*
+   * Written for the search result, not the page, and written to say how
+   * Outrider differs rather than what it does: every operator "plans trips".
+   * It names the brand (most searches that find this page are for
+   * "Outrider", and Google prefers a description containing the words
+   * searched), and every claim is one the site already backs: the group size
+   * is fixed before sale, the property is booked whole, and staff stay for the
+   * duration. It closes on the experience rather than on what it is not: the
+   * team asked for that over "not a party trip". "Private club" is a likeness, per the FAQ's "a small club rather than a tour"; it is
+   * not a membership. Under 160 characters so it is not cut off.
+   */
   description:
-    "Small-group ski trips and spring break for college students, starting in Telluride. One property booked whole, everything arranged before you land, and one price settled up front.",
+    "Outrider runs college ski trips and spring break like a private club: a capped group, a property to yourselves, staff on site. An experience nobody else gets.",
 });
 
 // The trip list changes when the team publishes or edits a departure, not on
@@ -81,7 +92,11 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <div className="mt-16 flex flex-col gap-20 md:gap-28">
+          {/* data-nosnippet: Google was ignoring the meta description and
+              quoting the "Someone goes first" paragraph in the search result,
+              which reads as a fragment out of context. The copy stays on the
+              page and in the index; it just cannot be the snippet. */}
+          <div data-nosnippet className="mt-16 flex flex-col gap-20 md:gap-28">
             {VALUE_PROPS.map((prop, i) => (
               <Reveal key={prop.eyebrow}>
                 <EditorialPair
@@ -226,7 +241,9 @@ Booked before it is sold
               </h2>
             </Reveal>
             <Reveal delay={90}>
-              <p className="t-lede max-w-measure text-[--text-secondary]">
+              {/* Same sentence as the one Google quoted, said again, so the same
+                  treatment. */}
+              <p data-nosnippet className="t-lede max-w-measure text-[--text-secondary]">
                 We walk the property, eat the dinners and sleep in the rooms
                 before a departure reaches this page. If it is listed, someone
                 has already been.
