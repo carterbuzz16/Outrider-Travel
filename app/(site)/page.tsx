@@ -10,25 +10,27 @@ import {
   type Trip,
   cellGridClass,
 } from "@/components/ui";
+import { pageMetadata } from "@/lib/metadata";
 import { UPCOMING_CATEGORIES, VALUE_PROPS } from "@/lib/site-content";
 import { BOOKINGS_OPEN } from "@/lib/booking-window";
 import { formatDateRange, formatPrice, getPublishedTrips, nightCount } from "@/lib/trips";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   // The layout's template appends "· Outrider"; the home page is the one place
-  // that should read as the brand alone.
-  title: { absolute: "Outrider · Small-group travel for college" },
+  // that should lead with the brand instead.
+  title: "Outrider · Small-group ski trips and spring break for college",
+  absoluteTitle: true,
   /*
-   * Stated explicitly. The root layout sets `canonical: "./"`, which resolves
-   * correctly for every route except this one: at the root it produces
-   * "/index", so the home page was declaring a URL nobody links to as its
-   * canonical, and the real root as a duplicate of it. /index serves 200, so
-   * the two were competing.
+   * The path is stated explicitly. The root layout sets `canonical: "./"`,
+   * which resolves correctly for every route except this one: at the root it
+   * produces "/index", so the home page was declaring a URL nobody links to as
+   * its canonical, and the real root as a duplicate of it. /index serves 200,
+   * so the two were competing.
    */
-  alternates: { canonical: "/" },
+  path: "/",
   description:
-    "Small-group travel for college. One property booked whole, everything arranged before you land, and the whole price settled up front.",
-};
+    "Small-group ski trips and spring break for college students, starting in Telluride. One property booked whole, everything arranged before you land, and one price settled up front.",
+});
 
 // The trip list changes when the team publishes or edits a departure, not on
 // every request. Five minutes keeps the page static and cheap while making an
@@ -55,8 +57,10 @@ export default async function HomePage() {
         headline="We ride ahead"
         tagline="College travel, everywhere the crowd isn't."
         stampText="Outrider · Scouted · Prepared"
-        cta={{ label: "View trips", href: "/trips" }}
-        secondaryCta={{ label: "Why Outrider", href: "/about" }}
+        // While nothing can be booked, the first thing to offer is the list;
+        // "View trips" leads to departures with no button on them.
+        cta={BOOKINGS_OPEN ? { label: "View trips", href: "/trips" } : { label: "Join the list", href: "/waitlist" }}
+        secondaryCta={BOOKINGS_OPEN ? { label: "Why Outrider", href: "/about" } : { label: "View trips", href: "/trips" }}
       />
 
       {/* ---- what makes Outrider different ---------------------------------- */}
@@ -164,7 +168,9 @@ export default async function HomePage() {
                   A departure goes up here once the property is held and the
                   bookings are made, never before. Ask to hear first.
                 </p>
-                <Button href="/contact" variant="secondary">
+                {/* Was /contact, which asked for a message when the button
+                    promised a list. */}
+                <Button href="/waitlist" variant="secondary">
                   Join the list
                 </Button>
               </div>
@@ -204,7 +210,7 @@ export default async function HomePage() {
           </div>
 
           <Reveal>
-            <WaitlistCTA id="waitlist" tone="light" className="mt-6" />
+            <WaitlistCTA id="waitlist" tone="light" className="mt-6" placement="home" />
           </Reveal>
         </section>
 
@@ -228,9 +234,15 @@ Booked before it is sold
             </Reveal>
             <Reveal delay={180}>
               <div className="flex flex-wrap gap-4">
-                <Button href="/trips" variant="primary" size="lg">
-                  View trips
-                </Button>
+                {BOOKINGS_OPEN ? (
+                  <Button href="/trips" variant="primary" size="lg">
+                    View trips
+                  </Button>
+                ) : (
+                  <Button href="/waitlist" variant="primary" size="lg">
+                    Join the list
+                  </Button>
+                )}
                 <Button href="/about" variant="secondary" size="lg">
                   Why Outrider
                 </Button>

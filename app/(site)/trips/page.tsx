@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/metadata";
 import {
   Badge,
   Reveal,
@@ -12,11 +13,12 @@ import { UPCOMING_CATEGORIES } from "@/lib/site-content";
 import { BOOKINGS_OPEN } from "@/lib/booking-window";
 import { formatDateRange, formatPrice, getPublishedTrips, nightCount } from "@/lib/trips";
 
-export const metadata: Metadata = {
-  title: "Trips",
+export const metadata: Metadata = pageMetadata({
+  title: "Trips: Telluride ski weeks and spring break",
+  path: "/trips",
   description:
-    "Every Outrider departure: dates, starting price and what is still open. Small groups, one property, everything arranged before you land.",
-};
+    "Every Outrider departure for college students: Telluride ski weeks this winter and spring break to follow. Small groups, one property, everything arranged before you land.",
+});
 
 export const revalidate = 300;
 
@@ -104,6 +106,7 @@ export default async function TripsPage() {
           just read "Coming soon" and wants to know when that changes. */}
       <WaitlistCTA
         id="waitlist"
+        placement="trips"
         heading="Know before the dates go live"
         body="Departures open to this list first. One email when Telluride goes on sale, and nothing in between."
       />

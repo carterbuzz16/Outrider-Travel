@@ -1,4 +1,11 @@
-import { CookieConsent, Footer, OrganizationSchema, ToastProvider } from "@/components/ui";
+import {
+  AttributionCapture,
+  CookieConsent,
+  Footer,
+  MobileJoinBar,
+  OrganizationSchema,
+  ToastProvider,
+} from "@/components/ui";
 import { getAppUrl } from "@/lib/site-url";
 import SiteNav from "./SiteNav";
 
@@ -16,6 +23,10 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
       <SiteNav />
       {children}
       <Footer />
+      {/* Both render nothing visible until needed: one reads the landing URL's
+          campaign tags, the other waits for a phone reader to scroll. */}
+      <AttributionCapture />
+      <MobileJoinBar />
       {/*
         Last in the DOM so it lands at the end of the tab order and never
         intercepts focus on its way into the page. It renders nothing at all

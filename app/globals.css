@@ -455,18 +455,19 @@
      the odd accent — never as a default frame on everything. */
 
   /* A ticket stub: square corners with two punched notches on the short ends
-     and a perforated tear line where the counterfoil separates. */
+     and a perforated tear line where the counterfoil separates. The notches
+     sit halfway down unless --notch-y moves them onto the perforation. */
   .stub {
     position: relative;
     background: var(--surface-raised);
     border: var(--hairline) solid var(--rule);
     -webkit-mask-image:
-      radial-gradient(circle 9px at 0 50%, transparent 98%, #000 100%),
-      radial-gradient(circle 9px at 100% 50%, transparent 98%, #000 100%);
+      radial-gradient(circle 9px at 0 var(--notch-y, 50%), transparent 98%, #000 100%),
+      radial-gradient(circle 9px at 100% var(--notch-y, 50%), transparent 98%, #000 100%);
     -webkit-mask-composite: source-in;
     mask-image:
-      radial-gradient(circle 9px at 0 50%, transparent 98%, #000 100%),
-      radial-gradient(circle 9px at 100% 50%, transparent 98%, #000 100%);
+      radial-gradient(circle 9px at 0 var(--notch-y, 50%), transparent 98%, #000 100%),
+      radial-gradient(circle 9px at 100% var(--notch-y, 50%), transparent 98%, #000 100%);
     mask-composite: intersect;
   }
 
@@ -542,5 +543,81 @@
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border-width: 0;
+  }
+}
+
+/* ==========================================================================
+   Waitlist motion
+   --------------------------------------------------------------------------
+   The one page allowed to move more than a fade, because it has one job and
+   nothing else competing for attention on it. Still nothing bounces: a
+   photograph drifts, a strip of pictures travels, a seal inks in. Every rule
+   here is switched off by the reduced-motion block in the base layer, and the
+   marquee additionally stops outright rather than running at 0.01ms.
+   ========================================================================== */
+
+@layer components {
+  /* A slow push-in on the hero photograph. Long enough that nobody sees it
+     move, only that the picture is not a still. */
+  .drift {
+    animation: drift 40s var(--ease) infinite alternate both;
+    transform-origin: 60% 40%;
+  }
+
+  @keyframes drift {
+    from { transform: scale(1.02) translate3d(0, 0, 0); }
+    to   { transform: scale(1.12) translate3d(-1.5%, -1%, 0); }
+  }
+
+  /* An endless strip. The track holds the set twice, so moving it exactly
+     half its own width lands on an identical frame and the loop has no seam. */
+  .marquee-track {
+    display: flex;
+    width: max-content;
+    animation: marquee 80s linear infinite;
+  }
+
+  .marquee:hover .marquee-track,
+  .marquee:focus-within .marquee-track {
+    animation-play-state: paused;
+  }
+
+  @keyframes marquee {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(-50%, 0, 0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .drift { animation: none; }
+    .marquee-track { animation: none; }
+    .marquee { overflow-x: auto; }
+  }
+
+  /* The confirmation seal. Stroke lengths are the circumference of r=22 and
+     the length of the tick path, rounded up so no sliver is left undrawn. */
+  .waitlist-seal-ring {
+    stroke-dasharray: 139;
+    stroke-dashoffset: 139;
+    transform: rotate(-90deg);
+    transform-origin: center;
+    animation: seal-draw 700ms var(--ease-out) 80ms forwards;
+  }
+
+  .waitlist-seal-tick {
+    stroke-dasharray: 26;
+    stroke-dashoffset: 26;
+    animation: seal-draw 360ms var(--ease-out) 640ms forwards;
+  }
+
+  @keyframes seal-draw {
+    to { stroke-dashoffset: 0; }
+  }
+
+  /* A departure-board cell: one fixed-width slot per character, so a letter
+     cycling through the alphabet never nudges its neighbours sideways. */
+  .flap {
+    display: inline-block;
+    min-width: 0.62em;
+    text-align: center;
   }
 }

@@ -62,7 +62,8 @@ export const metadata: Metadata = {
     title: "Outrider",
     description:
       "Small-group travel for college. Ski weeks and spring break, run end to end by the people who booked them.",
-    url: "/",
+    // No `url` here. Anything inheriting this block would claim to live at
+    // the root; pages set their own through lib/metadata.ts.
   },
   twitter: {
     card: "summary_large_image",

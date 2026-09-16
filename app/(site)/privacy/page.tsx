@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/metadata";
 import Link from "next/link";
 import { PRIVACY } from "@/lib/legal";
 import { CONTACT, LEGAL_NAME } from "@/lib/site-content";
@@ -21,10 +22,11 @@ import LegalDocument, { LegalList, LegalSection } from "../legal/LegalDocument";
  * a commitment the company would then be held to.
  */
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: PRIVACY.title,
+  path: "/privacy",
   description: PRIVACY.description,
-};
+});
 
 export default function PrivacyPage() {
   return (

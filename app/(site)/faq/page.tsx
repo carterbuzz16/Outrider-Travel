@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/metadata";
 import Link from "next/link";
-import { Reveal, SectionDivider, WaitlistCTA } from "@/components/ui";
+import { FaqSchema, Reveal, SectionDivider, WaitlistCTA } from "@/components/ui";
 import { CONTACT } from "@/lib/site-content";
 import { BOOKINGS_OPEN } from "@/lib/booking-window";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "FAQ",
+  path: "/faq",
   description:
     "How an Outrider trip works: what the price covers, how deposits and installments run, what happens if you cancel, group size, flights, and who is on the ground.",
-};
+  shareTitle: "Questions about Outrider trips · Outrider",
+});
 
 /* Answers deliberately do not restate deposit percentages, installment counts
  * or refund windows. Those live in the Terms and are computed from the booking
@@ -215,6 +218,9 @@ const GROUPS: Group[] = [
 export default function FaqPage() {
   return (
     <main className="scheme-light scheme-paint">
+      {/* Built from GROUPS, so the rich result can never say something the
+          page does not. */}
+      <FaqSchema items={GROUPS.flatMap((group) => group.items)} />
       <header className="shell pb-14 pt-32 md:pb-20 md:pt-40">
         <h1 className="t-display mt-6 max-w-[14ch] text-[--text]">Questions</h1>
         <p className="t-lede mt-8 max-w-measure">
@@ -270,6 +276,7 @@ export default function FaqPage() {
       ))}
 
       <WaitlistCTA
+        placement="faq"
         heading="Still deciding?"
         body="Join the list and you will hear when departures open, before they go public."
       />

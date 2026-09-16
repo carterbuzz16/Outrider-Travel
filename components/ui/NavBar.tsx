@@ -171,7 +171,7 @@ export default function NavBar({
               </Button>
             )
           ) : (
-            <WaitlistButton variant="secondary" size="sm" className="hidden md:inline-flex" />
+            <WaitlistButton variant="secondary" size="sm" className="hidden md:inline-flex" placement="nav" />
           )}
 
           <button
@@ -220,7 +220,7 @@ export default function NavBar({
               </Button>
             )
           ) : (
-            <WaitlistButton variant="primary" size="md" className="w-full" />
+            <WaitlistButton variant="primary" size="md" className="w-full" placement="nav-menu" />
           )}
         </div>
       </div>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/metadata";
 import Image from "next/image";
 import {
   Gallery,
@@ -9,11 +10,12 @@ import {
 } from "@/components/ui";
 import { UPCOMING_CATEGORIES } from "@/lib/site-content";
 
-export const metadata: Metadata = {
-  title: "Destinations",
+export const metadata: Metadata = pageMetadata({
+  title: "Destinations: Telluride, Colorado",
+  path: "/destinations",
   description:
     "Where Outrider goes and why. Telluride, Colorado: a box canyon town at 8,725 feet, 2,000 acres of terrain above it, and a free gondola between the two.",
-};
+});
 
 /* Verified against Telluride Ski Resort's own mountain page and Colorado Ski
  * Country, September 2026. Numbers on a marketing page age, so they live here
@@ -207,6 +209,7 @@ export default function DestinationsPage() {
 
       <WaitlistCTA
         id="waitlist"
+        placement="destinations"
         heading="Know where we go next"
         body="New destinations open to this list before they reach the site. One email when a departure is live, and nothing in between."
       />

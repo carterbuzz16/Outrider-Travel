@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/metadata";
 import Image from "next/image";
 import { Button, ComparisonTable, Plate, Reveal, SectionDivider } from "@/components/ui";
 import { FOUNDER, ORIGIN, PARTNER } from "@/lib/site-content";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "About",
+  path: "/about",
   description:
     "Why Outrider exists, and who runs it. An outrider is the one who rides ahead, scouts the route and clears the way before the party arrives.",
-};
+  shareTitle: "Why Outrider · Small-group travel for college",
+});
 
 export default function AboutPage() {
   const hasFounderStory = FOUNDER.bio.length > 0;

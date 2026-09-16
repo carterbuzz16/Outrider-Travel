@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/metadata";
 import Link from "next/link";
 import { TERMS } from "@/lib/legal";
 import { CONTACT, LEGAL_NAME } from "@/lib/site-content";
@@ -23,10 +24,11 @@ import LegalDocument, { LegalList, LegalSection } from "../legal/LegalDocument";
  * stated as fact in the rendered page.
  */
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: TERMS.title,
+  path: "/terms",
   description: TERMS.description,
-};
+});
 
 const depositPercent = Math.round(DEPOSIT_PERCENTAGE * 100);
 const [firstOffset, secondOffset] = INSTALLMENT_OFFSETS_DAYS;

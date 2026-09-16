@@ -1,9 +1,10 @@
 "use client";
 
-import { useId, useState } from "react";
-import { joinWaitlist } from "@/app/waitlist-actions";
+import { useId } from "react";
 import Button from "./Button";
+import WaitlistShare from "./WaitlistShare";
 import { cn } from "./cn";
+import { useWaitlistSignup } from "./useWaitlistSignup";
 
 /**
  * Email capture for the period before departures go on sale.
@@ -16,7 +17,8 @@ import { cn } from "./cn";
  *
  * The submit path is the same server action the coming-soon page has always
  * used: it writes to waitlist_signups, syncs the address to the Resend
- * audience, and notifies the team. Nothing new to configure.
+ * audience, and notifies the team. `placement` names the block in that
+ * notification, so pass something that says which page it sits on.
  */
 export default function WaitlistCTA({
   heading = "Be first to know",
@@ -25,6 +27,7 @@ export default function WaitlistCTA({
   tone = "dark",
   /** Anchor target, so /trips#waitlist and /#waitlist land on the form. */
   id,
+  placement = "inline",
 }: {
   heading?: string;
   body?: string;
@@ -32,35 +35,11 @@ export default function WaitlistCTA({
   /** `dark` for a full-width band, `light` for a bordered block on paper. */
   tone?: "dark" | "light";
   id?: string;
+  /** Which form this is, as reported with the signup. */
+  placement?: string;
 }) {
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "busy" | "done" | "error">("idle");
-  const [message, setMessage] = useState("");
+  const { email, setEmail, status, message, submit } = useWaitlistSignup(placement);
   const inputId = useId();
-
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const value = email.trim();
-    if (!value || status === "busy") return;
-
-    setStatus("busy");
-    setMessage("");
-    try {
-      const result = await joinWaitlist(value);
-      if (result.ok) {
-        setEmail("");
-        setStatus("done");
-      } else {
-        setStatus("error");
-        setMessage(result.message);
-      }
-    } catch {
-      // The action returns its failures rather than throwing, so reaching here
-      // means the request itself never completed.
-      setStatus("error");
-      setMessage("Something went wrong. Try again.");
-    }
-  }
 
   const dark = tone === "dark";
 
@@ -84,14 +63,9 @@ export default function WaitlistCTA({
           </div>
 
           {status === "done" ? (
-            <p
-              role="status"
-              className="font-body text-body leading-[1.7] text-[--text]"
-            >
-              You&rsquo;re on the list. We will write when the dates are live.
-            </p>
+            <WaitlistShare compact className="motion-safe:animate-rise" />
           ) : (
-            <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
+            <form onSubmit={submit} noValidate className="flex flex-col gap-3">
               <label htmlFor={inputId} className="t-micro text-[--text-secondary]">
                 Email address
               </label>
@@ -107,10 +81,7 @@ export default function WaitlistCTA({
                   type="email"
                   name="email"
                   value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (status === "error") setStatus("idle");
-                  }}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@college.edu"
                   autoComplete="email"
                   required

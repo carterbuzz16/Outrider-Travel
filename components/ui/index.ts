@@ -54,7 +54,11 @@ export { default as Reveal } from "./Reveal";
 export { default as CookieConsent } from "./CookieConsent";
 export { cn } from "./cn";
 
-export { OrganizationSchema, TripSchema } from "./StructuredData";
+export { FaqSchema, OrganizationSchema, TripSchema, nodeText } from "./StructuredData";
 export { default as WaitlistCTA } from "./WaitlistCTA";
 export { cellGridClass, cellSpanClass } from "./cell-grid";
 export { default as WaitlistButton, WaitlistModal } from "./WaitlistModal";
+export { default as WaitlistShare } from "./WaitlistShare";
+export { default as AttributionCapture } from "./AttributionCapture";
+export { useWaitlistSignup } from "./useWaitlistSignup";
+export { default as MobileJoinBar } from "./MobileJoinBar";

@@ -1,3 +1,4 @@
+import { isValidElement, type ReactNode } from "react";
 import { CONTACT } from "@/lib/site-content";
 
 /**
@@ -23,10 +24,64 @@ export function OrganizationSchema({ siteUrl }: { siteUrl: string }) {
     logo: `${siteUrl}/icon.svg`,
   };
 
+  // The WebSite node is what lets a search result name the site "Outrider"
+  // rather than guessing a name from the domain.
+  const site = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Outrider",
+    url: siteUrl,
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        // The content is our own, built from typed data above, not user input.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(site) }}
+      />
+    </>
+  );
+}
+
+/**
+ * The plain text of a JSX answer.
+ *
+ * FAQ answers are written as JSX so they can link to the clause they cite, but
+ * structured data wants a string. Walking the tree here, rather than keeping a
+ * second plain-text copy of every answer, is what stops the two drifting apart.
+ */
+export function nodeText(node: ReactNode): string {
+  if (node === null || node === undefined || typeof node === "boolean") return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(nodeText).join("");
+  if (isValidElement<{ children?: ReactNode }>(node)) return nodeText(node.props.children);
+  return "";
+}
+
+/** FAQPage markup, from the same questions the page renders. */
+export function FaqSchema({ items }: { items: { q: string; a: ReactNode }[] }) {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((item) => ({
+      "@type": "Question",
+      name: item.q,
+      acceptedAnswer: {
+        "@type": "Answer",
+        // JSX source line breaks arrive as runs of whitespace.
+        text: nodeText(item.a).replace(/\s+/g, " ").trim(),
+      },
+    })),
+  };
+
   return (
     <script
       type="application/ld+json"
-      // The content is our own, built from typed data above, not user input.
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );

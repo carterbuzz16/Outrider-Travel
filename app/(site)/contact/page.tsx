@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/metadata";
 import { Reveal, SectionDivider } from "@/components/ui";
 import { CONTACT } from "@/lib/site-content";
 import ContactForm from "./ContactForm";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Contact",
+  path: "/contact",
   description:
     "Ask about a departure, a group booking, or anything else. We answer every message within a day.",
-};
+});
 
 export default function ContactPage() {
   return (

@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { joinWaitlist } from "@/app/waitlist-actions";
 import Button from "./Button";
 import Logo from "./Logo";
+import WaitlistShare from "./WaitlistShare";
 import { cn } from "./cn";
+import { useWaitlistSignup } from "./useWaitlistSignup";
 
 /**
  * The waitlist, as a dialog.
@@ -21,14 +22,14 @@ import { cn } from "./cn";
 export function WaitlistModal({
   open,
   onClose,
+  placement = "dialog",
 }: {
   open: boolean;
   onClose: () => void;
+  placement?: string;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "busy" | "done" | "error">("idle");
-  const [message, setMessage] = useState("");
+  const { email, setEmail, status, message, submit, reset } = useWaitlistSignup(placement);
   const inputId = useId();
   const titleId = useId();
 
@@ -79,37 +80,9 @@ export function WaitlistModal({
   // A fresh dialog should not still be showing the last answer.
   useEffect(() => {
     if (open) return;
-    const id = window.setTimeout(() => {
-      setStatus("idle");
-      setMessage("");
-      setEmail("");
-    }, 300);
+    const id = window.setTimeout(reset, 300);
     return () => window.clearTimeout(id);
-  }, [open]);
-
-  const submit = useCallback(
-    async (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      const value = email.trim();
-      if (!value || status === "busy") return;
-
-      setStatus("busy");
-      setMessage("");
-      try {
-        const result = await joinWaitlist(value);
-        if (result.ok) {
-          setStatus("done");
-        } else {
-          setStatus("error");
-          setMessage(result.message);
-        }
-      } catch {
-        setStatus("error");
-        setMessage("Something went wrong. Try again.");
-      }
-    },
-    [email, status],
-  );
+  }, [open, reset]);
 
   if (!open) return null;
 
@@ -154,20 +127,13 @@ export function WaitlistModal({
         <Logo variant="mark" className="w-8 text-[--text]" />
 
         {status === "done" ? (
-          <>
-            <h2 id={titleId} className="t-subheading mt-6 text-[--text]">
-              You&rsquo;re on the list
-            </h2>
-            <p className="mt-4 font-body text-body-s leading-[1.7] text-[--text-secondary]">
-              We will write when departures open, and not before. Check your
-              inbox for a note confirming it.
-            </p>
-            <div className="mt-8">
-              <Button type="button" variant="secondary" size="md" onClick={onClose} block>
+          <div className="mt-6">
+            <WaitlistShare compact headingId={titleId}>
+              <Button type="button" variant="ghost" size="md" onClick={onClose}>
                 Close
               </Button>
-            </div>
-          </>
+            </WaitlistShare>
+          </div>
         ) : (
           <>
             <h2 id={titleId} className="t-subheading mt-6 text-[--text]">
@@ -187,10 +153,7 @@ export function WaitlistModal({
                 name="email"
                 type="email"
                 value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (status === "error") setStatus("idle");
-                }}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@college.edu"
                 autoComplete="email"
                 required
@@ -228,11 +191,13 @@ export default function WaitlistButton({
   variant = "primary",
   size = "sm",
   className,
+  placement = "dialog",
 }: {
   label?: string;
   variant?: "primary" | "secondary" | "ghost";
   size?: "sm" | "md" | "lg";
   className?: string;
+  placement?: string;
 }) {
   const [open, setOpen] = useState(false);
   // Button does not forward a ref, and capturing whatever had focus is more
@@ -259,7 +224,7 @@ export default function WaitlistButton({
       >
         {label}
       </Button>
-      <WaitlistModal open={open} onClose={close} />
+      <WaitlistModal open={open} onClose={close} placement={placement} />
     </>
   );
 }

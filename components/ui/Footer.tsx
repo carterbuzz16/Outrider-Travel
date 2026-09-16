@@ -2,6 +2,8 @@ import Link from "next/link";
 import Logo from "./Logo";
 import Button from "./Button";
 import SectionDivider from "./SectionDivider";
+import FooterSignup from "./FooterSignup";
+import { BOOKINGS_OPEN } from "@/lib/booking-window";
 import { ACCOUNT_LINK } from "./nav-links";
 import { CONTACT, LEGAL_NAME } from "@/lib/site-content";
 import { LEGAL_DOCUMENTS } from "@/lib/legal";
@@ -87,11 +89,17 @@ export default function Footer({
             </p>
 
             <div className="pt-2">
-              {signup ?? (
-                <Button href="/contact" variant="secondary" size="sm">
-                  Get in touch
-                </Button>
-              )}
+              {/* Until bookings open, the thing worth asking for at the end of
+                  a page is an address. Contact is still one link away in the
+                  column beside this. */}
+              {signup ??
+                (BOOKINGS_OPEN ? (
+                  <Button href="/contact" variant="secondary" size="sm">
+                    Get in touch
+                  </Button>
+                ) : (
+                  <FooterSignup />
+                ))}
             </div>
           </div>
 

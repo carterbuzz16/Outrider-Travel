@@ -11,6 +11,35 @@ const UNIQUE_VIOLATION = "23505";
 
 export type JoinResult = { ok: true } | { ok: false; message: string };
 
+/**
+ * Where a signup came from: which form on the site, and the campaign that
+ * brought the visitor in. Nothing here is personal. It exists so the team can
+ * tell whether the Instagram bio or a chapter group chat is what fills the
+ * list, which is the one question the list itself cannot answer.
+ */
+export type SignupContext = {
+  placement?: string;
+  source?: string;
+  medium?: string;
+  campaign?: string;
+  referrer?: string;
+};
+
+// Every field arrives from the browser, so each is trimmed to a short token
+// before it gets anywhere near an email body. Anything that does not look like
+// a campaign tag is dropped rather than repaired.
+function cleanContext(raw: unknown): SignupContext {
+  if (!raw || typeof raw !== "object") return {};
+  const out: SignupContext = {};
+  for (const key of ["placement", "source", "medium", "campaign", "referrer"] as const) {
+    const value = (raw as Record<string, unknown>)[key];
+    if (typeof value !== "string") continue;
+    const token = value.trim().slice(0, 80);
+    if (/^[\w.\-+ /:]+$/.test(token)) out[key] = token;
+  }
+  return out;
+}
+
 // Adding a contact needs audience access. RESEND_API_KEY may be scoped to
 // sending only, in which case give this one a key that can write contacts;
 // otherwise it falls back and the single key does both.
@@ -25,8 +54,12 @@ function contactsClient(): Resend {
 }
 
 
-export async function joinWaitlist(rawEmail: string): Promise<JoinResult> {
+export async function joinWaitlist(
+  rawEmail: string,
+  rawContext?: SignupContext,
+): Promise<JoinResult> {
   const email = String(rawEmail ?? "").trim().toLowerCase();
+  const context = cleanContext(rawContext);
 
   if (!EMAIL_PATTERN.test(email)) {
     return { ok: false, message: "Enter a valid email." };
@@ -103,7 +136,7 @@ export async function joinWaitlist(rawEmail: string): Promise<JoinResult> {
     }
 
     try {
-      await sendWaitlistNotification(email);
+      await sendWaitlistNotification(email, context);
     } catch (err) {
       console.error("Waitlist notification failed (signup still recorded):", err);
     }
