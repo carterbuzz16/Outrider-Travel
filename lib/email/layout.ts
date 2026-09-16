@@ -6,10 +6,10 @@ import { CONTACT, LEGAL_NAME } from "@/lib/site-content";
 //
 // The palette is the real one from app/globals.css. Two constraints carried
 // over from there, because they apply just as much in an inbox:
-//   - brand teal (#4C8591) is a mid tone and is not legible at text size, so
-//     anything read uses --color-teal-deep (#37646E), which clears 5.4:1
-//     against cream;
-//   - cream on charcoal is 14.4:1, which is what the header relies on.
+//   - Ski Club blue (#89B2C4) is a mid tone and is not legible on paper at text
+//     size, so the button is espresso (#3E342F), 10.5:1 against paper, as it
+//     is on the site;
+//   - warm gray on espresso is 8.0:1, which is what the header relies on.
 /* CAN-SPAM requires a physical postal address in commercial email. Rendered
  * from the same constant the privacy policy uses, so the two cannot disagree,
  * and it stays out of the site layout entirely. */
@@ -19,14 +19,14 @@ const POSTAL_LINE = CONTACT.postalAddress
 
 const BRAND = {
   name: "OUTRIDER",
-  charcoal: "#1A1A1A",
-  teal: "#37646E",
-  cream: "#F1E9DC",
-  paper: "#FAF6EF",
-  text: "#1A1A1A",
-  muted: "#6B6B6B",
-  border: "#E6DCCC",
-  bg: "#F1E9DC",
+  charcoal: "#3E342F", // espresso: the dark ground
+  teal: "#3E342F", // the filled button, espresso on paper
+  cream: "#F2EFEA", // paper: type on the dark header
+  paper: "#FAF8F4",
+  text: "#3E342F",
+  muted: "#6B635C",
+  border: "#D7D2CB",
+  bg: "#F2EFEA",
 };
 
 export function formatCurrency(amount: number): string {

@@ -4,14 +4,14 @@ import { cn } from "./cn";
 /**
  * Button — primary, secondary, ghost.
  *
- * All three are square-cornered and set in the tracked mono label voice. They
+ * All three are square-cornered and set in tracked Medium capitals. They
  * read as stamped instructions rather than app chrome: no pill shapes, no drop
  * shadows, no gradient. Hover only ever changes color and rule weight; the
  * one moving part is the ghost variant's underline, which draws in from the
  * left over 260ms.
  *
- * Colors come from the semantic layer, so a button inside `.scheme-forest`
- * flips to sky-on-forest with nothing passed in.
+ * Colors come from the semantic layer, so a button inside `.scheme-espresso`
+ * flips to club-blue-on-espresso with nothing passed in.
  */
 
 export type ButtonVariant = "primary" | "secondary" | "ghost";
@@ -19,14 +19,14 @@ export type ButtonSize = "sm" | "md" | "lg";
 
 const BASE =
   "group relative inline-flex items-center justify-center gap-2.5 " +
-  "font-display uppercase tracking-label leading-none whitespace-nowrap " +
+  "font-display font-medium uppercase tracking-label leading-none whitespace-nowrap " +
   "border transition-[background-color,border-color,color,opacity] duration-fast ease-out " +
   "disabled:pointer-events-none disabled:opacity-45";
 
 const VARIANTS: Record<ButtonVariant, string> = {
   // Filled: the one place a solid block of color is allowed to sit in a layout.
-  // The ground is --accent-solid rather than --accent because brand teal can't
-  // carry a 12px label — see the contrast note in globals.css. Hover and its
+  // The ground is --accent-solid rather than --accent because club blue can't
+  // carry a 12px label on paper — see the contrast note in globals.css. Hover and its
   // reverse are both scheme-supplied, so no variant overrides are needed here.
   primary:
     "bg-[--accent-solid] text-[--accent-contrast] border-[--accent-solid] " +

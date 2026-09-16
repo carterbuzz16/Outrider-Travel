@@ -49,7 +49,7 @@ export default function WaitlistCTA({
       // Clears the fixed header when linked to by anchor.
       className={cn(
         id && "scroll-mt-24 md:scroll-mt-32",
-        dark ? "scheme-charcoal scheme-paint" : "border border-[--rule] bg-[--surface-raised]",
+        dark ? "scheme-espresso scheme-paint" : "border border-[--rule] bg-[--surface-raised]",
         className,
       )}
     >
@@ -110,9 +110,9 @@ export default function WaitlistCTA({
                 aria-live="polite"
                 className={cn(
                   "t-micro min-h-[1.4em]",
-                  // Burnt orange is the flag color everywhere, but on charcoal
-                  // it measures 4.46:1, which misses AA for 11px text. Cream
-                  // carries the error there instead; on paper the flag color
+                  // Clay is the flag color everywhere, but on espresso the
+                  // light clay only just reaches 4.5:1 at 11px. Paper carries
+                  // the error there instead; on paper the flag color
                   // clears AA comfortably and stays the more legible signal.
                   status === "error"
                     ? dark

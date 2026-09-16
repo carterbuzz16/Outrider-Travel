@@ -11,7 +11,7 @@ import Badge, { StatusBadge, type TripStatus } from "./Badge";
  *
  * Structure, top to bottom: a stamped record number and status across a
  * hairline header, the photograph, then the destination eyebrow, the trip
- * name in display mono, a short serif line, and a ruled meta strip. The whole
+ * name as a subhead, a short line of text, and a ruled meta strip. The whole
  * card is one link; the hover moves nothing but the image, which drifts up 2%
  * over 620ms.
  *
@@ -68,8 +68,8 @@ export default function TripCard({
 
       <div
         className={cn(
-          // Matches Plate: full-chroma brand teal under a 30% cream mark measures
-          // about 1.4:1 and is effectively invisible. See Plate.tsx.
+          // Matches Plate: a quiet inset tone, never a full-chroma brand block.
+          // See Plate.tsx.
           "relative w-full overflow-hidden bg-[--surface-inset]",
           feature ? "aspect-[4/5]" : "aspect-[4/3]",
         )}
@@ -83,7 +83,7 @@ export default function TripCard({
             className="object-cover transition-transform duration-slow ease-out group-hover:scale-[1.02]"
           />
         ) : (
-          // No photograph yet: a teal plate with the mark, which is a decent
+          // No photograph yet: an inset plate with the mark, which is a decent
           // placeholder rather than a gray box with a broken-image glyph.
           <div className="grid h-full w-full place-items-center">
             <OutriderMark className="w-16 text-[--text-muted] opacity-40" />

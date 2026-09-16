@@ -84,7 +84,7 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
             <Badge tone="urgent">Due now</Badge>
           </div>
 
-          <p className="mt-6 font-display text-display-l tabular-nums tracking-display text-[--text]">
+          <p className="mt-6 font-display font-medium text-display-l tabular-nums tracking-display text-[--text]">
             {formatPrice(depositAmount)}
           </p>
 
@@ -109,14 +109,14 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
                   className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-[--rule-faint] py-4 last:border-0"
                 >
                   <span className="min-w-0">
-                    <span className="block font-display text-body-s tabular-nums tracking-title text-[--text]">
+                    <span className="block font-display font-medium text-body-s tabular-nums tracking-title text-[--text]">
                       {formatDay(row.date)}
                     </span>
                     <span className="t-micro mt-2 block text-[--text-secondary]">
                       {row.offsetDays} days before the trip
                     </span>
                   </span>
-                  <span className="font-display text-display-s tabular-nums tracking-title text-[--text]">
+                  <span className="font-display font-medium text-display-s tabular-nums tracking-title text-[--text]">
                     {formatPrice(row.amount)}
                   </span>
                 </li>
@@ -204,7 +204,7 @@ function Fact({ label, value, numeric }: { label: string; value: string; numeric
     <div className="min-w-0">
       <dt className="stamp-type text-[--text-muted]">{label}</dt>
       <dd
-        className={`mt-3 break-words font-display text-display-s tracking-title text-[--text] ${
+        className={`mt-3 break-words font-display font-medium text-display-s tracking-title text-[--text] ${
           numeric ? "tabular-nums" : ""
         }`}
       >

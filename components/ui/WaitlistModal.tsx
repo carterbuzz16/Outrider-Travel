@@ -95,11 +95,11 @@ export function WaitlistModal({
         aria-label="Close"
         tabIndex={-1}
         onClick={onClose}
-        /* Not --scrim: that token is scheme-scoped, so over the forest hero it
-           resolved to a green tint at 55% and the page stayed legible through
-           it. A dialog backdrop is global chrome, so it takes a fixed charcoal
+        /* Not --scrim: that token is scheme-scoped, so over the dark hero it
+           resolved to a tint at 55% and the page stayed legible through
+           it. A dialog backdrop is global chrome, so it takes a fixed deep espresso
            and enough weight to actually recede. */
-        className="absolute inset-0 bg-[rgb(26_26_26_/_0.78)] backdrop-blur-[3px] motion-safe:animate-fade"
+        className="absolute inset-0 bg-[rgb(42_35_32_/_0.8)] backdrop-blur-[3px] motion-safe:animate-fade"
       />
 
       <div
@@ -108,7 +108,7 @@ export function WaitlistModal({
         aria-modal="true"
         aria-labelledby={titleId}
         className={cn(
-          "scheme-charcoal scheme-paint relative w-full max-w-[26rem] border border-[--rule]",
+          "scheme-espresso scheme-paint relative w-full max-w-[26rem] border border-[--rule]",
           "p-8 md:p-10",
           "motion-safe:animate-rise",
         )}

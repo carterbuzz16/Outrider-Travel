@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/metadata";
 import Image from "next/image";
-import { Button, ComparisonTable, Plate, Reveal, SectionDivider } from "@/components/ui";
+import { Button, ComparisonTable, Plate, Reveal } from "@/components/ui";
 import { FOUNDER, ORIGIN, PARTNER } from "@/lib/site-content";
 
 export const metadata: Metadata = pageMetadata({
@@ -76,8 +76,6 @@ export default function AboutPage() {
         </Reveal>
       </section>
 
-      <SectionDivider variant="rule" className="shell" />
-
       {/* ---- leadership ------------------------------------------------------
           Given its own section rather than a footnote under the origin story:
           this is a founder-led company and the person is the credential. */}
@@ -87,9 +85,7 @@ export default function AboutPage() {
             Leadership
           </h2>
           <Reveal>
-            <div>
-              <span className="stamp-type text-[--text-muted]">Leadership</span>
-            </div>
+            <p className="t-rule-label text-[--text]">Leadership</p>
           </Reveal>
 
           <div className="mt-12 grid gap-12 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:items-start md:gap-20">
@@ -112,7 +108,7 @@ export default function AboutPage() {
                 {/* His own sentence, pulled up so the section leads with the
                     reason rather than with biography. */}
                 <blockquote className="m-0 border-l-2 border-[--accent] pl-6">
-                  <p className="font-display text-display-s leading-[1.3] tracking-title text-[--text]">
+                  <p className="font-display font-medium text-display-s leading-[1.3] tracking-title text-[--text]">
                     &ldquo;{FOUNDER.pullQuote}&rdquo;
                   </p>
                 </blockquote>
@@ -161,17 +157,13 @@ export default function AboutPage() {
         </section>
       )}
 
-      <SectionDivider variant="rule" className="shell" />
-
       {/* ---- partner --------------------------------------------------------- */}
       <section id="partner" className="shell py-20 md:py-28" aria-labelledby="partner-heading">
         <h2 id="partner-heading" className="sr-only">
           Vetted partner
         </h2>
         <Reveal>
-          <div>
-            <span className="stamp-type text-[--text-muted]">{PARTNER.eyebrow}</span>
-          </div>
+          <p className="t-rule-label text-[--text]">{PARTNER.eyebrow}</p>
         </Reveal>
 
         <div className="mt-12 grid gap-12 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:gap-20">
@@ -230,7 +222,7 @@ export default function AboutPage() {
       </section>
 
       {/* ---- close ----------------------------------------------------------- */}
-      <section className="scheme-charcoal scheme-paint">
+      <section className="scheme-espresso scheme-paint">
         <div className="shell flex flex-col items-start gap-8 py-16 md:flex-row md:items-center md:justify-between md:py-24">
           <h2 className="t-heading max-w-[18ch] text-[--text]">
             Two departures. Both small. Both already moving.

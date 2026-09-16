@@ -10,7 +10,7 @@ import { Button, Logo, SectionDivider, Stamp } from "@/components/ui";
  */
 export default function NotFound() {
   return (
-    <main className="scheme-charcoal scheme-paint flex min-h-[100svh] flex-col">
+    <main className="scheme-espresso scheme-paint flex min-h-[100svh] flex-col">
       <div className="shell flex flex-1 flex-col justify-center py-20">
         <Link href="/" className="no-underline" aria-label="Outrider, home">
           <Logo variant="inline" className="text-[--text]" />

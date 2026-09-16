@@ -3,7 +3,7 @@ import type { Config } from "tailwindcss";
 /**
  * Tailwind is a thin surface over the tokens in app/globals.css — every value
  * here points at a CSS variable rather than restating a hex or a rem. That
- * means `bg-surface text-secondary border-rule` inside a `.scheme-forest`
+ * means `bg-surface text-secondary border-rule` inside a `.scheme-espresso`
  * section recolours itself with no dark: variants and no props.
  */
 const config: Config = {
@@ -16,21 +16,24 @@ const config: Config = {
     extend: {
       colors: {
         // Brand — reach for these only when a color is the point (the logo,
-        // a deliberate teal panel). Everything else uses the semantic set.
-        teal: {
-          DEFAULT: "var(--color-teal)",
-          deep: "var(--color-teal-deep)",
-          ink: "var(--color-teal-ink)",
-          tint: "var(--color-teal-tint)",
+        // a deliberate club panel). Everything else uses the semantic set.
+        "warm-gray": "var(--color-warm-gray)",
+        espresso: {
+          DEFAULT: "var(--color-espresso)",
+          deep: "var(--color-espresso-deep)",
         },
-        sage: "var(--color-sage)",
-        ember: "var(--color-burnt-orange)",
-        forest: "var(--color-forest)",
-        sky: "var(--color-sky)",
-        cream: "var(--color-cream)",
-        charcoal: "var(--color-charcoal)",
+        club: {
+          DEFAULT: "var(--color-club)",
+          ink: "var(--color-club-ink)",
+          light: "var(--color-club-light)",
+        },
+        clay: {
+          DEFAULT: "var(--color-clay)",
+          ink: "var(--color-clay-ink)",
+        },
         paper: "var(--color-paper)",
-        bone: "var(--color-bone)",
+        chalk: "var(--color-chalk)",
+        taupe: "var(--color-taupe)",
 
         // Semantic — scheme-aware.
         surface: {
@@ -66,7 +69,16 @@ const config: Config = {
         "rule-faint": "var(--rule-faint)",
       },
 
+      fontWeight: {
+        light: "var(--weight-light)",
+        book: "var(--weight-book)",
+        medium: "var(--weight-medium)",
+        bold: "var(--weight-bold)",
+        extrabold: "var(--weight-extrabold)",
+      },
+
       fontFamily: {
+        brand: "var(--font-brand)",
         display: "var(--font-display)",
         body: "var(--font-body)",
         mono: "var(--font-mono)",

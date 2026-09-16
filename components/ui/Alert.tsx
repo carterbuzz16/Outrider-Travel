@@ -14,7 +14,7 @@ export type AlertTone = "info" | "success" | "warning" | "error";
 // every scheme.
 const TONES: Record<AlertTone, { edge: string; mark: string; word: string }> = {
   info: { edge: "border-l-[--accent]", mark: "bg-[--accent]", word: "Note" },
-  success: { edge: "border-l-[--color-teal]", mark: "bg-[--color-teal]", word: "Confirmed" },
+  success: { edge: "border-l-[--accent]", mark: "bg-[--accent]", word: "Confirmed" },
   warning: { edge: "border-l-[--flag]", mark: "bg-[--flag]", word: "Heads up" },
   error: { edge: "border-l-[--flag]", mark: "bg-[--flag]", word: "Problem" },
 };

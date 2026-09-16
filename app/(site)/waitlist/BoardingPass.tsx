@@ -144,7 +144,7 @@ export default function BoardingPass({
             <div className="mt-8 grid grid-cols-[1fr_auto_1fr] items-end gap-4">
               <div>
                 <p className="t-micro text-[--text-muted]">From</p>
-                <p className="mt-2 font-display text-display-s uppercase leading-none tracking-title">
+                <p className="mt-2 font-display font-medium text-display-s uppercase leading-none tracking-title">
                   Home
                 </p>
               </div>
@@ -153,7 +153,7 @@ export default function BoardingPass({
               </svg>
               <div className="text-right">
                 <p className="t-micro text-[--text-muted]">To</p>
-                <p className="mt-2 font-display text-display-s uppercase leading-none tracking-title">
+                <p className="mt-2 font-display font-medium text-display-s uppercase leading-none tracking-title">
                   {destination.split(",")[0]}
                 </p>
               </div>
@@ -188,9 +188,9 @@ export default function BoardingPass({
             >
               {units.map((unit, i) => (
                 <div key={unit.label} className="flex items-end gap-3 sm:gap-5">
-                  {i > 0 && <span className="pb-6 font-display text-display-s text-[--text-muted]">:</span>}
+                  {i > 0 && <span className="pb-6 font-display font-medium text-display-s text-[--text-muted]">:</span>}
                   <div>
-                    <p className="font-display text-display-m leading-none tabular-nums tracking-title">
+                    <p className="font-display font-medium text-display-m leading-none tabular-nums tracking-title">
                       {unit.value}
                     </p>
                     <p className="t-micro mt-2 text-[--text-muted]">{unit.label}</p>

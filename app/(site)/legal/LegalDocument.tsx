@@ -14,7 +14,7 @@ import HashScroll from "./HashScroll";
  * photo plate, no display type, a policy page has exactly one job, which is to
  * be read and understood, and the ephemera that carries the marketing pages
  * would be actively in the way here. What is left is the design system's
- * typographic layer: mono for headings and labels, the body serif at a
+ * typographic layer: tracked capitals for headings and labels, body copy at a
  * generous 1.85 line-height, held to `max-w-measure` so no line runs past 68
  * characters.
  *

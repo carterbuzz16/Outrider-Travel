@@ -129,7 +129,7 @@ function Step({ n, title, children }: { n: string; title: string; children: Reac
   return (
     <li className="border-l border-[--rule] pl-5">
       <p className="stamp-type tabular-nums text-[--accent]">{n}</p>
-      <p className="mt-3 font-display text-body tracking-title text-[--text]">{title}</p>
+      <p className="mt-3 font-display font-medium text-body tracking-title text-[--text]">{title}</p>
       <p className="mt-2 max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
         {children}
       </p>
@@ -142,7 +142,7 @@ function Fact({ label, value, numeric }: { label: string; value: string; numeric
     <div className="min-w-0">
       <dt className="stamp-type text-[--text-muted]">{label}</dt>
       <dd
-        className={`mt-3 break-words font-display text-display-s tracking-title text-[--text] ${
+        className={`mt-3 break-words font-display font-medium text-display-s tracking-title text-[--text] ${
           numeric ? "tabular-nums" : ""
         }`}
       >

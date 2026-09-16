@@ -11,7 +11,7 @@ import { LEGAL_DOCUMENTS } from "@/lib/legal";
 /**
  * Footer — the back of the ticket.
  *
- * Set on forest, opened with a perforation, and organized like the reverse of
+ * Set on espresso, opened with a perforation, and organized like the reverse of
  * a printed travel document: the lockup and the definition of the name on the
  * left, three short link columns, then a ruled-off line of fine print with the
  * stamped issue line at the far right.
@@ -70,13 +70,13 @@ export default function Footer({
   const year = new Date().getFullYear();
 
   return (
-    <footer className="scheme-charcoal scheme-paint">
+    <footer className="scheme-espresso scheme-paint">
       <div className="shell">
         <SectionDivider variant="perforation" />
 
         <div className="grid gap-12 py-16 md:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)] md:py-20">
           <div className="flex flex-col gap-6">
-            <Logo variant="lockup" className="w-40 items-start" />
+            <Logo variant="club-stacked" clubTone="club" className="w-40 items-start" />
             {/* The name, defined. It's the whole brief in one line, and it
                 earns its place here rather than in a tagline slot. */}
             <p className="max-w-measure-tight font-body text-body-s leading-[1.75] text-[--text-secondary]">

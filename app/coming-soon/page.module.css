@@ -1,5 +1,5 @@
 /*
- * Coming-soon landing page — a single full-viewport teal panel with the mark,
+ * Coming-soon landing page — a single full-viewport espresso panel with the mark,
  * wordmark, tagline and waitlist form stacked down the middle, and a slowly
  * rotating badge pinned bottom-right.
  *
@@ -22,7 +22,7 @@
   overflow: hidden;
   background: var(--outrider-teal);
   color: var(--outrider-cream);
-  font-family: var(--font-dm-mono), ui-monospace, monospace;
+  font-family: var(--font-brand);
   font-weight: 300;
 }
 
@@ -156,7 +156,7 @@
 
 .badgeText {
   fill: var(--outrider-cream);
-  font-family: var(--font-dm-mono), ui-monospace, monospace;
+  font-family: var(--font-brand);
   font-size: 14.5px;
   letter-spacing: 3px;
 }

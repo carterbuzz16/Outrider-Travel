@@ -121,19 +121,19 @@ function TripBlock({ trip, single }: { trip: PublicTrip; single: boolean }) {
         <dl className="flex flex-wrap gap-x-10 gap-y-5">
           <div>
             <dt className="stamp-type text-[--text-muted]">Dates</dt>
-            <dd className="mt-3 font-display text-display-s tracking-title text-[--text]">
+            <dd className="mt-3 font-display font-medium text-display-s tracking-title text-[--text]">
               {formatDateRange(trip.startDate, trip.endDate)}
             </dd>
           </div>
           <div>
             <dt className="stamp-type text-[--text-muted]">Length</dt>
-            <dd className="mt-3 font-display text-display-s tracking-title text-[--text]">
+            <dd className="mt-3 font-display font-medium text-display-s tracking-title text-[--text]">
               {nights} {nights === 1 ? "night" : "nights"}
             </dd>
           </div>
           <div>
             <dt className="stamp-type text-[--text-muted]">Where</dt>
-            <dd className="mt-3 font-display text-display-s tracking-title text-[--text]">
+            <dd className="mt-3 font-display font-medium text-display-s tracking-title text-[--text]">
               {trip.destination}
             </dd>
           </div>
@@ -172,7 +172,7 @@ function TierCard({ trip, tier }: { trip: PublicTrip; tier: PublicTier }) {
         ) : null}
       </div>
 
-      <p className="mt-4 font-display text-display-m tracking-title text-[--text]">
+      <p className="mt-4 font-display font-medium text-display-m tracking-title text-[--text]">
         {formatPrice(tier.price)}
         <span className="t-micro ml-2 text-[--text-secondary]">per person</span>
       </p>

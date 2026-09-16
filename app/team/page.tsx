@@ -11,18 +11,17 @@ import { FOUNDER } from "@/lib/site-content";
  * custom properties. Swap a value here and the whole page follows; nothing
  * below hardcodes a font or a colour.
  *
- * --font-dm-mono and --font-source-serif are put on <html> by next/font in
- * app/layout.tsx, so the display and body faces stay self-hosted rather than
- * being fetched again here.
+ * --font-brand resolves to the brand family that next/font puts on <html> in
+ * app/layout.tsx, so it stays self-hosted rather than being fetched again.
  * ========================================================================= */
 const BRAND = `
 .otr {
-  --brand-display: var(--font-dm-mono), ui-monospace, "SFMono-Regular", monospace;
-  --brand-body: var(--font-source-serif), "Iowan Old Style", Georgia, serif;
-  --brand-bg: #FAF6EF;
-  --brand-ink: #1A1A1A;
-  --brand-accent: #37646E;
-  --brand-rule: rgba(26, 26, 26, 0.15);
+  --brand-display: var(--font-brand);
+  --brand-body: var(--font-brand);
+  --brand-bg: #F2EFEA;
+  --brand-ink: #3E342F;
+  --brand-accent: #56643F;
+  --brand-rule: rgba(62, 52, 47, 0.18);
 
   /* Asymmetric left edge. Everything on the page hangs off this one value:
      24px on a phone, 6% on a tablet, 16% on a desktop. The right side is

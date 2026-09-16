@@ -104,7 +104,7 @@ export default function WaitlistShare({
         <p
           id={headingId}
           className={cn(
-            "mt-5 font-display tracking-title text-[--text]",
+            "mt-5 font-display font-medium tracking-title text-[--text]",
             compact ? "text-display-s" : "text-display-m leading-[1.1]",
           )}
         >

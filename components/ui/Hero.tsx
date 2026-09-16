@@ -9,8 +9,8 @@ import { cn } from "./cn";
  *
  * Typographic by default. With no photograph worth the full viewport, a hero
  * built on type and rules is stronger than a dark rectangle pretending to be a
- * picture: it commits to the mono display face, which is the most distinctive
- * thing the brand owns.
+ * picture: it commits to the Extrabold capitals the brand book sets its headlines
+ * in, which is the most distinctive thing the brand owns.
  *
  * Pass `image` when there is a photograph good enough to carry it. The type
  * then moves into a solid panel rather than sitting on a scrim, so contrast is
@@ -47,7 +47,7 @@ export default function Hero({
     // <section>, not <header>: the nav already exposes a banner landmark.
     <section
       className={cn(
-        "scheme-charcoal scheme-paint relative isolate flex min-h-[100svh] flex-col overflow-hidden",
+        "scheme-espresso scheme-paint relative isolate flex min-h-[100svh] flex-col overflow-hidden",
         className,
       )}
       aria-labelledby="hero-headline"
@@ -65,22 +65,22 @@ export default function Hero({
             One even wash over the whole frame, because the type is centred and
             can land anywhere in it. Tuned to the image actually in use rather
             than guessed: sampling the alpenglow photograph behind the headline
-            and solving for cream at 4.5:1 gives 0.42, so 0.52 is used, which
+            and solving for paper at 4.5:1 gives 0.42, so 0.52 is used, which
             keeps a comfortable margin at other viewport shapes without the
             picture going flat.
 
             0.58, not 0.52: the headline only needs 0.20 and the CTAs 0.36, but
             the eyebrow sits in a brighter band of the frame and needs 0.55 at
-            full cream. The small type is what sets this number.
+            full paper. The small type is what sets this number.
           */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 bg-[rgb(26_26_26_/_0.58)]"
+            className="pointer-events-none absolute inset-0 bg-[rgb(42_35_32_/_0.58)]"
           />
           {/* A little extra at the very top, where the nav crosses bright sky. */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[rgb(26_26_26_/_0.55)] to-transparent"
+            className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[rgb(42_35_32_/_0.55)] to-transparent"
           />
         </>
       )}
@@ -97,7 +97,7 @@ export default function Hero({
 
           <h1
             id="hero-headline"
-            className="max-w-[16ch] font-display text-display-xl uppercase leading-[0.95] tracking-display text-[--text]"
+            className="max-w-[16ch] font-display text-display-xl font-extrabold uppercase leading-[0.92] tracking-display text-[--text]"
           >
             {headline}
           </h1>
@@ -127,7 +127,7 @@ export default function Hero({
           <div className="py-10 md:py-14">
             <h1
               id="hero-headline"
-              className="font-display text-display-xl uppercase leading-[0.95] tracking-display text-[--text]"
+              className="font-display text-display-xl font-extrabold uppercase leading-[0.92] tracking-display text-[--text]"
             >
               {headline}
             </h1>

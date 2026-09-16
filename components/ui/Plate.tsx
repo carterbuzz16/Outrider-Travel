@@ -7,7 +7,7 @@ import { OutriderMark } from "./Logo";
  *
  * Outrider has one photograph so far, so most plates are empty. The empty state
  * is deliberately quiet: an inset paper tone with a muted mark, not a saturated
- * brand-teal block. A full-chroma rectangle is a louder signal than any real
+ * brand-color block. A full-chroma rectangle is a louder signal than any real
  * photograph would be, which made the placeholder the loudest thing on a page
  * and read as "unfinished" rather than "brand".
  */

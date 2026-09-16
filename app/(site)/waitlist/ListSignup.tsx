@@ -72,8 +72,8 @@ export default function ListSignup({
         aria-live="polite"
         className={cn(
           "t-micro mt-4 min-h-[1.4em]",
-          // Burnt orange misses AA at this size on charcoal, so the error is
-          // carried in full-strength cream there, as in WaitlistCTA.
+          // Clay is marginal at this size on espresso, so the error is
+          // carried in full-strength paper there, as in WaitlistCTA.
           status === "error" ? "text-[--text]" : "text-[--text-muted]",
         )}
       >

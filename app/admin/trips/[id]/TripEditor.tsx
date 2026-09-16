@@ -233,7 +233,7 @@ export default function TripEditor({ trip, error }: { trip: EditorTrip; error?: 
                     {tiers.map((tier) => (
                       <tr key={tier.id}>
                         <Td className="max-w-[18rem]">
-                          <span className="block font-display text-body-s tracking-title text-[--text]">
+                          <span className="block font-display font-medium text-body-s tracking-title text-[--text]">
                             {tier.name}
                           </span>
                           {tier.description && (
@@ -493,8 +493,8 @@ export default function TripEditor({ trip, error }: { trip: EditorTrip; error?: 
                 variant="secondary"
                 size="sm"
                 block
-                // Hover fills with --flag-ink, not brand orange: cream on the brand
-                // value is 3.2:1 and this label is 11px. On ink it is 4.8:1.
+                // Hover fills with --flag-ink, not the lighter clay: paper on clay
+                // is under AA for an 11px label. On ink it is 5.1:1.
                 className="border-[--flag] text-[--flag-ink] hover:border-[--flag-ink] hover:bg-[--flag-ink] hover:text-[--text-on-accent]"
               >
                 Delete this trip

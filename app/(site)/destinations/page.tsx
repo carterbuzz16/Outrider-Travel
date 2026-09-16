@@ -90,7 +90,7 @@ export default function DestinationsPage() {
             {FACTS.map((fact, i) => (
               <Reveal key={fact.label} delay={i * 70}>
                 <div className="flex h-full flex-col gap-3 bg-[--surface-raised] p-6 md:p-8">
-                  <p className="font-display text-display-s leading-none text-[--text]">
+                  <p className="font-display font-medium text-display-s leading-none text-[--text]">
                     {fact.value}
                   </p>
                   <p className="t-micro text-[--accent]">{fact.label}</p>

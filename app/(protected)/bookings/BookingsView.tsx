@@ -73,7 +73,7 @@ export default function BookingsView({
           <div className="min-w-0">
             <p className="stamp-type text-[--text-muted]">Traveler</p>
             {name && (
-              <p className="mt-3 font-display text-display-s tracking-title text-[--text]">{name}</p>
+              <p className="mt-3 font-display font-medium text-display-s tracking-title text-[--text]">{name}</p>
             )}
             <p className="mt-2 break-words font-body text-body-s text-[--text-secondary]">{email}</p>
           </div>
@@ -243,7 +243,7 @@ function Stat({ label, value, note }: { label: string; value: string; note?: str
   return (
     <div className="min-w-0">
       <dt className="stamp-type text-[--text-muted]">{label}</dt>
-      <dd className="mt-3 font-display text-display-s tracking-title text-[--text]">
+      <dd className="mt-3 font-display font-medium text-display-s tracking-title text-[--text]">
         <span className="break-words">{value}</span>
         {/* Its own line rather than trailing the figure: in the two-column
             mobile grid an inline note wraps mid-phrase and the column reads

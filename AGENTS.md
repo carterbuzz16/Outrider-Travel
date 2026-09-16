@@ -36,18 +36,32 @@ prisma/schema.prisma database schema (Supabase is the source of truth at runtime
 
 ## Design system
 
-Read `app/globals.css` before writing any UI. Tokens are layered
-brand → semantic → scheme, and components consume the semantic layer only.
+The brand is the final identity from Devote ("Outrider Final Identity & Stock
+Options", 14 Sep 2026). Read `app/globals.css` before writing any UI. Tokens
+are layered brand → semantic → scheme, and components consume the semantic
+layer only.
 
-- Put `scheme-light` / `scheme-forest` / `scheme-teal` / `scheme-teal-ink` /
-  `scheme-charcoal` plus `scheme-paint` on a section; everything inside
-  recolours itself. There are no `dark:` variants.
-- Use `shell` for page width, `t-display` / `t-title` / `t-heading` /
-  `t-label` / `t-body` / `t-lede` for type.
-- **Brand teal (#4C8591) and burnt orange are mid-tones.** Both clear 3:1
-  against paper, so they are safe as surfaces, rules and marks, and neither is
-  legible at text size. Small text uses `--accent` / `--flag-ink`; a filled
-  button sits on `--accent-solid`. `.scheme-teal` is display type only.
+- Put `scheme-light` / `scheme-stone` / `scheme-espresso` / `scheme-club`
+  plus `scheme-paint` on a section; everything inside recolours itself. There
+  are no `dark:` variants. Pages are built on paper and espresso; club blue is
+  a single panel, never alternated.
+- Use `shell` for page width, `t-display` (Extrabold capitals, the book's
+  HEADLINE) / `t-title` / `t-heading` (Medium, the book's Subhead) /
+  `t-label` / `t-body` / `t-lede` for type, and `t-rule-label` (capitals over
+  a hairline) to open a section.
+- **The whole site uses the Ski Club look for now.** Palette is warm gray,
+  espresso, black and Ski Club blue (#89B2C4). Do not use the book's sage
+  green: the team rejected it. Club blue is 2.2:1 on paper, so on light
+  grounds the readable accent is `--accent` (club ink); on espresso, club blue
+  is the accent and the filled button.
+- Typeface is Figtree, permanently. The book specifies Centra No.2, but the
+  team will not license it; do not add it. The OG images use static Figtree
+  instances in `app/fonts`.
+- Logo artwork lives in `components/ui/logo-art.ts`, copied verbatim from the
+  SVG masters. The nav and page headers use plain `<Logo variant="inline" />`
+  (the team does not want OUTRIDER SKI CLUB in the nav). The Ski Club lock-up
+  belongs elsewhere: `variant="club-stacked"` in the footer, `club` on the
+  share card. Never redraw or restyle the letterforms.
 - `/style` renders the whole library. It is gated in `middleware.ts`; set
   `ENABLE_STYLEGUIDE=1` to expose it on a deployed environment.
 

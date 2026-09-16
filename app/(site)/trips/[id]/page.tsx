@@ -111,9 +111,9 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
         }}
       />
       {/* ---- masthead ------------------------------------------------------ */}
-      <header className="scheme-charcoal scheme-paint relative overflow-hidden">
+      <header className="scheme-espresso scheme-paint relative overflow-hidden">
         {/* Backdrop only when there is an actual photograph. With no image the
-            masthead is a plain charcoal ground — laying a scrim over an empty
+            masthead is a plain espresso ground — laying a scrim over an empty
             placeholder plate just muddies it, and the old version veiled the
             whole frame at 0.5 minimum even when there was nothing to veil. */}
         {trip.images[0] && (
@@ -129,7 +129,7 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
             </div>
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgb(26_26_26_/_0.92)] via-[rgb(26_26_26_/_0.72)] via-45% to-[rgb(26_26_26_/_0.45)]"
+              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgb(42_35_32_/_0.92)] via-[rgb(42_35_32_/_0.72)] via-45% to-[rgb(42_35_32_/_0.45)]"
             />
           </>
         )}
@@ -146,19 +146,19 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
             <dl className="mt-10 grid grid-cols-2 gap-x-8 gap-y-8 border-t border-[--rule] pt-6 md:grid-cols-4">
               <div>
                 <dt className="stamp-type text-[--text-muted]">Dates</dt>
-                <dd className="mt-2 font-display text-display-s tracking-title text-[--text]">
+                <dd className="mt-2 font-display font-medium text-display-s tracking-title text-[--text]">
                   {formatDateRange(trip.startDate, trip.endDate)}
                 </dd>
               </div>
               <div>
                 <dt className="stamp-type text-[--text-muted]">Length</dt>
-                <dd className="mt-2 font-display text-display-s tracking-title text-[--text]">
+                <dd className="mt-2 font-display font-medium text-display-s tracking-title text-[--text]">
                   {nights} {nights === 1 ? "night" : "nights"}
                 </dd>
               </div>
               <div>
                 <dt className="stamp-type text-[--text-muted]">From</dt>
-                <dd className="mt-2 font-display text-display-s tracking-title text-[--text]">
+                <dd className="mt-2 font-display font-medium text-display-s tracking-title text-[--text]">
                   {formatPrice(trip.priceFrom)}
                   <span className="t-micro ml-2 text-[--text-secondary]">per person</span>
                 </dd>
@@ -166,7 +166,7 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
               {!soldOut && (
                 <div>
                   <dt className="stamp-type text-[--text-muted]">Availability</dt>
-                  <dd className="mt-2 font-display text-display-s tracking-title text-[--text]">
+                  <dd className="mt-2 font-display font-medium text-display-s tracking-title text-[--text]">
                     {BOOKINGS_OPEN ? availabilityLabel(trip.status) : "Coming soon"}
                   </dd>
                 </div>
@@ -180,9 +180,7 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
       <section className="shell py-16 md:py-24">
         <Reveal>
           <div className="flex flex-col gap-5">
-            <div>
-              <span className="stamp-type text-[--text-muted]">Packages</span>
-            </div>
+            <p className="t-rule-label text-[--text]">Packages</p>
             <h2 className="t-title max-w-[18ch] text-[--text]">
               {tiers.length === 1
                 ? "The package"
@@ -265,7 +263,7 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
       )}
 
       {/* ---- close ---------------------------------------------------------- */}
-      <section className="scheme-charcoal scheme-paint">
+      <section className="scheme-espresso scheme-paint">
         <div className="shell flex flex-col items-start gap-7 py-16 md:flex-row md:items-center md:justify-between md:py-20">
           <div>
             <div className="flex flex-col gap-3">

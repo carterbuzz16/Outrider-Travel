@@ -236,7 +236,7 @@ export function Figure({
       <p className="t-micro text-[--text-secondary]">{label}</p>
       <p
         className={cn(
-          "mt-2.5 font-display text-display-s tabular-nums tracking-title",
+          "mt-2.5 font-display font-medium text-display-s tabular-nums tracking-title",
           // --flag-ink is 5.4:1 on paper and 5.8:1 on white; brand orange
           // itself is 3.6:1 and never carries a figure.
           tone === "flag" ? "text-[--flag-ink]" : "text-[--text]",

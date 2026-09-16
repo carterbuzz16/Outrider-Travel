@@ -73,7 +73,7 @@ export default function CookieConsent() {
       // the page, and `animate-rise` for the entrance — globals.css already
       // collapses every animation to nothing under prefers-reduced-motion, so
       // this resolves instantly for anyone who asked for that.
-      className="scheme-charcoal scheme-paint animate-rise fixed inset-x-0 bottom-0 z-50 border-t border-[--rule-strong]"
+      className="scheme-espresso scheme-paint animate-rise fixed inset-x-0 bottom-0 z-50 border-t border-[--rule-strong]"
     >
       <div className="shell flex flex-col gap-4 py-4 md:flex-row md:items-center md:justify-between md:gap-10 md:py-6">
         <div className="min-w-0">

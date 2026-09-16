@@ -1,34 +1,26 @@
 import type { Metadata } from "next";
-import { DM_Mono, Source_Serif_4 } from "next/font/google";
+import { Figtree } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { getAppUrl } from "@/lib/site-url";
 import "./globals.css";
 
 /**
- * Two faces, and only two.
+ * One family. The brand book specifies Centra No.2, a commercial face; the
+ * team chose not to license it, so the site is set in Figtree, the closest
+ * open geometric sans in proportion and color, used the way the book uses
+ * Centra: Extrabold capitals for headlines, Medium for subheads, Book and
+ * Light for text.
  *
- * DM Mono carries every headline, label and piece of nav — a technical,
- * tracked-out voice that matches the wordmark's own letterforms. Source Serif
- * carries anything you actually read: warm, high x-height, built for text
- * sizes on screen. The contrast between the two is the signature.
- *
- * Both self-hosted through next/font rather than a Google Fonts <link>: no
- * third-party request, and the generated fallback metrics stop the wordmark
- * and the first paragraph from reflowing on load.
+ * Self-hosted through next/font rather than a Google Fonts <link>: no
+ * third-party request, and the generated fallback metrics stop headlines
+ * reflowing on load.
  */
-const dmMono = DM_Mono({
+const figtree = Figtree({
   subsets: ["latin"],
-  weight: ["300", "400", "500"],
+  weight: ["300", "400", "500", "700", "800"],
   display: "swap",
-  variable: "--font-dm-mono",
-});
-
-const sourceSerif = Source_Serif_4({
-  subsets: ["latin"],
-  style: ["normal", "italic"],
-  display: "swap",
-  variable: "--font-source-serif",
+  variable: "--font-figtree",
 });
 
 /*
@@ -81,7 +73,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${dmMono.variable} ${sourceSerif.variable}`}
+      className={figtree.variable}
       // The inline script below adds `js` to this element before hydration, so
       // the server and client className will always differ here by design.
       suppressHydrationWarning

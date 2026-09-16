@@ -113,7 +113,7 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
           <div className="flex flex-col gap-8">
             <div>
               <p className="stamp-type text-[--text-muted]">Balance</p>
-              <p className="mt-3 font-display text-display-s tracking-title text-[--text]">
+              <p className="mt-3 font-display font-medium text-display-s tracking-title text-[--text]">
                 {formatPrice(Math.max(0, total - depositAmount))}
                 <span className="t-micro ml-2 text-[--text-secondary]">
                   of {formatPrice(total)} left
@@ -133,7 +133,7 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
                       <span className="font-body text-body-s text-[--text-secondary]">
                         {p.scheduled_date ? formatDay(p.scheduled_date) : "Date to be set"}
                       </span>
-                      <span className="font-display text-body-s tracking-title text-[--text]">
+                      <span className="font-display font-medium text-body-s tracking-title text-[--text]">
                         {formatPrice(Number(p.amount))}
                       </span>
                     </li>
@@ -188,7 +188,7 @@ function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
       <dt className="stamp-type text-[--text-muted]">{label}</dt>
-      <dd className="mt-3 break-words font-display text-display-s tracking-title text-[--text]">
+      <dd className="mt-3 break-words font-display font-medium text-display-s tracking-title text-[--text]">
         {value}
       </dd>
     </div>

@@ -14,7 +14,7 @@ import { ACCOUNT_LINK, type NavLink } from "./nav-links";
  * Nav bar — transparent over a hero, solid once you leave it.
  *
  * Over the hero the bar carries no background and inherits the hero's own
- * scheme (`overHero` puts it in `.scheme-forest`, which is what a dark or
+ * scheme (`overHero` puts it in `.scheme-espresso`, which is what a dark or
  * photographic hero needs). Past 24px of scroll it takes on the paper surface,
  * a hairline underneath, and the light scheme. Both states cross-fade over
  * 260ms; nothing slides or collapses.
@@ -94,7 +94,7 @@ export default function NavBar({
         "text-[--text]",
         solid
           ? "scheme-light border-b border-[--rule] bg-[--surface]"
-          : "scheme-charcoal border-b border-transparent bg-transparent",
+          : "scheme-espresso border-b border-transparent bg-transparent",
       )}
     >
       <nav
@@ -107,7 +107,9 @@ export default function NavBar({
           aria-label="Outrider, home"
           onClick={() => setOpen(false)}
         >
-          <Logo variant="inline" className="text-[--text]" />
+          {/* The primary horizontal lock-up. The nav stays plain OUTRIDER;
+              the Ski Club lock-up appears further down the page (footer). */}
+          <Logo variant="inline" className="w-[128px] text-[--text] md:w-[148px]" />
         </Link>
 
         <ul className="hidden list-none items-center gap-8 md:flex">
@@ -121,7 +123,7 @@ export default function NavBar({
                   className={cn(
                     "t-label -my-2.5 block py-2.5 no-underline transition-colors duration-fast",
                     // Over a photographic hero the links run at full strength:
-                    // 58% cream measured 2.7–4.5:1 against the brightest sky in
+                    // 58% paper measured 2.7–4.5:1 against the brightest sky in
                     // the picture. On a solid bar there is no such constraint,
                     // so inactive links can sit back at secondary.
                     active

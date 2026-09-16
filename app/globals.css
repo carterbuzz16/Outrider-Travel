@@ -5,8 +5,9 @@
 /* ==========================================================================
    OUTRIDER — design tokens
    --------------------------------------------------------------------------
-   Three layers, in order:
-     1. Brand      the seven fixed brand colors, plus values derived from them
+   Built on the final identity (Devote, "Outrider Final Identity & Stock
+   Options", 14 September 2026). Three layers, in order:
+     1. Brand      the brand colors as delivered, plus values derived from them
      2. Semantic   what a color is *for* (surface, text, rule, accent)
      3. Scheme     a scope that re-points the semantic layer, so a component
                    dropped on a dark panel restyles itself with no props
@@ -16,112 +17,121 @@
 
 :root {
   /* ---- 1. brand ---------------------------------------------------------- */
-  --color-teal: #4c8591;
-  --color-sage: #9aa09a;
-  --color-burnt-orange: #c6672d;
-  --color-forest: #1f2a0f;
-  --color-sky: #a9c2d4;
-  --color-cream: #f1e9dc;
-  --color-charcoal: #1a1a1a;
+  /* The four core colors, with their Pantone references from the brand book. */
+  --color-warm-gray: #d7d2cb;   /* Pantone Warm Gray 1 C */
+  --color-espresso: #3e342f;    /* Pantone 2479 C        */
+  --color-black: #000000;       /* Pantone Black         */
 
-  /* Derived — mixed from the brand seven, never sampled from anywhere else.
-     Kept as literals rather than color-mix() so they're stable in every
-     browser and legible in devtools. */
-  --color-teal-deep: #37646e;   /* teal, two steps down — 6.1:1 on paper      */
-  --color-teal-ink: #2a4e57;    /* deeper still — pressed states, hovers      */
-  --color-teal-light: #759ea4;  /* teal lifted toward cream — 6.0:1 on charcoal */
-  --color-teal-tint: #e2ecee;   /* teal at ~12% on paper — quiet fills        */
-  --color-ember-ink: #9e501f;   /* burnt orange, darkened — 5.4:1 on paper    */
-  --color-paper: #faf6ef;       /* cream lifted toward white — page ground    */
-  --color-bone: #e6dccc;        /* cream dropped a step — inset panels        */
-  --color-ash: #6b6b6b;         /* 5.0:1 on paper — secondary text on light   */
-  --color-stone: #686765;       /* 5.2:1 on paper — muted text on light       */
+  /* Ski Club extension, and for now the look of the whole site: the club
+     lock-up is the site logo and club blue is its only accent. The book's
+     sage (Pantone 4179 C) is deliberately not used. */
+  --color-club: #89b2c4;        /* Pantone 2205 C        */
+
+  /* Derived — mixed from the colors above, never sampled from anywhere else.
+     Contrast figures are WCAG 2 ratios, measured, not estimated. */
+  --color-paper: #f2efea;       /* warm gray lifted toward white — page ground */
+  --color-chalk: #faf8f4;       /* one step brighter — cards, fields, raised   */
+  --color-espresso-deep: #2a2320; /* espresso, one step down — insets, scrims  */
+  --color-taupe: #6b635c;       /* 5.1:1 on paper, 5.6:1 on chalk — secondary  */
+  --color-club-ink: #386579;    /* club blue, darkened — 5.5:1 on paper        */
+  --color-club-light: #a3c4d2;  /* club blue, lifted — 6.6:1 on espresso       */
+  --color-clay: #b4633c;        /* warm flag, taken from the photography       */
+  --color-clay-ink: #9c4f2e;    /* the flag at text size — 5.1:1 on paper      */
+  --color-clay-light: #d08f68;  /* the flag on espresso — 4.5:1                */
 
   /* Contrast, decided once and encoded here rather than re-litigated per page:
-     brand teal (#4C8591) is a mid-tone. It clears 3:1 against paper and against
-     cream, so it is safe as a *surface*, a rule or a graphic — but nothing at
-     text size is legible on it or in it. Small text in teal uses --color-teal-deep;
-     a filled teal button uses that same value as its ground. Burnt orange behaves
-     the same way: fine as a 1px rule or a marker square, --color-ember-ink when
-     it has to be read. */
+     club blue (#89B2C4) is a mid-tone. Against paper it is only 2.2:1, so on
+     light grounds it is never text and never a thin rule; there the accent is
+     --color-club-ink. On espresso the relationship flips (5.3:1) and club blue
+     is the accent and the filled button. Warm gray is a fill: --text-secondary on it is under AA, so small
+     secondary copy belongs on paper or chalk. */
 
-  /* Channel triplets, for the handful of places that need an alpha ramp
-     (hairlines, scrims, focus rings) without a second hard-coded color. */
-  --rgb-cream: 241 233 220;
-  --rgb-charcoal: 26 26 26;
-  --rgb-teal: 76 133 145;
-  --rgb-forest: 31 42 15;
+  /* Channel triplets, for the places that need an alpha ramp (hairlines,
+     scrims, focus rings) without a second hard-coded color. */
+  --rgb-paper: 242 239 234;
+  --rgb-espresso: 62 52 47;
+  --rgb-espresso-deep: 42 35 32;
+  --rgb-club: 137 178 196;
 
   /* ---- 2. semantic (light / paper is the default scheme) ----------------- */
   --surface: var(--color-paper);
-  --surface-raised: #ffffff;
-  /* Fills and graphics only. Bone is a mid tone: --text-secondary sits on it
-     at 3.9:1 and --flag-ink at 4.3:1, both under AA. Anything carrying small
-     secondary text belongs on --surface-raised. */
-  --surface-inset: var(--color-bone);
-  --surface-inverse: var(--color-forest);
+  --surface-raised: var(--color-chalk);
+  --surface-inset: var(--color-warm-gray);
+  --surface-inverse: var(--color-espresso);
 
-  --text: var(--color-charcoal);
-  --text-secondary: var(--color-ash);
-  --text-muted: var(--color-stone);
-  --text-on-accent: var(--color-cream);
+  --text: var(--color-espresso);
+  --text-secondary: var(--color-taupe);
+  --text-muted: var(--color-taupe);
+  --text-on-accent: var(--color-paper);
 
-  --rule: rgb(var(--rgb-charcoal) / 0.16);      /* the hairline. 1px, always. */
-  --rule-strong: rgb(var(--rgb-charcoal) / 0.42);
-  --rule-faint: rgb(var(--rgb-charcoal) / 0.08);
+  --rule: rgb(var(--rgb-espresso) / 0.18);      /* the hairline. 1px, always. */
+  --rule-strong: rgb(var(--rgb-espresso) / 0.5);
+  --rule-faint: rgb(var(--rgb-espresso) / 0.09);
 
   /* --accent is the readable one (text, rules); --accent-solid is the ground a
-     filled control sits on, and --accent-contrast the label that goes on it. */
-  --accent: var(--color-teal-deep);
-  --accent-solid: var(--color-teal-deep);
-  --accent-solid-hover: var(--color-teal-ink);
-  --accent-contrast: var(--color-cream);
+     filled control sits on, and --accent-contrast the label that goes on it.
+     On paper the filled control is espresso, the way the brand book sets its
+     own type: club blue is kept for marks and for dark grounds. */
+  --accent: var(--color-club-ink);
+  --accent-solid: var(--color-espresso);
+  --accent-solid-hover: var(--color-black);
+  --accent-contrast: var(--color-paper);
 
-  --flag: var(--color-burnt-orange);            /* sparing. status, not decor. */
-  --flag-ink: var(--color-ember-ink);           /* the same flag, at text size */
+  --flag: var(--color-clay);                    /* sparing. status, not decor. */
+  --flag-ink: var(--color-clay-ink);            /* the same flag, at text size */
 
-  --focus-ring: var(--color-teal-deep);
-  --scrim: rgb(var(--rgb-forest) / 0.55);
+  --focus-ring: var(--color-espresso);
+  --scrim: rgb(var(--rgb-espresso-deep) / 0.6);
 
   /* ---- typography -------------------------------------------------------- */
-  /* The signature pairing: a technical mono for display and labels against a
-     warm text serif for anything you actually read at length. */
-  --font-display: var(--font-dm-mono), ui-monospace, "SFMono-Regular", monospace;
-  --font-body: var(--font-source-serif), "Iowan Old Style", Georgia, serif;
-  --font-mono: var(--font-dm-mono), ui-monospace, monospace;
+  /* One family, used the way the brand book uses Centra No.2: headlines in
+     Extrabold capitals, subheads in Medium, text in Book/Light. Centra is not
+     licensed; Figtree is the site's typeface (see app/layout.tsx). */
+  --font-brand: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-brand);
+  --font-body: var(--font-brand);
+  /* Only for machine strings (IDs, codes) where every character must align. */
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
 
-  /* Fluid, viewport-aware, no breakpoints. Display sizes track tight;
-     body copy is set generously and never gets tighter than 1.6. */
-  --step-display-xl: clamp(2.75rem, 1.6rem + 5.6vw, 6rem);
-  --step-display-l: clamp(2.25rem, 1.5rem + 3.4vw, 4rem);
+  --weight-light: 300;
+  --weight-book: 400;
+  --weight-medium: 500;
+  --weight-bold: 700;
+  --weight-extrabold: 800;
+
+  /* Fluid, viewport-aware, no breakpoints. Display sizes are set larger than
+     a mono would need: a geometric sans is narrower, and the capitals need
+     the size to carry the page. */
+  --step-display-xl: clamp(3rem, 1.5rem + 6.6vw, 7.5rem);
+  --step-display-l: clamp(2.25rem, 1.45rem + 3.6vw, 4.25rem);
   --step-display-m: clamp(1.75rem, 1.3rem + 1.9vw, 2.75rem);
-  --step-display-s: clamp(1.25rem, 1.05rem + 0.9vw, 1.75rem);
-  --step-body-l: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);
+  --step-display-s: clamp(1.25rem, 1.08rem + 0.8vw, 1.625rem);
+  --step-body-l: clamp(1.125rem, 1.04rem + 0.4vw, 1.375rem);
   --step-body: 1.0625rem;
   --step-body-s: 0.9375rem;
   --step-label: 0.75rem;
   --step-micro: 0.6875rem;
 
-  --leading-display: 1.02;
-  --leading-title: 1.14;
-  --leading-body: 1.7;
-  --leading-loose: 1.85;
+  --leading-display: 0.92;
+  --leading-title: 1.06;
+  --leading-body: 1.6;
+  --leading-loose: 1.55;
 
-  --tracking-display: -0.035em;   /* mono at size needs pulling in hard */
-  --tracking-title: -0.02em;
-  --tracking-label: 0.18em;       /* nav, eyebrows, buttons */
-  --tracking-stamp: 0.32em;       /* passport-stamp lettering */
+  --tracking-display: 0.005em;    /* extrabold capitals, set as the book sets them */
+  --tracking-title: -0.022em;     /* medium sentence case, pulled in at size */
+  --tracking-label: 0.12em;       /* nav, eyebrows, buttons */
+  --tracking-stamp: 0.22em;       /* the sparest labels: fine print, seals */
 
   /* ---- measure & rhythm --------------------------------------------------- */
-  --measure: 68ch;                /* body copy never runs wider than this */
-  --measure-tight: 46ch;
+  --measure: 64ch;                /* body copy never runs wider than this */
+  --measure-tight: 44ch;
   --gutter: clamp(1.25rem, 4vw, 3rem);
-  --shell: 1280px;                /* outer page width */
+  --shell: 1320px;                /* outer page width */
   --shell-narrow: 780px;
 
   /* ---- shape -------------------------------------------------------------- */
-  /* Near-square by design. Radii exist only to take the razor off a 1px box;
-     nothing in this system is a pill or a blob. */
+  /* Square, as every panel and swatch in the brand book is. Radii exist only
+     to take the razor off a 1px box; nothing in this system is a pill. */
   --radius: 2px;
   --radius-sm: 1px;
   --hairline: 1px;
@@ -137,8 +147,8 @@
 
   /* ---- back-compat -------------------------------------------------------- */
   /* The coming-soon page (app/coming-soon/page.module.css) was built against these. */
-  --outrider-teal: var(--color-teal);
-  --outrider-cream: var(--color-cream);
+  --outrider-teal: var(--color-espresso);
+  --outrider-cream: var(--color-paper);
   --background: var(--surface);
   --foreground: var(--text);
 }
@@ -147,126 +157,102 @@
    Put one of these on any section and every component inside it — nav,
    buttons, inputs, cards, rules — restyles itself. This is how the nav goes
    transparent over a dark hero and solid over paper without a single prop.
+
+   The page is built from two grounds, paper and espresso, the same two the
+   brand book is laid out on. Warm gray and club blue are panels used
+   for a single moment, never alternated down a page.
    -------------------------------------------------------------------------- */
 
 .scheme-light {
   --surface: var(--color-paper);
-  --surface-raised: #ffffff;
-  --surface-inset: var(--color-bone);
-  --text: var(--color-charcoal);
-  --text-secondary: var(--color-ash);
-  --text-muted: var(--color-stone);
-  --rule: rgb(var(--rgb-charcoal) / 0.16);
-  --rule-strong: rgb(var(--rgb-charcoal) / 0.42);
-  --rule-faint: rgb(var(--rgb-charcoal) / 0.08);
-  --accent: var(--color-teal-deep);
-  --accent-solid: var(--color-teal-deep);
-  --accent-solid-hover: var(--color-teal-ink);
-  --accent-contrast: var(--color-cream);
-  --flag-ink: var(--color-ember-ink);
-  --focus-ring: var(--color-teal-deep);
-}
-
-/* Retained for photography-led panels and one-off use — no longer a page
-   ground. See the note on .scheme-charcoal. */
-.scheme-forest {
-  --surface: var(--color-forest);
-  --surface-raised: #26330f;
-  --surface-inset: #172007;
-  --text: var(--color-cream);
-  --text-secondary: rgb(var(--rgb-cream) / 0.72);
-  --text-muted: rgb(var(--rgb-cream) / 0.62);
-  --rule: rgb(var(--rgb-cream) / 0.22);
-  --rule-strong: rgb(var(--rgb-cream) / 0.5);
-  --rule-faint: rgb(var(--rgb-cream) / 0.1);
-  --accent: var(--color-sky);
-  --accent-solid: var(--color-sky);
-  --accent-solid-hover: var(--color-cream);
-  --accent-contrast: var(--color-forest);
-  --flag-ink: var(--color-burnt-orange);
-  --focus-ring: var(--color-sky);
+  --surface-raised: var(--color-chalk);
+  --surface-inset: var(--color-warm-gray);
+  --text: var(--color-espresso);
+  --text-secondary: var(--color-taupe);
+  --text-muted: var(--color-taupe);
+  --rule: rgb(var(--rgb-espresso) / 0.18);
+  --rule-strong: rgb(var(--rgb-espresso) / 0.5);
+  --rule-faint: rgb(var(--rgb-espresso) / 0.09);
+  --accent: var(--color-club-ink);
+  --accent-solid: var(--color-espresso);
+  --accent-solid-hover: var(--color-black);
+  --accent-contrast: var(--color-paper);
+  --flag: var(--color-clay);
+  --flag-ink: var(--color-clay-ink);
+  --focus-ring: var(--color-espresso);
 }
 
 /*
- * Brand teal as a full-bleed panel. Cream on it is 3.4:1 — enough for display
- * type, tracked labels and UI, not enough for a paragraph. So this scheme runs
- * every text token at full-strength cream (a transparency ramp would only make
- * it worse) and is reserved for short, large copy: the hero panel, a pull
- * quote, a stat band. When a teal section has to carry body copy, use
- * .scheme-teal-deep below, which clears 5.4:1.
+ * Warm gray as a ground — the panel the vertical lock-up sits on in the book.
+ * Secondary text is espresso lifted only slightly (#564E48, 5.4:1), because
+ * taupe falls to 3.9:1 here.
  */
-.scheme-teal {
-  --surface: var(--color-teal);
-  --surface-raised: var(--color-teal-deep);
-  --surface-inset: var(--color-teal-deep);
-  --text: var(--color-cream);
-  --text-secondary: var(--color-cream);
-  --text-muted: var(--color-cream);
-  --rule: rgb(var(--rgb-cream) / 0.32);
-  --rule-strong: rgb(var(--rgb-cream) / 0.6);
-  --rule-faint: rgb(var(--rgb-cream) / 0.16);
-  --accent: var(--color-cream);
-  --accent-solid: var(--color-cream);
-  --accent-solid-hover: var(--color-sky);
-  --accent-contrast: var(--color-forest);
-  --flag-ink: var(--color-cream);
-  --focus-ring: var(--color-cream);
+.scheme-stone {
+  --surface: var(--color-warm-gray);
+  --surface-raised: var(--color-paper);
+  --surface-inset: #cbc5bd;
+  --text: var(--color-espresso);
+  --text-secondary: #564e48;
+  --text-muted: #564e48;
+  --rule: rgb(var(--rgb-espresso) / 0.22);
+  --rule-strong: rgb(var(--rgb-espresso) / 0.55);
+  --rule-faint: rgb(var(--rgb-espresso) / 0.11);
+  --accent: var(--color-espresso);
+  --accent-solid: var(--color-espresso);
+  --accent-solid-hover: var(--color-black);
+  --accent-contrast: var(--color-paper);
+  --flag: var(--color-clay);
+  --flag-ink: #8a4527;
+  --focus-ring: var(--color-espresso);
 }
 
 /*
- * The teal that can hold a paragraph. It's built on --color-teal-ink rather
- * than --color-teal-deep for a reason: deep only clears 5.4:1 against cream,
- * which leaves no room underneath it — a "secondary" tier would have to sit at
- * 90% cream to stay legible, by which point it isn't secondary. Ink gives
- * 7.5:1, so the three text tiers can actually be told apart and all pass.
+ * The dark ground for the whole site: espresso, with club blue as its
+ * accent, as the two-color club lock-up sets SKI CLUB against the name.
+ * Secondary text tiers are paper at 72% (6.4:1) and 62% (5.2:1), so all three
+ * tiers pass and can still be told apart.
  */
-.scheme-teal-ink {
-  --surface: var(--color-teal-ink);
-  --surface-raised: var(--color-teal-deep);
-  --surface-inset: #22414a;
-  --text: var(--color-cream);
-  --text-secondary: rgb(var(--rgb-cream) / 0.82);
-  --text-muted: rgb(var(--rgb-cream) / 0.7);
-  --rule: rgb(var(--rgb-cream) / 0.26);
-  --rule-strong: rgb(var(--rgb-cream) / 0.55);
-  --rule-faint: rgb(var(--rgb-cream) / 0.12);
-  --accent: var(--color-sky);
-  --accent-solid: var(--color-sky);
-  --accent-solid-hover: var(--color-cream);
-  --accent-contrast: var(--color-forest);
-  --flag-ink: var(--color-cream);
-  --focus-ring: var(--color-sky);
+.scheme-espresso {
+  --surface: var(--color-espresso);
+  --surface-raised: #4a3f39;
+  --surface-inset: var(--color-espresso-deep);
+  --text: var(--color-paper);
+  --text-secondary: rgb(var(--rgb-paper) / 0.74);
+  --text-muted: rgb(var(--rgb-paper) / 0.62);
+  --rule: rgb(var(--rgb-paper) / 0.2);
+  --rule-strong: rgb(var(--rgb-paper) / 0.5);
+  --rule-faint: rgb(var(--rgb-paper) / 0.1);
+  --accent: var(--color-club-light);
+  --accent-solid: var(--color-club);
+  --accent-solid-hover: var(--color-club-light);
+  --accent-contrast: var(--color-espresso-deep);
+  --flag: var(--color-clay-light);
+  --flag-ink: var(--color-clay-light);
+  --focus-ring: var(--color-club-light);
 }
 
 /*
- * The dark ground for the whole site.
- *
- * Forest and brand-teal panels were retired as section grounds: alternating
- * them down a page produced a green-to-blue drift that read as two different
- * brands. Structure is now charcoal and cream only, and teal appears solely as
- * an accent — rules, small type, one filled button. Color otherwise enters the
- * page through photography.
- *
- * The accent here is --color-teal-light rather than sky: sky is a blue, and it
- * was half the reason the palette drifted. Brand teal itself is far too dark on
- * charcoal (2.7:1), so the accent is teal lifted toward cream.
+ * Ski Club blue as a panel — the club lock-up tile on page 5 of the book.
+ * Deep espresso reads at 6.8:1 and the secondary tier at 88%, so this
+ * carries short copy only: a closing call to action, a stat band.
  */
-.scheme-charcoal {
-  --surface: var(--color-charcoal);
-  --surface-raised: #242424;
-  --surface-inset: #101010;
-  --text: var(--color-cream);
-  --text-secondary: rgb(var(--rgb-cream) / 0.7);
-  --text-muted: rgb(var(--rgb-cream) / 0.58);
-  --rule: rgb(var(--rgb-cream) / 0.2);
-  --rule-strong: rgb(var(--rgb-cream) / 0.48);
-  --rule-faint: rgb(var(--rgb-cream) / 0.09);
-  --accent: var(--color-teal-light);
-  --accent-solid: var(--color-teal-light);
-  --accent-solid-hover: var(--color-cream);
-  --accent-contrast: var(--color-charcoal);
-  --flag-ink: var(--color-burnt-orange);
-  --focus-ring: var(--color-teal-light);
+.scheme-club {
+  --surface: var(--color-club);
+  --surface-raised: #97bccc;
+  --surface-inset: #7aa4b7;
+  --text: var(--color-espresso-deep);
+  --text-secondary: rgb(var(--rgb-espresso-deep) / 0.88);
+  --text-muted: rgb(var(--rgb-espresso-deep) / 0.88);
+  --rule: rgb(var(--rgb-espresso-deep) / 0.24);
+  --rule-strong: rgb(var(--rgb-espresso-deep) / 0.58);
+  --rule-faint: rgb(var(--rgb-espresso-deep) / 0.12);
+  --accent: var(--color-espresso-deep);
+  --accent-solid: var(--color-espresso-deep);
+  --accent-solid-hover: var(--color-black);
+  --accent-contrast: var(--color-paper);
+  --flag: var(--color-espresso-deep);
+  --flag-ink: var(--color-espresso-deep);
+  --focus-ring: var(--color-espresso-deep);
 }
 
 /* A scheme class only carries variables; add .scheme-paint where you also want
@@ -298,8 +284,10 @@
     color: var(--text);
     font-family: var(--font-body);
     font-size: var(--step-body);
+    font-weight: var(--weight-book);
     line-height: var(--leading-body);
     font-synthesis-weight: none;
+    font-feature-settings: "kern", "liga";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -307,7 +295,9 @@
   h1, h2, h3, h4, h5, h6 {
     margin: 0;
     font-family: var(--font-display);
-    font-weight: 400;
+    /* Subhead weight by default, per the brand book. Headlines opt into
+       Extrabold capitals through .t-display. */
+    font-weight: var(--weight-medium);
     line-height: var(--leading-title);
     letter-spacing: var(--tracking-title);
     text-wrap: balance;
@@ -331,13 +321,8 @@
   }
 
   ::selection {
-    background: var(--color-teal);
-    color: var(--color-cream);
-  }
-
-  .scheme-teal ::selection {
-    background: var(--color-cream);
-    color: var(--color-teal);
+    background: var(--color-club);
+    color: var(--color-espresso-deep);
   }
 
   img, svg, video { display: block; max-width: 100%; }
@@ -371,44 +356,53 @@
 
   /* ---- typographic voices ------------------------------------------------ */
 
+  /* The brand book's HEADLINE: Extrabold capitals. For the one big line on a
+     screen, never for a paragraph-length title. */
   .t-display {
     font-family: var(--font-display);
     font-size: var(--step-display-xl);
     line-height: var(--leading-display);
     letter-spacing: var(--tracking-display);
     text-transform: uppercase;
-    font-weight: 400;
+    font-weight: var(--weight-extrabold);
   }
 
+  /* The brand book's Subhead, at section-title size: Medium, sentence case,
+     tracked in. Most h2s on the site are this. */
   .t-title {
     font-family: var(--font-display);
     font-size: var(--step-display-l);
     line-height: var(--leading-title);
-    letter-spacing: var(--tracking-display);
+    letter-spacing: var(--tracking-title);
+    font-weight: var(--weight-medium);
   }
 
   .t-heading {
     font-family: var(--font-display);
     font-size: var(--step-display-m);
-    line-height: var(--leading-title);
-    letter-spacing: var(--tracking-title);
+    line-height: 1.12;
+    letter-spacing: -0.018em;
+    font-weight: var(--weight-medium);
   }
 
   .t-subheading {
     font-family: var(--font-display);
     font-size: var(--step-display-s);
-    line-height: 1.3;
-    letter-spacing: var(--tracking-title);
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    font-weight: var(--weight-medium);
   }
 
-  /* The all-caps tracked-out mono that carries nav, eyebrows and buttons. */
+  /* Tracked capitals for nav, eyebrows and buttons. Book weight is the
+     book's own label weight ("PRIMARY HORIZONTAL LOCK-UP"); medium is used on
+     controls, where the label has to hold up on a filled ground. */
   .t-label {
     font-family: var(--font-display);
     font-size: var(--step-label);
     line-height: 1;
     letter-spacing: var(--tracking-label);
     text-transform: uppercase;
-    font-weight: 400;
+    font-weight: var(--weight-medium);
   }
 
   .t-micro {
@@ -417,6 +411,7 @@
     line-height: 1.4;
     letter-spacing: var(--tracking-label);
     text-transform: uppercase;
+    font-weight: var(--weight-medium);
   }
 
   .t-body {
@@ -426,12 +421,30 @@
     max-width: var(--measure);
   }
 
+  /* Light, like the body copy under "Subhead" in the brand book. Only at
+     lede size, where Light still has enough stroke to read. */
   .t-lede {
     font-family: var(--font-body);
     font-size: var(--step-body-l);
+    font-weight: var(--weight-light);
     line-height: var(--leading-loose);
     max-width: var(--measure);
     color: var(--text-secondary);
+  }
+
+  /* The brand book's section label: small capitals over a full-width
+     hairline ("BRAND ICON", "CLUB COLORS"). The page's one structural
+     signature — use it to open a section, not to decorate a card. */
+  .t-rule-label {
+    display: block;
+    padding-bottom: 0.9rem;
+    border-bottom: var(--hairline) solid var(--rule-strong);
+    font-family: var(--font-display);
+    font-size: var(--step-label);
+    line-height: 1;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: var(--weight-book);
   }
 
   /* ---- layout ------------------------------------------------------------ */
@@ -487,6 +500,7 @@
   /* Passport-stamp lettering: hard tracking, slightly inked-out weight. */
   .stamp-type {
     font-family: var(--font-display);
+    font-weight: var(--weight-medium);
     letter-spacing: var(--tracking-stamp);
     text-transform: uppercase;
     font-size: var(--step-micro);

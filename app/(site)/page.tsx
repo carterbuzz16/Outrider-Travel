@@ -4,7 +4,6 @@ import {
   EditorialPair,
   Hero,
   Reveal,
-  SectionDivider,
   TripCard,
   WaitlistCTA,
   type Trip,
@@ -78,10 +77,9 @@ export default async function HomePage() {
       <main className="scheme-light scheme-paint">
         <section className="shell py-20 md:py-28">
           <div>
-            <div className="flex flex-col gap-5">
-              <div>
-                <span className="stamp-type text-[--text-muted]">The difference</span>
-              </div>
+            <div className="flex flex-col gap-8">
+              {/* The brand book's section label: capitals over a full hairline. */}
+              <p className="t-rule-label text-[--text]">The difference</p>
               <h2 className="t-title max-w-[18ch] text-[--text]">
                 Group trips fail on logistics, not destinations
               </h2>
@@ -113,16 +111,12 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <SectionDivider variant="rule" className="shell" />
-
         {/* ---- upcoming departures ------------------------------------------ */}
-        <section className="shell py-20 md:py-28">
+        <section className="shell pb-20 md:pb-28">
           <Reveal>
-            <div className="flex flex-wrap items-end justify-between gap-6">
+            <p className="t-rule-label text-[--text]">Departures</p>
+            <div className="mt-8 flex flex-wrap items-end justify-between gap-6">
               <div className="flex flex-col gap-5">
-                <div>
-                  <span className="stamp-type text-[--text-muted]">Departures</span>
-                </div>
                 <h2 className="t-title max-w-[16ch] text-[--text]">
                   {featured.length > 0 ? "Next out the gate" : "The first departures"}
                 </h2>
@@ -199,7 +193,8 @@ export default async function HomePage() {
             not a ski company. */}
         <section className="shell pb-20 md:pb-28">
           <Reveal>
-            <h2 className="t-title max-w-[20ch] text-[--text]">
+            <p className="t-rule-label text-[--text]">Beyond Telluride</p>
+            <h2 className="t-title mt-8 max-w-[20ch] text-[--text]">
               Telluride is where this starts, not what it is
             </h2>
             <p className="t-lede mt-6 max-w-measure">
@@ -233,7 +228,10 @@ export default async function HomePage() {
             No testimonials or press section: Outrider has not run a trip yet,
             and inventing social proof is the one thing the brief rules out. It
             belongs here the moment there is something real to put in it. */}
-        <section className="scheme-charcoal scheme-paint">
+        {/* Club blue as a single closing panel, the Ski Club tile from the
+            brand book. It hands straight into the espresso footer. Short copy
+            only: see .scheme-club. */}
+        <section className="scheme-club scheme-paint">
           <div className="shell flex flex-col items-start gap-8 py-20 md:py-28">
             <Reveal>
               <h2 className="t-title max-w-[20ch] text-[--text]">

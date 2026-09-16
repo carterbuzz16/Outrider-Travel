@@ -19,7 +19,7 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
  * Fonts are the one thing that cannot come from a token. The two faces are
  * self-hosted through next/font under build-hashed URLs this file can't name,
  * and the iframe has no access to them anyway, so Stripe is pointed at the same
- * two families on Google Fonts. That is a third-party request the rest of the
+ * family on Google Fonts. That is a third-party request the rest of the
  * site deliberately avoids (see the note in app/layout.tsx) — it is accepted
  * here because it is scoped to Stripe's own frame on this one page, and the
  * alternative is card fields set in Stripe's default system sans.
@@ -27,12 +27,13 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 const STRIPE_FONTS = [
   {
     cssSrc:
-      "https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap",
+      "https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&display=swap",
   },
 ];
 
-const BODY_STACK = '"Source Serif 4", "Iowan Old Style", Georgia, serif';
-const DISPLAY_STACK = '"DM Mono", ui-monospace, SFMono-Regular, monospace';
+// The site's typeface; see app/layout.tsx.
+const BODY_STACK = '"Figtree", ui-sans-serif, system-ui, sans-serif';
+const DISPLAY_STACK = BODY_STACK;
 
 /** Reads the semantic layer straight off the document. Returns null on the server. */
 function readTokens() {
@@ -40,14 +41,14 @@ function readTokens() {
   const s = getComputedStyle(document.documentElement);
   const v = (name: string) => s.getPropertyValue(name).trim();
   return {
-    surfaceRaised: v("--surface-raised") || "#ffffff",
-    text: v("--text") || "#1a1a1a",
-    textSecondary: v("--text-secondary") || "#6b6b6b",
-    textMuted: v("--text-muted") || "#686765",
-    accent: v("--accent") || "#37646e",
-    flagInk: v("--flag-ink") || "#9e501f",
-    rule: v("--rule") || "rgba(26, 26, 26, 0.16)",
-    ruleStrong: v("--rule-strong") || "rgba(26, 26, 26, 0.42)",
+    surfaceRaised: v("--surface-raised") || "#faf8f4",
+    text: v("--text") || "#3e342f",
+    textSecondary: v("--text-secondary") || "#6b635c",
+    textMuted: v("--text-muted") || "#6b635c",
+    accent: v("--accent") || "#56643f",
+    flagInk: v("--flag-ink") || "#9c4f2e",
+    rule: v("--rule") || "rgba(62, 52, 47, 0.18)",
+    ruleStrong: v("--rule-strong") || "rgba(62, 52, 47, 0.5)",
     radius: v("--radius") || "2px",
   };
 }
@@ -64,33 +65,33 @@ function buildAppearance(): Appearance {
       fontLineHeight: "1.5",
       spacingUnit: "4px",
       borderRadius: t?.radius ?? "2px",
-      colorBackground: t?.surfaceRaised ?? "#ffffff",
-      colorText: t?.text ?? "#1a1a1a",
-      colorTextSecondary: t?.textSecondary ?? "#6b6b6b",
-      colorTextPlaceholder: t?.textMuted ?? "#686765",
-      colorPrimary: t?.accent ?? "#37646e",
-      colorDanger: t?.flagInk ?? "#9e501f",
-      iconColor: t?.textSecondary ?? "#6b6b6b",
+      colorBackground: t?.surfaceRaised ?? "#faf8f4",
+      colorText: t?.text ?? "#3e342f",
+      colorTextSecondary: t?.textSecondary ?? "#6b635c",
+      colorTextPlaceholder: t?.textMuted ?? "#6b635c",
+      colorPrimary: t?.accent ?? "#56643f",
+      colorDanger: t?.flagInk ?? "#9c4f2e",
+      iconColor: t?.textSecondary ?? "#6b635c",
     },
     rules: {
       // The same hairline box every control in components/ui/Field.tsx wears:
       // 1px rule on the raised ground, square corners, no inner shadow.
       ".Input": {
-        border: `1px solid ${t?.ruleStrong ?? "rgba(26, 26, 26, 0.42)"}`,
+        border: `1px solid ${t?.ruleStrong ?? "rgba(62, 52, 47, 0.5)"}`,
         boxShadow: "none",
         padding: "12px 14px",
       },
       ".Input:hover": {
-        border: `1px solid ${t?.textSecondary ?? "#6b6b6b"}`,
+        border: `1px solid ${t?.textSecondary ?? "#6b635c"}`,
       },
       ".Input:focus": {
-        border: `1px solid ${t?.accent ?? "#37646e"}`,
+        border: `1px solid ${t?.accent ?? "#56643f"}`,
         boxShadow: "none",
-        outline: `2px solid ${t?.accent ?? "#37646e"}`,
+        outline: `2px solid ${t?.accent ?? "#56643f"}`,
         outlineOffset: "2px",
       },
       ".Input--invalid": {
-        border: `1px solid ${t?.flagInk ?? "#9e501f"}`,
+        border: `1px solid ${t?.flagInk ?? "#9c4f2e"}`,
         boxShadow: "none",
       },
       // Labels and errors borrow the tracked mono voice used by Field's own
@@ -100,7 +101,7 @@ function buildAppearance(): Appearance {
         fontSize: "11px",
         letterSpacing: "0.18em",
         textTransform: "uppercase",
-        color: t?.textSecondary ?? "#6b6b6b",
+        color: t?.textSecondary ?? "#6b635c",
         marginBottom: "8px",
       },
       ".Error": {
@@ -108,16 +109,16 @@ function buildAppearance(): Appearance {
         fontSize: "11px",
         letterSpacing: "0.18em",
         textTransform: "uppercase",
-        color: t?.flagInk ?? "#9e501f",
+        color: t?.flagInk ?? "#9c4f2e",
       },
       ".Tab": {
-        border: `1px solid ${t?.rule ?? "rgba(26, 26, 26, 0.16)"}`,
+        border: `1px solid ${t?.rule ?? "rgba(62, 52, 47, 0.18)"}`,
         boxShadow: "none",
       },
       ".Tab--selected": {
-        border: `1px solid ${t?.accent ?? "#37646e"}`,
+        border: `1px solid ${t?.accent ?? "#56643f"}`,
         boxShadow: "none",
-        color: t?.accent ?? "#37646e",
+        color: t?.accent ?? "#56643f",
       },
       ".TabLabel": {
         fontFamily: DISPLAY_STACK,

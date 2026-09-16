@@ -55,7 +55,7 @@ export default function MobileJoinBar() {
     <>
       <div
         className={cn(
-          "scheme-charcoal fixed inset-x-0 bottom-0 z-30 border-t border-[--rule] bg-[--surface] text-[--text] md:hidden",
+          "scheme-espresso fixed inset-x-0 bottom-0 z-30 border-t border-[--rule] bg-[--surface] text-[--text] md:hidden",
           "pb-[env(safe-area-inset-bottom)] transition-transform duration-[--dur] ease-out",
           visible ? "translate-y-0" : "pointer-events-none translate-y-full",
         )}

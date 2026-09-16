@@ -53,8 +53,8 @@ export function useToast() {
 }
 
 const EDGE: Record<AlertTone, string> = {
-  info: "border-l-[--color-teal]",
-  success: "border-l-[--color-teal]",
+  info: "border-l-[--accent]",
+  success: "border-l-[--accent]",
   warning: "border-l-[--flag]",
   error: "border-l-[--flag]",
 };

@@ -1,13 +1,13 @@
 // Outrider — "How it usually goes / With Outrider" comparison block.
 // components/ui/ComparisonTable.tsx — rendered on the About page.
 //
-// Desktop: three columns, long copy, the Outrider column as a solid teal panel.
-// Mobile (<=760px): stacked rows, short copy, teal panel per row.
+// Desktop: three columns, long copy, the Outrider column as a solid espresso panel.
+// Mobile (<=760px): stacked rows, short copy, espresso panel per row.
 // Both copy sets live in the markup; CSS shows the right one. Real text, so it
 // stays readable to screen readers and search engines.
 //
-// Fonts: DM Mono (500) and Source Serif 4 (400), free on Google Fonts. If they
-// are not loaded site-wide, add them in app/layout.tsx via next/font/google.
+// Fonts: the brand family through --font-display / --font-body, loaded
+// site-wide in app/layout.tsx.
 
 type Row = {
   label: string;
@@ -130,12 +130,15 @@ const css = `
   /* Bound to the site tokens (app/globals.css) rather than restated, so this
      block cannot drift out of step with the rest of the pages. The literals
      are fallbacks only. */
-  --paper: var(--surface, #FAF6EF);
-  --charcoal: var(--text, #1A1A1A);
-  --ash: var(--text-secondary, #6B6B6B);
-  --teal: var(--accent, #37646E);
-  --ocmp-rule: var(--rule, rgba(26, 26, 26, 0.16));
-  --rule-inverse: rgba(241, 233, 220, 0.22);
+  --paper: var(--surface, #F2EFEA);
+  --charcoal: var(--text, #3E342F);
+  --ash: var(--text-secondary, #6B635C);
+  --teal: var(--accent, #56643F);
+  --ocmp-rule: var(--rule, rgba(62, 52, 47, 0.18));
+  /* The Outrider column: espresso, the brand's own dark ground. Paper on it
+     is 10.5:1, so the long copy reads at full size. */
+  --ocmp-panel: var(--color-espresso, #3E342F);
+  --rule-inverse: rgba(242, 239, 234, 0.22);
   background: var(--paper);
   color: var(--charcoal);
   padding: 0;
@@ -202,7 +205,7 @@ const css = `
 }
 .ocmp-colhead--outrider {
   color: var(--paper);
-  background: var(--teal);
+  background: var(--ocmp-panel);
   padding: 16px 32px 14px;
 }
 
@@ -233,7 +236,7 @@ const css = `
 }
 .ocmp-cell--outrider {
   color: var(--paper);
-  background: var(--teal);
+  background: var(--ocmp-panel);
   padding: 26px 32px;
   border-bottom: 1px solid var(--rule-inverse);
 }
@@ -268,7 +271,7 @@ const css = `
     text-transform: uppercase;
     color: var(--ash);
   }
-    /* 0.75 measured 4.22:1 at 11px against the teal panel, under the 4.5:1 AA
+    /* 0.75 measured 4.22:1 at 11px against the panel, under the 4.5:1 AA
      floor for small text. Full cream clears it. */
   .ocmp-tag--outrider { color: var(--paper); }
 }

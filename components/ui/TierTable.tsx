@@ -86,7 +86,7 @@ export default function TierTable({
               {featured && !soldOut && <Badge plain>{mark}</Badge>}
             </div>
 
-            <p className="font-display text-display-s tracking-title text-[--text]">
+            <p className="font-display font-medium text-display-s tracking-title text-[--text]">
               {tier.price}
               <span className="t-micro ml-2 text-[--text-muted]">per person</span>
             </p>

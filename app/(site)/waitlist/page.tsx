@@ -153,7 +153,7 @@ export default async function WaitlistPage() {
 
       {/* ---- hero ------------------------------------------------------------ */}
       <section
-        className="scheme-charcoal scheme-paint relative isolate overflow-hidden"
+        className="scheme-espresso scheme-paint relative isolate overflow-hidden"
         aria-labelledby="waitlist-headline"
       >
         <div className="absolute inset-0 -z-10" aria-hidden="true">
@@ -168,7 +168,7 @@ export default async function WaitlistPage() {
           {/* Weighted to the left, where the type is, and heaviest behind the
               small print under the form. On narrow screens the text spans the
               whole frame, so the wash goes even instead. */}
-          <div className="absolute inset-0 bg-[rgb(26_26_26_/_0.72)] lg:bg-transparent lg:bg-[linear-gradient(90deg,rgb(26_26_26_/_0.92)_0%,rgb(26_26_26_/_0.78)_45%,rgb(26_26_26_/_0.35)_100%)]" />
+          <div className="absolute inset-0 bg-[rgb(42_35_32_/_0.72)] lg:bg-transparent lg:bg-[linear-gradient(90deg,rgb(42_35_32_/_0.92)_0%,rgb(42_35_32_/_0.78)_45%,rgb(42_35_32_/_0.35)_100%)]" />
         </div>
 
         <div className="shell grid min-h-[100svh] items-center gap-14 pb-20 pt-32 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-20 lg:pt-36">
@@ -217,8 +217,8 @@ export default async function WaitlistPage() {
       <section className="scheme-light scheme-paint">
         <div className="shell py-20 md:py-28">
           <Reveal>
-            <span className="stamp-type text-[--text-muted]">How the list works</span>
-            <h2 className="t-title mt-5 max-w-[18ch] text-[--text]">
+            <span className="t-rule-label text-[--text]">How the list works</span>
+            <h2 className="t-title mt-8 max-w-[18ch] text-[--text]">
               Ten seconds now, first in line later
             </h2>
           </Reveal>
@@ -228,7 +228,7 @@ export default async function WaitlistPage() {
             {STEPS.map((step, i) => (
               <Reveal as="li" key={step.title} delay={i * 90} className="bg-[--surface-raised]">
                 <div className="group relative flex h-full flex-col p-7 md:p-9">
-                  <span className="font-display text-display-l leading-none tracking-display text-[--accent] transition-transform duration-slow ease-out group-hover:-translate-y-1">
+                  <span className="font-display font-medium text-display-l leading-none tracking-display text-[--accent] transition-transform duration-slow ease-out group-hover:-translate-y-1">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <h3 className="t-subheading mt-10 text-[--text]">{step.title}</h3>
@@ -250,13 +250,13 @@ export default async function WaitlistPage() {
 
       {/* ---- departures board ------------------------------------------------ */}
       {board.length > 0 && (
-        <section className="scheme-charcoal scheme-paint" aria-labelledby="board-heading">
+        <section className="scheme-espresso scheme-paint" aria-labelledby="board-heading">
           <div className="shell py-20 md:py-28">
             <Reveal>
-              <div className="flex flex-wrap items-end justify-between gap-6">
+              <span className="t-rule-label text-[--text]">Departures</span>
+              <div className="mt-8 flex flex-wrap items-end justify-between gap-6">
                 <div>
-                  <span className="stamp-type text-[--text-muted]">Departures</span>
-                  <h2 id="board-heading" className="t-title mt-5 max-w-[18ch] text-[--text]">
+                  <h2 id="board-heading" className="t-title max-w-[18ch] text-[--text]">
                     What the list hears about first
                   </h2>
                 </div>
@@ -287,7 +287,7 @@ export default async function WaitlistPage() {
                       key={row.key}
                       className="grid grid-cols-2 gap-x-6 gap-y-3 border-b border-[--rule-faint] py-6 transition-colors duration-fast last:border-0 hover:bg-[--surface-raised] md:grid-cols-[minmax(0,1.2fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.8fr)] md:items-center md:px-3 md:-mx-3"
                     >
-                      <span className="col-span-2 font-display text-display-s leading-none text-[--text] md:col-span-1">
+                      <span className="col-span-2 font-display font-medium text-display-s leading-none text-[--text] md:col-span-1">
                         <SplitFlap text={row.destination} delay={i * 140} />
                       </span>
                       <span className="font-body text-body text-[--text-secondary]">{row.name}</span>
@@ -401,15 +401,15 @@ export default async function WaitlistPage() {
       </section>
 
       {/* ---- close ----------------------------------------------------------- */}
-      <section className="scheme-charcoal scheme-paint relative isolate overflow-hidden" aria-labelledby="close-heading">
+      <section className="scheme-espresso scheme-paint relative isolate overflow-hidden" aria-labelledby="close-heading">
         <div className="absolute inset-0 -z-10" aria-hidden="true">
           <Image src="/images/telluride/town-christmas.jpg" alt="" fill sizes="100vw" className="object-cover" />
-          <div className="absolute inset-0 bg-[rgb(26_26_26_/_0.8)]" />
+          <div className="absolute inset-0 bg-[rgb(42_35_32_/_0.8)]" />
         </div>
         <div className="shell flex flex-col items-start gap-10 py-24 md:py-32">
-          <Reveal>
-            <span className="stamp-type text-[--text]">Before you go</span>
-            <h2 id="close-heading" className="t-title mt-5 max-w-[16ch] text-[--text]">
+          <Reveal className="w-full">
+            <span className="t-rule-label text-[--text]">Before you go</span>
+            <h2 id="close-heading" className="t-title mt-8 max-w-[16ch] text-[--text]">
               The list boards first
             </h2>
           </Reveal>
