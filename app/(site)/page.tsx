@@ -61,14 +61,12 @@ export default async function HomePage() {
     <>
       <Hero
         video={{ src: "/video/hero.mp4", poster: "/video/hero-poster.jpg" }}
-        eyebrow="Ski weeks now · Spring break next"
-        headline="Telluride, with your favorite people"
-        tagline="Four nights at The Peaks this December or January. Lift tickets waiting, rides from Montrose both ways, and our team on the ground all week."
-        stampText="Outrider · Scouted first"
-        // While nothing can be booked, the first thing to offer is the list;
-        // "View trips" leads to departures with no button on them.
-        cta={BOOKINGS_OPEN ? { label: "View trips", href: "/trips" } : { label: "Join the list", href: "/waitlist" }}
-        secondaryCta={BOOKINGS_OPEN ? { label: "Why Outrider", href: "/about" } : { label: "View trips", href: "/trips" }}
+        eyebrow="Telluride · This winter"
+        headline="Bring your people"
+        tagline="Four nights at The Peaks. We handle everything else."
+        // One button. While nothing can be booked, the first thing to offer is
+        // the list; the trip page would have nothing on it to book.
+        cta={BOOKINGS_OPEN ? { label: "See the trip", href: "/telluride" } : { label: "Join the list", href: "/waitlist" }}
       />
 
       {/* ---- what makes Outrider different ---------------------------------- */}
