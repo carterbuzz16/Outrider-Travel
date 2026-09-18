@@ -19,7 +19,7 @@ export default async function AdminDashboardPage() {
   const { data: bookings } = await admin
     .from("bookings")
     .select(
-      "id, status, total_amount, deposit_amount, group_code, created_at, users(email), trips(name), tiers(name), payments(id, amount, status, scheduled_date, attempt_count)"
+      "id, status, total_amount, deposit_amount, group_code, created_at, users(email), trips(name), tiers(name), payments(id, amount, status, scheduled_date, attempt_count, paid_at)"
     )
     .order("created_at", { ascending: false });
 

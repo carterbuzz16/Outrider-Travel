@@ -290,9 +290,21 @@ export const BOOKING_STATUS_META: Record<BookingStatus, { tone: BadgeTone; label
   cancelled: { tone: "closed", label: "Cancelled" },
 };
 
-export function BookingStatusBadge({ status }: { status: BookingStatus }) {
+/**
+ * `plan` changes one word: a pending booking on the pay-in-full plan is waiting
+ * for the whole price, not a deposit (see app/admin/payment-ledger.ts for how
+ * the plan is read).
+ */
+export function BookingStatusBadge({
+  status,
+  plan = "deposit",
+}: {
+  status: BookingStatus;
+  plan?: "deposit" | "full";
+}) {
   const meta = BOOKING_STATUS_META[status];
-  return <Badge tone={meta.tone}>{meta.label}</Badge>;
+  const label = status === "pending" && plan === "full" ? "Payment due" : meta.label;
+  return <Badge tone={meta.tone}>{label}</Badge>;
 }
 
 export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {

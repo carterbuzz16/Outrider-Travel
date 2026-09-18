@@ -69,17 +69,22 @@ export const TERMS: LegalDocumentMeta = {
   title: "Terms of Service",
   shortTitle: "Terms of Service",
   description:
-    "The agreement between you and Outrider when you book a departure: deposits, the installment plan, cancellation, weather, suppliers, insurance and liability.",
-  version: "1.0.2",
+    "The agreement between you and Outrider when you book a departure: deposits, paying in full, the installment plan and paying ahead, cancellation, weather, suppliers, insurance and liability.",
+  // 2.0.0: a MAJOR change under the rules above. The deposit fell from 20% to
+  // 10%, and the terms now cover paying in full at booking (and how its
+  // deposit portion is refunded), paying ahead, the charge authorization and
+  // automatic refund of overpayments. Needs counsel sign-off before it is
+  // relied on, and notice to travelers with live bookings.
+  version: "2.0.0",
   status: "in-force",
-  effectiveDate: "2026-09-08",
-  lastUpdated: "2026-09-08",
+  effectiveDate: "2026-09-18",
+  lastUpdated: "2026-09-18",
   sections: [
     { id: "about", title: "Who these terms are between" },
     { id: "eligibility", title: "Eligibility and your account" },
     { id: "trips-and-tiers", title: "Trips, tiers and what is included" },
-    { id: "booking-and-deposit", title: "Booking and the deposit" },
-    { id: "payment-plan", title: "The payment plan and automatic installments" },
+    { id: "booking-and-deposit", title: "Booking, the deposit and paying in full" },
+    { id: "payment-plan", title: "The payment plan, automatic installments and paying ahead" },
     { id: "failed-payments", title: "Missed payments, retries and bank authentication" },
     { id: "cancellation", title: "If you cancel" },
     { id: "outrider-changes", title: "If Outrider cancels or changes a trip" },

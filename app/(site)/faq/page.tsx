@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FaqSchema, Reveal, SectionDivider, WaitlistCTA } from "@/components/ui";
 import { CONTACT } from "@/lib/site-content";
 import { BOOKINGS_OPEN } from "@/lib/booking-window";
+import { PAY_IN_FULL_DISCOUNT } from "@/lib/deposit";
 
 export const metadata: Metadata = pageMetadata({
   title: "FAQ",
@@ -13,9 +14,9 @@ export const metadata: Metadata = pageMetadata({
   shareTitle: "Questions about Outrider trips · Outrider",
 });
 
-/* Answers deliberately do not restate deposit percentages, installment counts
- * or refund windows. Those live in the Terms and are computed from the booking
- * data, and an FAQ that quotes a number the contract later changes is worse
+/* Answers deliberately do not restate deposit percentages, installment counts,
+ * the pay-in-full discount or refund windows. Those live in the Terms and are
+ * computed from the booking data, and an FAQ that quotes a number the contract later changes is worse
  * than one that points at the contract. Anything with money or liability in it
  * links to the clause instead. */
 type QA = { q: string; a: React.ReactNode };
@@ -42,12 +43,21 @@ const GROUPS: Group[] = [
         a: (
           <>
             A deposit holds your spot and the balance is split into scheduled
-            installments charged automatically to the card you booked with. Each
-            traveler books and pays for their own spot, so nobody fronts money
-            for friends and nobody spends the spring chasing a group chat. The
-            exact deposit and the installment dates are set out in{" "}
+            installments charged automatically to the card you booked with. You
+            can pay toward the balance early from your bookings page whenever
+            you like, which brings the next installment down. Or pay for the
+            whole trip when you book,{" "}
+            {PAY_IN_FULL_DISCOUNT > 0 && "which costs a little less and "}means
+            nothing is charged later. Each traveler books and pays for their own
+            spot, so nobody fronts money for friends and nobody spends the
+            spring chasing a group chat. The exact deposit and paying in full
+            are set out in{" "}
+            <Link href="/terms#booking-and-deposit" className="text-[--accent] underline underline-offset-4">
+              the booking section of the Terms
+            </Link>
+            , and the installment dates and paying ahead in{" "}
             <Link href="/terms#payment-plan" className="text-[--accent] underline underline-offset-4">
-              the payment plan section of the Terms
+              the payment plan section
             </Link>
             .
           </>
