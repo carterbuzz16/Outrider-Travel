@@ -3,18 +3,21 @@ import { pageMetadata } from "@/lib/metadata";
 import Link from "next/link";
 import { TERMS } from "@/lib/legal";
 import { CONTACT, LEGAL_NAME } from "@/lib/site-content";
-import { DEPOSIT_PERCENTAGE } from "@/lib/deposit";
-import { INSTALLMENT_OFFSETS_DAYS } from "@/lib/installments";
+import { DEPOSIT_PERCENTAGE, PAY_IN_FULL_DISCOUNT } from "@/lib/deposit";
+import { BALANCE_PAYMENT_HOLD_HOURS, INSTALLMENT_OFFSETS_DAYS } from "@/lib/installments";
 import { MAX_INSTALLMENT_ATTEMPTS, INSTALLMENT_RETRY_AFTER_DAYS } from "@/lib/payments";
+import { MIN_BALANCE_PAYMENT, formatAmount } from "@/lib/balance";
 import LegalDocument, { LegalList, LegalSection } from "../legal/LegalDocument";
 
 /**
  * Terms of Service.
  *
  * The payment mechanics described here are not invented: the deposit
- * percentage, the installment schedule, the retry rules and the SCA behavior
- * are all imported from or read directly out of lib/deposit.ts,
- * lib/installments.ts, lib/payments.ts and app/api/cron/charge-installments.
+ * percentage, the pay-in-full discount, the installment schedule, the early
+ * payment minimum, the retry rules and the SCA behavior are all imported from
+ * or read directly out of lib/deposit.ts, lib/balance.ts, lib/installments.ts,
+ * lib/payments.ts, app/(protected)/bookings/actions.ts and
+ * app/api/cron/charge-installments.
  * Importing the constants rather than typing the numbers means the document
  * cannot quietly go stale when the code changes, if someone moves the
  * installment offsets, this page moves with them.
@@ -32,6 +35,10 @@ export const metadata: Metadata = pageMetadata({
 
 const depositPercent = Math.round(DEPOSIT_PERCENTAGE * 100);
 const [firstOffset, secondOffset] = INSTALLMENT_OFFSETS_DAYS;
+// Zero switches the discount off (lib/deposit.ts), and then the Terms must not
+// promise one: every sentence that mentions it is conditional on this.
+const payInFullDiscount = PAY_IN_FULL_DISCOUNT > 0 ? formatAmount(PAY_IN_FULL_DISCOUNT) : null;
+const minimumEarlyPayment = formatAmount(MIN_BALANCE_PAYMENT);
 
 export default function TermsPage() {
   return (
@@ -115,11 +122,13 @@ export default function TermsPage() {
       <LegalSection doc={TERMS} id="booking-and-deposit">
         <h3>What happens when you book</h3>
         <p>
-          Choosing a trip and a tier creates a booking in a{" "}
+          When you book, you choose how to pay: the deposit now and the balance
+          in installments, or the whole trip at once. Choosing a trip, a tier
+          and one of those two options creates a booking in a{" "}
           <strong>pending</strong> state and holds a spot in that tier while you
-          pay the deposit. A booking is not confirmed until the deposit has
-          actually been captured by our payment processor. Until then the spot
-          can be released.
+          pay. A booking is not confirmed until that first payment has actually
+          been captured by our payment processor. Until then the spot can be
+          released.
         </p>
 
         <h3>The deposit</h3>
@@ -128,13 +137,62 @@ export default function TermsPage() {
           rounded to the cent, and is charged at the time of booking. Once it is
           captured, the booking moves to <strong>deposit paid</strong>, your
           spot is confirmed, and the balance is scheduled as installments (see
-          section {sectionIndex("payment-plan")}).
+          section {sectionIndex("payment-plan")}). The deposit is
+          non-refundable, as set out in section {sectionIndex("cancellation")}.
         </p>
         <p>
           The card you use to pay the deposit is saved with our payment
           processor and set as the card your future installments are charged to.
-          By paying the deposit you authorize those later charges. You can tell
-          us to use a different card by contacting {CONTACT.email}.
+          You can tell us to use a different card by contacting {CONTACT.email}.
+        </p>
+
+        <h3>Paying in full at booking</h3>
+        <p>
+          You may instead pay the whole price of the trip in one payment when you
+          book.{" "}
+          {payInFullDiscount ? (
+            <>
+              If you do, <strong>{payInFullDiscount} comes off the tier price</strong>,
+              and the discounted figure is the total price of your booking.{" "}
+              <strong>
+                The discount is only available at the moment you book.
+              </strong>{" "}
+              It does not apply if you choose the deposit and later pay the
+              balance off early (see section {sectionIndex("payment-plan")}),
+              and it cannot be added to a booking after it is made.
+            </>
+          ) : (
+            <>The price is the same as on the installment plan.</>
+          )}
+        </p>
+        <p>
+          Once that payment is captured, the booking moves straight to{" "}
+          <strong>paid in full</strong> and no installments are scheduled.
+          Because nothing is charged later, the card you pay with is not saved
+          for future charges.
+        </p>
+        <p>
+          <strong>
+            {depositPercent}% of the total price you pay is treated as the
+            deposit
+          </strong>
+          , exactly as if you had paid the deposit and the balance separately,
+          and is non-refundable in the same way. The rest of what you paid is
+          treated as paid above the deposit, and the refund schedule in section{" "}
+          {sectionIndex("cancellation")} applies to it.
+        </p>
+
+        <h3>Authorizing the charges</h3>
+        <p>
+          Before you pay, the payment page asks you to tick a box authorizing the
+          charge being made that day. On the deposit plan the same box also
+          authorizes Outrider to charge each scheduled installment to the saved
+          card automatically, on the dates and in the amounts shown on that page,
+          without asking you again. That authorization also covers a retry of a
+          declined installment under section {sectionIndex("failed-payments")},
+          and any installment as reduced by an early payment under section{" "}
+          {sectionIndex("payment-plan")}. It ends when the balance is paid or the
+          booking is cancelled. You cannot pay without giving it.
         </p>
       </LegalSection>
 
@@ -177,12 +235,74 @@ export default function TermsPage() {
           them off-session, that is, with no checkout page and nobody present.
           You will get an email each time an installment is charged, showing the
           amount and the remaining balance. You will not be asked to approve
-          each charge, which is the whole point of the plan.
+          each charge, which is the whole point of the plan: you authorized
+          them when you paid the deposit (see section{" "}
+          {sectionIndex("booking-and-deposit")}).
         </p>
         <p>
-          When every payment on a booking has succeeded, the booking moves to{" "}
-          <strong>paid in full</strong>. You may also clear the balance early by
-          contacting us.
+          When the payments that have gone through add up to the booking&rsquo;s
+          total price, the booking moves to <strong>paid in full</strong> and
+          nothing further is charged.
+        </p>
+
+        <h3>Paying ahead</h3>
+        <p>
+          While a booking is <strong>deposit paid</strong>, you can pay toward
+          the balance early from your bookings page, at any time. You can pay
+          everything still owed, or any amount
+          from <strong>{minimumEarlyPayment}</strong> up to what you owe (if you
+          owe less than {minimumEarlyPayment}, the whole of it). You cannot pay
+          more than you owe. An early payment is charged to whichever card you
+          enter at the time, and that card is not saved for later charges.
+        </p>
+        <p>
+          <strong>
+            An early payment reduces your scheduled installments, earliest first.
+          </strong>{" "}
+          Once it goes through, it comes off the next installment due; an
+          installment it covers completely is cancelled, and one it covers only
+          in part is reduced by the amount the payment covers and is still
+          charged on its original date. Any installment still scheduled after that keeps its date and
+          amount, and is charged automatically to the card saved with your
+          deposit. An early payment also covers an installment that has been
+          declined or is waiting for bank verification. When nothing is left to
+          pay, the booking moves to <strong>paid in full</strong>.
+        </p>
+        <p>
+          Paying ahead does not change the price of your booking.
+          {payInFullDiscount && (
+            <>
+              {" "}
+              The {payInFullDiscount} discount in section{" "}
+              {sectionIndex("booking-and-deposit")} is not available for
+              paying the balance early, even all at once.
+            </>
+          )}{" "}
+          Money paid ahead is treated as paid above the deposit under section{" "}
+          {sectionIndex("cancellation")}.
+        </p>
+        <p>
+          So that the same balance is never collected twice, a scheduled
+          installment is not charged while an early payment you have started is
+          still open. An early payment left unfinished for more than{" "}
+          {BALANCE_PAYMENT_HOLD_HOURS} hours is cancelled, and the installment is
+          then charged as normal, so starting one can delay an installment by up
+          to {BALANCE_PAYMENT_HOLD_HOURS} hours but never stops it.
+        </p>
+
+        <h3>If you pay more than you owe</h3>
+        <p>
+          In rare cases two payments can go through at nearly the same moment,
+          for example an early payment and a scheduled installment, and together
+          take more than the booking&rsquo;s total price. If that happens,{" "}
+          <strong>
+            we refund the amount paid over the total automatically, in full, to
+            the card it was charged to.
+          </strong>{" "}
+          You do not need to ask for it. That excess is not part of the deposit,
+          is not subject to the refund schedule in section{" "}
+          {sectionIndex("cancellation")}, and is not held as credit. How quickly
+          the refund appears on your statement depends on your card issuer.
         </p>
         <p>
           Keep a valid card on file. If the saved card expires, is replaced, is
@@ -285,6 +405,12 @@ export default function TermsPage() {
           on your behalf to lodging and vendors that we cannot recover once
           made.
         </p>
+        <p>
+          The same applies if you paid in full at booking: {depositPercent}% of
+          the total price you paid is the deposit, and that part is
+          non-refundable under all circumstances once paid (see section{" "}
+          {sectionIndex("booking-and-deposit")}).
+        </p>
 
         <h3>2. Refunds on everything paid above the deposit</h3>
         <p>
@@ -342,6 +468,19 @@ export default function TermsPage() {
           late, leaving early or being removed from a trip is treated as a
           cancellation of fewer than 30 days and carries no refund and no credit
           for unused nights, lift days, meals or activities.
+        </p>
+        <p>
+          &ldquo;Paid above the deposit&rdquo; means every payment that has gone
+          through on the booking other than the deposit itself: installments,
+          early payments made from your bookings page, and, on a booking paid in
+          full at booking, the rest of that payment. It is always the amount you
+          actually paid
+          {payInFullDiscount
+            ? ", so a booking paid in full is refunded on its discounted price, and a discount is never paid out as money"
+            : ""}
+          . An accidental
+          overpayment is not part of it: it is refunded in full, separately, as
+          described in section {sectionIndex("payment-plan")}.
         </p>
 
         <h3>3. Missed installment payments</h3>
@@ -405,7 +544,10 @@ export default function TermsPage() {
           <strong>pending</strong> or <strong>deposit paid</strong>. Doing so
           releases the spot and{" "}
           <strong>immediately stops every future installment</strong>. A booking
-          already <strong>paid in full</strong> cannot be cancelled online, email {CONTACT.email} and we will handle it.
+          already <strong>paid in full</strong>, whether it was paid in full at
+          booking or reached that point through installments and early payments,
+          cannot be cancelled online; email {CONTACT.email} and we will handle
+          it.
         </p>
         <p>
           Canceling stops future charges; it does not automatically return
@@ -577,8 +719,9 @@ export default function TermsPage() {
           <strong>
             It does not create a joint booking or any shared liability.
           </strong>{" "}
-          Each traveler has their own booking, pays their own deposit and their
-          own installments on their own card, and can cancel independently of
+          Each traveler has their own booking, pays for it on their own card,
+          whether by deposit and installments or in full, and can cancel
+          independently of
           everyone else in the group. One person canceling does not cancel
           anyone else, does not change what anyone else owes, and does not
           entitle anyone else to a refund. Being in a group does not guarantee a

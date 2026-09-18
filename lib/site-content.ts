@@ -68,7 +68,7 @@ export const VALUE_PROPS = [
     eyebrow: "One price",
     title: "The number on the page is the number",
     body:
-      "Lodging, activities, ground transport, private events, a welcome package and on-trip staff are inside the price. No resort fee at check in. No separate charge for the shuttle. Each traveler books their own spot and pays in installments, so nobody fronts money for friends and nobody chases a group chat in March.",
+      "Lodging, activities, ground transport, private events, a welcome package and on-trip staff are inside the price. No resort fee at check in. No separate charge for the shuttle. Each traveler books their own spot and pays for it in installments or all at once, so nobody fronts money for friends and nobody chases a group chat in March.",
   },
   {
     eyebrow: "Someone goes first",
@@ -188,7 +188,7 @@ export const COMPARISON = [
   {
     label: "Paying for it",
     usual: "One person fronts the money and spends the next three months chasing a group chat.",
-    ours: "Each traveler books their own spot. A deposit holds it, the balance is split into scheduled payments, and nobody owes a friend anything.",
+    ours: "Each traveler books their own spot. A deposit holds it and the balance comes in scheduled payments, or it is paid in full at booking. Nobody owes a friend anything.",
   },
   {
     label: "On the trip",

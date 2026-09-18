@@ -12,16 +12,22 @@ export const dynamic = "force-dynamic";
 // there's no "admins can read all bookings/payments" RLS policy yet — this
 // is a read-only internal report, not a privileged write, so that's an
 // acceptable use of the same admin client the checkout flow already relies on.
+//
+// Reads every booking with its payments rather than only the failed rows: a
+// payment row alone does not say whether it is a deposit, a payment in full,
+// an installment or an early payment, and whether a booking is overpaid is a
+// sum across its rows. payment-ledger.ts works both out from the booking as a
+// whole, the same way the overview does.
 export default async function FlaggedPaymentsPage() {
   const admin = createAdminClient();
+  const today = new Date().toISOString().slice(0, 10);
 
-  const { data: flagged } = await admin
-    .from("payments")
+  const { data: bookings } = await admin
+    .from("bookings")
     .select(
-      "id, status, amount, scheduled_date, attempt_count, booking_id, bookings(id, users(email), trips(name))"
+      "id, status, total_amount, deposit_amount, group_code, created_at, users(email), trips(name), tiers(name), payments(id, amount, status, scheduled_date, attempt_count, paid_at)"
     )
-    .in("status", ["failed", "requires_action"])
-    .order("scheduled_date");
+    .order("created_at", { ascending: false });
 
-  return <FlaggedPaymentsView payments={flagged ?? []} />;
+  return <FlaggedPaymentsView bookings={bookings ?? []} today={today} />;
 }
