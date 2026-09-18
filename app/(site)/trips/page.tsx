@@ -14,10 +14,10 @@ import { BOOKINGS_OPEN } from "@/lib/booking-window";
 import { formatDateRange, formatPrice, getPublishedTrips, nightCount } from "@/lib/trips";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Trips: Telluride ski weeks and spring break",
+  title: "College group trips: Telluride ski weeks and spring break",
   path: "/trips",
   description:
-    "Every Outrider departure for college students: Telluride ski weeks this winter and spring break to follow. Small groups, one property, everything arranged before you land.",
+    "Every Outrider trip for college students: Telluride ski weeks this winter, spring break next. Small groups, one great property, everything planned before you land.",
 });
 
 export const revalidate = 300;
@@ -31,10 +31,10 @@ export default async function TripsPage() {
         <div>
           <h1 className="t-display mt-6 max-w-[14ch] text-[--text]">Trips</h1>
           <p className="t-lede mt-8 max-w-measure">
-            Every Outrider trip lives here. We are always scouting new places,
-            and a departure only goes up once it is finished: the property held,
-            the details arranged, the price fixed. Working that way does not
-            scale to a long list, which is rather the point.
+            Every Outrider trip lives here. We&rsquo;re always scouting
+            somewhere new, and a trip only goes up once it&rsquo;s ready: the
+            hotel held, the plans made, the price set. So the list stays short,
+            and every trip on it is one we&rsquo;d happily go on ourselves.
           </p>
         </div>
       </header>
@@ -90,12 +90,11 @@ export default async function TripsPage() {
             <div className="border border-[--rule] bg-[--surface-raised] p-8 md:p-12">
               <p className="t-micro text-[--text-muted]">Nothing open right now</p>
               <h2 className="t-subheading mt-3 text-[--text]">
-                The next departures are being scouted
+                New trips on the way
               </h2>
               <p className="mt-4 max-w-measure font-body text-body leading-[1.75] text-[--text-secondary]">
-                A trip goes up here when the lodging is booked and the tickets
-                are held, not when the idea is had. The categories below are
-                what is being worked on.
+                A trip goes up here once the rooms are booked and the tickets
+                are held. Here&rsquo;s what we&rsquo;re working on.
               </p>
             </div>
           </Reveal>
@@ -107,8 +106,8 @@ export default async function TripsPage() {
       <WaitlistCTA
         id="waitlist"
         placement="trips"
-        heading="Know before the dates go live"
-        body="Departures open to this list first. One email when Telluride goes on sale, and nothing in between."
+        heading="Hear about it first"
+        body="The list hears about every trip before it goes on sale. One email when Telluride opens, and nothing in between."
       />
 
       {/* ---- what's coming --------------------------------------------------
@@ -116,7 +115,7 @@ export default async function TripsPage() {
           to book, and dressing them as departures would imply otherwise. */}
       <section className="shell pb-24 pt-20 md:pb-32 md:pt-28">
         <Reveal>
-          <p className="t-micro mb-10 text-[--text-muted]">On the map</p>
+          <p className="t-micro mb-10 text-[--text-muted]">Up next</p>
         </Reveal>
 
         <div className={cellGridClass(UPCOMING_CATEGORIES.length)}>

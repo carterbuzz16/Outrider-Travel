@@ -258,7 +258,7 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
         <section className="shell py-16 md:py-24">
           <Reveal>
             <div className="grid gap-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
-              <h2 className="t-heading text-[--text]">The trip</h2>
+              <h2 className="t-heading text-[--text]">About the trip</h2>
               <div className="flex flex-col gap-6">
                 {trip.description && <p className="t-lede">{trip.description}</p>}
                 {trip.logistics && (
@@ -316,8 +316,8 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
                 {!BOOKINGS_OPEN
                   ? COMING_SOON_NOTE
                   : soldOut
-                    ? "Tell us where you want to go next. The following departure opens to this list first."
-                    : "A deposit holds your spot; the balance is split into scheduled installments before departure."}
+                    ? "Tell us you want in, and you'll hear first when the next trip opens."
+                    : "A deposit holds your spot, and the rest is split into scheduled installments before you go."}
               </p>
             </div>
           </div>

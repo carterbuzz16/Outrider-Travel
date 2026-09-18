@@ -20,58 +20,58 @@ type Row = {
 const ROWS: Row[] = [
   {    label: "The price",
     usualLong:
-      "A headline number, then lift tickets, rentals, transfers and resort fees on top. Nobody knows the real total until it is spent.",
-    usualShort: "Base price, then tickets, rentals, transfers and fees on top",
+      "A low number up front, then lift tickets, rentals, transfers and resort fees on top.",
+    usualShort: "Base price, then tickets, rentals and fees on top",
     outriderLong:
-      "One price per person with everything in it. What you see on the trip page is what the trip costs.",
+      "One price per person with everything in it. The number on the trip page is the whole trip.",
     outriderShort: "One price. Everything in it.",
   },
   {    label: "Where you stay",
     usualLong:
-      "Twenty people spread across four rentals on the wrong side of town, sorted by whoever booked first.",
-    usualShort: "Twenty people across four rentals",
+      "Your group split across rentals around town, sorted by whoever booked first.",
+    usualShort: "Split across rentals around town",
     outriderLong:
-      "One property, booked whole. Everyone is under the same roof, walking distance from the same lift.",
-    outriderShort: "One property, booked whole",
+      "One property for the whole group. Everyone under the same roof, walking distance from the same lift.",
+    outriderShort: "Everyone under one roof",
   },
   {    label: "Lift tickets and gear",
     usualLong:
-      "Bought individually, at the window, on the first morning, in the line.",
+      "Bought one at a time at the window, on the first morning, in line.",
     usualShort: "Bought at the window on day one",
     outriderLong:
-      "Three-day tickets and rentals arranged before you land, with performance rentals on the upper tiers.",
-    outriderShort: "Arranged before you land",
+      "Three-day lift tickets and rentals ready before you land, with performance rentals on the upper tiers.",
+    outriderShort: "Ready before you land",
   },
   {    label: "Getting there",
     usualLong:
-      "Everyone books their own ride from the airport and hopes the timing works.",
+      "Everyone sorts out their own ride from the airport.",
     usualShort: "Sort your own ride from the airport",
     outriderLong:
       "Ground transport both directions is arranged and included, shared or private depending on your package.",
-    outriderShort: "Transport both directions, included",
+    outriderShort: "Rides both ways, included",
   },
   {    label: "Paying for it",
     usualLong:
-      "One person fronts the money and spends the next three months chasing a group chat.",
-    usualShort: "One person fronts it and chases the group chat",
+      "One friend fronts the money and spends months chasing the group chat.",
+    usualShort: "One friend fronts it and chases the group chat",
     outriderLong:
-      "Each traveler books their own spot. A deposit holds it, the balance is split into scheduled payments, and nobody owes a friend anything.",
+      "Everyone books their own spot. A deposit holds it, the rest is split into scheduled payments, and nobody owes a friend a thing.",
     outriderShort: "Everyone books their own spot, on a payment plan",
   },
   {    label: "On the trip",
     usualLong:
-      "Whoever organized it becomes the help desk for four days and never really gets a holiday.",
-    usualShort: "The organizer becomes the help desk",
+      "Whoever planned it spends the week as the help desk.",
+    usualShort: "The planner becomes the help desk",
     outriderLong:
-      "Outrider staff are on the ground for the duration. The person who organized it gets to actually ski.",
-    outriderShort: "Outrider staff on the ground",
+      "Our team is with you the whole trip, so the friend who planned it finally gets to ski.",
+    outriderShort: "Our team with you all week",
   },
   {    label: "How many people",
-    usualLong: "As many as will pay, because volume is the business model.",
+    usualLong: "As many as will pay.",
     usualShort: "As many as will pay",
     outriderLong:
-      "The cap is set before a single spot goes on sale, and it does not move to fit demand. Rooms hold four or two, suites are booked whole for six or eight, and guiding is one instructor per six. Exclusive because it is small, not because it is expensive.",
-    outriderShort: "Capped before it sells. Small by design.",
+      "Set before a single spot goes on sale, and it stays there. Rooms hold four or two, suites are taken whole by six or eight, and there's one instructor for every six. Small enough that it still feels like your trip.",
+    outriderShort: "Capped before it sells",
   },
 ];
 
@@ -84,18 +84,19 @@ export default function ComparisonTable() {
         <div>
           <p className="ocmp-eyebrow">Outrider</p>
           <h2 className="ocmp-heading" id="ocmp-heading">
-            A group trip, two ways
+            What sets us apart
           </h2>
         </div>
         <p className="ocmp-standfirst">
-          The same seven decisions, handled the usual way and handled by us.
+          Seven things we take care of for you, next to how a group trip
+          usually goes.
         </p>
       </header>
 
       <div className="ocmp-grid">
         <div className="ocmp-colhead ocmp-colhead--spacer" aria-hidden="true" />
         <div className="ocmp-colhead ocmp-colhead--usual" aria-hidden="true">
-          How it usually goes
+          The usual way
         </div>
         <div className="ocmp-colhead ocmp-colhead--outrider" aria-hidden="true">
           With Outrider

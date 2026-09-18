@@ -61,10 +61,10 @@ import { getRoomMedia } from "@/lib/room-media";
  */
 
 export const metadata: Metadata = pageMetadata({
-  title: "Telluride ski weeks",
+  title: "Telluride ski trip for college students",
   path: "/telluride",
   description:
-    "Outrider's Telluride departures for college students this winter: the dates, the week, where the group stays, what every package includes, and how to get there.",
+    "Outrider's Telluride ski weeks for college groups this winter: the dates, the week, where you stay, what every package includes, and how to get there.",
 });
 
 // Same cadence as /trips, so publishing or editing a departure shows up here
@@ -206,10 +206,10 @@ export default async function TelluridePage() {
           <div className="mt-10 grid gap-10 border-t border-[--rule-strong] pt-8 md:mt-14 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] md:gap-16">
             <div className="flex flex-col items-start gap-8">
               <p className="max-w-[46ch] font-body text-lede leading-[1.6] text-[--text]">
-                {nights !== null ? `${spelled(nights)} nights` : "A week"} in a box
-                canyon at the end of the road. One property for the whole group,
-                lift tickets and rentals waiting, transfers from Montrose both
-                ways, and Outrider staff there the entire trip.
+                {nights !== null ? `${spelled(nights)} nights` : "A week"} with your
+                friends in a box canyon at the end of the road. One property for
+                the whole group, lift tickets and rentals waiting, rides from
+                Montrose both ways, and our team there the entire trip.
               </p>
               <div className="flex flex-wrap gap-4">
                 <Button href="#departures" variant="primary" size="lg">
@@ -254,23 +254,23 @@ export default async function TelluridePage() {
         <div className="mt-10 grid gap-10 md:mt-14 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:gap-20">
           <Reveal>
             <h2 id="why-heading" className="t-title max-w-[14ch] text-[--text]">
-              Hard to reach, which is the point
+              Hard to reach, worth every mile
             </h2>
           </Reveal>
           <Reveal delay={80}>
             <div className="flex flex-col gap-6">
               <p className="max-w-measure font-body text-lede leading-[1.7] text-[--text]">
                 A box canyon in the San Juans with one road in and a wall of
-                thirteen-thousand-foot peaks at the far end. The resorts an hour
-                from Denver fill up with everyone who could not be bothered to
-                go further. This one does not.
+                thirteen-thousand-foot peaks at the far end. It takes a little
+                more to get here, and that&rsquo;s why the town and the mountain
+                feel like yours for the week.
               </p>
               <p className="max-w-measure font-body text-body leading-[1.85] text-[--text-secondary]">
-                The town is a few streets of brick and clapboard, walkable end to
-                end in fifteen minutes and still a real town rather than a built
-                resort base. Above it are two thousand acres, steep enough to
-                hold up for people who can ski and gentle enough on the front
-                side that people who cannot yet are not written off on day one.
+                The town is a few streets of brick and clapboard you can walk end
+                to end in fifteen minutes, an old mining town with a real main
+                street. Above it are two thousand acres: steep enough for the
+                strong skiers in your group, and gentle enough on the front side
+                that first timers have a great day one too.
               </p>
             </div>
           </Reveal>
@@ -332,7 +332,7 @@ export default async function TelluridePage() {
               <Reveal>
                 <div className="flex flex-col gap-8 md:sticky md:top-32">
                   <h2 id="week-heading" className="t-title max-w-[14ch] text-[--text]">
-                    {firstDay && lastDay ? `${firstDay} to ${lastDay}` : `${spelled(nights + 1)} days`}, arranged before you land
+                    {firstDay && lastDay ? `${firstDay} to ${lastDay}` : `${spelled(nights + 1)} days`}, all planned for you
                   </h2>
                   <Plate
                     image={EVENING_IMAGE}
@@ -458,8 +458,8 @@ export default async function TelluridePage() {
               {trips.length > 1 ? `${spelled(trips.length)} departures, one trip` : "The dates"}
             </h2>
             <p className="t-lede">
-              Every departure is the same trip: the same property, the same days
-              on the mountain and the same events. Pick the week that works.
+              Every departure is the same trip, with the same property, mountain
+              days and events. Pick the week that works for your crew.
             </p>
           </div>
         </Reveal>
@@ -475,7 +475,7 @@ export default async function TelluridePage() {
             <div className="mt-12 border border-[--rule] bg-[--surface-raised] p-8 md:p-12">
               <h3 className="t-subheading text-[--text]">Nothing open right now</h3>
               <p className="mt-4 max-w-measure font-body text-body leading-[1.75] text-[--text-secondary]">
-                The Telluride dates are not on the site at the moment. Write to{" "}
+                The Telluride dates aren&rsquo;t on the site right now. Write to{" "}
                 <Link href="/contact" className={LINK}>
                   us
                 </Link>{" "}
@@ -514,11 +514,11 @@ export default async function TelluridePage() {
               <div className="flex flex-col gap-6 md:sticky md:top-32">
                 <p className="t-rule-label text-[--text]">Included</p>
                 <h2 id="included-heading" className="t-title max-w-[12ch] text-[--text]">
-                  What the price covers
+                  All in the price
                 </h2>
                 <p className="max-w-measure-tight font-body text-body leading-[1.75] text-[--text-secondary]">
-                  One number per person, and this is what is inside it. No
-                  resort fee at check in, no separate charge for the shuttle.
+                  One price per person, and here&rsquo;s everything inside it.
+                  No resort fee at check-in, no separate charge for the shuttle.
                 </p>
               </div>
             </Reveal>
@@ -629,14 +629,14 @@ export default async function TelluridePage() {
               <p className="font-body text-body leading-[1.85] text-[--text]">
                 Fly into Montrose, about 65 miles out and roughly an hour and a
                 half by road. Ground transport from Montrose and back is arranged
-                and included, so you are met at the airport and nobody sorts out
-                a ride at either end.
+                and included: we meet you at the airport, drive you up the
+                canyon, and bring you back at the end.
               </p>
               <p className="font-body text-body leading-[1.85] text-[--text-secondary]">
                 Flights are the one thing you book yourself. The flight guide
                 covers which airport to pick, the arrival and departure windows
                 for each set of dates, and what to do if the only routing you can
-                find is a poor one.
+                find is a bad one.
               </p>
               <div>
                 <Button href="/flights" variant="secondary">
@@ -659,7 +659,7 @@ export default async function TelluridePage() {
         <Reveal>
           <div className="flex flex-wrap items-end justify-between gap-6">
             <h2 id="answers-heading" className="t-heading text-[--text]">
-              Short answers
+              Quick questions
             </h2>
             <Button href="/faq" variant="ghost">
               All questions
@@ -694,8 +694,8 @@ export default async function TelluridePage() {
             <Reveal delay={90}>
               <p className="t-lede text-[--text-secondary]">
                 {openTrips.length > 0
-                  ? "A deposit holds your spot and the balance runs in scheduled installments, or pay the whole trip now. Each of you books your own."
-                  : "Tell us you want in. When a spot comes back, or the next departure opens, you will hear first."}
+                  ? "A deposit holds your spot and the rest runs in scheduled installments, or pay for the whole trip now. Each of you books your own."
+                  : "Tell us you want in. If a spot opens up or the next trip goes live, you'll hear first."}
               </p>
             </Reveal>
             <Reveal delay={180}>
@@ -719,8 +719,8 @@ export default async function TelluridePage() {
         <WaitlistCTA
           id="waitlist"
           placement="telluride"
-          heading="Know when Telluride opens"
-          body="Departures open to this list first. One email when booking opens, and nothing in between."
+          heading="First dibs on Telluride"
+          body="The list hears first when booking opens. One email, and nothing in between."
         />
       )}
     </main>
@@ -743,21 +743,21 @@ function weekPlan(nights: number, firstDay: string | null, lastDay: string | nul
   return [
     {
       when: firstDay ? `Day 1 · ${firstDay.slice(0, 3)}` : "Day 1",
-      title: "Land in Montrose",
+      title: "Touch down in Montrose",
       body:
-        "Somebody meets you at the airport and drives you up the canyon. You check in with your group, and the welcome package is waiting in the room.",
+        "We meet you at the airport and drive you up the canyon. Check in with your crew and find your welcome package waiting in the room.",
     },
     {
       when: skiDays === 1 ? "Day 2" : `Days 2–${skiDays + 1}`,
       title: `${spelled(skiDays)} ${skiDays === 1 ? "day" : "days"} on the mountain`,
       body:
-        "Lift tickets and rentals are sorted before you arrive, so the first morning starts on the snow rather than in a line at the window. The private events on the itinerary run through the week.",
+        "Your lift ticket and rentals are ready before you arrive, so the first morning starts on the snow. The private events on the itinerary run through the week, and the free gondola takes you down to town for dinner.",
     },
     {
       when: lastDay ? `Day ${lastIndex} · ${lastDay.slice(0, 3)}` : `Day ${lastIndex}`,
-      title: "Down to Montrose",
+      title: "Back down to Montrose",
       body:
-        "Check out, and the transfer takes the group back to the airport for flights home. Outrider staff are with you until then, as they are all week.",
+        "Check out and ride back to the airport together for flights home. Our team is with you until then, same as all week.",
     },
   ];
 }
@@ -772,16 +772,16 @@ function weekPlan(nights: number, firstDay: string | null, lastDay: string | nul
  */
 const ANSWERS: { q: string; a: React.ReactNode }[] = [
   {
-    q: "I have never skied. Is that a problem?",
-    a: "No. The front side is gentle enough that a first timer is not written off on day one, and lessons can be arranged. Tell us when you book so it is set up before you land.",
+    q: "I've never skied. Is that a problem?",
+    a: "Not at all. The front side is gentle enough for a great first day, and lessons can be arranged. Tell us when you book and we'll have it set up before you land.",
   },
   {
     q: "Can I room with my friends?",
-    a: "Yes. Each of you books your own spot and shares a group code, and we room you together. Rooms are assigned in the order requests arrive, so send yours early.",
+    a: "Yes. Each of you books your own spot with a shared group code, and we room you together. Rooms are assigned in the order requests come in, so send yours early.",
   },
   {
     q: "How big is the group?",
-    a: "The number is set before a departure goes on sale and does not move. Rooms are shared by four or by two, and suites are booked whole for six or eight, so the people you live with all week stay a handful.",
+    a: "The number is set before a trip goes on sale and doesn't move. Rooms are shared by four or by two, and suites are taken whole by six or eight, so the group you live with all week stays small.",
   },
   {
     q: "How does paying work?",
@@ -803,7 +803,7 @@ const ANSWERS: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "Is somebody from Outrider actually there?",
-    a: "Yes, on the ground in Telluride for the whole trip, not at the end of an email. The person who organized the group gets to ski.",
+    a: "Yes. Our team is on the ground in Telluride for the whole trip, so the friend who organized the group gets to ski too.",
   },
 ];
 

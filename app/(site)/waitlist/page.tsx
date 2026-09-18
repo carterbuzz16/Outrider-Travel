@@ -15,7 +15,7 @@ export const metadata: Metadata = pageMetadata({
   title: "Join the list: early access to college ski trips and spring break",
   path: "/waitlist",
   description:
-    "Outrider runs small-group ski weeks and spring break trips for college students. Departures open to this list before they go on sale. Free to join, and one email when it happens.",
+    "Outrider hosts small-group ski weeks and spring break trips for college students. The list hears about every trip before it goes on sale. Free to join.",
   shareTitle: "Join the Outrider list",
   ownImage: true,
 });
@@ -39,15 +39,15 @@ export const revalidate = 300;
 const STEPS = [
   {
     title: "Join the list",
-    body: "An email address and nothing else. Free, and it commits you to nothing.",
+    body: "Just your email. It's free, and it commits you to nothing.",
   },
   {
     title: "Hear it first",
-    body: "When a departure opens, the list gets one email before it reaches the site. Nothing in between.",
+    body: "When a trip opens, the list gets one email before it reaches the site. Nothing in between.",
   },
   {
-    title: "Book your own spot",
-    body: "A deposit holds it and the balance runs in installments. A group code keeps friends together for rooming.",
+    title: "Book your spot",
+    body: "A deposit holds it and the rest runs in installments. Share a group code and you'll room with your friends.",
   },
 ];
 
@@ -57,14 +57,14 @@ const STEPS = [
 const QUESTIONS: { q: string; a: React.ReactNode }[] = [
   {
     q: "Does joining cost anything, or commit me to a trip?",
-    a: <>No. Joining is free and holds nothing. It means you hear when departures open, before they go public, and decide then.</>,
+    a: <>No. Joining is free and holds nothing. You hear when trips open, before they go public, and decide then.</>,
   },
   {
     q: "What will you send me?",
     a: (
       <>
-        A short note now confirming you are on the list, then one email when a
-        departure opens. Every message carries a one-click unsubscribe.
+        A short note now confirming you&rsquo;re on the list, then one email
+        when a trip opens. Every message has a one-click unsubscribe.
       </>
     ),
   },
@@ -72,7 +72,7 @@ const QUESTIONS: { q: string; a: React.ReactNode }[] = [
     q: "When do trips go on sale?",
     a: BOOKINGS_OPEN ? (
       <>
-        Departures are open now. Dates, packages and pricing are on the{" "}
+        They&rsquo;re open now. Dates, packages and pricing are on the{" "}
         <Link href="/trips" className="text-[--accent] underline underline-offset-4">
           trips page
         </Link>
@@ -102,9 +102,9 @@ const QUESTIONS: { q: string; a: React.ReactNode }[] = [
     q: "Who is Outrider?",
     a: (
       <>
-        Small-group ski weeks and spring break trips for college students. One
-        property booked whole, everything arranged before you land, and staff on
-        the ground for the whole trip.{" "}
+        We host small-group ski weeks and spring break trips for college
+        students. One property for the whole group, everything planned before
+        you land, and our team with you the whole trip.{" "}
         <Link href="/about" className="text-[--accent] underline underline-offset-4">
           Why we run it this way
         </Link>
@@ -189,9 +189,9 @@ export default async function WaitlistPage() {
               className="mt-8 max-w-[44ch] font-body text-lede leading-[1.7] text-[--text] motion-safe:animate-rise"
               style={rise(2)}
             >
-              Outrider runs small-group ski weeks and spring break trips for
-              college students. Departures open to this list before they reach
-              the site, with one email when that happens and nothing in between.
+              Outrider hosts small-group ski weeks and spring break trips for
+              college students. The list hears about every trip before it
+              reaches the site: one email when it opens, and nothing in between.
             </p>
             <div className="mt-10 motion-safe:animate-rise" style={rise(3)}>
               <ListSignup placement="waitlist-hero" />
@@ -257,7 +257,7 @@ export default async function WaitlistPage() {
               <div className="mt-8 flex flex-wrap items-end justify-between gap-6">
                 <div>
                   <h2 id="board-heading" className="t-title max-w-[18ch] text-[--text]">
-                    What the list hears about first
+                    Where we&rsquo;re headed
                   </h2>
                 </div>
                 <Link
@@ -325,9 +325,9 @@ export default async function WaitlistPage() {
               <span className="text-[--accent]">So is this list.</span>
             </p>
             <p className="t-lede mt-7 max-w-[52ch]">
-              They ride ahead of the party, scout the route and have the ground
-              ready before anyone else arrives. The list is the same idea for
-              booking: you are told before the rest of campus is.
+              They ride ahead of the group, scout the route and have everything
+              ready before anyone else arrives. The list works the same way: you
+              hear before the rest of campus does.
             </p>
           </Reveal>
           <Reveal delay={120} className="justify-self-center">

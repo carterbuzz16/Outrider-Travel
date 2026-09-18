@@ -8,7 +8,7 @@ export const metadata: Metadata = pageMetadata({
   title: "Contact",
   path: "/contact",
   description:
-    "Ask about a departure, a group booking, or anything else. We answer every message within a day.",
+    "Questions about a college group trip, a chapter booking or traveling with friends? Write to Outrider. We answer every message within a day.",
 });
 
 export default function ContactPage() {
@@ -18,9 +18,9 @@ export default function ContactPage() {
         <div>
           <h1 className="t-display mt-6 max-w-[13ch] text-[--text]">Get in touch</h1>
           <p className="t-lede mt-8 max-w-measure">
-            Questions about a departure, a chapter or a group of friends who
-            want to travel together, or something we have not thought of yet.
-            All of it comes to the same place.
+            Ask us anything. A question about Telluride, a trip for your
+            chapter, a group of friends who want to go together. It all comes
+            straight to our team.
           </p>
         </div>
       </header>

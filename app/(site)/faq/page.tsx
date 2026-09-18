@@ -10,7 +10,7 @@ export const metadata: Metadata = pageMetadata({
   title: "FAQ",
   path: "/faq",
   description:
-    "How an Outrider trip works: what the price covers, how deposits and installments run, what happens if you cancel, group size, flights, and who is on the ground.",
+    "How an Outrider college group trip works: what the price covers, deposits and installments, cancelling, group size, flights, and who's with you on the trip.",
   shareTitle: "Questions about Outrider trips · Outrider",
 });
 
@@ -30,11 +30,11 @@ const GROUPS: Group[] = [
         q: "What is actually included in the price?",
         a: (
           <>
-            Lodging, the activities listed on the trip, ground transport at the
-            destination, any private events, and Outrider staff on the ground
-            for the whole trip. The number on the trip page is what the trip
-            costs. There is no resort fee at check in and no separate charge for
-            the shuttle. Flights are the exception and are booked separately.
+            Your lodging, the activities listed on the trip, ground transport at
+            the destination, any private events, and our team with you for the
+            whole trip. The number on the trip page is what the trip costs:
+            no resort fee at check-in and no separate charge for the shuttle.
+            Flights are the one exception, and you book those yourself.
           </>
         ),
       },
@@ -42,15 +42,15 @@ const GROUPS: Group[] = [
         q: "How does paying work?",
         a: (
           <>
-            A deposit holds your spot and the balance is split into scheduled
+            A deposit holds your spot, and the balance is split into scheduled
             installments charged automatically to the card you booked with. You
-            can pay toward the balance early from your bookings page whenever
-            you like, which brings the next installment down. Or pay for the
-            whole trip when you book,{" "}
+            can pay toward the balance early from your bookings page any time,
+            which brings the next installment down. Or pay for the whole trip
+            when you book,{" "}
             {PAY_IN_FULL_DISCOUNT > 0 && "which costs a little less and "}means
-            nothing is charged later. Each traveler books and pays for their own
-            spot, so nobody fronts money for friends and nobody spends the
-            spring chasing a group chat. The exact deposit and paying in full
+            nothing is charged later. Everyone books and pays for their own
+            spot, so nobody fronts money for friends or spends the spring
+            chasing a group chat. The exact deposit and paying in full
             are set out in{" "}
             <Link href="/terms#booking-and-deposit" className="text-[--accent] underline underline-offset-4">
               the booking section of the Terms
@@ -67,9 +67,9 @@ const GROUPS: Group[] = [
         q: "What happens if a payment fails?",
         a: (
           <>
-            We retry it, and you get an email with a link to fix the card or
-            complete a bank authentication step if your bank asks for one. A
-            failed payment does not immediately cost you the spot. The retry
+            We try it again and email you a link to update your card, or to
+            finish a bank authentication step if your bank asks for one. A
+            failed payment doesn&rsquo;t immediately cost you your spot. The retry
             schedule and the point at which a booking is at risk are in{" "}
             <Link href="/terms#failed-payments" className="text-[--accent] underline underline-offset-4">
               the Terms
@@ -87,9 +87,9 @@ const GROUPS: Group[] = [
             <Link href="/terms#cancellation" className="text-[--accent] underline underline-offset-4">
               the cancellation section of the Terms
             </Link>
-            . The short version is that the deposit is what holds a room we have
-            already committed to, so it does not come back, and the rest is on a
-            sliding scale that closes as the departure gets near. Travel
+            . The short version: the deposit holds a room we&rsquo;ve already
+            committed to, so it doesn&rsquo;t come back, and the rest is on a
+            sliding scale that narrows as the trip gets closer. Travel
             insurance is worth buying.
           </>
         ),
@@ -103,11 +103,11 @@ const GROUPS: Group[] = [
         q: "How many people are on a trip?",
         a: (
           <>
-            About 100 to 200. It is meant to feel like a small club rather than
-            a tour: the number is set before a departure goes on sale and does
-            not move to fit demand, and rooms are shared by four or by two, with
-            suites booked whole for six or eight, so the group you are actually
-            living with stays small.
+            About 100 to 200. It feels more like a small club than a tour. The
+            number is set before a trip goes on sale and doesn&rsquo;t move to
+            fit demand. Rooms are shared by four or by two, with suites taken
+            whole by six or eight, so the group you actually live with all week
+            stays small.
           </>
         ),
       },
@@ -115,10 +115,10 @@ const GROUPS: Group[] = [
         q: "Do I need to know how to ski?",
         a: (
           <>
-            No. Telluride has enough gentle terrain that a first timer is not
-            written off on day one, and lessons can be arranged. Tell us when
-            you book so the right thing is set up before you land rather than
-            negotiated at the ticket window on the first morning.
+            Not at all. Telluride has plenty of gentle terrain for a first
+            timer, and lessons can be arranged. Tell us when you book and
+            we&rsquo;ll have it set up before you land, so your first morning
+            starts on the snow instead of at the ticket window.
           </>
         ),
       },
@@ -126,10 +126,9 @@ const GROUPS: Group[] = [
         q: "Is somebody from Outrider actually there?",
         a: (
           <>
-            Yes, for the duration, not at the end of an email. That is the part
-            that makes the difference when a room is wrong or a plan needs to
-            change, and it is why the person who organized the trip gets to
-            actually ski.
+            Yes, for the whole trip. If a room needs fixing or a plan changes,
+            someone from our team is right there to sort it out. It also means
+            the friend who organized the trip gets to ski too.
           </>
         ),
       },
@@ -137,11 +136,11 @@ const GROUPS: Group[] = [
         q: "Is this a party trip?",
         a: (
           <>
-            We build our trips around the experience, the place, and the
-            high-touch, high-end feel you are not going to get on another trip.
-            College is fun and there will be plenty of that. What we care about
-            is that the days are worth the flight, the standard holds the whole
-            way through, and you are still talking about it in ten years.
+            We build every trip around the place and the experience: a great
+            property in a town worth exploring, with every detail taken care
+            of. College is fun, and there will be plenty of that.
+            What we care about is that every day is worth the flight and
+            you&rsquo;re still talking about it in ten years.
           </>
         ),
       },
@@ -154,10 +153,10 @@ const GROUPS: Group[] = [
         q: "Are flights included?",
         a: (
           <>
-            No, and that is deliberate. Everyone is coming from somewhere
-            different, and bundling a flight means somebody pays for a routing
-            that suits someone else. You book your own and we tell you exactly
-            which airport and which arrival window to aim for.
+            No, on purpose. Everyone is flying in from somewhere different, and
+            bundling flights would mean somebody paying for a routing that suits
+            someone else. You book your own, and we tell you exactly which
+            airport and which arrival window to aim for.
           </>
         ),
       },
@@ -165,7 +164,7 @@ const GROUPS: Group[] = [
         q: "Which airport?",
         a: (
           <>
-            For Telluride, fly into Montrose. It is about 65 miles out, roughly
+            For Telluride, fly into Montrose. It&rsquo;s about 65 miles out, roughly
             an hour and a half of driving, and ground transport in both
             directions is arranged and included. The{" "}
             <Link href="/flights" className="text-[--accent] underline underline-offset-4">
@@ -186,8 +185,8 @@ const GROUPS: Group[] = [
         a: (
           <>
             Yes. Everyone books their own spot, and a group code keeps you
-            together for rooming. The difference from the usual arrangement is
-            that no single person is holding everyone else&rsquo;s money.
+            together for rooming. That way no one person ends up holding
+            everyone else&rsquo;s money.
           </>
         ),
       },
@@ -195,7 +194,7 @@ const GROUPS: Group[] = [
         q: "When do trips go on sale?",
         a: BOOKINGS_OPEN ? (
           <>
-            Departures are open now. Dates, packages and pricing are on the{" "}
+            They&rsquo;re open now. Dates, packages and pricing are on the{" "}
             <Link href="/trips" className="text-[--accent] underline underline-offset-4">
               trips page
             </Link>
@@ -208,7 +207,7 @@ const GROUPS: Group[] = [
             <Link href="/trips" className="text-[--accent] underline underline-offset-4">
               trips page
             </Link>
-            . Join the list below and you will hear before it goes public.
+            . Join the list below and you&rsquo;ll hear before it goes public.
           </>
         ),
       },
@@ -240,9 +239,9 @@ export default function FaqPage() {
       <header className="shell pb-14 pt-32 md:pb-20 md:pt-40">
         <h1 className="t-display mt-6 max-w-[14ch] text-[--text]">Questions</h1>
         <p className="t-lede mt-8 max-w-measure">
-          The things people ask before they put money down. Anything that turns
-          on money or liability links to the clause that governs it rather than
-          paraphrasing it, because the Terms are what you are agreeing to.
+          Everything people ask before they book. Anything about money or
+          liability links straight to the part of the Terms that covers it,
+          since the Terms are what you&rsquo;re agreeing to.
         </p>
       </header>
 
@@ -294,7 +293,7 @@ export default function FaqPage() {
       <WaitlistCTA
         placement="faq"
         heading="Still deciding?"
-        body="Join the list and you will hear when departures open, before they go public."
+        body="Join the list and you'll hear when trips open, before they go public."
       />
     </main>
   );

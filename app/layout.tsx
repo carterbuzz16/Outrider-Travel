@@ -47,13 +47,13 @@ export const metadata: Metadata = {
     template: "%s · Outrider",
   },
   description:
-    "Small-group travel for college. Ski weeks and spring break, run end to end by the people who booked them.",
+    "Small-group trips for college friends. Telluride ski weeks and spring break, hosted start to finish by Outrider.",
   openGraph: {
     type: "website",
     siteName: "Outrider",
     title: "Outrider",
     description:
-      "Small-group travel for college. Ski weeks and spring break, run end to end by the people who booked them.",
+      "Small-group trips for college friends. Telluride ski weeks and spring break, hosted start to finish by Outrider.",
     // No `url` here. Anything inheriting this block would claim to live at
     // the root; pages set their own through lib/metadata.ts.
   },
@@ -61,7 +61,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Outrider",
     description:
-      "Small-group travel for college. Ski weeks and spring break, run end to end by the people who booked them.",
+      "Small-group trips for college friends. Telluride ski weeks and spring break, hosted start to finish by Outrider.",
   },
 };
 

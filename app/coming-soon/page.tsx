@@ -32,7 +32,7 @@ export default function Home() {
           <OutriderWordmark />
         </h1>
 
-        <p className={styles.tagline}>Small groups. Well scouted. Coming soon.</p>
+        <p className={styles.tagline}>Small groups. Well scouted. Telluride this winter.</p>
 
         <WaitlistForm />
       </div>
@@ -42,7 +42,7 @@ export default function Home() {
           viewBox="0 0 200 200"
           className={styles.badgeSpin}
           role="img"
-          aria-label="Coming soon — Winter 2026, Telluride"
+          aria-label="Coming soon. Winter 2026, Telluride"
         >
           {/* Full circle, so the text wraps continuously as it rotates. */}
           <path
