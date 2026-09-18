@@ -39,9 +39,13 @@ import { sendOverpaymentRefundEmail } from "@/lib/email/send";
  * with itself (the webhook and a page-load sync arriving together) and with
  * the handler for a different payment on the same booking:
  *
- *   - The refund is created with the idempotency key overpay-refund-<intent>,
- *     and an intent that already carries one of these refunds is never
- *     refunded again. One automatic refund per intent, at most.
+ *   - The refund is created with the idempotency key
+ *     overpay-refund-<intent>-<cents>, and an intent that already carries one
+ *     of these refunds is never refunded again. One automatic refund per
+ *     intent, at most. The amount is in the key because Stripe refuses a key
+ *     reused with different parameters: if a first attempt failed and the
+ *     booking's figures moved before the redelivery, the retry has to be able
+ *     to refund the new figure rather than fail on the old key for 24 hours.
  *   - The row is reduced before the refund is created, by a write conditional
  *     on the row being exactly as read. Only one caller wins that write, and
  *     only the winner refunds and emails.
@@ -174,7 +178,7 @@ export async function refundOverpayment(admin: Admin, bookingId: string, payment
         amount: cents,
         metadata: { reason: OVERPAYMENT_REFUND_REASON, bookingId },
       },
-      { idempotencyKey: `overpay-refund-${paymentIntent.id}` },
+      { idempotencyKey: `overpay-refund-${paymentIntent.id}-${cents}` },
     );
   } catch (err) {
     // The row goes back to what was taken. If the refund did in fact go

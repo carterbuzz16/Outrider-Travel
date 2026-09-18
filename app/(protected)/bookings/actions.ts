@@ -21,7 +21,7 @@ import { getOrCreateStripeCustomerId } from "@/lib/customers";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { resolveGroupCode } from "@/lib/group-code";
 import { recordAcceptance } from "@/lib/legal-acceptance";
-import { BOOKINGS_OPEN } from "@/lib/booking-window";
+import { BOOKINGS_OPEN, CHECKOUT_SANDBOX, isTestTrip } from "@/lib/booking-window";
 import { SMS_CONSENT_FIELD, SMS_CONSENT_VERSION } from "@/lib/sms-consent";
 
 export async function createBooking(formData: FormData) {
@@ -78,13 +78,21 @@ export async function createBooking(formData: FormData) {
   // clean "no longer available" error instead of an RLS-shaped one).
   const { data: tier, error: tierError } = await supabase
     .from("tiers")
-    .select("id, price, trip_id, trips!inner(status)")
+    .select("id, price, trip_id, trips!inner(status, name)")
     .eq("id", tierId)
     .eq("trip_id", tripId)
     .eq("trips.status", "published")
     .single();
 
   if (tierError || !tier) {
+    redirect("/bookings/new?error=That trip or tier is no longer available.");
+  }
+
+  // Test trips are published so the sandbox can book them, and hidden
+  // everywhere else. Hiding them is the page's job; this is the control, since
+  // a direct POST with a test tier's id would otherwise book one on the live
+  // site and take real money for a trip that does not exist.
+  if (isTestTrip(tier.trips.name) && !CHECKOUT_SANDBOX) {
     redirect("/bookings/new?error=That trip or tier is no longer available.");
   }
 
@@ -145,6 +153,23 @@ export async function createBooking(formData: FormData) {
     redirect(`/bookings/${openCheckout}/pay`);
   }
 
+  // Before the booking exists, not after: this is the Stripe call most likely
+  // to fail (an account carrying a customer id Stripe does not know, or Stripe
+  // being unreachable), and failing here leaves nothing behind. Failing after
+  // the insert used to strand a pending booking holding a place in the tier,
+  // with an acceptance record and no card form.
+  //
+  // setup_future_usage (below) attaches the payment method used here to this
+  // Customer on success, so the installment cron can charge it off-session
+  // later.
+  let stripeCustomerId: string;
+  try {
+    stripeCustomerId = await getOrCreateStripeCustomerId(admin, { id: user.id, email: user.email! });
+  } catch (err) {
+    console.error(`createBooking: no Stripe customer for user ${user.id}: ${err instanceof Error ? err.message : err}`);
+    redirect("/bookings/new?error=" + encodeURIComponent(CHECKOUT_FAILED_MESSAGE));
+  }
+
   const { data: booking, error: bookingError } = await admin
     .from("bookings")
     .insert({
@@ -195,51 +220,72 @@ export async function createBooking(formData: FormData) {
     redirect((await waitForCheckoutRow(admin, twin)) ? `/bookings/${twin}/pay` : "/bookings");
   }
 
-  // Before the PaymentIntent, deliberately. If this throws, the booking is
-  // still `pending` and no card has been charged, which is a far better
-  // failure than money taken against a booking with no record of what the
-  // traveler agreed to. recordAcceptance stores the document versions, not a
-  // boolean, so the exact text accepted can be reproduced later.
-  await recordAcceptance({ bookingId: booking.id, userId: user.id });
+  /*
+   * Everything from here to the redirect either all happens or is undone, so
+   * a failure part-way never leaves a pending booking holding a place in the
+   * tier with no card form behind it. The undo is abandonPendingBooking.
+   *
+   * The acceptance goes before the PaymentIntent, deliberately. If it fails,
+   * no card has been charged, which is a far better failure than money taken
+   * against a booking with no record of what the traveler agreed to.
+   * recordAcceptance stores the document versions, not a boolean, so the
+   * exact text accepted can be reproduced later.
+   *
+   * setup_future_usage attaches the card to the Customer on success, so the
+   * cron can charge installments off-session later. No separate SetupIntent is
+   * needed, since a real amount is being charged right now (a SetupIntent is
+   * for saving a card with no charge). A payment in full has no later
+   * charges, so its card is not kept.
+   */
+  let paymentIntent: Stripe.PaymentIntent | undefined;
+  let accepted = false;
+  try {
+    await recordAcceptance({ bookingId: booking.id, userId: user.id });
+    accepted = true;
 
-  // setup_future_usage attaches the payment method used here to the Stripe
-  // Customer on success, so the installment cron can charge it off-session
-  // later — no separate SetupIntent needed, since we're already charging a
-  // real amount right now (a SetupIntent is for saving a card with no
-  // charge, e.g. a $0 auth). A payment in full has no later charges, so its
-  // card is not kept.
-  const stripeCustomerId = await getOrCreateStripeCustomerId(admin, { id: user.id, email: user.email! });
+    // metadata.kind is how the webhook tells a deposit from a payment in full
+    // (see paymentKindOf in lib/payments.ts). bookingStatus is the status this
+    // path saw before creating the intent, which lib/overpayment.ts relies on to
+    // tell money taken on a live booking from money taken on a cancelled one.
+    //
+    // The idempotency key is per booking, so a retried request for this booking
+    // (a network retry inside the Stripe SDK, say) gets the same intent back
+    // rather than a second one.
+    const chargeCents = Math.round(chargeAmount * 100);
+    paymentIntent = await getStripe().paymentIntents.create(
+      {
+        amount: chargeCents,
+        currency: "usd",
+        customer: stripeCustomerId,
+        ...(plan === "deposit" ? { setup_future_usage: "off_session" as const } : {}),
+        automatic_payment_methods: { enabled: true },
+        metadata: { bookingId: booking.id, userId: user.id, kind: plan, bookingStatus: "pending" },
+      },
+      { idempotencyKey: `checkout-${booking.id}-${chargeCents}` },
+    );
 
-  // metadata.kind is how the webhook tells a deposit from a payment in full
-  // (see paymentKindOf in lib/payments.ts). bookingStatus is the status this
-  // path saw before creating the intent, which lib/overpayment.ts relies on to
-  // tell money taken on a live booking from money taken on a cancelled one.
-  //
-  // The idempotency key is per booking, so a retried request for this booking
-  // (a network retry inside the Stripe SDK, say) gets the same intent back
-  // rather than a second one.
-  const chargeCents = Math.round(chargeAmount * 100);
-  const paymentIntent = await getStripe().paymentIntents.create(
-    {
-      amount: chargeCents,
-      currency: "usd",
-      customer: stripeCustomerId,
-      ...(plan === "deposit" ? { setup_future_usage: "off_session" as const } : {}),
-      automatic_payment_methods: { enabled: true },
-      metadata: { bookingId: booking.id, userId: user.id, kind: plan, bookingStatus: "pending" },
-    },
-    { idempotencyKey: `checkout-${booking.id}-${chargeCents}` },
-  );
+    const { error: paymentError } = await admin.from("payments").insert({
+      booking_id: booking.id,
+      stripe_payment_intent_id: paymentIntent.id,
+      amount: chargeAmount,
+      status: "pending",
+    });
 
-  const { error: paymentError } = await admin.from("payments").insert({
-    booking_id: booking.id,
-    stripe_payment_intent_id: paymentIntent.id,
-    amount: chargeAmount,
-    status: "pending",
-  });
-
-  if (paymentError) {
-    throw new Error(paymentError.message);
+    if (paymentError) {
+      throw new Error(paymentError.message);
+    }
+  } catch (err) {
+    console.error(`createBooking: booking ${booking.id} could not be set up: ${err instanceof Error ? err.message : err}`);
+    // An intent with no row has no page to pay it on, so it must not stay
+    // payable. Cancelled before the booking goes, so a form somehow already
+    // open cannot take money for a booking that no longer holds a place.
+    if (paymentIntent) {
+      await getStripe()
+        .paymentIntents.cancel(paymentIntent.id)
+        .catch(() => undefined);
+    }
+    await abandonPendingBooking(admin, booking.id, { accepted });
+    redirect("/bookings/new?error=" + encodeURIComponent(CHECKOUT_FAILED_MESSAGE));
   }
 
   redirect(`/bookings/${booking.id}/pay`);
@@ -369,26 +415,15 @@ export async function startBalancePayment(formData: FormData) {
 
   // Newest first: the one to reuse, if any, is the latest.
   live.sort((a, b) => b.intent.created - a.intent.created);
-  let reuse: (typeof live)[number] | undefined = live.find(
-    (l) => Date.now() - l.intent.created * 1000 < BALANCE_REUSE_WINDOW_MS,
+  // Reused only for the same figure. A different one gets a fresh intent, and
+  // the old one is cancelled with the rest below rather than having its
+  // amount changed: its card form may still be open in another tab showing the
+  // old figure, and an intent whose amount moved underneath it would let that
+  // form confirm a charge for an amount it never displayed. A cancelled
+  // intent's form just stops working.
+  const reuse = live.find(
+    (l) => Date.now() - l.intent.created * 1000 < BALANCE_REUSE_WINDOW_MS && l.intent.amount === cents,
   );
-
-  if (reuse && reuse.intent.amount !== cents) {
-    // A different figure this time. Stripe lets an unpaid intent's amount be
-    // changed, and the card form reads it fresh when the page loads. If it
-    // will not take the change (the traveler is mid-way through their bank's
-    // check on it, say), the intent is replaced like any older one.
-    try {
-      await stripe.paymentIntents.update(reuse.intent.id, { amount: cents });
-      await admin
-        .from("payments")
-        .update({ amount: fromCents(cents) })
-        .eq("id", reuse.rowId)
-        .eq("status", "pending");
-    } catch {
-      reuse = undefined;
-    }
-  }
 
   for (const l of live) {
     if (l === reuse) continue;
@@ -402,28 +437,39 @@ export async function startBalancePayment(formData: FormData) {
     redirect(`/bookings/${booking.id}/balance/${reuse.rowId}`);
   }
 
-  const stripeCustomerId = await getOrCreateStripeCustomerId(admin, { id: user.id, email: user.email! });
+  // A Stripe failure here (unreachable, or refusing the request) goes back to
+  // the bookings page with a reason, like every other failure in this action,
+  // rather than to an error page. Nothing exists yet that needs undoing.
+  let paymentIntent: Stripe.PaymentIntent;
+  try {
+    const stripeCustomerId = await getOrCreateStripeCustomerId(admin, { id: user.id, email: user.email! });
 
-  // No setup_future_usage: the installments that remain keep coming off the
-  // card saved with the deposit, and this page says so. metadata.kind is what
-  // routes the webhook to settleBalancePayment, and bookingStatus is read by
-  // lib/overpayment.ts (see createBooking).
-  //
-  // The idempotency key catches two submits that both got past the reuse
-  // check above because neither had written its row yet: for the same
-  // booking and amount within the same couple of minutes, Stripe hands both
-  // the one intent. Two submits either side of a bucket boundary still get two
-  // intents; the check after the insert below handles those.
-  const paymentIntent = await stripe.paymentIntents.create(
-    {
-      amount: cents,
-      currency: "usd",
-      customer: stripeCustomerId,
-      automatic_payment_methods: { enabled: true },
-      metadata: { bookingId: booking.id, userId: user.id, kind: "balance", bookingStatus: booking.status },
-    },
-    { idempotencyKey: `balance-${booking.id}-${cents}-${Math.floor(Date.now() / BALANCE_IDEMPOTENCY_BUCKET_MS)}` },
-  );
+    // No setup_future_usage: the installments that remain keep coming off the
+    // card saved with the deposit, and this page says so. metadata.kind is what
+    // routes the webhook to settleBalancePayment, and bookingStatus is read by
+    // lib/overpayment.ts (see createBooking).
+    //
+    // The idempotency key catches two submits that both got past the reuse
+    // check above because neither had written its row yet: for the same
+    // booking and amount within the same couple of minutes, Stripe hands both
+    // the one intent. Two submits either side of a bucket boundary still get two
+    // intents; the check after the insert below handles those.
+    paymentIntent = await stripe.paymentIntents.create(
+      {
+        amount: cents,
+        currency: "usd",
+        customer: stripeCustomerId,
+        automatic_payment_methods: { enabled: true },
+        metadata: { bookingId: booking.id, userId: user.id, kind: "balance", bookingStatus: booking.status },
+      },
+      { idempotencyKey: `balance-${booking.id}-${cents}-${Math.floor(Date.now() / BALANCE_IDEMPOTENCY_BUCKET_MS)}` },
+    );
+  } catch (err) {
+    console.error(
+      `startBalancePayment: could not start a payment on booking ${booking.id}: ${err instanceof Error ? err.message : err}`,
+    );
+    fail("That did not start, and nothing was charged. Please try again in a couple of minutes.");
+  }
 
   const { data: row, error } = await admin
     .from("payments")
@@ -497,6 +543,40 @@ const BALANCE_REUSE_WINDOW_MS = 10 * 60 * 1000;
 // comes back later for the same amount after that intent was cancelled is not
 // handed the cancelled one again.
 const BALANCE_IDEMPOTENCY_BUCKET_MS = 2 * 60 * 1000;
+
+// Shown when checkout could not be set up. Nothing was charged and nothing
+// is held, so trying again is the right advice.
+const CHECKOUT_FAILED_MESSAGE = "We could not start your checkout. Nothing was charged. Please try again in a minute.";
+
+/**
+ * Undoes a pending booking createBooking could not finish.
+ *
+ * Deleted when nothing points at it yet. Once the acceptance is recorded it is
+ * never deleted (those rows are append-only evidence, and deleting the booking
+ * would either fail on them or take them with it), so it is cancelled instead,
+ * which frees its place in the tier just the same: the capacity trigger does
+ * not count cancelled bookings. A delete that fails (a payment row already
+ * points at it) falls back to the same. Both are conditional on the booking
+ * still being pending, so a payment that somehow landed is never undone.
+ */
+async function abandonPendingBooking(
+  admin: ReturnType<typeof createAdminClient>,
+  bookingId: string,
+  { accepted }: { accepted: boolean },
+) {
+  if (!accepted) {
+    const { error } = await admin.from("bookings").delete().eq("id", bookingId).eq("status", "pending");
+    if (!error) return;
+  }
+  const { error: cancelError } = await admin
+    .from("bookings")
+    .update({ status: "cancelled" })
+    .eq("id", bookingId)
+    .eq("status", "pending");
+  if (cancelError) {
+    console.error(`createBooking: could not undo pending booking ${bookingId}: ${cancelError.message}`);
+  }
+}
 
 // How recent a pending booking has to be to count as a duplicate submit.
 const DUPLICATE_BOOKING_WINDOW_MS = 10 * 60 * 1000;
@@ -663,13 +743,30 @@ export async function cancelBooking(formData: FormData) {
 
   const admin = createAdminClient();
 
-  const { error: bookingError } = await admin.from("bookings").update({ status: "cancelled" }).eq("id", bookingId);
+  // Conditional on the status read above still holding. Between that read and
+  // this write the deposit webhook can move the booking on, or the last
+  // installment can make it paid_in_full, and a paid_in_full booking is not
+  // one this button may cancel. No row back means it moved: same answer as if
+  // it had been in that state to begin with.
+  const { data: cancelled, error: bookingError } = await admin
+    .from("bookings")
+    .update({ status: "cancelled" })
+    .eq("id", bookingId)
+    .in("status", ["pending", "deposit_paid"])
+    .select("id");
   if (bookingError) {
     throw new Error(bookingError.message);
   }
+  if (!cancelled || cancelled.length === 0) {
+    redirect("/bookings?error=That booking can't be cancelled online. Get in touch and we'll sort it out.");
+  }
 
   // Stop the installment cron from charging a cancelled booking's
-  // remaining scheduled payments.
+  // remaining scheduled payments. Runs after the status write above, which is
+  // half of how a deposit webhook scheduling at this same moment is caught:
+  // scheduleInstallments writes its rows and then reads the status, this
+  // writes the status and then sweeps the rows, so whichever goes second sees
+  // the other and the rows end up canceled either way.
   const { error: paymentsError } = await admin
     .from("payments")
     .update({ status: "canceled" })

@@ -93,7 +93,10 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
   // flights, a roommate request and traveler details. Asked for here, at the
   // moment of booking, not days later by email. Null when the portal is
   // switched off (no PORTAL_TOKEN_SECRET), and then the block is left out.
-  const portalUrl = settled ? createPortalUrl(booking.id) : null;
+  // Never for a cancelled booking: the payment can still read as succeeded at
+  // Stripe (a card form paid just as the booking was cancelled), and a signed
+  // link to a trip the traveler is not going on is one that gets forwarded.
+  const portalUrl = settled && booking.status !== "cancelled" ? createPortalUrl(booking.id) : null;
 
   const installments = booking.payments
     .filter((p) => p.scheduled_date && p.status !== "canceled")

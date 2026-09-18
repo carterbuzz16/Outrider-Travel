@@ -3,7 +3,12 @@ import { timingSafeEqual, createHash } from "crypto";
 import Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { INSTALLMENT_RETRY_AFTER_DAYS, MAX_INSTALLMENT_ATTEMPTS } from "@/lib/payments";
+import {
+  INSTALLMENT_RETRY_AFTER_DAYS,
+  MAX_INSTALLMENT_ATTEMPTS,
+  flagInstallmentUncollectable,
+} from "@/lib/payments";
+import { STRIPE_MIN_CHARGE_CENTS } from "@/lib/balance";
 import { BALANCE_PAYMENT_HOLD_HOURS, balancePaymentOpen, reconcileInstallments } from "@/lib/installments";
 import { syncPaymentFromStripe, syncStalePayments } from "@/lib/stripe-sync";
 
@@ -20,12 +25,15 @@ function timingSafeStringEqual(a: string, b: string): boolean {
 
 // Triggered daily by Vercel Cron (see vercel.json). Finds installments that
 // are due (or due for a retry) and attempts an off-session charge against
-// the customer's saved payment method. Status/attempt_count are NOT set
-// here — Stripe stays the single source of truth, same as the rest of this
-// codebase, via the payment_intent.succeeded / payment_intent.payment_failed
-// webhook (see lib/payments.ts). This route only records that an attempt
-// was made (stripe_payment_intent_id, last_attempted_at), which the retry
-// gate below depends on.
+// the customer's saved payment method. For a charge Stripe actually attempts,
+// status/attempt_count are NOT set here — Stripe stays the single source of
+// truth, same as the rest of this codebase, via the payment_intent.succeeded /
+// payment_intent.payment_failed webhook (see lib/payments.ts), and this route
+// only records that an attempt was made (stripe_payment_intent_id,
+// last_attempted_at), which the retry gate below depends on. The exceptions
+// are the failures no webhook will ever report: a card or customer Stripe does
+// not have, an amount under its minimum, a request it refuses or never
+// answers. Those are counted or flagged here (flagInstallmentUncollectable).
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization") ?? "";
     /*
@@ -49,7 +57,12 @@ export async function GET(request: Request) {
   // First, settle anything Stripe took whose webhook never arrived (see
   // lib/stripe-sync.ts). Before charging, not after: an installment that was
   // in fact paid still looks due until its row says so.
-  await syncStalePayments();
+  //
+  // A day longer than the retry gap, so an attempt that died without this app
+  // learning its intent id (a timeout after Stripe acted, counted as a failed
+  // attempt below) is still inside the window when its retry comes due, and is
+  // settled rather than charged again under a new idempotency key.
+  await syncStalePayments({ days: INSTALLMENT_RETRY_AFTER_DAYS + 1 });
 
   const { data: due, error } = await admin
     .from("payments")
@@ -90,16 +103,12 @@ export async function GET(request: Request) {
   const stripe = getStripe();
   let attempted = 0;
 
-  // Per booking, once: whether its installments can be charged this run.
+  // Per booking, once: whether its installments can be charged this run, and
+  // whether its saved card can be.
   const clearToCharge = new Map<string, boolean>();
+  const cardByBooking = new Map<string, SavedCard>();
 
   for (const payment of eligible) {
-    const saved = paymentMethodByBooking.get(payment.booking_id);
-    if (!saved?.customerId || !saved.paymentMethodId) {
-      console.error(`charge-installments: booking ${payment.booking_id} has no saved payment method, skipping payment ${payment.id}`);
-      continue;
-    }
-
     // A row being retried already has an intent from the last attempt. If that
     // one actually went through (or is still going through) and nothing told
     // this app, charging again would take the installment twice. The
@@ -133,6 +142,35 @@ export async function GET(request: Request) {
     }
     if (!clearToCharge.get(payment.booking_id)) {
       console.error(`charge-installments: booking ${payment.booking_id} has a balance payment open, skipping payment ${payment.id} until the next run`);
+      continue;
+    }
+
+    /*
+     * The saved card has to exist, under these keys, on this customer. A card
+     * saved on the checkout sandbox is a test-mode id the live keys have never
+     * heard of; a card the traveler removed, or one left over from a customer
+     * lib/customers.ts has since replaced, is detached. Charging any of them
+     * fails the same way every time, so instead of skipping or failing the row
+     * daily for ever, it is flagged for the traveler to pay from the bookings
+     * page and for the admin to chase. If Stripe cannot be asked, the row
+     * waits for the next run.
+     */
+    if (!cardByBooking.has(payment.booking_id)) {
+      cardByBooking.set(payment.booking_id, await checkSavedCard(stripe, paymentMethodByBooking.get(payment.booking_id)));
+    }
+    const card = cardByBooking.get(payment.booking_id)!;
+    if (card.state === "unknown") {
+      console.error(`charge-installments: could not check the saved card on booking ${payment.booking_id}; payment ${payment.id} waits for the next run`);
+      continue;
+    }
+    if (card.state === "unusable") {
+      await flagInstallmentUncollectable(admin, {
+        paymentId: payment.id,
+        bookingId: payment.booking_id,
+        lastAttemptedAt: payment.last_attempted_at,
+        reason: card.reason,
+        notifyTraveler: true,
+      });
       continue;
     }
 
@@ -198,13 +236,33 @@ export async function GET(request: Request) {
       continue;
     }
 
+    /*
+     * Stripe will not charge under 50 cents, and would refuse this every day.
+     * validateBalanceAmount stops an early payment leaving so little owed, but
+     * an early payment that covers most of one installment can still leave a
+     * few cents on it, and older rows predate the check. Nobody was charged,
+     * so the traveler is not emailed; the row goes on the admin's list.
+     */
+    const cents = Math.round(claimed.amount * 100);
+    if (cents < STRIPE_MIN_CHARGE_CENTS) {
+      await flagInstallmentUncollectable(admin, {
+        paymentId: payment.id,
+        bookingId: payment.booking_id,
+        lastAttemptedAt: claimedAt,
+        reason: `$${(cents / 100).toFixed(2)} is under Stripe's minimum charge; collect or write it off by hand`,
+        notifyTraveler: false,
+      });
+      continue;
+    }
+
     attempted++;
     try {
       /*
        * The idempotency key is the safety net that matters here.
        *
-       * This route deliberately does not write `status` or `attempt_count`
-       * (Stripe is the source of truth, via the webhook), so between charging
+       * On a charge that reaches the card this route does not write `status`
+       * or `attempt_count` (Stripe is the source of truth, via the webhook),
+       * so between charging
        * and the webhook arriving the row still looks due. If the webhook is
        * delayed, misconfigured, or this endpoint is called twice, the same
        * installment would be charged again.
@@ -216,13 +274,12 @@ export async function GET(request: Request) {
        * a new attempt, and Stripe rejects a reused key sent with a different
        * amount rather than charging the new one.
        */
-      const cents = Math.round(claimed.amount * 100);
       const paymentIntent = await stripe.paymentIntents.create(
         {
           amount: cents,
           currency: "usd",
-          customer: saved.customerId,
-          payment_method: saved.paymentMethodId,
+          customer: card.customerId,
+          payment_method: card.paymentMethodId,
           off_session: true,
           confirm: true,
           metadata: {
@@ -240,22 +297,99 @@ export async function GET(request: Request) {
         .update({ stripe_payment_intent_id: paymentIntent.id, last_attempted_at: new Date().toISOString() })
         .eq("id", payment.id);
     } catch (err) {
-      const paymentIntentId =
-        err instanceof Stripe.errors.StripeCardError ? err.payment_intent?.id : undefined;
+      const message = err instanceof Error ? err.message : String(err);
+      const paymentIntentId = err instanceof Stripe.errors.StripeError ? err.payment_intent?.id : undefined;
+      console.error(`charge-installments: attempt failed for payment ${payment.id}: ${message}`);
 
-      await admin
-        .from("payments")
-        .update({
-          stripe_payment_intent_id: paymentIntentId ?? undefined,
-          last_attempted_at: new Date().toISOString(),
-        })
-        .eq("id", payment.id);
-
-      console.error(
-        `charge-installments: attempt failed for payment ${payment.id}: ${err instanceof Error ? err.message : err}`
-      );
+      if (err instanceof Stripe.errors.StripeCardError) {
+        // A decline or a bank's check. Stripe sends payment_intent.payment_failed
+        // for it, and that handler counts the attempt and decides on a retry.
+        await admin
+          .from("payments")
+          .update({
+            stripe_payment_intent_id: paymentIntentId ?? undefined,
+            last_attempted_at: new Date().toISOString(),
+          })
+          .eq("id", payment.id);
+      } else if (err instanceof Stripe.errors.StripeInvalidRequestError) {
+        // Stripe refused the request itself (a customer or card it does not
+        // have, a card on another customer, an amount it will not take). No
+        // webhook follows, and the same request fails the same way on every
+        // retry, so it is flagged now rather than retried.
+        await flagInstallmentUncollectable(admin, {
+          paymentId: payment.id,
+          bookingId: payment.booking_id,
+          lastAttemptedAt: claimedAt,
+          reason: `Stripe refused the charge: ${message}`,
+          notifyTraveler: true,
+          attemptCount: claimed.attempt_count + 1,
+          paymentIntentId,
+        });
+      } else {
+        // Stripe unreachable, rate limited, or erroring on its side. No
+        // webhook counts these, so they are counted here: one attempt each,
+        // retried after the usual gap, flagged once they reach the limit. The
+        // extra day on the sweep at the top of this route catches the case
+        // where Stripe did in fact charge before the error.
+        const attemptCount = claimed.attempt_count + 1;
+        if (attemptCount >= MAX_INSTALLMENT_ATTEMPTS) {
+          await flagInstallmentUncollectable(admin, {
+            paymentId: payment.id,
+            bookingId: payment.booking_id,
+            lastAttemptedAt: claimedAt,
+            reason: `${attemptCount} attempts failed without reaching the card: ${message}`,
+            notifyTraveler: true,
+            attemptCount,
+            paymentIntentId,
+          });
+        } else {
+          await admin
+            .from("payments")
+            .update({
+              attempt_count: attemptCount,
+              stripe_payment_intent_id: paymentIntentId ?? undefined,
+              last_attempted_at: new Date().toISOString(),
+            })
+            .eq("id", payment.id)
+            .eq("status", "scheduled")
+            .eq("last_attempted_at", claimedAt);
+        }
+      }
     }
   }
 
   return NextResponse.json({ attempted });
+}
+
+type SavedCard = { state: "ok"; customerId: string; paymentMethodId: string } | { state: "unusable"; reason: string } | { state: "unknown" };
+
+/**
+ * Whether the card saved on a booking's account can be charged off-session:
+ * it exists under the keys this deployment runs with, and is attached to the
+ * account's customer. Only a definite answer from Stripe counts as unusable;
+ * anything else is "unknown" and the row waits a day.
+ */
+async function checkSavedCard(
+  stripe: Stripe,
+  saved: { customerId: string | null; paymentMethodId: string | null } | undefined,
+): Promise<SavedCard> {
+  if (!saved?.customerId || !saved.paymentMethodId) {
+    return { state: "unusable", reason: "no saved card on the account" };
+  }
+  try {
+    const paymentMethod = await stripe.paymentMethods.retrieve(saved.paymentMethodId);
+    const owner = typeof paymentMethod.customer === "string" ? paymentMethod.customer : paymentMethod.customer?.id;
+    if (owner !== saved.customerId) {
+      return {
+        state: "unusable",
+        reason: `saved card ${saved.paymentMethodId} is not attached to customer ${saved.customerId}`,
+      };
+    }
+    return { state: "ok", customerId: saved.customerId, paymentMethodId: saved.paymentMethodId };
+  } catch (err) {
+    if (err instanceof Stripe.errors.StripeInvalidRequestError && err.code === "resource_missing") {
+      return { state: "unusable", reason: `Stripe has no saved card ${saved.paymentMethodId} (removed, or a test-mode id)` };
+    }
+    return { state: "unknown" };
+  }
 }

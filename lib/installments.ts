@@ -20,13 +20,16 @@ export async function scheduleInstallments(
   const remaining = Math.round((booking.total_amount - booking.deposit_amount) * 100) / 100;
   if (remaining <= 0) return;
 
-  const { data: trip } = await admin
-    .from("trips")
-    .select("start_date")
-    .eq("id", booking.trip_id)
-    .single();
+  // A booking cancelled while its deposit was confirming has nothing to
+  // collect. The caller's pending -> deposit_paid transition only proves the
+  // status at that instant, and the traveler can press cancel in between.
+  const [{ data: trip }, { data: current }] = await Promise.all([
+    admin.from("trips").select("start_date").eq("id", booking.trip_id).single(),
+    admin.from("bookings").select("status").eq("id", booking.id).single(),
+  ]);
 
-  if (!trip) return;
+  // A failed read is not a "no": the check after the insert still covers it.
+  if (!trip || (current && current.status !== "deposit_paid")) return;
 
   const n = INSTALLMENT_OFFSETS_DAYS.length;
   const base = Math.floor((remaining / n) * 100) / 100;
@@ -44,7 +47,24 @@ export async function scheduleInstallments(
     };
   });
 
-  await admin.from("payments").insert(rows);
+  const { data: inserted } = await admin.from("payments").insert(rows).select("id");
+
+  // The check above and the insert are two statements, so a cancellation can
+  // still land between them. cancelBooking writes the status and then cancels
+  // every scheduled row; this writes the rows and then reads the status. One
+  // of the two always runs second and sees the other, so no installment
+  // survives on a cancelled booking.
+  const { data: after } = await admin.from("bookings").select("status").eq("id", booking.id).single();
+  if (after?.status === "cancelled" && inserted && inserted.length > 0) {
+    await admin
+      .from("payments")
+      .update({ status: "canceled" })
+      .in(
+        "id",
+        inserted.map((r) => r.id),
+      )
+      .eq("status", "scheduled");
+  }
 }
 
 /*

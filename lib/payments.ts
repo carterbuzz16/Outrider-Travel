@@ -70,6 +70,10 @@ export function paymentKindOf(paymentIntent: Stripe.PaymentIntent): PaymentKind 
 // the full amount or back to `succeeded`.
 const SETTLED_STATUSES = '("succeeded","refunded")';
 
+// Rows that are finished one way or another: money moved, went back, or is no
+// longer being asked for. A late failure event must not reopen any of them.
+const CLOSED_STATUSES = '("succeeded","refunded","canceled")';
+
 /*
  * Every PaymentIntent carries { bookingId } in metadata, and a kind (see
  * paymentKindOf above):
@@ -143,27 +147,32 @@ async function settleInstallment(
   // installment an early payment has made redundant.
   await reconcileInstallments(admin, bookingId);
 
-  // Before the receipt, so the balance the receipt quotes is the one after any
-  // refund. Runs on every delivery: an earlier one may have died before here.
-  await refundOverpayment(admin, bookingId, paymentIntent);
+  // The receipt goes before the refund step, not after. It is gated on the
+  // transition above, which only the first delivery wins, and the refund step
+  // can throw to make Stripe deliver again; after it, a throw would have lost
+  // the receipt for good, since the redelivery finds the row already settled.
+  // The balance it quotes is the same either way: an overpaid booking owes
+  // nothing before its refund and after it.
+  if (settled) {
+    const context = await getBookingContext(admin, bookingId);
+    if (context?.users?.email) {
+      const remainingBalance = await getRemainingBalance(admin, bookingId, context.total_amount);
 
-  if (!settled) return;
-
-  const context = await getBookingContext(admin, bookingId);
-  if (context?.users?.email) {
-    const remainingBalance = await getRemainingBalance(admin, bookingId, context.total_amount);
-
-    await sendEmailSafely(() =>
-      sendInstallmentChargedEmail({
-        to: context.users!.email,
-        name: context.users!.name,
-        bookingId,
-        tripName: context.trips!.name,
-        amount: paymentIntent.amount / 100,
-        remainingBalance,
-      })
-    );
+      await sendEmailSafely(() =>
+        sendInstallmentChargedEmail({
+          to: context.users!.email,
+          name: context.users!.name,
+          bookingId,
+          tripName: context.trips!.name,
+          amount: paymentIntent.amount / 100,
+          remainingBalance,
+        })
+      );
+    }
   }
+
+  // Runs on every delivery: an earlier one may have died before here.
+  await refundOverpayment(admin, bookingId, paymentIntent);
 }
 
 async function settleBalancePayment(
@@ -212,34 +221,36 @@ async function settleBalancePayment(
   // finishes the job. It is idempotent (see lib/installments.ts).
   await reconcileInstallments(admin, bookingId);
 
+  // One receipt per payment: a redelivery after the email already went out
+  // finds the row succeeded, so `transitioned` is false. That is also why it
+  // goes before the refund step below, which can throw to have Stripe deliver
+  // again: the redelivery could never send a receipt lost after it.
+  //
+  // No "payment received" receipt on a cancelled booking: the payment is
+  // either refunded below, with its own email, or waiting on a person.
+  if (transitioned) {
+    const context = await getBookingContext(admin, bookingId);
+    if (context && context.status !== "cancelled" && context.users?.email) {
+      const remainingBalance = await getRemainingBalance(admin, bookingId, context.total_amount);
+
+      await sendEmailSafely(() =>
+        sendInstallmentChargedEmail({
+          to: context.users!.email,
+          name: context.users!.name,
+          bookingId,
+          tripName: context.trips!.name,
+          amount,
+          remainingBalance,
+          kind: "balance",
+        })
+      );
+    }
+  }
+
   // Returns anything this took the booking past its price, and decides what
   // happens to money that landed on a cancelled booking (lib/overpayment.ts
   // logs the cases a person has to look at).
   await refundOverpayment(admin, bookingId, paymentIntent);
-
-  const context = await getBookingContext(admin, bookingId);
-
-  // No "payment received" receipt on a cancelled booking: the payment was
-  // either refunded just above, with its own email, or is waiting on a person.
-  if (context?.status === "cancelled") return;
-
-  // One receipt per payment. A redelivery after the email already went out
-  // finds the row succeeded and stops here.
-  if (!transitioned || !context?.users?.email) return;
-
-  const remainingBalance = await getRemainingBalance(admin, bookingId, context.total_amount);
-
-  await sendEmailSafely(() =>
-    sendInstallmentChargedEmail({
-      to: context.users!.email,
-      name: context.users!.name,
-      bookingId,
-      tripName: context.trips!.name,
-      amount,
-      remainingBalance,
-      kind: "balance",
-    })
-  );
 }
 
 async function settleCheckoutPayment(
@@ -254,13 +265,25 @@ async function settleCheckoutPayment(
   // it off-session for installments later. A pay-in-full intent is created
   // without setup_future_usage (nothing is ever charged later), so its card
   // is not attached to the customer and there is nothing to save.
+  //
+  // Only while the account still points at the customer this intent charged:
+  // the card is attached to that customer and no other, and if
+  // getOrCreateStripeCustomerId has since replaced it (see lib/customers.ts),
+  // saving the card against the new one would hand the cron a card it cannot
+  // use.
   const userId = paymentIntent.metadata.userId;
-  if (kind === "deposit" && userId && paymentIntent.payment_method) {
+  const customerId =
+    typeof paymentIntent.customer === "string" ? paymentIntent.customer : paymentIntent.customer?.id;
+  if (kind === "deposit" && userId && customerId && paymentIntent.payment_method) {
     const paymentMethodId =
       typeof paymentIntent.payment_method === "string"
         ? paymentIntent.payment_method
         : paymentIntent.payment_method.id;
-    await admin.from("users").update({ stripe_default_payment_method_id: paymentMethodId }).eq("id", userId);
+    await admin
+      .from("users")
+      .update({ stripe_default_payment_method_id: paymentMethodId })
+      .eq("id", userId)
+      .eq("stripe_customer_id", customerId);
   }
 
   // Records the payment on its row from booking creation, whatever that row
@@ -302,14 +325,17 @@ async function settleCheckoutPayment(
     .select("id, trip_id, total_amount, deposit_amount")
     .maybeSingle();
 
+  // Before the refund step, which can throw to have Stripe deliver again. Only
+  // the delivery that won the transition above can schedule, so a throw ahead
+  // of this would have left a deposit_paid booking with no schedule at all.
+  if (booking && kind === "deposit") {
+    await scheduleInstallments(admin, booking);
+  }
+
   // A checkout charge is a booking's first, so this only does anything in the
   // unusual cases: the booking was cancelled while its card form was still
   // open, or it had somehow been paid already.
   await refundOverpayment(admin, bookingId, paymentIntent);
-
-  if (booking && kind === "deposit") {
-    await scheduleInstallments(admin, booking);
-  }
 
   // The confirmation email, once per booking whoever gets here first. Every
   // caller asks, not only the one that confirmed the booking above: the email
@@ -371,11 +397,18 @@ export async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentInt
   // a distinct event type — distinguish it from a real decline so it
   // doesn't count toward the retry/flag threshold and doesn't get
   // auto-retried off-session again (it would just fail the same way).
+  //
+  // Neither write below touches a row already settled. A failure event can
+  // arrive after the row has moved on for good (a later attempt succeeded and
+  // its webhook landed first, an early payment covered it, an automatic refund
+  // was recorded on it), and putting it back to requires_action or scheduled
+  // would ask the traveler for, or have the cron take, money already dealt with.
   if (paymentIntent.last_payment_error?.code === "authentication_required") {
     await admin
       .from("payments")
       .update({ status: "requires_action", stripe_payment_intent_id: paymentIntent.id })
-      .eq("id", paymentId);
+      .eq("id", paymentId)
+      .not("status", "in", CLOSED_STATUSES);
 
     // An early payment may already cover this installment. If so, reconcile
     // cancels it (and its intent), and there is nothing to ask the traveler
@@ -407,7 +440,8 @@ export async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentInt
   await admin
     .from("payments")
     .update({ status, attempt_count: attemptCount, stripe_payment_intent_id: paymentIntent.id })
-    .eq("id", paymentId);
+    .eq("id", paymentId)
+    .not("status", "in", CLOSED_STATUSES);
 
   // Same reasoning as above: no "payment failed" email for an installment an
   // early payment has since made unnecessary.
@@ -436,4 +470,76 @@ async function stillOwed(
 ) {
   const { data } = await admin.from("payments").select("status").eq("id", paymentId).maybeSingle();
   return data?.status === expected;
+}
+
+/**
+ * Stops the cron trying an installment it can never collect, and puts it in
+ * front of people instead.
+ *
+ * For the cases where trying again cannot help: no usable saved card (the
+ * card or the customer is gone at Stripe, or the card belongs to another
+ * customer, as with a test-mode id carried over from the checkout sandbox), an
+ * amount under Stripe's 50-cent minimum, or a request Stripe keeps refusing.
+ * The row becomes `failed`, which is the status that already means "the cron
+ * gave up": the admin's flagged list shows it, the bookings page tells the
+ * traveler it did not go through, and it still counts as owed, so a payment
+ * from the bookings page covers it (reconcileInstallments). Without this such a
+ * row stayed `scheduled` and was skipped, or failed, again every day, with
+ * nothing but a log line to show for it.
+ *
+ * Conditional on the row still being a scheduled installment with the
+ * last_attempted_at the caller holds, so it never writes over a row another
+ * run or a webhook has moved on. Returns whether it flagged the row.
+ */
+export async function flagInstallmentUncollectable(
+  admin: SupabaseClient<Database>,
+  opts: {
+    paymentId: string;
+    bookingId: string;
+    lastAttemptedAt: string | null;
+    reason: string;
+    // Whether to tell the traveler. Yes when a charge was expected and did not
+    // happen; no for a few leftover cents nobody tried to take.
+    notifyTraveler: boolean;
+    attemptCount?: number;
+    paymentIntentId?: string;
+  },
+): Promise<boolean> {
+  let update = admin
+    .from("payments")
+    .update({
+      status: "failed",
+      last_attempted_at: new Date().toISOString(),
+      ...(opts.attemptCount !== undefined ? { attempt_count: opts.attemptCount } : {}),
+      ...(opts.paymentIntentId ? { stripe_payment_intent_id: opts.paymentIntentId } : {}),
+    })
+    .eq("id", opts.paymentId)
+    .eq("status", "scheduled");
+  update = opts.lastAttemptedAt
+    ? update.eq("last_attempted_at", opts.lastAttemptedAt)
+    : update.is("last_attempted_at", null);
+  const { data: flagged } = await update.select("amount").maybeSingle();
+  if (!flagged) return false;
+
+  console.error(`Installment ${opts.paymentId} on booking ${opts.bookingId} flagged for a person: ${opts.reason}`);
+
+  // An early payment may already cover it, in which case reconcile cancels it
+  // and there is nothing to tell anyone.
+  await reconcileInstallments(admin, opts.bookingId);
+  if (!opts.notifyTraveler || !(await stillOwed(admin, opts.paymentId, "failed"))) return true;
+
+  const context = await getBookingContext(admin, opts.bookingId);
+  if (context?.users?.email) {
+    await sendEmailSafely(() =>
+      sendPaymentFailedEmail({
+        to: context.users!.email,
+        name: context.users!.name,
+        bookingId: opts.bookingId,
+        tripName: context.trips!.name,
+        amount: Number(flagged.amount),
+        willRetry: false,
+      })
+    );
+  }
+  return true;
 }

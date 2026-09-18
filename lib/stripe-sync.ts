@@ -125,27 +125,48 @@ export async function syncRecentPaymentsForUser(userId: string): Promise<number>
  * charges anything, so an installment that was in fact paid is not charged a
  * second time once its idempotency key has expired at Stripe.
  */
+// The most intents the sweep reads in one run. Every page is read, not just
+// the first: a single page of 100 used to be all it saw, so a busy few days
+// (abandoned card forms count too) could push a stale payment off the end and
+// the cron would charge its installment again. The cap only guards the run's
+// time limit, and says so in the log if it is ever reached.
+const SWEEP_MAX_INTENTS = 2000;
+
+// Ids per `.in()` filter, which travels in the URL.
+const IN_CHUNK = 100;
+
 export async function syncStalePayments({ days = 3 }: { days?: number } = {}): Promise<number> {
   try {
     const admin = createAdminClient();
-    const recent = await getStripe().paymentIntents.list({
-      created: { gte: Math.floor(Date.now() / 1000) - days * 24 * 60 * 60 },
-      limit: 100,
-    });
+    const recent = await getStripe()
+      .paymentIntents.list({
+        created: { gte: Math.floor(Date.now() / 1000) - days * 24 * 60 * 60 },
+        limit: 100,
+      })
+      .autoPagingToArray({ limit: SWEEP_MAX_INTENTS });
+    if (recent.length >= SWEEP_MAX_INTENTS) {
+      console.error(`syncStalePayments: read the first ${SWEEP_MAX_INTENTS} intents only; older ones in the window were not checked`);
+    }
 
-    const succeeded = recent.data.filter((pi) => pi.status === "succeeded" && pi.metadata.bookingId);
+    const succeeded = recent.filter((pi) => pi.status === "succeeded" && pi.metadata.bookingId);
     if (succeeded.length === 0) return 0;
 
-    const { data: rows } = await admin
-      .from("payments")
-      .select("stripe_payment_intent_id, status")
-      .in(
-        "stripe_payment_intent_id",
-        succeeded.map((pi) => pi.id),
-      );
-    const settledIds = new Set(
-      (rows ?? []).filter((r) => r.status === "succeeded" || r.status === "refunded").map((r) => r.stripe_payment_intent_id),
-    );
+    const settledIds = new Set<string | null>();
+    for (let i = 0; i < succeeded.length; i += IN_CHUNK) {
+      // A failed read leaves these looking unsettled, so their handlers run
+      // again. They are idempotent, and doing too much here is the safe side:
+      // doing too little is how an installment gets charged twice.
+      const { data: rows } = await admin
+        .from("payments")
+        .select("stripe_payment_intent_id, status")
+        .in(
+          "stripe_payment_intent_id",
+          succeeded.slice(i, i + IN_CHUNK).map((pi) => pi.id),
+        );
+      for (const r of rows ?? []) {
+        if (r.status === "succeeded" || r.status === "refunded") settledIds.add(r.stripe_payment_intent_id);
+      }
+    }
 
     const stale = succeeded.filter((pi) => !settledIds.has(pi.id));
     for (const pi of stale) {

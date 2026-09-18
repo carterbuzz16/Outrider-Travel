@@ -76,6 +76,13 @@ export function parseAmountInput(raw: string): number | null {
   return Number.isSafeInteger(cents) ? cents : null;
 }
 
+/**
+ * The smallest charge Stripe will make in USD, in cents. Below it a
+ * PaymentIntent is refused outright, so a balance or installment that small
+ * can never be collected by card.
+ */
+export const STRIPE_MIN_CHARGE_CENTS = 50;
+
 export function validateBalanceAmount(
   cents: number,
   owed: number,
@@ -83,12 +90,34 @@ export function validateBalanceAmount(
   if (owed <= 0) {
     return { ok: false, message: "Nothing is owed on this booking." };
   }
-  const minimum = minimumBalanceCents(owed);
+  // Only reachable on a booking already left owing a few cents by something
+  // older than this check. Stripe cannot take it, so a person has to.
+  if (owed < STRIPE_MIN_CHARGE_CENTS) {
+    return {
+      ok: false,
+      message: `The ${formatAmount(fromCents(owed))} left is too small to pay by card. Get in touch and we will sort it out.`,
+    };
+  }
+  const minimum = Math.max(minimumBalanceCents(owed), STRIPE_MIN_CHARGE_CENTS);
   if (cents < minimum) {
     return { ok: false, message: `The smallest payment we can take is ${formatAmount(fromCents(minimum))}.` };
   }
   if (cents > owed) {
     return { ok: false, message: `That is more than you owe. The balance is ${formatAmount(fromCents(owed))}.` };
+  }
+  // A payment that leaves a few cents behind leaves a balance nothing can ever
+  // collect: Stripe will not charge it, so the installment for it would sit
+  // failing until a person noticed. Refused here, before any money moves.
+  const left = owed - cents;
+  if (left > 0 && left < STRIPE_MIN_CHARGE_CENTS) {
+    const largest = owed - STRIPE_MIN_CHARGE_CENTS;
+    return {
+      ok: false,
+      message:
+        largest >= minimum
+          ? `That would leave ${formatAmount(fromCents(left))}, which is too small for us to charge later. Pay the full ${formatAmount(fromCents(owed))}, or no more than ${formatAmount(fromCents(largest))}.`
+          : `That would leave ${formatAmount(fromCents(left))}, which is too small for us to charge later. Pay the full ${formatAmount(fromCents(owed))} instead.`,
+    };
   }
   return { ok: true };
 }

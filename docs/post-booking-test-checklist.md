@@ -40,6 +40,26 @@ confirmation; the designed one is missing: ...`).
       variable, see `lib/site-url.ts`.) On a preview, leave it unset so links
       point at the preview itself.
 - [ ] **CRON_SECRET** set (already needed by the installment cron).
+- [ ] **Before launch: clear sandbox Stripe ids.** The sandbox runs on Stripe
+      test keys against the live database, so every account that checked out
+      on it has a test-mode customer (`cus_...`) and, after a deposit, a
+      test-mode card (`pm_...`) saved on its `users` row. The live keys have
+      never heard of either. The code copes (checkout replaces a customer
+      Stripe does not have, and the installment cron flags an installment whose
+      saved card it cannot use rather than retrying it), but clear them anyway
+      so no one starts live with a dead id. Run this yourself in the Supabase
+      SQL editor, **after** switching Vercel Production to live keys, with the
+      emails of the accounts actually used on the sandbox:
+
+      ```sql
+      update users
+      set stripe_customer_id = null,
+          stripe_default_payment_method_id = null
+      where email in ('you@example.com', 'teammate@example.com');
+      ```
+
+      Check the `where` before running it: a real traveler's row cleared by
+      mistake loses the card their installments are charged to.
 - [ ] **Legal name**: the opt-in copy says "Outrider LLC"; the site's legal name
       is "Outrider Travel, LLC" (`lib/site-content.ts`). Carriers want the
       checkbox, the site and the 10DLC brand registration to match exactly.
