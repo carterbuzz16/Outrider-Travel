@@ -3,7 +3,8 @@ import { Alert, Button, SectionDivider } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe";
 import { syncPaymentFromStripe } from "@/lib/stripe-sync";
-import { formatDateRange, formatPrice } from "@/lib/trips";
+import { formatDateRange } from "@/lib/trips";
+import { formatAmount } from "@/lib/balance";
 import CompleteAuthenticationForm from "@/components/CompleteAuthenticationForm";
 
 /**
@@ -66,7 +67,9 @@ export default async function InstallmentAuthenticationPage(
   }
 
   const trip = payment.bookings?.trips;
-  const amount = formatPrice(Number(payment.amount));
+  // To the cent, from the intent the bank is being asked to approve: that is
+  // the figure that comes off the card. formatPrice rounds to the dollar.
+  const amount = formatAmount(paymentIntent.amount / 100);
 
   return (
     <main>

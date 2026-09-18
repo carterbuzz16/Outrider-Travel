@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { syncPaymentFromStripe } from "@/lib/stripe-sync";
 import { formatDay } from "@/app/(protected)/dates";
 import { formatAmount, toCents } from "@/lib/balance";
-import { formatDateRange, formatPrice } from "@/lib/trips";
+import { formatDateRange } from "@/lib/trips";
 import { createPortalUrl } from "@/lib/portal-token";
 import { confirmationNumber } from "@/lib/confirmation-number";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -40,6 +40,15 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
     notFound();
   }
 
+  // A cancelled booking first, before anything else is worked out: its
+  // payment can still read as succeeded at Stripe (a card form paid as the
+  // booking was cancelled, or a late checkout refunded by lib/payments.ts),
+  // and nothing on this page may then say the place is held. Stripe is not
+  // asked either; there is nothing left to settle here.
+  if (booking.status === "cancelled") {
+    return <CancelledBooking booking={booking} />;
+  }
+
   /*
    * The deposit is the payment with no scheduled_date: installments are always
    * written with one (lib/installments.ts) and the deposit never is (see
@@ -57,7 +66,8 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
   const alreadySettled = booking.status === "deposit_paid" || booking.status === "paid_in_full";
   const deposit = alreadySettled
     ? undefined
-    : booking.payments.find((p) => p.scheduled_date === null && p.stripe_payment_intent_id);
+    : (booking.payments.find((p) => p.scheduled_date === null && p.stripe_payment_intent_id && p.status !== "canceled") ??
+      booking.payments.find((p) => p.scheduled_date === null && p.stripe_payment_intent_id));
 
   // Re-check with Stripe directly rather than trusting DB state, which may
   // lag behind if the webhook hasn't landed yet (e.g. no local forwarding, or
@@ -75,6 +85,11 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
   // so read it again rather than render the pending copy fetched above.
   if (!alreadySettled && status === "succeeded") {
     booking = (await loadBooking()).data ?? booking;
+    // Settling can end in a cancellation: a checkout paid after its hold, whose
+    // place had gone, is refunded and cancelled (lib/payments.ts).
+    if (booking.status === "cancelled") {
+      return <CancelledBooking booking={booking} />;
+    }
   }
 
   const settled = status === "succeeded";
@@ -97,10 +112,9 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
   // flights, a roommate request and traveler details. Asked for here, at the
   // moment of booking, not days later by email. Null when the portal is
   // switched off (no PORTAL_TOKEN_SECRET), and then the block is left out.
-  // Never for a cancelled booking: the payment can still read as succeeded at
-  // Stripe (a card form paid just as the booking was cancelled), and a signed
-  // link to a trip the traveler is not going on is one that gets forwarded.
-  const portalUrl = settled && booking.status !== "cancelled" ? createPortalUrl(booking.id) : null;
+  // A cancelled booking never gets here (CancelledBooking, above), so a signed
+  // link to a trip the traveler is not going on is never handed out.
+  const portalUrl = settled ? createPortalUrl(booking.id) : null;
 
   const installments = booking.payments
     .filter((p) => p.scheduled_date && p.status !== "canceled")
@@ -114,7 +128,7 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
   // A penthouse booking gets the group's fill progress and its invite link in
   // place of the plain group code block. Counts only; see getPenthouseProgress.
   const penthouse =
-    booking.status !== "cancelled" && booking.group_code
+    booking.group_code
       ? (await getPenthouseProgress(createAdminClient(), [booking])).get(booking.id)
       : undefined;
 
@@ -139,7 +153,7 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
               {settled
                 ? paidInFull
                   ? `${formatAmount(paid)} is in, the room is yours, and nothing more is owed. A confirmation is on its way to ${user.email}.`
-                  : `${formatPrice(depositAmount)} is in and the room is yours. A confirmation is on its way to ${user.email}.`
+                  : `${formatAmount(depositAmount)} is in and the room is yours. A confirmation is on its way to ${user.email}.`
                 : "Your bank has the charge and we are waiting on the result. This page updates on refresh, and nothing is owed twice."}
             </p>
           </div>
@@ -190,7 +204,7 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
             className="mt-8 border-t border-[--rule] pt-6"
             items={[
               { label: settled ? "Paid" : "Being charged", value: formatAmount(settled ? paid : fullPlan ? total : depositAmount) },
-              { label: "Left to pay", value: formatAmount(balanceLeft), note: `of ${formatPrice(total)}` },
+              { label: "Left to pay", value: formatAmount(balanceLeft), note: `of ${formatAmount(total)}` },
             ]}
           />
 
@@ -311,3 +325,68 @@ const NEXT_STEPS = [
     why: "They activate the travel insurance and get your rentals fitted before you land.",
   },
 ];
+
+type ConfirmationBooking = {
+  id: string;
+  total_amount: number;
+  trips: { name: string; destination: string; start_date: string; end_date: string } | null;
+  tiers: { name: string } | null;
+  payments: { status: string; amount: number }[];
+};
+
+/**
+ * A cancelled booking, said plainly: no "spot is held", no schedule, no trip
+ * page link. What was paid and kept is shown to the cent, and anything owed
+ * back is a person's to settle, so the page points at one.
+ */
+function CancelledBooking({ booking }: { booking: ConfirmationBooking }) {
+  const trip = booking.trips;
+  const kept = booking.payments
+    .filter((p) => p.status === "succeeded")
+    .reduce((sum, p) => sum + Math.round(Number(p.amount) * 100), 0);
+  return (
+    <main>
+      <section className="shell max-w-[48rem] pb-16 pt-12 md:pb-24 md:pt-20">
+        <p className="stamp-type text-[--text-muted]">Cancelled</p>
+        <h1 className="t-title mt-5 max-w-[18ch] text-[--text]">This booking is cancelled</h1>
+        <p className="mt-6 max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
+          It no longer holds a place on the trip, and nothing more will be taken from your card. If you
+          are owed a refund, we will be in touch by email. Questions,{" "}
+          <Link href="/contact" className="text-[--accent] decoration-[--accent]">
+            get in touch
+          </Link>
+          .
+        </p>
+
+        {trip && (
+          <Facts
+            className="mt-12"
+            items={[
+              { label: "Trip", value: trip.name },
+              { label: "Dates", value: formatDateRange(trip.start_date, trip.end_date) },
+              { label: "Package", value: booking.tiers?.name ?? "Standard" },
+              { label: "Confirmation", value: confirmationNumber(booking.id) },
+            ]}
+          />
+        )}
+        {kept > 0 && (
+          <Facts
+            size="l"
+            columns={2}
+            className="mt-8 border-t border-[--rule] pt-6"
+            items={[{ label: "Paid and not refunded", value: formatAmount(kept / 100) }]}
+          />
+        )}
+
+        <div className="mt-12 flex flex-wrap gap-3 border-t border-[--rule] pt-6">
+          <Button href="/bookings" variant="primary" size="md">
+            Go to your bookings
+          </Button>
+          <Button href="/trips" variant="ghost" size="md" className="ml-3 min-h-11">
+            Browse trips
+          </Button>
+        </div>
+      </section>
+    </main>
+  );
+}

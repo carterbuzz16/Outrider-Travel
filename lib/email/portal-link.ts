@@ -1,3 +1,4 @@
+import "server-only";
 import { Resend } from "resend";
 import { renderEmailLayout } from "@/lib/email/layout";
 import { PORTAL_TOKEN_TTL_SECONDS } from "@/lib/portal-token";

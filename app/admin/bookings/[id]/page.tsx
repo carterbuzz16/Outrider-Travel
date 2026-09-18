@@ -6,6 +6,7 @@ import { getAcceptances } from "@/lib/legal-acceptance";
 import { roomKeyFor } from "@/lib/room-media";
 import { confirmationNumber } from "@/lib/confirmation-number";
 import { isBookingId } from "@/lib/portal-token";
+import { ADMIN_ERRORS, ADMIN_ERROR_FALLBACK, ADMIN_MESSAGES, ADMIN_MESSAGE_FALLBACK, flashText } from "@/lib/flash";
 import BookingDetailView, { type DetailBooking, type GroupMember, type PenthouseClaim, type TravelerPii } from "./BookingDetailView";
 
 export const metadata: Metadata = {
@@ -69,8 +70,8 @@ export default async function AdminBookingPage(props: {
       penthouse={penthouse}
       pii={pii}
       showPii={searchParams.details === "show"}
-      message={searchParams.message}
-      error={searchParams.error}
+      message={flashText(ADMIN_MESSAGES, searchParams.message, ADMIN_MESSAGE_FALLBACK)}
+      error={flashText(ADMIN_ERRORS, searchParams.error, ADMIN_ERROR_FALLBACK)}
     />
   );
 }

@@ -117,7 +117,7 @@ export async function deleteTrip(formData: FormData) {
   const { error } = await admin.from("trips").delete().eq("id", tripId);
 
   if (error?.code === "23503") {
-    redirect(`/admin/trips/${tripId}?error=Remove this trip's tiers before deleting it.`);
+    redirect(`/admin/trips/${encodeURIComponent(tripId)}?error=remove_tiers_first`);
   }
   if (error) {
     throw new Error(error.message);
@@ -156,7 +156,7 @@ export async function deleteTier(formData: FormData) {
   const { error } = await admin.from("tiers").delete().eq("id", tierId);
 
   if (error?.code === "23503") {
-    redirect(`/admin/trips/${tripId}?error=This tier has bookings and can't be deleted.`);
+    redirect(`/admin/trips/${encodeURIComponent(tripId)}?error=tier_has_bookings`);
   }
   if (error) {
     throw new Error(error.message);
@@ -175,13 +175,13 @@ export async function uploadTripImage(formData: FormData) {
   const file = formData.get("image");
 
   if (!(file instanceof File) || file.size === 0) {
-    redirect(`/admin/trips/${tripId}?error=Choose an image file first.`);
+    redirect(`/admin/trips/${encodeURIComponent(tripId)}?error=image_missing`);
   }
   if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-    redirect(`/admin/trips/${tripId}?error=Only JPEG, PNG, or WebP images are allowed.`);
+    redirect(`/admin/trips/${encodeURIComponent(tripId)}?error=image_type`);
   }
   if (file.size > MAX_IMAGE_BYTES) {
-    redirect(`/admin/trips/${tripId}?error=Image must be under 5MB.`);
+    redirect(`/admin/trips/${encodeURIComponent(tripId)}?error=image_size`);
   }
 
   const admin = createAdminClient();

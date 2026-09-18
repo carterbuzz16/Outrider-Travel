@@ -17,6 +17,7 @@ import {
 import { countPenthouses, getRoomMedia, isTaken, tierGrouping } from "@/lib/room-media";
 import { BOOKINGS_OPEN, COMING_SOON_NOTE, TRIP_DETAILS_OPEN } from "@/lib/booking-window";
 import { getAppUrl } from "@/lib/site-url";
+import { pageMetadata } from "@/lib/metadata";
 import {
   availabilityLabel,
   formatDateRange,
@@ -59,12 +60,16 @@ export async function generateMetadata(
   // on. (This does not by itself fix the status — see the note above.)
   if (!trip) notFound();
 
-  return {
+  // Through pageMetadata so the share card (Open Graph, Twitter) is this
+  // trip's, not the root layout's: a departure is the page most often pasted
+  // into a group chat.
+  return pageMetadata({
     title: `${trip.name}, ${formatDateRange(trip.startDate, trip.endDate)}`,
     description:
       trip.description ??
       `${trip.name} in ${trip.destination}. ${nightCount(trip.startDate, trip.endDate)} nights, from ${formatPrice(trip.priceFrom)} per person.`,
-  };
+    path: `/trips/${trip.id}`,
+  });
 }
 
 export default async function TripDetailPage(props: { params: Promise<{ id: string }> }) {
@@ -334,7 +339,7 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
             </div>
           </div>
           {BOOKINGS_OPEN ? (
-            <Button href={soldOut ? "/contact" : "/bookings/new"} variant="primary" size="lg">
+            <Button href={soldOut ? "/contact" : bookingHref} variant="primary" size="lg">
               {soldOut ? "Get in touch" : "Reserve your spot"}
             </Button>
           ) : (

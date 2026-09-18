@@ -23,25 +23,36 @@ import { clientIp } from "@/lib/client-ip";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function login(formData: FormData) {
-  const email = String(formData.get("email") ?? "");
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
   const next = safePath(formData.get("next"), "/bookings");
 
-  // Keyed by email, not IP: the thing worth throttling is guesses against
-  // one account, and IP-based limiting has its own problems (shared
-  // NAT/proxy IPs punishing unrelated users).
-  const allowed = await checkRateLimit(`login:${email.toLowerCase()}`, 5, 15 * 60);
-  if (!allowed) {
-    redirect(
-      `/login?error=${encodeURIComponent("Too many login attempts. Try again in a few minutes.")}&next=${encodeURIComponent(next)}`
-    );
+  // Two buckets. Per email: guesses against one account, however many
+  // addresses they come from; trimmed and lowercased so "A@x.com " is not a
+  // fresh bucket. Per IP: one source spraying a common password across many
+  // accounts, which the email bucket alone never sees. The IP cap is loose
+  // (a campus or a phone carrier puts many people behind one address) and it
+  // is the only thing between one machine and the whole user list.
+  const [emailAllowed, ipAllowed] = await Promise.all([
+    checkRateLimit(`login:${email}`, 5, 15 * 60),
+    checkRateLimit(`login-ip:${await clientIp()}`, 30, 15 * 60),
+  ]);
+  if (!emailAllowed || !ipAllowed) {
+    redirect(`/login?error=rate_limited&next=${encodeURIComponent(next)}`);
   }
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`);
+    // A code, never Supabase's own text: the login page shows a fixed sentence
+    // for each (lib/flash.ts), so nothing on the URL is ever printed as is.
+    const code = /invalid login credentials/i.test(error.message)
+      ? "invalid_credentials"
+      : /email not confirmed/i.test(error.message)
+        ? "email_not_confirmed"
+        : "login_failed";
+    redirect(`/login?error=${code}&next=${encodeURIComponent(next)}`);
   }
 
   revalidatePath("/", "layout");
@@ -49,7 +60,10 @@ export async function login(formData: FormData) {
 }
 
 export async function signup(formData: FormData) {
-  const name = String(formData.get("name") ?? "");
+  // Capped to the users_name_length constraint (limit_user_name_phone
+  // migration): handle_new_user copies this into public.users, and an over-long
+  // name would fail that insert and with it the whole signup.
+  const name = String(formData.get("name") ?? "").trim().slice(0, 120);
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
   const confirmation = String(formData.get("confirm_password") ?? "");
@@ -140,11 +154,7 @@ export async function signup(formData: FormData) {
   // No session yet means the project requires email confirmation before
   // the account can log in.
   if (!data.session) {
-    redirect(
-      `/login?message=${encodeURIComponent(
-        "Check your email for a confirmation link, then log in. If it does not arrive, you can send it again below."
-      )}&${nextQuery}`
-    );
+    redirect(`/login?message=check_email&${nextQuery}`);
   }
 
   redirect(next);
@@ -167,14 +177,12 @@ export async function resendConfirmation(formData: FormData) {
   const nextQuery = `next=${encodeURIComponent(next)}`;
 
   if (!EMAIL_PATTERN.test(email)) {
-    redirect(`/login?error=${encodeURIComponent("Enter a valid email address.")}&${nextQuery}`);
+    redirect(`/login?error=invalid_email&${nextQuery}`);
   }
 
   const allowed = await checkRateLimit(`resend:${(await clientIp())}`, 3, 15 * 60);
   if (!allowed) {
-    redirect(
-      `/login?error=${encodeURIComponent("Too many requests. Try again in a few minutes.")}&${nextQuery}`
-    );
+    redirect(`/login?error=too_many_requests&${nextQuery}`);
   }
 
   const supabase = await createClient();
@@ -195,11 +203,7 @@ export async function resendConfirmation(formData: FormData) {
     console.error("Resend confirmation failed:", error.message);
   }
 
-  redirect(
-    `/login?message=${encodeURIComponent(
-      "If that address has an account waiting to be confirmed, a new link is on its way."
-    )}&${nextQuery}`
-  );
+  redirect(`/login?message=confirmation_resent&${nextQuery}`);
 }
 
 /**
@@ -287,9 +291,7 @@ export async function resetPassword(formData: FormData) {
   await supabase.auth.signOut();
   revalidatePath("/", "layout");
 
-  redirect(
-    `/login?message=${encodeURIComponent("Your password is changed. Log in with the new one.")}`
-  );
+  redirect("/login?message=password_changed");
 }
 
 export async function logout() {

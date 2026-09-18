@@ -16,6 +16,9 @@ import { INSTALLMENT_OFFSETS_DAYS } from "@/lib/installments";
 import { countPenthouses, getRoomMedia, tierGrouping } from "@/lib/room-media";
 import { CONTACT } from "@/lib/site-content";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { BOOKINGS_OPEN } from "@/lib/booking-window";
+import { hasDeparted } from "@/lib/mountain-time";
+import { checkoutErrorText } from "@/lib/flash";
 import { clientIp } from "@/lib/client-ip";
 import {
   availabilityLabel,
@@ -45,6 +48,19 @@ export default async function NewBookingPage(props: {
   searchParams: Promise<{ error?: string; trip?: string; package?: string; group?: string }>;
 }) {
   const searchParams = await props.searchParams;
+
+  // Not on sale yet: nothing to choose, so no packages and no trip lookups.
+  // createBooking refuses too, and sends anyone who posts anyway back here.
+  if (!BOOKINGS_OPEN) {
+    return (
+      <main>
+        <div className="shell max-w-[76rem] pb-20 pt-8 md:pb-28 md:pt-12">
+          <OpensSoon />
+        </div>
+      </main>
+    );
+  }
+
   const requestedId = searchParams.trip;
   const requested = requestedId ? await getPublishedTrip(requestedId) : null;
   const trips: PublicTrip[] = requested ? [requested] : await getPublishedTrips();
@@ -71,11 +87,18 @@ export default async function NewBookingPage(props: {
         ? { state: "not-penthouse" }
         : { state: "unknown" };
 
-  const alerts = (searchParams.error || requestMissed) && (
+  // ?error= is a code (lib/flash.ts), never text to show as it stands. A
+  // penthouse held by another group is named from the package in the link,
+  // looked up on the trip, not taken from the query string.
+  const wantedPackage = searchParams.package?.trim().toLowerCase();
+  const namedTier = trip?.tiers.find((t) => t.id === wantedPackage || t.name.trim().toLowerCase() === wantedPackage);
+  const errorText = checkoutErrorText(searchParams.error, namedTier?.name);
+
+  const alerts = (errorText || requestMissed) && (
     <div className="mt-8 flex flex-col gap-4">
-      {searchParams.error && (
+      {errorText && (
         <Alert tone="warning" title="That did not go through">
-          {searchParams.error}
+          {errorText}
         </Alert>
       )}
       {requestMissed && (
@@ -225,11 +248,17 @@ function Packages({
     };
   });
 
-  const open = tiers.filter((t) => !t.soldOut);
+  // A departure that is closed as a whole (it leaves today or has left, or
+  // every place is gone) offers nothing, whatever a single tier's count says.
+  // createBooking refuses a departed trip as well.
+  const departed = hasDeparted(trip.startDate);
+  const open = departed || trip.status === "soldOut" ? [] : tiers.filter((t) => !t.soldOut);
   if (open.length === 0) {
     return (
       <div className="flex flex-col items-start gap-5 border border-[--rule] bg-[--surface-raised] p-6 md:p-10">
-        <h2 className="t-subheading text-[--text]">Every package on these dates is taken</h2>
+        <h2 className="t-subheading text-[--text]">
+          {departed ? "These dates are no longer taking bookings" : "Every package on these dates is taken"}
+        </h2>
         <p className="max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
           Another departure may still have room.
         </p>
@@ -343,6 +372,27 @@ function NothingOpen() {
       <Button href="/contact" variant="primary" size="md">
         Get in touch
       </Button>
+    </div>
+  );
+}
+
+/** Before bookings open: where to look meanwhile, instead of packages nobody can buy. */
+function OpensSoon() {
+  return (
+    <div className="mt-10 flex flex-col items-start gap-6 border border-[--rule] bg-[--surface-raised] px-6 py-14 md:px-10 md:py-16">
+      <h1 className="t-heading max-w-[22ch] text-[--text]">Booking opens soon</h1>
+      <p className="max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
+        The dates, the packages and the pricing are final, and we will be taking spots shortly. Join the
+        waitlist to hear the moment it opens.
+      </p>
+      <div className="flex flex-wrap gap-3">
+        <Button href="/telluride" variant="primary" size="md">
+          See the trip
+        </Button>
+        <Button href="/waitlist" variant="secondary" size="md">
+          Join the waitlist
+        </Button>
+      </div>
     </div>
   );
 }

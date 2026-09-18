@@ -1,3 +1,4 @@
+import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Calls the check_rate_limit Postgres function (see the rate_limiting

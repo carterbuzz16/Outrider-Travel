@@ -11,6 +11,7 @@ import {
   type TierClaim,
 } from "@/lib/tier-claims";
 import { toSnapshot, type PenthouseSnapshot } from "@/lib/penthouse";
+import { hasDeparted } from "@/lib/mountain-time";
 
 /**
  * Public trip data.
@@ -281,17 +282,13 @@ function toPublicTrip(row: TripRow, taken: Map<string, number>, claims: Map<stri
  * survives a booking landing between render and read.
  */
 function deriveStatus(spotsLeft: number | null, startDate: string): TripStatus {
-  if (isPast(startDate)) return "soldOut";
+  // A departure that leaves today or has left takes no more bookings
+  // (createBooking refuses it too), so it reads as closed everywhere.
+  if (hasDeparted(startDate)) return "soldOut";
   if (spotsLeft === null) return "open";
   if (spotsLeft <= 0) return "soldOut";
   if (spotsLeft <= 6) return "few";
   return "open";
-}
-
-function isPast(date: string): boolean {
-  const today = new Date();
-  const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  return date < todayIso;
 }
 
 /**

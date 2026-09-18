@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { ADMIN_ERRORS, ADMIN_ERROR_FALLBACK, flashText } from "@/lib/flash";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/admin";
 import TripEditor from "./TripEditor";
@@ -35,5 +36,5 @@ export default async function AdminTripDetailPage(
     notFound();
   }
 
-  return <TripEditor trip={trip} error={searchParams.error} />;
+  return <TripEditor trip={trip} error={flashText(ADMIN_ERRORS, searchParams.error, ADMIN_ERROR_FALLBACK)} />;
 }

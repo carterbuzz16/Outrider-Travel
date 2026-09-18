@@ -4,6 +4,7 @@ import { use } from "react";
 import Link from "next/link";
 import { Alert, Button, Field, Input, Logo } from "@/components/ui";
 import { login, resendConfirmation } from "@/app/auth/actions";
+import { LOGIN_ERRORS, LOGIN_MESSAGES, flashText } from "@/lib/flash";
 
 /*
  * Client component, and only for one reason: `Field` takes its control as a
@@ -47,23 +48,6 @@ function destination(searchParams: Record<string, string | string[] | undefined>
   return rebuilt ? `${path}?${rebuilt}` : path;
 }
 
-/**
- * Supabase's own error strings are terse and occasionally leak implementation
- * ("Invalid login credentials"). Rewrite the ones a customer will actually hit;
- * anything unrecognised still renders inside an Alert with a heading rather
- * than as a bare line of text.
- */
-function describeError(raw: string): string {
-  if (/invalid login credentials/i.test(raw)) {
-    return "That email and password do not match an account. Check both, or create an account if this is your first trip.";
-  }
-  if (/email not confirmed/i.test(raw)) {
-    return "Confirm your email first. The link is in the message we sent when you signed up.";
-  }
-  // Rate-limit copy is ours already (app/auth/actions.ts), so it passes through.
-  return raw;
-}
-
 export default function LoginPage(
   props: {
     searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -71,8 +55,11 @@ export default function LoginPage(
 ) {
   const searchParams = use(props.searchParams);
   const next = destination(searchParams);
-  const error = typeof searchParams.error === "string" ? searchParams.error : undefined;
-  const message = typeof searchParams.message === "string" ? searchParams.message : undefined;
+  // Both arrive as codes (app/auth/actions.ts) and are looked up in
+  // lib/flash.ts. Nothing from the URL is printed as it stands: a link to our
+  // own login page must not be able to put its own words in our alert.
+  const error = flashText(LOGIN_ERRORS, searchParams.error, LOGIN_ERRORS.login_failed);
+  const message = flashText(LOGIN_MESSAGES, searchParams.message);
 
   // Someone who clicked "Reserve your spot" needs to know why a form appeared
   // between them and the trip they picked.
@@ -104,7 +91,7 @@ export default function LoginPage(
             )}
             {error && (
               <Alert tone="error" title="We could not log you in">
-                {describeError(error)}
+                {error}
               </Alert>
             )}
           </div>

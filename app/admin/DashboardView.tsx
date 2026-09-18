@@ -59,11 +59,16 @@ export default function DashboardView({
   bookings,
   today,
   penthouses = [],
+  message,
+  error,
 }: {
   bookings: DashboardBooking[];
   today: string;
   /** Group-exclusive tiers on upcoming trips, with their bookings. */
   penthouses?: DashboardPenthouse[];
+  /** The result of a booking action, already mapped from its code. */
+  message?: string;
+  error?: string;
 }) {
   const unfilled = penthouses.filter((p) => penthouseStatus(p).fill?.state === "expired").length;
   // Everything below is derived from the rows already fetched, so the figure
@@ -106,6 +111,17 @@ export default function DashboardView({
           </>
         }
       />
+
+      {message && (
+        <div className="mt-6">
+          <Alert tone="success">{message}</Alert>
+        </div>
+      )}
+      {error && (
+        <div className="mt-6">
+          <Alert tone="error">{error}</Alert>
+        </div>
+      )}
 
       <div className="mt-8 grid grid-cols-2 gap-x-8 gap-y-6 lg:grid-cols-4">
         <Figure

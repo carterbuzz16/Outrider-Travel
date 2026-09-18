@@ -1,3 +1,4 @@
+import "server-only";
 import { Resend } from "resend";
 import { renderEmailLayout, formatCurrency, formatDate } from "@/lib/email/layout";
 // One implementation, shared with the Supabase auth redirects in

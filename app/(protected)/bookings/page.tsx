@@ -5,6 +5,7 @@ import BookingsView, { type BookingRow } from "./BookingsView";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPenthouseProgress } from "@/lib/tier-claims";
 import { toSnapshot } from "@/lib/penthouse";
+import { ACCOUNT_ERRORS, ACCOUNT_ERROR_FALLBACK, flashText } from "@/lib/flash";
 
 /**
  * The account dashboard: a thin loader in front of BookingsView.
@@ -68,7 +69,8 @@ export default async function BookingsPage(props: { searchParams: Promise<{ erro
       email={user.email ?? ""}
       name={name}
       bookings={rows}
-      error={searchParams.error}
+      // A code, turned into words here; the query string never carries a sentence.
+      error={flashText(ACCOUNT_ERRORS, searchParams.error, ACCOUNT_ERROR_FALLBACK)}
     />
   );
 }

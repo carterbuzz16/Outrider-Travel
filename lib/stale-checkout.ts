@@ -4,6 +4,8 @@ import type { Database } from "@/types/supabase";
 import { getStripe } from "@/lib/stripe";
 import { CLAIM_PENDING_WINDOW_MS, parseDbTimestamp } from "@/lib/penthouse";
 import { activeBookingFilter, claimMatches, getTierClaims } from "@/lib/tier-claims";
+import { OPEN_INTENT_STATUSES } from "@/lib/stripe-intents";
+import { CHECKOUT_ERRORS } from "@/lib/flash";
 
 type Admin = SupabaseClient<Database>;
 
@@ -70,6 +72,52 @@ export function isStalePending(booking: Pick<PendingBooking, "status" | "created
   return created !== null && created.getTime() <= now - CLAIM_PENDING_WINDOW_MS;
 }
 
+type ConflictBooking = {
+  id: string;
+  tier_id: string;
+  group_code: string | null;
+  tiers: { max_capacity: number | null; group_exclusive: boolean } | null;
+};
+
+/**
+ * Whether the tier still has room for this booking as it stands now, not
+ * counting the booking itself: "claimed" when it is a penthouse held by a
+ * different group code, "full" when the paid and fresh pending bookings on it
+ * already fill max_capacity, null when it fits. Call it only for a booking that
+ * is not itself holding anything (past its window): a booking that holds the
+ * claim would otherwise find itself.
+ *
+ * A read error answers null (fits): this is a courtesy check layered over the
+ * trigger, and a failed read should not cancel anyone's booking.
+ */
+export async function staleConflict(admin: Admin, booking: ConflictBooking): Promise<"full" | "claimed" | null> {
+  const tier = booking.tiers;
+
+  if (tier?.group_exclusive) {
+    // This booking is past the window, so it is not part of any active claim
+    // itself: whoever holds the penthouse now, if anyone, is someone else. It
+    // may still be its own group (a friend's booking), which is fine.
+    const claim = (await getTierClaims(admin, [booking.tier_id])).get(booking.tier_id);
+    if (claim && !claimMatches(claim, booking.group_code)) return "claimed";
+  }
+
+  if (tier?.max_capacity != null) {
+    const { count, error } = await admin
+      .from("bookings")
+      .select("id", { count: "exact", head: true })
+      .eq("tier_id", booking.tier_id)
+      .neq("id", booking.id)
+      .or(activeBookingFilter());
+    if (error) {
+      console.error(`staleConflict(${booking.id}): ${error.code} ${error.message}`);
+      return null;
+    }
+    if ((count ?? 0) >= tier.max_capacity) return "full";
+  }
+
+  return null;
+}
+
 /**
  * Whether a stale pending booking may still be paid, releasing it if not.
  * A booking that is not stale (or not pending) is always ok here. On a read
@@ -84,41 +132,18 @@ export async function recheckStaleCheckout(admin: Admin, bookingId: string): Pro
     .maybeSingle();
   if (!booking || !isStalePending(booking)) return { ok: true };
 
-  const tier = booking.tiers;
-  let reason: "full" | "claimed" | null = null;
-
-  if (tier?.group_exclusive) {
-    // This booking is past the window, so it is not part of any active claim
-    // itself: whoever holds the penthouse now, if anyone, is someone else. It
-    // may still be its own group (a friend's booking), which is fine.
-    const claim = (await getTierClaims(admin, [booking.tier_id])).get(booking.tier_id);
-    if (claim && !claimMatches(claim, booking.group_code)) reason = "claimed";
-  }
-
-  if (!reason && tier?.max_capacity != null) {
-    const { count, error } = await admin
-      .from("bookings")
-      .select("id", { count: "exact", head: true })
-      .eq("tier_id", booking.tier_id)
-      .neq("id", booking.id)
-      .or(activeBookingFilter());
-    if (error) {
-      console.error(`recheckStaleCheckout(${booking.id}): ${error.code} ${error.message}`);
-      return { ok: true };
-    }
-    if ((count ?? 0) >= tier.max_capacity) reason = "full";
-  }
-
+  const reason = await staleConflict(admin, booking);
   if (!reason) return { ok: true };
 
   // The form must stop working before the booking stops holding anything. If
   // Stripe will not cancel (the card is already going through), the money is
-  // moving and the webhook settles it; leave the booking for that, and for a
-  // person to sort the overfill.
+  // moving and the webhook settles it; leave the booking for that.
+  // settleCheckoutPayment (lib/payments.ts) runs this same check when the
+  // money lands, and refunds it if the place is still gone.
   if (!(await cancelCheckoutIntents(admin, booking.id))) {
     console.error(
       `recheckStaleCheckout: booking ${booking.id} is past its hold and its tier is ${reason}, ` +
-        `but its payment is already moving. Left for the webhook; check the tier for an overfill.`,
+        `but its payment is already moving. Left for the webhook, which re-checks on settlement.`,
     );
     return { ok: true };
   }
@@ -126,28 +151,39 @@ export async function recheckStaleCheckout(admin: Admin, bookingId: string): Pro
   return { ok: false, reason, tripId: booking.trip_id, tierId: booking.tier_id };
 }
 
+/**
+ * Releases a traveler's own pending checkout that is being replaced: its card
+ * forms cancelled at Stripe first, then the booking abandoned. False, with
+ * nothing released, if a payment on it is already moving money.
+ */
+export async function releasePendingCheckout(admin: Admin, bookingId: string): Promise<boolean> {
+  if (!(await cancelCheckoutIntents(admin, bookingId))) return false;
+  await abandonPendingBooking(admin, bookingId);
+  return true;
+}
+
 /** What the traveler reads when their stale checkout was released. */
 export function staleCheckoutMessage(reason: "full" | "claimed"): string {
-  return reason === "claimed"
-    ? "Your checkout was open for more than 30 minutes, and in that time another group booked this penthouse. Nothing was charged. Choose again to carry on."
-    : "Your checkout was open for more than 30 minutes, and in that time the last place in this package was taken. Nothing was charged. Choose again to carry on.";
+  return CHECKOUT_ERRORS[staleCheckoutCode(reason)];
 }
 
-/** Where "choose again" goes: the booking page for the same trip. */
-export function chooseAgainPath(tripId: string, message?: string): string {
-  const query = `trip=${encodeURIComponent(tripId)}` + (message ? `&error=${encodeURIComponent(message)}` : "");
+/** The ?error= code for a released checkout (see lib/flash.ts). */
+export function staleCheckoutCode(reason: "full" | "claimed"): "stale_claimed" | "stale_full" {
+  return reason === "claimed" ? "stale_claimed" : "stale_full";
+}
+
+/** Where "choose again" goes: the booking page for the same trip, with an error code if given. */
+export function chooseAgainPath(tripId: string, code?: string): string {
+  const query = `trip=${encodeURIComponent(tripId)}` + (code ? `&error=${encodeURIComponent(code)}` : "");
   return `/bookings/new?${query}`;
 }
-
-// Stripe states in which an intent can still take a card.
-const OPEN_INTENT_STATUSES: readonly string[] = ["requires_payment_method", "requires_confirmation", "requires_action"];
 
 /**
  * Cancels every open checkout intent on the booking and marks its row.
  * True once none of them can take money; false if one is already moving
  * (processing, succeeded) or Stripe could not be reached.
  */
-async function cancelCheckoutIntents(admin: Admin, bookingId: string): Promise<boolean> {
+export async function cancelCheckoutIntents(admin: Admin, bookingId: string): Promise<boolean> {
   const { data: rows } = await admin
     .from("payments")
     .select("id, stripe_payment_intent_id")

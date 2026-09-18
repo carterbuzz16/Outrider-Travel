@@ -73,6 +73,17 @@ export async function joinWaitlist(
     return { ok: false, message: "Too many attempts. Try again later." };
   }
 
+  // Someone who unsubscribed stays unsubscribed. A signup form is not consent
+  // from the address's owner (anyone can type anyone's email), so it must not
+  // undo an unsubscribe, here or in the Resend audience. They get the same
+  // answer as everyone else, so the form cannot be used to learn who is on the
+  // list or who left it; to come back they use the link in an old email, or
+  // write to us. On a failed read this carries on as before: a lost signup is
+  // worse than the rare re-add the insert below would refuse anyway.
+  if (await isUnsubscribed(email)) {
+    return { ok: true };
+  }
+
   // Two independent destinations, written concurrently so the visitor waits
   // on the slower one rather than the sum. The table is the durable record
   // we control; the Resend audience is what the list actually gets mailed
@@ -159,19 +170,29 @@ async function storeSignup(
 
   if (!error) return { ok: true, isNew: true, token: data?.unsubscribe_token };
 
-  // Signing up twice is a normal thing for someone to do, not a failure.
+  // Signing up twice is a normal thing for someone to do, not a failure. The
+  // row is left as it is: in particular an unsubscribe is never cleared from
+  // here (see isUnsubscribed above).
   if (error.code === UNIQUE_VIOLATION) {
-    // Someone who left and came back is opting in again, so clear the flag
-    // rather than leaving them marked unsubscribed and silently unreachable.
-    await createAdminClient()
-      .from("waitlist_signups")
-      .update({ unsubscribed_at: null })
-      .eq("email", email);
     return { ok: true, isNew: false };
   }
 
   console.error(`Waitlist insert failed: ${error.code} — ${error.message}`);
   return { ok: false, isNew: false };
+}
+
+/** True when this address is on the list and has unsubscribed. */
+async function isUnsubscribed(email: string): Promise<boolean> {
+  const { data, error } = await createAdminClient()
+    .from("waitlist_signups")
+    .select("unsubscribed_at")
+    .eq("email", email)
+    .maybeSingle();
+  if (error) {
+    console.error(`Waitlist unsubscribe lookup failed: ${error.code} — ${error.message}`);
+    return false;
+  }
+  return Boolean(data?.unsubscribed_at);
 }
 
 async function addToAudience(email: string): Promise<boolean> {
@@ -183,11 +204,13 @@ async function addToAudience(email: string): Promise<boolean> {
 
   // Resend renamed audiences to "segments"; same objects, same ids, and the
   // SDK still takes one under `audienceId`. A repeat address is upserted
-  // onto the existing contact rather than returning an error.
+  // onto the existing contact rather than returning an error. `unsubscribed`
+  // is left out rather than sent as false, so a repeat signup never flips a
+  // contact who unsubscribed through Resend back on; a new contact starts
+  // subscribed either way.
   const { error } = await contactsClient().contacts.create({
     audienceId,
     email,
-    unsubscribed: false,
   });
 
   if (error) {

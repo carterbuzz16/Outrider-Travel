@@ -86,10 +86,7 @@ export default async function BalancePaymentPage(props: {
     // Replaced by a newer attempt, or the booking has moved on (cancelled, or
     // paid off some other way). Either way this card form must not take money.
     if (payment.status !== "pending" || booking.status !== "deposit_paid" || paymentIntent.status === "canceled") {
-      redirect(
-        "/bookings?error=" +
-          encodeURIComponent("That payment is no longer open. Start a new one from your booking if you still want to pay."),
-      );
+      redirect("/bookings?error=payment_closed");
     }
   }
 
@@ -100,10 +97,7 @@ export default async function BalancePaymentPage(props: {
   // went through). Paying the old figure then would pay more than is owed, so
   // the traveler starts again from the current number instead.
   if (!received && !processing && toCents(amount) > owedBefore) {
-    redirect(
-      "/bookings?error=" +
-        encodeURIComponent("Your balance has changed since you started this payment. Start a new one from your booking."),
-    );
+    redirect("/bookings?error=balance_changed");
   }
   const schedule = previewSchedule(booking.payments, toCents(amount));
 

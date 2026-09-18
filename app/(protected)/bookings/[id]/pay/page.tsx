@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { RoomPanel, ScheduleTable } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { chooseAgainPath, isStalePending, recheckStaleCheckout, staleCheckoutMessage } from "@/lib/stale-checkout";
+import { chooseAgainPath, isStalePending, recheckStaleCheckout, staleCheckoutCode } from "@/lib/stale-checkout";
 import { getStripe } from "@/lib/stripe";
 import { INSTALLMENT_OFFSETS_DAYS } from "@/lib/installments";
 import { paymentKindOf } from "@/lib/payments";
@@ -49,7 +49,7 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, status, created_at, total_amount, deposit_amount, trips(name, destination, start_date, end_date), tiers(name, price, group_exclusive), payments(stripe_payment_intent_id, scheduled_date)"
+      "id, status, created_at, total_amount, deposit_amount, trips(name, destination, start_date, end_date), tiers(name, price, group_exclusive), payments(status, stripe_payment_intent_id, scheduled_date)"
     )
     .eq("id", params.id)
     .single();
@@ -62,9 +62,12 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
     redirect(`/bookings/${booking.id}/confirmation`);
   }
 
-  // The checkout row: the one with no scheduled date. A pending booking has no
-  // other, but reading it by shape rather than position costs nothing.
-  const payment = booking.payments.find((p) => p.scheduled_date === null && p.stripe_payment_intent_id);
+  // The checkout row: the one with no scheduled date. Read by shape rather
+  // than position. A checkout whose plan was switched (createBooking carries
+  // the booking on and replaces its card form) also has the old row, marked
+  // canceled, so the live one is preferred.
+  const checkoutRows = booking.payments.filter((p) => p.scheduled_date === null && p.stripe_payment_intent_id);
+  const payment = checkoutRows.find((p) => p.status !== "canceled") ?? checkoutRows[0];
   if (!payment?.stripe_payment_intent_id) {
     notFound();
   }
@@ -85,7 +88,7 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
   // overfill the tier with (lib/stale-checkout.ts). Otherwise it carries on.
   if (isStalePending(booking)) {
     const stale = await recheckStaleCheckout(createAdminClient(), booking.id);
-    if (!stale.ok) redirect(chooseAgainPath(stale.tripId, staleCheckoutMessage(stale.reason)));
+    if (!stale.ok) redirect(chooseAgainPath(stale.tripId, staleCheckoutCode(stale.reason)));
   }
 
   const trip = booking.trips;

@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/admin";
 import DashboardView from "./DashboardView";
+import { ADMIN_ERRORS, ADMIN_ERROR_FALLBACK, ADMIN_MESSAGES, ADMIN_MESSAGE_FALLBACK, flashText } from "@/lib/flash";
 
 // No dynamic route segment, so without this Next attempts to prerender it
 // at build time — executing createAdminClient() along the way, which
@@ -13,7 +14,10 @@ export const dynamic = "force-dynamic";
 // there's no "admins can read all bookings/payments" RLS policy yet — this
 // is a read-only internal report, not a privileged write, so that's an
 // acceptable use of the same admin client the checkout flow already relies on.
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage(props: {
+  searchParams: Promise<{ message?: string; error?: string }>;
+}) {
+  const searchParams = await props.searchParams;
   // Checked here as well as in the layout: on a client navigation Next can
   // render a page segment without re-running the layout above it.
   await requireAdmin();
@@ -36,5 +40,15 @@ export default async function AdminDashboardPage() {
     .eq("group_exclusive", true)
     .gte("trips.start_date", today);
 
-  return <DashboardView bookings={bookings ?? []} today={today} penthouses={penthouses ?? []} />;
+  return (
+    <DashboardView
+      bookings={bookings ?? []}
+      today={today}
+      penthouses={penthouses ?? []}
+      // Codes only; see lib/flash.ts. What the cancel and remove buttons
+      // report back when they land here.
+      message={flashText(ADMIN_MESSAGES, searchParams.message, ADMIN_MESSAGE_FALLBACK)}
+      error={flashText(ADMIN_ERRORS, searchParams.error, ADMIN_ERROR_FALLBACK)}
+    />
+  );
 }

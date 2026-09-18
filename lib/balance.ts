@@ -83,27 +83,35 @@ export function parseAmountInput(raw: string): number | null {
  */
 export const STRIPE_MIN_CHARGE_CENTS = 50;
 
+/**
+ * Which rule a balance amount broke. Server actions redirect with this code
+ * rather than the sentence (see lib/flash.ts); the sentence, with its figures,
+ * is for anything that renders the result directly.
+ */
+export type BalanceProblem = "nothing_owed" | "balance_too_small" | "below_minimum" | "over_balance" | "leaves_remainder";
+
 export function validateBalanceAmount(
   cents: number,
   owed: number,
-): { ok: true } | { ok: false; message: string } {
+): { ok: true } | { ok: false; message: string; code: BalanceProblem } {
   if (owed <= 0) {
-    return { ok: false, message: "Nothing is owed on this booking." };
+    return { ok: false, code: "nothing_owed", message: "Nothing is owed on this booking." };
   }
   // Only reachable on a booking already left owing a few cents by something
   // older than this check. Stripe cannot take it, so a person has to.
   if (owed < STRIPE_MIN_CHARGE_CENTS) {
     return {
       ok: false,
+      code: "balance_too_small",
       message: `The ${formatAmount(fromCents(owed))} left is too small to pay by card. Get in touch and we will sort it out.`,
     };
   }
   const minimum = Math.max(minimumBalanceCents(owed), STRIPE_MIN_CHARGE_CENTS);
   if (cents < minimum) {
-    return { ok: false, message: `The smallest payment we can take is ${formatAmount(fromCents(minimum))}.` };
+    return { ok: false, code: "below_minimum", message: `The smallest payment we can take is ${formatAmount(fromCents(minimum))}.` };
   }
   if (cents > owed) {
-    return { ok: false, message: `That is more than you owe. The balance is ${formatAmount(fromCents(owed))}.` };
+    return { ok: false, code: "over_balance", message: `That is more than you owe. The balance is ${formatAmount(fromCents(owed))}.` };
   }
   // A payment that leaves a few cents behind leaves a balance nothing can ever
   // collect: Stripe will not charge it, so the installment for it would sit
@@ -113,6 +121,7 @@ export function validateBalanceAmount(
     const largest = owed - STRIPE_MIN_CHARGE_CENTS;
     return {
       ok: false,
+      code: "leaves_remainder",
       message:
         largest >= minimum
           ? `That would leave ${formatAmount(fromCents(left))}, which is too small for us to charge later. Pay the full ${formatAmount(fromCents(owed))}, or no more than ${formatAmount(fromCents(largest))}.`

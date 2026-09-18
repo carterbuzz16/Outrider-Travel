@@ -54,7 +54,7 @@ export async function GET(request: Request) {
   // person needs is another link.
   const failure = recovery
     ? `/forgot-password?error=${encodeURIComponent("That reset link has expired or has already been used. Request a new one.")}`
-    : `/login?error=${encodeURIComponent("We could not confirm that link. It may have expired. Try again, or log in.")}`;
+    : "/login?error=link_failed";
 
   const supabase = await createClient();
 

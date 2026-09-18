@@ -1,3 +1,4 @@
+import "server-only";
 import type Stripe from "stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { reconcileInstallments, scheduleInstallments } from "@/lib/installments";
@@ -12,6 +13,9 @@ import { sendConfirmationEmailOnce } from "@/lib/email/post-booking";
 import { sendPenthouseFullEmailsFor } from "@/lib/email/penthouse";
 import { sendNewBookingAlert } from "@/lib/email/admin-alerts";
 import { hasAcceptedAll } from "@/lib/legal-acceptance";
+import { getStripe } from "@/lib/stripe";
+import { isStalePending, staleConflict } from "@/lib/stale-checkout";
+import { sendStaleCheckoutRefundEmail } from "@/lib/email/stale-checkout";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 
@@ -262,6 +266,10 @@ async function settleCheckoutPayment(
   paymentIntent: Stripe.PaymentIntent,
   kind: "deposit" | "full",
 ) {
+  // A checkout paid after its 30-minute hold, whose place has gone since, is
+  // refunded and cancelled rather than confirmed. See settleStaleCheckout.
+  if (await settleStaleCheckout(admin, bookingId, paymentIntent)) return;
+
   // Money should never reach a booking before its traveler agreed to the Terms
   // and the Assumption of Risk: CheckoutForm records that (acceptTermsForBooking)
   // before it confirms the card. If a payment lands without it anyway (a form
@@ -368,6 +376,138 @@ async function settleCheckoutPayment(
   // A penthouse this payment just filled tells its whole group. A no-op for
   // every other booking; claimed per recipient, so safe from any caller.
   await sendEmailSafely(() => sendPenthouseFullEmailsFor(admin, bookingId));
+}
+
+/** Marks the automatic refunds settleStaleCheckout makes, so a redelivery can find them. */
+const STALE_CHECKOUT_REFUND_REASON = "stale_checkout";
+
+/**
+ * The last line against a stale checkout taking a place it no longer has.
+ *
+ * A pending booking holds its bed (and a penthouse's claim) for 30 minutes
+ * (lib/stale-checkout.ts). Its card form is re-checked on the pay page and
+ * just before the card is confirmed, but money can still land later: a bank
+ * that takes its time over 3-D Secure, a form confirmed outside the page, or a
+ * check that passed a second before someone else took the last bed. Confirmed
+ * blindly, that payment would overfill the tier or put a second group into a
+ * penthouse, and because the claim goes to the earliest active booking by
+ * created_at, an old booking paid late would even take the penthouse from the
+ * group that holds it.
+ *
+ * So when a checkout payment lands on a booking that is still pending and past
+ * its window, the tier is checked again as it is now (the same staleConflict
+ * the pay page uses). If it still fits, the payment settles as normal. If not,
+ * the payment is refunded in full, the booking is cancelled, and the traveler
+ * gets a short apology. Returns true when it handled the payment that way (or
+ * finds it already did), so the caller confirms nothing.
+ *
+ * Safe to run again: the refund is looked up by its metadata before one is
+ * made, and made with an idempotency key; the row and booking writes are
+ * conditional; only the caller that cancels the booking sends the email. A
+ * throw (Stripe unreachable) makes the webhook answer 500 and Stripe redeliver,
+ * and the booking stays pending and holding nothing in the meantime.
+ *
+ * What is left: the check is a read outside the capacity trigger's lock, so a
+ * new checkout inserted in the same instant can still pass it. That ends one
+ * over at worst, the same residual lib/stale-checkout.ts describes.
+ */
+async function settleStaleCheckout(
+  admin: SupabaseClient<Database>,
+  bookingId: string,
+  paymentIntent: Stripe.PaymentIntent,
+): Promise<boolean> {
+  if (paymentIntent.status !== "succeeded") return false;
+
+  const { data: booking } = await admin
+    .from("bookings")
+    .select("id, status, trip_id, tier_id, group_code, created_at, tiers(max_capacity, group_exclusive)")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (!booking) return false;
+
+  const stripe = getStripe();
+  const findOwnRefund = async () =>
+    (await stripe.refunds.list({ payment_intent: paymentIntent.id, limit: 100 })).data.find(
+      (r) => r.metadata?.reason === STALE_CHECKOUT_REFUND_REASON && r.status !== "failed" && r.status !== "canceled",
+    );
+
+  let reason: "full" | "claimed";
+  if (booking.status === "cancelled") {
+    // Only ours if this path already refunded it (a redelivery after the
+    // cancel). A booking cancelled any other way is lib/overpayment.ts's.
+    const refund = await findOwnRefund();
+    if (!refund) return false;
+    reason = refund.metadata?.stale_reason === "claimed" ? "claimed" : "full";
+  } else {
+    if (!isStalePending(booking)) return false;
+    const conflict = await staleConflict(admin, booking);
+    if (!conflict) return false;
+    reason = conflict;
+
+    if (!(await findOwnRefund())) {
+      await stripe.refunds.create(
+        {
+          payment_intent: paymentIntent.id,
+          metadata: { reason: STALE_CHECKOUT_REFUND_REASON, stale_reason: reason, bookingId },
+        },
+        { idempotencyKey: `stale-refund-${paymentIntent.id}` },
+      );
+    }
+  }
+
+  // The row records that the money came and went back. Written as refunded
+  // straight away, never as succeeded first, so no "what has cleared" sum ever
+  // counts it.
+  const amount = paymentIntent.amount / 100;
+  const paidAt = new Date().toISOString();
+  const { data: marked } = await admin
+    .from("payments")
+    .update({ status: "refunded", amount, paid_at: paidAt })
+    .eq("stripe_payment_intent_id", paymentIntent.id)
+    .neq("status", "refunded")
+    .select("id");
+  if (!marked || marked.length === 0) {
+    await admin.from("payments").upsert(
+      {
+        booking_id: bookingId,
+        stripe_payment_intent_id: paymentIntent.id,
+        amount,
+        status: "refunded",
+        paid_at: paidAt,
+      },
+      { onConflict: "stripe_payment_intent_id", ignoreDuplicates: true },
+    );
+  }
+
+  const { data: cancelled } = await admin
+    .from("bookings")
+    .update({ status: "cancelled" })
+    .eq("id", bookingId)
+    .eq("status", "pending")
+    .select("id")
+    .maybeSingle();
+
+  if (cancelled) {
+    console.error(
+      `STALE CHECKOUT REFUNDED: ${paymentIntent.id} ($${amount.toFixed(2)}) landed on booking ${bookingId} after its ` +
+        `30-minute hold, and its tier is now ${reason === "claimed" ? "held by another group" : "full"}. ` +
+        `Refunded in full and the booking cancelled; the traveler has been emailed.`,
+    );
+    const context = await getBookingContext(admin, bookingId);
+    if (context?.users?.email) {
+      await sendEmailSafely(() =>
+        sendStaleCheckoutRefundEmail({
+          to: context.users!.email,
+          name: context.users!.name,
+          tripId: booking.trip_id,
+          tripName: context.trips?.name ?? "your trip",
+          amount,
+          reason,
+        }),
+      );
+    }
+  }
+  return true;
 }
 
 export async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {

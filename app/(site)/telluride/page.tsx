@@ -692,7 +692,15 @@ export default async function TelluridePage() {
           <div className="shell flex flex-col items-start gap-8 py-20 md:py-28">
             <Reveal>
               <h2 id="close-heading" className="t-title max-w-[16ch] text-[--text]">
-                {openTrips.length > 0 ? "Pick your week" : "Both weeks are full"}
+                {openTrips.length > 0
+                  ? "Pick your week"
+                  : trips.length === 0
+                    ? "New dates coming soon"
+                    : trips.length === 1
+                      ? "This week is full"
+                      : trips.length === 2
+                        ? "Both weeks are full"
+                        : "Every week is full"}
               </h2>
             </Reveal>
             <Reveal delay={90}>

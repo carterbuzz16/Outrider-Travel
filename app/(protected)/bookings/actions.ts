@@ -20,20 +20,29 @@ import { syncPaymentFromStripe } from "@/lib/stripe-sync";
 import { getOrCreateStripeCustomerId } from "@/lib/customers";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { resolveGroupCode } from "@/lib/group-code";
-import { activeBookingFilter, claimMatches, getTierClaims } from "@/lib/tier-claims";
+import { claimMatches, getTierClaims, normalizeGroupCode } from "@/lib/tier-claims";
 import { hasAcceptedAll, recordAcceptance } from "@/lib/legal-acceptance";
 import {
   abandonPendingBooking,
+  cancelCheckoutIntents,
   chooseAgainPath,
+  isStalePending,
   recheckStaleCheckout,
+  releasePendingCheckout,
   staleCheckoutMessage,
 } from "@/lib/stale-checkout";
 import { BOOKINGS_OPEN, CHECKOUT_SANDBOX, isTestTrip } from "@/lib/booking-window";
+import { hasDeparted } from "@/lib/mountain-time";
+import { OPEN_INTENT_STATUSES, cancelOpenIntent } from "@/lib/stripe-intents";
+import type { AccountErrorCode, CheckoutErrorCode } from "@/lib/flash";
 
 export async function createBooking(formData: FormData) {
   const tripId = String(formData.get("tripId") ?? "");
   const tierId = String(formData.get("tierId") ?? "");
   const requestedGroupCode = String(formData.get("group_code") ?? "").trim() || null;
+  // Where a failure sends the traveler back to: the same trip, package and
+  // group code, so they land where they were rather than on a blank start.
+  const back = { tripId, tierId, groupCode: requestedGroupCode };
   // Neither the terms nor the text-message opt-in is asked for here any more.
   // The terms are agreed to in the one box on the payment step, recorded by
   // acceptTermsForBooking before the card is confirmed; texts are opted into
@@ -46,18 +55,16 @@ export async function createBooking(formData: FormData) {
   // which means the deposit, the only plan there was.
   const requestedPlan = String(formData.get("payment_plan") ?? "deposit");
   if (!isPaymentPlan(requestedPlan)) {
-    redirect("/bookings/new?error=" + encodeURIComponent("Choose the deposit or paying in full."));
+    checkoutError("invalid_plan", back);
   }
   const plan: PaymentPlan = requestedPlan;
 
   // Bookings are not open yet. Checked here as well as in the UI, because a
   // hidden button is presentation, not a control: this action is a POST
-  // endpoint that anyone can call directly.
+  // endpoint that anyone can call directly. /bookings/new shows its "opens
+  // soon" state whenever this is false, so that is where this goes.
   if (!BOOKINGS_OPEN) {
-    redirect(
-      "/trips?error=" +
-        encodeURIComponent("Booking is not open yet. Dates and pricing are final; we will be taking spots shortly."),
-    );
+    redirect("/bookings/new?error=closed");
   }
 
   const supabase = await createClient();
@@ -74,7 +81,7 @@ export async function createBooking(formData: FormData) {
   // loop hammering tier capacity / creating Stripe PaymentIntents.
   const allowed = await checkRateLimit(`booking:${user.id}`, 10, 60 * 60);
   if (!allowed) {
-    redirect("/bookings/new?error=Too many booking attempts. Please try again in a bit.");
+    checkoutError("rate_limited", back);
   }
 
   // Re-fetch the tier server-side rather than trusting a client-supplied
@@ -83,14 +90,14 @@ export async function createBooking(formData: FormData) {
   // clean "no longer available" error instead of an RLS-shaped one).
   const { data: tier, error: tierError } = await supabase
     .from("tiers")
-    .select("id, name, price, trip_id, group_exclusive, trips!inner(status, name)")
+    .select("id, name, price, trip_id, group_exclusive, trips!inner(status, name, start_date)")
     .eq("id", tierId)
     .eq("trip_id", tripId)
     .eq("trips.status", "published")
     .single();
 
   if (tierError || !tier) {
-    redirect("/bookings/new?error=That trip or tier is no longer available.");
+    checkoutError("unavailable", { tripId, groupCode: requestedGroupCode });
   }
 
   // Test trips are published so the sandbox can book them, and hidden
@@ -98,7 +105,16 @@ export async function createBooking(formData: FormData) {
   // a direct POST with a test tier's id would otherwise book one on the live
   // site and take real money for a trip that does not exist.
   if (isTestTrip(tier.trips.name) && !CHECKOUT_SANDBOX) {
-    redirect("/bookings/new?error=That trip or tier is no longer available.");
+    checkoutError("unavailable", back);
+  }
+
+  // A trip that leaves today, or has left, takes no new bookings. The pages
+  // show it as closed (lib/trips.ts); this is the control, for the same reason
+  // as BOOKINGS_OPEN above. Mountain Time, where the trips are, not the
+  // server's UTC. Only new bookings: an existing booking's balance and
+  // installments are not touched by this.
+  if (hasDeparted(tier.trips.start_date)) {
+    checkoutError("departed", { tripId });
   }
 
   /*
@@ -112,14 +128,13 @@ export async function createBooking(formData: FormData) {
   const totalAmount = plan === "full" ? computePayInFullAmount(tier.price) : tier.price;
   const depositAmount = computeDepositAmount(totalAmount);
   const chargeAmount = plan === "full" ? totalAmount : depositAmount;
+  const chargeCents = Math.round(chargeAmount * 100);
 
   // Stripe will not take less than 50 cents. Only reachable with a tier priced
   // at or under the pay-in-full discount, which is a data-entry slip, not a
   // free trip.
-  if (Math.round(chargeAmount * 100) < 50) {
-    redirect(
-      "/bookings/new?error=" + encodeURIComponent("That package cannot be paid for online. Get in touch and we will sort it out."),
-    );
+  if (chargeCents < 50) {
+    checkoutError("not_payable_online", back);
   }
 
   // Booking/payment writes use the service role: RLS intentionally has no
@@ -129,47 +144,90 @@ export async function createBooking(formData: FormData) {
   const admin = createAdminClient();
 
   /*
-   * A penthouse (a group-exclusive tier) is bought out by one friend group:
-   * once someone holds it, only their group code gets in. The
-   * check_tier_capacity trigger is what enforces that, race-safely; this is
-   * the read ahead of it, so the usual case gets a plain message and sends
-   * nothing to Stripe. See lib/tier-claims.ts for what "holds" means.
+   * One live checkout per traveler per package.
    *
-   * A traveler rebooking their own penthouse (a second try after switching
-   * plan, say) left the code box empty, and resolveGroupCode would mint them a
-   * fresh code that their own first booking then locks out. So with no code
-   * typed, their own active booking on this tier supplies it.
+   * A pending booking holds a bed, and on a penthouse its group's claim, for
+   * 30 minutes. If a second submit made a second pending booking, one account
+   * could keep a bed or a whole penthouse held indefinitely by starting a new
+   * checkout just before the last one lapsed, without ever paying. So a
+   * traveler's earlier pending booking on this tier is either carried on or
+   * released, never left alongside a new one:
+   *
+   *   - still within its 30 minutes, and for the same group (or no code was
+   *     typed), it is carried on: same booking, same hold, same created_at, so
+   *     the hold is never extended. If the plan changed, its card form is
+   *     replaced below.
+   *   - past its 30 minutes, or for a different group code, it is released
+   *     (its card form cancelled at Stripe, then the booking undone), and a
+   *     new booking has to win its place from the trigger like anyone else's.
+   *
+   * One whose payment is already moving money cannot be released, and then
+   * nothing new is started: the traveler waits for that one to settle.
    */
-  let groupCodeToUse = requestedGroupCode;
-  if (tier.group_exclusive) {
-    const penthouseClaim = (await getTierClaims(admin, [tierId])).get(tierId);
-    if (penthouseClaim && !groupCodeToUse) {
-      groupCodeToUse = await ownActiveGroupCode(admin, user.id, tierId);
+  const own = await ownPendingCheckouts(admin, user.id, tierId);
+  let carried: OwnPending | null = null;
+  for (const earlier of own) {
+    if (!carried && !isStalePending(earlier) && sameGroup(earlier.group_code, requestedGroupCode)) {
+      carried = earlier;
+      continue;
     }
-    if (penthouseClaim && !claimMatches(penthouseClaim, groupCodeToUse)) {
-      redirectTierClaimed(tripId, tier);
+    if (!(await releasePendingCheckout(admin, earlier.id))) {
+      checkoutError("payment_moving", back);
     }
   }
 
-  const groupCodeResult = await resolveGroupCode(admin, tripId, groupCodeToUse);
-  if ("error" in groupCodeResult) {
-    redirect(`/bookings/new?error=${encodeURIComponent(groupCodeResult.error)}`);
+  // A second press of the same button, or the back button and Pay again:
+  // the carried booking's card form is still open for this exact charge, so
+  // the traveler goes back to it rather than getting a second one.
+  if (carried) {
+    const open = await openCheckoutIntent(carried);
+    if (open?.status === "open" && paymentKindOf(open.intent) === plan && open.intent.amount === chargeCents) {
+      redirect(`/bookings/${carried.id}/pay`);
+    }
+    if (open?.status === "moving") {
+      checkoutError("payment_moving", back);
+    }
   }
 
-  /*
-   * A second submit of the same form is the same booking, not another one.
-   *
-   * The button disables itself while the first is in flight (BookingForm), but
-   * that is the browser's courtesy, and the back button, a slow network or a
-   * second tab all get past it. Two pending bookings would each hold a place
-   * in the tier and each carry a card form for the deposit. So if this
-   * traveler already has a pending booking for this tier from the last few
-   * minutes, on the same plan, with a card form still open, they are sent to
-   * that one's card form instead.
-   */
-  const openCheckout = await findOpenCheckout(admin, user.id, tierId, plan);
-  if (openCheckout) {
-    redirect(`/bookings/${openCheckout}/pay`);
+  let groupCode: string | null = carried?.group_code ?? null;
+  if (!carried) {
+    /*
+     * A penthouse (a group-exclusive tier) is bought out by one friend group:
+     * once someone holds it, only their group code gets in. The
+     * check_tier_capacity trigger is what enforces that, race-safely; this is
+     * the read ahead of it, so the usual case gets a plain message and sends
+     * nothing to Stripe. See lib/tier-claims.ts for what "holds" means.
+     *
+     * A traveler rebooking their own penthouse left the code box empty, and
+     * resolveGroupCode would mint them a fresh code that their own booking then
+     * locks out. So with no code typed, their own PAID booking on this tier
+     * supplies it. Not an unpaid one: their fresh checkout is carried on above
+     * instead, and a lapsed one holds nothing and must not be revived.
+     */
+    let groupCodeToUse = requestedGroupCode;
+    if (tier.group_exclusive) {
+      const penthouseClaim = (await getTierClaims(admin, [tierId])).get(tierId);
+      if (penthouseClaim && !groupCodeToUse) {
+        groupCodeToUse = await ownPaidGroupCode(admin, user.id, tierId);
+      }
+      if (penthouseClaim && !claimMatches(penthouseClaim, groupCodeToUse)) {
+        redirectTierClaimed(tripId, tier);
+      }
+    }
+
+    const groupCodeResult = await resolveGroupCode(admin, tripId, groupCodeToUse);
+    if ("error" in groupCodeResult) {
+      checkoutError("group_code_not_found", back);
+    }
+    groupCode = groupCodeResult.code;
+
+    // A day's worth of unpaid checkouts. Each one holds a bed (or a penthouse)
+    // for 30 minutes, so without this one account could hold a place all day
+    // by starting a fresh checkout every half hour. Six is several honest
+    // false starts; counted only when a new booking is about to be made.
+    if (!(await checkRateLimit(`pending-booking:${user.id}`, 6, 24 * 60 * 60))) {
+      checkoutError("daily_limit", back);
+    }
   }
 
   // Before the booking exists, not after: this is the Stripe call most likely
@@ -186,52 +244,73 @@ export async function createBooking(formData: FormData) {
     stripeCustomerId = await getOrCreateStripeCustomerId(admin, { id: user.id, email: user.email! });
   } catch (err) {
     console.error(`createBooking: no Stripe customer for user ${user.id}: ${err instanceof Error ? err.message : err}`);
-    redirect("/bookings/new?error=" + encodeURIComponent(CHECKOUT_FAILED_MESSAGE));
+    checkoutError("checkout_failed", back);
   }
 
-  const { data: booking, error: bookingError } = await admin
-    .from("bookings")
-    .insert({
-      user_id: user.id,
-      trip_id: tripId,
-      tier_id: tierId,
-      status: "pending",
-      total_amount: totalAmount,
-      deposit_amount: depositAmount,
-      group_code: groupCodeResult.code,
-      // sms_consent and its evidence columns are left to their defaults (false
-      // and null). The opt-in lives on the trip page now; see
-      // app/trip/[bookingId]/actions.ts.
-    })
-    .select("id")
-    .single();
+  let bookingId: string;
+  if (carried) {
+    // The plan (or the price) changed on a checkout still inside its hold.
+    // The old card form is stopped first, so it cannot also be paid, then the
+    // booking takes the new figures. Its created_at, and so its hold, stay.
+    if (!(await cancelCheckoutIntents(admin, carried.id))) {
+      checkoutError("payment_moving", back);
+    }
+    const { data: updated } = await admin
+      .from("bookings")
+      .update({ total_amount: totalAmount, deposit_amount: depositAmount })
+      .eq("id", carried.id)
+      .eq("status", "pending")
+      .select("id")
+      .maybeSingle();
+    // Paid or cancelled in the meantime: the bookings page says which.
+    if (!updated) redirect("/bookings");
+    bookingId = carried.id;
+  } else {
+    const { data: booking, error: bookingError } = await admin
+      .from("bookings")
+      .insert({
+        user_id: user.id,
+        trip_id: tripId,
+        tier_id: tierId,
+        status: "pending",
+        total_amount: totalAmount,
+        deposit_amount: depositAmount,
+        group_code: groupCode,
+        // sms_consent and its evidence columns are left to their defaults (false
+        // and null). The opt-in lives on the trip page now; see
+        // app/trip/[bookingId]/actions.ts.
+      })
+      .select("id")
+      .single();
 
-  if (bookingError?.message === "tier_at_capacity") {
-    redirect("/bookings/new?error=That tier just sold out. Please pick another.");
-  }
+    if (bookingError?.message === "tier_at_capacity") {
+      checkoutError("sold_out", { tripId, groupCode: requestedGroupCode });
+    }
 
-  // Another group took the penthouse between the read above and this insert.
-  if (bookingError?.message === "tier_claimed") {
-    redirectTierClaimed(tripId, tier);
-  }
+    // Another group took the penthouse between the read above and this insert.
+    if (bookingError?.message === "tier_claimed") {
+      redirectTierClaimed(tripId, tier);
+    }
 
-  if (bookingError || !booking) {
-    throw new Error(bookingError?.message ?? "Failed to create booking");
-  }
+    if (bookingError || !booking) {
+      throw new Error(bookingError?.message ?? "Failed to create booking");
+    }
 
-  /*
-   * The check above cannot see a twin submitted in the same instant, since
-   * neither booking exists when the other looks. So each one looks again now
-   * that it exists: if an earlier pending booking by this traveler, for this
-   * tier and price, was made in the last minute, this one is the duplicate. It
-   * is deleted (it has no payment or acceptance yet, so nothing is lost) and
-   * the traveler goes to the earlier one's card form. Whichever was inserted
-   * first is never the one that backs off, so at least one always survives.
-   */
-  const twin = await earlierTwin(admin, { userId: user.id, tierId, totalAmount, bookingId: booking.id });
-  if (twin) {
-    await admin.from("bookings").delete().eq("id", booking.id).eq("status", "pending");
-    redirect((await waitForCheckoutRow(admin, twin)) ? `/bookings/${twin}/pay` : "/bookings");
+    /*
+     * The check above cannot see a twin submitted in the same instant, since
+     * neither booking exists when the other looks. So each one looks again now
+     * that it exists: if an earlier pending booking by this traveler, for this
+     * tier, was made in the last minute, this one is the duplicate. It is
+     * deleted (it has no payment or acceptance yet, so nothing is lost) and
+     * the traveler goes to the earlier one's card form. Whichever was inserted
+     * first is never the one that backs off, so at least one always survives.
+     */
+    const twin = await earlierTwin(admin, { userId: user.id, tierId, bookingId: booking.id });
+    if (twin) {
+      await admin.from("bookings").delete().eq("id", booking.id).eq("status", "pending");
+      redirect((await waitForCheckoutRow(admin, twin)) ? `/bookings/${twin}/pay` : "/bookings");
+    }
+    bookingId = booking.id;
   }
 
   /*
@@ -257,10 +336,11 @@ export async function createBooking(formData: FormData) {
     // path saw before creating the intent, which lib/overpayment.ts relies on to
     // tell money taken on a live booking from money taken on a cancelled one.
     //
-    // The idempotency key is per booking, so a retried request for this booking
-    // (a network retry inside the Stripe SDK, say) gets the same intent back
-    // rather than a second one.
-    const chargeCents = Math.round(chargeAmount * 100);
+    // The idempotency key is per booking and per card form, so a retried
+    // request (a network retry inside the Stripe SDK, say) gets the same intent
+    // back rather than a second one, while a carried booking whose earlier form
+    // was cancelled gets a fresh one rather than the cancelled one replayed.
+    const attempt = carried ? carried.payments.filter(isCheckoutRow).length : 0;
     paymentIntent = await getStripe().paymentIntents.create(
       {
         amount: chargeCents,
@@ -268,23 +348,30 @@ export async function createBooking(formData: FormData) {
         customer: stripeCustomerId,
         ...(plan === "deposit" ? { setup_future_usage: "off_session" as const } : {}),
         automatic_payment_methods: { enabled: true },
-        metadata: { bookingId: booking.id, userId: user.id, kind: plan, bookingStatus: "pending" },
+        metadata: { bookingId, userId: user.id, kind: plan, bookingStatus: "pending" },
       },
-      { idempotencyKey: `checkout-${booking.id}-${chargeCents}` },
+      { idempotencyKey: `checkout-${bookingId}-${chargeCents}${attempt > 0 ? `-${attempt}` : ""}` },
     );
 
     const { error: paymentError } = await admin.from("payments").insert({
-      booking_id: booking.id,
+      booking_id: bookingId,
       stripe_payment_intent_id: paymentIntent.id,
       amount: chargeAmount,
       status: "pending",
     });
 
     if (paymentError) {
-      throw new Error(paymentError.message);
+      // A twin submit on the same carried booking got the same intent from
+      // Stripe and wrote its row first. That row is this one's card form.
+      const { data: existing } = await admin
+        .from("payments")
+        .select("id")
+        .eq("stripe_payment_intent_id", paymentIntent.id)
+        .maybeSingle();
+      if (!existing) throw new Error(paymentError.message);
     }
   } catch (err) {
-    console.error(`createBooking: booking ${booking.id} could not be set up: ${err instanceof Error ? err.message : err}`);
+    console.error(`createBooking: booking ${bookingId} could not be set up: ${err instanceof Error ? err.message : err}`);
     // An intent with no row has no page to pay it on, so it must not stay
     // payable. Cancelled before the booking goes, so a form somehow already
     // open cannot take money for a booking that no longer holds a place.
@@ -293,11 +380,11 @@ export async function createBooking(formData: FormData) {
         .paymentIntents.cancel(paymentIntent.id)
         .catch(() => undefined);
     }
-    await abandonPendingBooking(admin, booking.id);
-    redirect("/bookings/new?error=" + encodeURIComponent(CHECKOUT_FAILED_MESSAGE));
+    await abandonPendingBooking(admin, bookingId);
+    checkoutError("checkout_failed", back);
   }
 
-  redirect(`/bookings/${booking.id}/pay`);
+  redirect(`/bookings/${bookingId}/pay`);
 }
 
 export type AcceptTermsResult =
@@ -392,7 +479,7 @@ export async function startBalancePayment(formData: FormData) {
   const rawAmount = String(formData.get("amount") ?? "");
 
   if (mode !== "remaining" && mode !== "custom") {
-    fail("Choose the remaining balance or an amount.");
+    fail("invalid_mode");
   }
 
   const supabase = await createClient();
@@ -408,7 +495,7 @@ export async function startBalancePayment(formData: FormData) {
   // createBooking is.
   const allowed = await checkRateLimit(`balance:${user.id}`, 10, 60 * 60);
   if (!allowed) {
-    fail("Too many payment attempts. Please try again in a bit.");
+    fail("rate_limited");
   }
 
   // RLS ("Users can view own bookings") scopes this to the signed-in user, so
@@ -420,7 +507,7 @@ export async function startBalancePayment(formData: FormData) {
     .single();
 
   if (!booking || booking.status !== "deposit_paid") {
-    fail("That booking has no balance to pay online.");
+    fail("no_balance");
   }
 
   const admin = createAdminClient();
@@ -479,7 +566,7 @@ export async function startBalancePayment(formData: FormData) {
   }
 
   if (moving || (await installmentInFlight(admin, booking.id))) {
-    fail("A payment on this booking is going through right now. Give it a few minutes, then refresh.");
+    fail("payment_moving");
   }
 
   let cents: number;
@@ -488,14 +575,14 @@ export async function startBalancePayment(formData: FormData) {
   } else {
     const parsed = parseAmountInput(rawAmount);
     if (parsed === null) {
-      fail("Enter an amount in dollars, like 250 or 250.50.");
+      fail("invalid_amount");
     }
     cents = parsed;
   }
 
   const valid = validateBalanceAmount(cents, owed);
   if (!valid.ok) {
-    fail(valid.message);
+    fail(valid.code);
   }
 
   // Newest first: the one to reuse, if any, is the latest.
@@ -513,7 +600,7 @@ export async function startBalancePayment(formData: FormData) {
   for (const l of live) {
     if (l === reuse) continue;
     if (!(await cancelOpenIntent(l.intent.id))) {
-      fail("A payment on this booking is going through right now. Give it a few minutes, then refresh.");
+      fail("payment_moving");
     }
     await admin.from("payments").update({ status: "canceled" }).eq("id", l.rowId).eq("status", "pending");
   }
@@ -553,7 +640,7 @@ export async function startBalancePayment(formData: FormData) {
     console.error(
       `startBalancePayment: could not start a payment on booking ${booking.id}: ${err instanceof Error ? err.message : err}`,
     );
-    fail("That did not start, and nothing was charged. Please try again in a couple of minutes.");
+    fail("start_failed");
   }
 
   const { data: row, error } = await admin
@@ -582,7 +669,7 @@ export async function startBalancePayment(formData: FormData) {
     // Unless the row exists in some other state, in which case the intent is
     // an older one Stripe replayed for this key and is already dealt with.
     if (!existing) await stripe.paymentIntents.cancel(paymentIntent.id).catch(() => undefined);
-    fail("That did not start. Please try again in a couple of minutes.");
+    fail("start_failed_retry");
   }
 
   /*
@@ -608,18 +695,11 @@ export async function startBalancePayment(formData: FormData) {
     await stripe.paymentIntents.cancel(paymentIntent.id).catch(() => undefined);
     await admin.from("payments").update({ status: "canceled" }).eq("id", row.id).eq("status", "pending");
     if (earlier) redirect(`/bookings/${booking.id}/balance/${earlier}`);
-    fail(
-      current?.status !== "deposit_paid"
-        ? "That booking has no balance to pay online."
-        : "A payment on this booking is going through right now. Give it a few minutes, then refresh.",
-    );
+    fail(current?.status !== "deposit_paid" ? "no_balance" : "payment_moving");
   }
 
   redirect(`/bookings/${booking.id}/balance/${row.id}`);
 }
-
-// Stripe states in which an intent can still take a card.
-const OPEN_INTENT_STATUSES: readonly string[] = ["requires_payment_method", "requires_confirmation", "requires_action"];
 
 // A second press within this long lands on the first press's card form.
 const BALANCE_REUSE_WINDOW_MS = 10 * 60 * 1000;
@@ -629,31 +709,42 @@ const BALANCE_REUSE_WINDOW_MS = 10 * 60 * 1000;
 // handed the cancelled one again.
 const BALANCE_IDEMPOTENCY_BUCKET_MS = 2 * 60 * 1000;
 
-// Shown when checkout could not be set up. Nothing was charged and nothing
-// is held, so trying again is the right advice.
-const CHECKOUT_FAILED_MESSAGE = "We could not start your checkout. Nothing was charged. Please try again in a minute.";
+/**
+ * Back to the package step with a reason, keeping the trip, the package and
+ * the group code where they are known so the traveler lands where they were.
+ * The reason is a code, which the page turns into words (lib/flash.ts); the
+ * query string never carries a sentence. A plain function so TypeScript knows
+ * it ends.
+ */
+function checkoutError(
+  code: CheckoutErrorCode,
+  where: { tripId?: string; tierId?: string; groupCode?: string | null } = {},
+): never {
+  const params = new URLSearchParams();
+  if (where.tripId) params.set("trip", where.tripId);
+  if (where.tierId) params.set("package", where.tierId);
+  if (where.groupCode) params.set("group", where.groupCode);
+  params.set("error", code);
+  redirect(`/bookings/new?${params.toString()}`);
+}
 
 /**
  * Back to the package step when a penthouse is held by another group. Keeps
  * the trip and the package in the link so the traveler lands where they were,
- * with room to type the code. A plain function so TypeScript knows it ends.
+ * with room to type the code; the page names the penthouse from the package.
  */
-function redirectTierClaimed(tripId: string, tier: { id: string; name: string }): never {
-  // Tier names are stored in capitals ("PENTHOUSE 702"); a sentence reads
-  // better with "Penthouse 702".
-  const name = tier.name.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-  const message = `${name} has been booked by another group. If you're joining them, enter their group code.`;
-  redirect(
-    `/bookings/new?trip=${encodeURIComponent(tripId)}&package=${encodeURIComponent(tier.id)}&error=${encodeURIComponent(message)}`,
-  );
+function redirectTierClaimed(tripId: string, tier: { id: string }): never {
+  checkoutError("tier_claimed", { tripId, tierId: tier.id });
 }
 
 /**
- * The group code on this traveler's own active booking for this tier, if they
- * have one (same definition of active as lib/tier-claims.ts). Only their own
- * rows are read, so this never hands anyone another group's code.
+ * The group code on this traveler's own PAID booking for this tier, if they
+ * have one. Only their own rows are read, so this never hands anyone another
+ * group's code. Unpaid ones are left out on purpose: a fresh one is carried on
+ * by createBooking instead, and a lapsed one holds nothing and reviving its
+ * code would let an unpaid checkout re-open a claim that had run out.
  */
-async function ownActiveGroupCode(
+async function ownPaidGroupCode(
   admin: ReturnType<typeof createAdminClient>,
   userId: string,
   tierId: string,
@@ -663,7 +754,7 @@ async function ownActiveGroupCode(
     .select("group_code")
     .eq("user_id", userId)
     .eq("tier_id", tierId)
-    .or(activeBookingFilter())
+    .in("status", ["deposit_paid", "paid_in_full"])
     .not("group_code", "is", null)
     .order("created_at", { ascending: true })
     .limit(1)
@@ -671,22 +762,70 @@ async function ownActiveGroupCode(
   return data?.group_code ?? null;
 }
 
-// How recent a pending booking has to be to count as a duplicate submit.
-const DUPLICATE_BOOKING_WINDOW_MS = 10 * 60 * 1000;
+// How recent another pending booking has to be to count as a twin submit.
 const TWIN_BOOKING_WINDOW_MS = 60 * 1000;
 
-/** True once the intent can no longer take money: cancelled now, or already. */
-async function cancelOpenIntent(paymentIntentId: string): Promise<boolean> {
-  const stripe = getStripe();
-  try {
-    const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
-    if (intent.status === "canceled") return true;
-    if (!OPEN_INTENT_STATUSES.includes(intent.status)) return false;
-    await stripe.paymentIntents.cancel(paymentIntentId);
-    return true;
-  } catch {
-    return false;
+type OwnPending = {
+  id: string;
+  status: string;
+  created_at: string;
+  group_code: string | null;
+  payments: { id: string; status: string; scheduled_date: string | null; stripe_payment_intent_id: string | null }[];
+};
+
+/** This traveler's pending bookings on this tier, oldest first. */
+async function ownPendingCheckouts(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  tierId: string,
+): Promise<OwnPending[]> {
+  const { data } = await admin
+    .from("bookings")
+    .select("id, status, created_at, group_code, payments(id, status, scheduled_date, stripe_payment_intent_id)")
+    .eq("user_id", userId)
+    .eq("tier_id", tierId)
+    .eq("status", "pending")
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
+    .limit(20);
+  return data ?? [];
+}
+
+/** A booking's checkout rows: the payments with an intent and no scheduled date. */
+function isCheckoutRow(p: OwnPending["payments"][number]): boolean {
+  return p.scheduled_date === null && Boolean(p.stripe_payment_intent_id);
+}
+
+/** No code typed means "the group I already have"; a typed one must be that group. */
+function sameGroup(existing: string | null, typed: string | null): boolean {
+  if (!normalizeGroupCode(typed)) return true;
+  return normalizeGroupCode(existing) === normalizeGroupCode(typed);
+}
+
+/**
+ * The newest checkout intent on a pending booking, as far as it matters here:
+ * open (can still take a card), moving (processing or succeeded: money is on
+ * its way, settled on the spot if it has succeeded), or null for none usable.
+ */
+async function openCheckoutIntent(
+  booking: OwnPending,
+): Promise<{ status: "open"; intent: Stripe.PaymentIntent } | { status: "moving" } | null> {
+  const rows = booking.payments.filter(
+    (p) => isCheckoutRow(p) && (p.status === "pending" || p.status === "requires_action"),
+  );
+  for (const row of rows.reverse()) {
+    try {
+      const intent = await getStripe().paymentIntents.retrieve(row.stripe_payment_intent_id!);
+      if (OPEN_INTENT_STATUSES.includes(intent.status)) return { status: "open", intent };
+      if (intent.status === "succeeded" || intent.status === "processing") {
+        if (intent.status === "succeeded") await syncPaymentFromStripe(intent);
+        return { status: "moving" };
+      }
+    } catch {
+      return { status: "moving" };
+    }
   }
+  return null;
 }
 
 /**
@@ -724,48 +863,14 @@ async function earlierOpenBalancePayment(
 }
 
 /**
- * A pending booking by this traveler for this tier, from the last few
- * minutes, whose card form is still open and on the same plan. Returns its id.
- */
-async function findOpenCheckout(
-  admin: ReturnType<typeof createAdminClient>,
-  userId: string,
-  tierId: string,
-  plan: PaymentPlan,
-): Promise<string | null> {
-  const { data: recent } = await admin
-    .from("bookings")
-    .select("id, payments(status, scheduled_date, stripe_payment_intent_id)")
-    .eq("user_id", userId)
-    .eq("tier_id", tierId)
-    .eq("status", "pending")
-    .gte("created_at", new Date(Date.now() - DUPLICATE_BOOKING_WINDOW_MS).toISOString())
-    .order("created_at", { ascending: false })
-    .limit(3);
-
-  for (const booking of recent ?? []) {
-    const row = booking.payments.find(
-      (p) => p.scheduled_date === null && p.status === "pending" && p.stripe_payment_intent_id,
-    );
-    if (!row) continue;
-    try {
-      const intent = await getStripe().paymentIntents.retrieve(row.stripe_payment_intent_id!);
-      if (OPEN_INTENT_STATUSES.includes(intent.status) && paymentKindOf(intent) === plan) return booking.id;
-    } catch {
-      continue;
-    }
-  }
-  return null;
-}
-
-/**
- * The earliest pending booking by this traveler for this tier and price from
- * the last minute, if it is not this one. Ordered by created_at then id, so
- * two twins looking at the same moment agree on which is first.
+ * The earliest pending booking by this traveler for this tier from the last
+ * minute, if it is not this one. Ordered by created_at then id, so two twins
+ * looking at the same moment agree on which is first. Any plan: one traveler
+ * has one live checkout per package (see createBooking).
  */
 async function earlierTwin(
   admin: ReturnType<typeof createAdminClient>,
-  { userId, tierId, totalAmount, bookingId }: { userId: string; tierId: string; totalAmount: number; bookingId: string },
+  { userId, tierId, bookingId }: { userId: string; tierId: string; bookingId: string },
 ): Promise<string | null> {
   const { data: twins } = await admin
     .from("bookings")
@@ -773,7 +878,6 @@ async function earlierTwin(
     .eq("user_id", userId)
     .eq("tier_id", tierId)
     .eq("status", "pending")
-    .eq("total_amount", totalAmount)
     .gte("created_at", new Date(Date.now() - TWIN_BOOKING_WINDOW_MS).toISOString())
     .order("created_at", { ascending: true })
     .order("id", { ascending: true })
@@ -802,10 +906,11 @@ async function waitForCheckoutRow(admin: ReturnType<typeof createAdminClient>, b
   return false;
 }
 
-// Back to the bookings page with the reason on show. A plain function, not a
-// const arrow, so TypeScript knows the code after a call is unreachable.
-function fail(message: string): never {
-  redirect(`/bookings?error=${encodeURIComponent(message)}`);
+// Back to the bookings page with the reason on show, as a code the page turns
+// into words (lib/flash.ts). A plain function, not a const arrow, so
+// TypeScript knows the code after a call is unreachable.
+function fail(code: AccountErrorCode): never {
+  redirect(`/bookings?error=${code}`);
 }
 
 // Self-service cancellation only covers pending/deposit_paid — a
@@ -831,7 +936,7 @@ export async function cancelBooking(formData: FormData) {
   const { data: booking } = await supabase.from("bookings").select("id, status").eq("id", bookingId).single();
 
   if (!booking || !["pending", "deposit_paid"].includes(booking.status)) {
-    redirect("/bookings?error=That booking can't be cancelled online. Get in touch and we'll sort it out.");
+    fail("cannot_cancel");
   }
 
   const admin = createAdminClient();
@@ -851,7 +956,7 @@ export async function cancelBooking(formData: FormData) {
     throw new Error(bookingError.message);
   }
   if (!cancelled || cancelled.length === 0) {
-    redirect("/bookings?error=That booking can't be cancelled online. Get in touch and we'll sort it out.");
+    fail("cannot_cancel");
   }
 
   // Stop the installment cron from charging a cancelled booking's
