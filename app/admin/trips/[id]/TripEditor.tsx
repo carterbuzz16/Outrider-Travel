@@ -82,6 +82,9 @@ export default function TripEditor({ trip, error }: { trip: EditorTrip; error?: 
         actions={
           <>
             <TripStatusBadge status={trip.status} />
+            <Button href={`/admin/trips/${trip.id}/roster`} variant="secondary" size="sm">
+              Roster
+            </Button>
             {isPublished && (
               <Button href={`/trips/${trip.id}`} variant="secondary" size="sm">
                 View public page

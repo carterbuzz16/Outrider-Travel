@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/admin";
 import UserNav from "@/components/UserNav";
 
 /* Same reasoning as the protected layout: Disallow is a request, noindex is
@@ -11,29 +10,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// Admin routes require both a logged-in user and role = 'admin'. The role
-// check reads public.users through the signed-in user's own Supabase
-// client, relying on the "Users can view own profile" RLS policy — no
-// service-role key needed for this.
+// Admin routes require both a logged-in user and role = 'admin'. The check
+// lives in lib/admin.ts so the pages, server actions and CSV route handlers
+// under here can repeat it: a layout does not guard a POST or a route handler.
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (profile?.role !== "admin") {
-    redirect("/bookings");
-  }
+  await requireAdmin();
 
   return (
     // The back office is paper-scheme only. There is no dark admin and no
@@ -42,7 +23,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div className="scheme-light scheme-paint min-h-screen">
       <UserNav />
 
-      {/* A second bar under the account nav, holding only the three admin
+      {/* A second bar under the account nav, holding only the admin
           screens. It is a plain link row rather than tabs: without a client
           component there is no reliable active state, and a wrong highlight
           is worse than none. */}
@@ -69,6 +50,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
 const ADMIN_LINKS = [
   { href: "/admin", label: "Overview" },
+  { href: "/admin/bookings", label: "Bookings" },
   { href: "/admin/trips", label: "Trips" },
   { href: "/admin/payments", label: "Flagged payments" },
 ];

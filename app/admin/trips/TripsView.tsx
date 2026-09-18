@@ -92,6 +92,7 @@ export default function TripsView({ trips }: { trips: TripListRow[] }) {
                     <Th>Status</Th>
                     <Th align="right">Tiers</Th>
                     <Th>How full</Th>
+                    <Th>Roster</Th>
                   </tr>
                 </thead>
                 <tbody>
@@ -141,6 +142,14 @@ export default function TripsView({ trips }: { trips: TripListRow[] }) {
                         </Td>
                         <Td className="min-w-[10rem]">
                           <Fill booked={countHeld(bookings)} capacity={totalCapacity(tiers)} />
+                        </Td>
+                        <Td className="whitespace-nowrap">
+                          <Link
+                            href={`/admin/trips/${trip.id}/roster`}
+                            className="t-micro text-[--text-secondary] underline decoration-[--rule-strong] underline-offset-4 transition-colors duration-fast hover:text-[--accent] hover:decoration-[--accent]"
+                          >
+                            Roster
+                          </Link>
                         </Td>
                       </tr>
                     );
