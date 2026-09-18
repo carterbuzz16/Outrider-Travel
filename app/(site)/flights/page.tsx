@@ -59,7 +59,7 @@ export default async function FlightsPage() {
   return (
     <main className="scheme-light scheme-paint">
       <header className="shell pb-14 pt-32 md:pb-20 md:pt-40">
-        <h1 className="t-display mt-6 max-w-[14ch] text-[--text]">Flights</h1>
+        <h1 className="t-display mt-6 max-w-[14ch] text-[--text]">Getting to Telluride</h1>
         <p className="t-lede mt-8 max-w-measure">
           Flights are the one part of the trip you book yourself. Everyone is
           coming from somewhere different, and nobody should pay for a routing
@@ -120,20 +120,24 @@ export default async function FlightsPage() {
             It has the most winter service of the airports near Telluride, and
             it is where the included transfer runs from.
           </p>
+          {/* Needs: where travelers are met at MTJ, whether pickups run at
+              set times or around each arrival, and whether the transfer is
+              shared or private by package. Say only what is arranged. */}
           <DraftCopy label="How the Montrose transfer works">
-            Where travelers are met at MTJ, whether pickups run at set times
-            or around each arrival, and whether the transfer is shared or
-            private by package. Say only what is arranged.
+            Where we meet you and how the pickups run. We&rsquo;ll post it here
+            and email it to you before the trip.
           </DraftCopy>
           <p>
             In recent winters Montrose has been served mainly through airline
             hubs, so most itineraries connect once. Routes change from season
             to season, so check the airline&rsquo;s own schedule for your dates.
           </p>
+          {/* Needs: the airlines and connecting hubs confirmed to serve
+              Montrose for the December 2026 and January 2027 dates, from the
+              airlines' published schedules. */}
           <DraftCopy label="Airlines and routes into MTJ this season">
-            The airlines and connecting hubs confirmed to serve Montrose for
-            the December 2026 and January 2027 dates, taken from the airlines&rsquo;
-            published schedules.
+            The airlines and connecting hubs flying into Montrose for our
+            dates.
           </DraftCopy>
         </Airport>
 
@@ -144,9 +148,12 @@ export default async function FlightsPage() {
             diverted when weather comes in. If you book it, have a plan for
             landing somewhere else.
           </p>
+          {/* Needs: whether Outrider picks up from TEX or the traveler gets
+              into town on their own, and what to do if a TEX flight diverts
+              to Montrose. */}
           <DraftCopy label="Arrivals into Telluride Regional">
-            Whether Outrider picks up from TEX or the traveler gets into town
-            on their own, and what to do if a TEX flight diverts to Montrose.
+            How you get to the hotel from TEX, and what to do if your flight
+            diverts to Montrose. Until it&rsquo;s here, ask us before you book.
           </DraftCopy>
         </Airport>
 
@@ -157,9 +164,11 @@ export default async function FlightsPage() {
             winter storms. Only drive it if you have no other way to make the
             dates, and allow a full day.
           </p>
+          {/* Needs: whether Outrider can help someone who drives in from
+              Denver, and where they should meet the group. */}
           <DraftCopy label="Arriving by road from Denver">
-            Whether Outrider can help someone who drives in from Denver, and
-            where they should meet the group.
+            Where to meet the group if you drive in. Until it&rsquo;s here, ask
+            us before you book.
           </DraftCopy>
         </Airport>
       </Block>
@@ -194,18 +203,23 @@ export default async function FlightsPage() {
             than find out on the day.
           </Step>
         </ul>
+        {/* Needs: who a traveler contacts if a flight is delayed or
+            cancelled on the travel day, how (a phone number that is
+            answered), and what happens to their transfer. The site has no
+            phone number yet. */}
         <DraftCopy label="On the day: delays and cancellations">
-          Who a traveler contacts if a flight is delayed or cancelled on the
-          travel day, how (a phone number that is answered), and what happens
-          to their transfer. The site has no phone number yet.
+          Who to call if your flight is delayed or cancelled on the travel
+          day. You&rsquo;ll have the number before you fly.
         </DraftCopy>
+        {/* Needs: the date by which Outrider needs each traveler's flight
+            itinerary, if there is one. */}
         <DraftCopy label="When to send flight details">
-          The date by which Outrider needs each traveler&rsquo;s flight
-          itinerary, if there is one.
+          The date we need your flight details by. Sooner is always better.
         </DraftCopy>
         <p className="font-body text-body leading-[1.85] text-[--text-secondary]">
-          Travel insurance is worth buying, and one that covers missed
-          connections and weather delays is worth the most on a winter trip.
+          Travel insurance isn&rsquo;t included. If you add it, a policy that
+          covers missed connections and weather delays is worth the most on a
+          winter trip.
           Anything else is in the{" "}
           <Link href="/faq" className={LINK}>
             FAQ
@@ -250,9 +264,9 @@ function TripWindow({ trip }: { trip: PublicTrip }) {
           <dt className="stamp-type text-[--text-muted]">Land at Montrose by</dt>
           <dd className="mt-2 font-body text-body text-[--text]">
             {arrivalDeadline ?? (
-              <DraftCopy label="Arrival deadline">
-                Latest time to land at MTJ on {longDay(trip.startDate)}. Set{" "}
-                <code>arrivalDeadline</code> in lib/trip-logistics.ts.
+              // Set arrivalDeadline in lib/trip-logistics.ts.
+              <DraftCopy label="Arrival time">
+                The latest time to land at Montrose on {longDay(trip.startDate)}.
               </DraftCopy>
             )}
           </dd>
@@ -261,9 +275,9 @@ function TripWindow({ trip }: { trip: PublicTrip }) {
           <dt className="stamp-type text-[--text-muted]">Fly home no earlier than</dt>
           <dd className="mt-2 font-body text-body text-[--text]">
             {departureEarliest ?? (
-              <DraftCopy label="Earliest departure">
-                Earliest flight out of MTJ on {longDay(trip.endDate)}. Set{" "}
-                <code>departureEarliest</code> in lib/trip-logistics.ts.
+              // Set departureEarliest in lib/trip-logistics.ts.
+              <DraftCopy label="Departure time">
+                The earliest flight home from Montrose on {longDay(trip.endDate)}.
               </DraftCopy>
             )}
           </dd>

@@ -61,8 +61,8 @@ export default function SignupPage(
           <h1 className="t-title text-[--text]">Create an account</h1>
           <p className="font-body text-body leading-[1.7] text-[--text-secondary]">
             {fromBooking
-              ? "Your deposit holds the room, and a deposit needs an account to sit against. Set one up here and you land back on the trip you picked."
-              : "One account covers every departure we run."}
+              ? "Make an account to hold your spot. It takes a minute, and you land right back on the trip you picked."
+              : "One account for your trips, your payments and your trip page."}
           </p>
         </div>
 

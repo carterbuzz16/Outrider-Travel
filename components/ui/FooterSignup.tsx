@@ -56,7 +56,7 @@ export default function FooterSignup() {
         aria-live="polite"
         className={cn("t-micro mt-3 min-h-[1.4em]", status === "error" ? "text-[--text]" : "text-[--text-muted]")}
       >
-        {message || "One email when it opens. Leave any time."}
+        {message || "Hear it first. Leave any time."}
       </p>
     </form>
   );

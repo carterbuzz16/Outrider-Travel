@@ -11,7 +11,7 @@
  * same start date would need this rekeying, which is not a real prospect.
  *
  * EVERY null BELOW MUST BE FILLED IN BEFORE LAUNCH. While a value is null the
- * flight guide shows a visible draft placeholder in its place rather than a
+ * flight guide shows a "coming soon" note in its place rather than a
  * guess, and an email reading it should leave the line out.
  *
  * If these facts move into the trips table later, keep this getter's shape and
@@ -54,9 +54,11 @@ const LOGISTICS: Record<string, TripLogistics> = {
     // Confirmed by the owner.
     tripCapacity: 100,
   },
-  // Telluride, January 4 to 8, 2027. Capacity not yet confirmed.
+  // Telluride, January 4 to 8, 2027.
   "2027-01-04": {
     ...EMPTY,
+    // Confirmed by the owner.
+    tripCapacity: 50,
   },
 };
 

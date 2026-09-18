@@ -90,7 +90,7 @@ export default function LoginPage(
           <h1 className="t-title text-[--text]">Log in</h1>
           <p className="font-body text-body leading-[1.7] text-[--text-secondary]">
             {fromBooking
-              ? "A deposit holds the room, and it has to sit against an account. Log in and we will take you straight back to the trip you picked."
+              ? "Log in to hold your spot. We'll take you straight back to the trip you picked."
               : "Your trips, deposits and payment dates all sit here."}
           </p>
         </div>

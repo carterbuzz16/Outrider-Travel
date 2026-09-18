@@ -14,6 +14,7 @@ import type { Database } from "@/types/supabase";
 import PenthouseProgress from "@/components/PenthouseProgress";
 import { getPenthouseProgress } from "@/lib/tier-claims";
 import { penthouseInvitePath, toSnapshot } from "@/lib/penthouse";
+import { roomKeyFor, tierDisplayName } from "@/lib/room-media";
 
 /**
  * The trip portal: one booking's to-do list and payment picture, opened from a
@@ -56,6 +57,26 @@ const PAYMENT_LABEL: Partial<Record<PaymentStatus, string>> = {
  * zone printed. The server renders in UTC on Vercel, so leaving the zone
  * implicit would show a late-evening submission as the next day.
  */
+/**
+ * Who to name, by package. The form always offers three name boxes
+ * (MAX_ROOMMATES); this says how many of them a package can actually use, so a
+ * Two to a Room traveler is not left wondering why there are three. Matched on
+ * the raw tier name, like everything else in lib/room-media.ts.
+ */
+function roomingGuidance(tierName: string | null): string {
+  switch (tierName ? roomKeyFor(tierName) : null) {
+    case "BASE":
+      return "Name up to three people you want to share your room with, or tell us you're happy anywhere. Rooms are same-gender.";
+    case "MID":
+      return "Name the one person you want to share your room with, or tell us you're happy anywhere. Rooms are same-gender.";
+    case "PENTHOUSE":
+    case "TOP":
+      return "Your penthouse group rooms together. Name anyone in it you'd like to share a bedroom with, or tell us you're happy anywhere.";
+    default:
+      return "Name up to three people you want to share with, or tell us you're happy anywhere. Rooms are same-gender.";
+  }
+}
+
 function formatSubmitted(iso: string): string {
   return new Date(iso).toLocaleString("en-US", {
     timeZone: "America/Denver",
@@ -152,7 +173,7 @@ export default async function TripPortalPage(props: {
             <h1 className="t-title mt-5 text-[--text]">{trip?.name ?? "Your trip"}</h1>
             <p className="mt-4 font-body text-body text-[--text]">
               {trip ? formatDateRange(trip.start_date, trip.end_date) : "Dates to be confirmed"}
-              {booking.tiers?.name && <span className="text-[--text-secondary]"> · {booking.tiers.name}</span>}
+              {booking.tiers?.name && <span className="text-[--text-secondary]"> · {tierDisplayName(booking.tiers.name)}</span>}
             </p>
           </div>
           <Badge tone={STATUS[booking.status].tone} className="self-start">
@@ -237,8 +258,8 @@ export default async function TripPortalPage(props: {
 
           <Task id={PORTAL_ANCHORS.rooming} number={2} title="Roommate request" done={Boolean(rooming)}>
             <p className="max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
-              Name up to three people you want to share with, or tell us you are happy anywhere.
-              Requests are assigned in the order they arrive.
+              {roomingGuidance(booking.tiers?.name ?? null)} Requests are assigned in the order they
+              arrive.
             </p>
             {open ? (
               <RoomingTask
@@ -265,8 +286,9 @@ export default async function TripPortalPage(props: {
 
           <Task id={PORTAL_ANCHORS.details} number={3} title="Traveler details" done={Boolean(details)}>
             <p className="max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
-              Your legal name and date of birth for the trip insurance, a number to reach you and
-              someone at home, and your sizes so rentals are ready when you arrive.
+              Your legal name and date of birth, for your lift tickets and lodging records and for
+              travel insurance if you choose to add it. A number to reach you and someone at home,
+              and your sizes so your ski or snowboard rentals are ready when you arrive.
             </p>
 
             {details && (

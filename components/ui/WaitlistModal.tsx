@@ -140,8 +140,8 @@ export function WaitlistModal({
               Join the list
             </h2>
             <p className="mt-4 font-body text-body-s leading-[1.7] text-[--text-secondary]">
-              Departures open to this list before they go on sale. One email
-              when that happens, nothing else.
+              Trips open to this list before they go on sale. First dibs on
+              Telluride, and on wherever we go next.
             </p>
 
             <form onSubmit={submit} noValidate className="mt-7 flex flex-col gap-4">

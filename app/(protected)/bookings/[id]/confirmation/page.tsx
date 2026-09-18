@@ -8,6 +8,7 @@ import { formatAmount, toCents } from "@/lib/balance";
 import { formatDateRange, formatPrice } from "@/lib/trips";
 import { createPortalUrl } from "@/lib/portal-token";
 import { confirmationNumber } from "@/lib/confirmation-number";
+import { tierDisplayName } from "@/lib/tier-display";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPenthouseProgress } from "@/lib/tier-claims";
 import { penthouseInvitePath, toSnapshot } from "@/lib/penthouse";
@@ -128,9 +129,10 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
             </p>
             <h1 className="t-title mt-5 max-w-[18ch] text-[--text]">
               {settled
-                ? paidInFull
-                  ? "Your trip is paid for"
-                  : "Your spot is held"
+                ? // "Telluride, Colorado" reads as "Telluride" in a headline.
+                  trip
+                  ? `You're going to ${trip.destination.split(",")[0]}`
+                  : "You're going"
                 : fullPlan
                   ? "Confirming your payment"
                   : "Confirming your deposit"}
@@ -138,8 +140,8 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
             <p className="mt-6 max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
               {settled
                 ? paidInFull
-                  ? `${formatAmount(paid)} is in, the room is yours, and nothing more is owed. A confirmation is on its way to ${user.email}.`
-                  : `${formatPrice(depositAmount)} is in and the room is yours. A confirmation is on its way to ${user.email}.`
+                  ? `${trip ? `${formatDateRange(trip.start_date, trip.end_date)}. ` : ""}${formatAmount(paid)} is in, your spot is yours, and nothing more is owed. A confirmation is on its way to ${user.email}.`
+                  : `${trip ? `${formatDateRange(trip.start_date, trip.end_date)}. ` : ""}Your ${formatPrice(depositAmount)} deposit is in and your spot is yours. A confirmation is on its way to ${user.email}.`
                 : "Your bank has the charge and we are waiting on the result. This page updates on refresh, and nothing is owed twice."}
             </p>
           </div>
@@ -178,7 +180,7 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
               items={[
                 { label: "Trip", value: trip.name },
                 { label: "Dates", value: formatDateRange(trip.start_date, trip.end_date) },
-                { label: "Package", value: booking.tiers?.name ?? "Standard" },
+                { label: "Package", value: booking.tiers ? tierDisplayName(booking.tiers.name) : "Your package" },
                 { label: "Confirmation", value: confirmationNumber(booking.id) },
               ]}
             />
@@ -304,10 +306,10 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
  * already gave in a paragraph; split out so each task is scannable.
  */
 const NEXT_STEPS = [
-  { title: "Book your flights", why: "Winter flights into Montrose are few and fill early." },
+  { title: "Book your flights", why: "Montrose has a handful of winter flights a day. Book before they're gone." },
   { title: "Request your roommates", why: "Rooms are assigned in the order requests arrive." },
   {
     title: "Add your traveler details",
-    why: "They activate the travel insurance and get your rentals fitted before you land.",
+    why: "Your name and date of birth go on your lift tickets and lodging records, and your sizes get your ski or snowboard rentals fitted before you land.",
   },
 ];

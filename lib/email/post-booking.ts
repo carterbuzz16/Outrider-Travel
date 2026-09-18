@@ -7,6 +7,7 @@ import { getFromAddress, sendBookingConfirmationEmail, sendEmail } from "@/lib/e
 import { PORTAL_ANCHORS, createPortalUrl } from "@/lib/portal-token";
 import { getTripLogistics } from "@/lib/trip-logistics";
 import { confirmationNumber } from "@/lib/confirmation-number";
+import { tierDisplayName } from "@/lib/tier-display";
 import { formatAmount, toCents } from "@/lib/balance";
 import { formatDateRange } from "@/lib/trips";
 import { CONTACT } from "@/lib/site-content";
@@ -154,12 +155,11 @@ function daysBetween(fromIso: string, toIso: string): number {
  * the first word is used: the templates open "Carter, ..." not "Carter
  * Busby, ...".
  *
- * With no name at all the greeting is "Hello". The templates open with the
- * name and a dash ("{{first_name}} &mdash; your spot on ... is held"), so the
- * word has to stand at the start of a sentence; "Hello &mdash; your spot on
- * ..." reads as meant, where "there &mdash; ..." would not.
+ * With no name at all the greeting is "Hi there". The templates open with the
+ * name and a comma ("{{first_name}}, your spot on ... is held"), so it reads
+ * "Hi there, your spot on ... is held".
  */
-const NAMELESS_GREETING = "Hello";
+const NAMELESS_GREETING = "Hi there";
 
 async function firstNameFor(admin: Admin, booking: BookingForEmail): Promise<string | null> {
   let full = booking.users?.name?.trim() || "";
@@ -245,7 +245,7 @@ async function variablesFor(
 
   set("first_name", firstName ?? NAMELESS_GREETING);
   set("confirmation_number", confirmationNumber(booking.id));
-  set("tier_name", booking.tiers?.name);
+  set("tier_name", booking.tiers ? tierDisplayName(booking.tiers.name) : null);
   set("amount_paid", formatAmount(m.paid));
   set("balance_due", formatAmount(m.remaining));
   set("next_payment_amount", nextAmount);
@@ -333,7 +333,7 @@ function confirmationText(v: TemplateVariables): string {
     "",
     `Confirmation ${v.confirmation_number}. ${v.tier_name}, ${v.total_price} per person. Paid today ${v.amount_paid}, remaining ${v.balance_due}.`,
     "",
-    `Text ${v.sms_number} or email bookings@outrider.travel. A person answers.`,
+    `Text ${v.sms_number} or email bookings@outrider.travel. A person answers within a day.`,
   ].join("\n");
 }
 
@@ -349,7 +349,7 @@ function chaseText(v: TemplateVariables, flags: Record<string, boolean>): string
     "",
     `Finish it on your trip page: ${v.portal_url}`,
     "",
-    `Or text ${v.sms_number}. A person answers, usually inside an hour.`,
+    `Or text ${v.sms_number}. A person answers within a day.`,
   ].join("\n");
 }
 
@@ -477,7 +477,7 @@ async function sendPlainConfirmation(
       endDate: booking.trips!.end_date,
       logistics: booking.trips!.logistics,
     },
-    tierName: booking.tiers?.name ?? "Standard",
+    tierName: booking.tiers ? tierDisplayName(booking.tiers.name) : "Your package",
     totalAmount: m.total,
     amountPaid: m.paid,
     paidInFull: booking.status === "paid_in_full",

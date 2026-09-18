@@ -29,7 +29,7 @@ export default async function TripsPage() {
     <main className="scheme-light scheme-paint">
       <header className="shell pb-14 pt-32 md:pb-20 md:pt-40">
         <div>
-          <h1 className="t-display mt-6 max-w-[14ch] text-[--text]">Trips</h1>
+          <h1 className="t-display mt-6 max-w-[14ch] text-[--text]">Where we&rsquo;re going</h1>
           <p className="t-lede mt-8 max-w-measure">
             Every Outrider trip lives here. We&rsquo;re always scouting
             somewhere new, and a trip only goes up once it&rsquo;s ready: the
@@ -107,7 +107,7 @@ export default async function TripsPage() {
         id="waitlist"
         placement="trips"
         heading="Hear about it first"
-        body="The list hears about every trip before it goes on sale. One email when Telluride opens, and nothing in between."
+        body="First dibs on Telluride. The list hears before it goes on sale."
       />
 
       {/* ---- what's coming --------------------------------------------------

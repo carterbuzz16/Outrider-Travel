@@ -7,6 +7,7 @@ import { formatAmount } from "@/lib/balance";
 import BalancePayment from "./BalancePayment";
 import { createPortalUrl } from "@/lib/portal-token";
 import { confirmationNumber } from "@/lib/confirmation-number";
+import { tierDisplayName } from "@/lib/tier-display";
 import type { Database } from "@/types/supabase";
 import PenthouseProgress from "@/components/PenthouseProgress";
 import { penthouseInvitePath, type PenthouseSnapshot } from "@/lib/penthouse";
@@ -195,7 +196,7 @@ function BookingCard({ booking }: { booking: BookingRow }) {
         </h2>
         <p className="mt-2 font-body text-body-s text-[--text]">
           {trip ? formatDateRange(trip.start_date, trip.end_date) : "Dates to be confirmed"}
-          {booking.tiers?.name && <span className="text-[--text-secondary]"> · {booking.tiers.name}</span>}
+          {booking.tiers?.name && <span className="text-[--text-secondary]"> · {tierDisplayName(booking.tiers.name)}</span>}
         </p>
         {/* The confirmation number is the same reference the email and the
             confirmation page quote, and is not shown until something is
@@ -363,13 +364,13 @@ function EmptyState() {
   return (
     <div className="flex flex-col items-start gap-6 border border-[--rule] bg-[--surface-raised] px-6 py-14 md:items-center md:px-8 md:py-20 md:text-center">
       <p className="stamp-type text-[--text-muted]">Nothing booked yet</p>
-      <h2 className="t-subheading max-w-[20ch] text-[--text]">No trips on your account</h2>
+      <h2 className="t-subheading max-w-[20ch] text-[--text]">No trips here yet</h2>
       <p className="max-w-measure-tight font-body text-body leading-[1.7] text-[--text-secondary]">
-        We open a few departures at a time. Pick one and a deposit
-        holds the room while the balance is split into scheduled payments.
+        Telluride is open for December and January. Put down 10% to hold your spot and pay the
+        rest in two installments.
       </p>
       <Button href="/trips" variant="primary" size="md">
-        See what is open
+        See the trips
       </Button>
     </div>
   );

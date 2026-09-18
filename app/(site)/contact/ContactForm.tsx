@@ -29,7 +29,7 @@ export default function ContactForm({ contactEmail }: { contactEmail: string }) 
         toast({
           tone: "success",
           title: "Message sent",
-          description: "We answer every message within a day.",
+          description: "We reply within a day.",
         });
       } else {
         setErrors({ form: result.message });
@@ -49,9 +49,9 @@ export default function ContactForm({ contactEmail }: { contactEmail: string }) 
     return (
       <div className="border border-[--rule] bg-[--surface-raised] p-8">
         <p className="t-micro text-[--accent]">Received</p>
-        <h2 className="t-subheading mt-3 text-[--text]">That is with us</h2>
+        <h2 className="t-subheading mt-3 text-[--text]">Got it</h2>
         <p className="mt-4 max-w-measure font-body text-body leading-[1.75] text-[--text-secondary]">
-          We answer every message within a day. If it&rsquo;s urgent, {contactEmail}{" "}
+          We reply within a day. If it&rsquo;s urgent, {contactEmail}{" "}
           reaches the same inbox.
         </p>
         <div className="mt-6">

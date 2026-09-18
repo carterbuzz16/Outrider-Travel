@@ -1,6 +1,7 @@
 import RoomPhotos, { type RoomPhoto } from "./RoomPhotos";
 import { cn } from "./cn";
 import { TAKEN_NOTE } from "./TierTable";
+import { tierDisplayName } from "@/lib/tier-display";
 
 /**
  * The rooms behind the packages, image-led.
@@ -98,8 +99,8 @@ export default function RoomShowcase({
           intro={
             // Not every departure has both (January has 702 only).
             choices.length > 1
-              ? "Two four-bedroom penthouses at the top of The Peaks. Pick the one you love and it's yours for the trip."
-              : "A four-bedroom penthouse at the top of The Peaks, yours for the trip."
+              ? "Two four-bedroom penthouses at The Peaks. Pick the one you want and it's yours for the trip."
+              : "A four-bedroom penthouse at The Peaks, yours for the trip."
           }
           note="Each one goes to a single group. Once a group books it, it's theirs."
           shared={choices[0].room.shared}
@@ -265,7 +266,7 @@ function PenthouseCard({ penthouse, price, taken = false }: PenthouseCardData) {
 function PackageLine({ tierName, price }: { tierName: string; price?: string | null }) {
   return (
     <p className="t-micro flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[--accent]">
-      <span>{tierName}</span>
+      <span>{tierDisplayName(tierName)}</span>
       {price && (
         <span className="tabular-nums text-[--text-secondary]">
           {price} per person

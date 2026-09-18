@@ -81,7 +81,7 @@ export default function Badge({
  */
 export const TRIP_STATUS = {
   open: { tone: "open" as const, label: "Spots available" },
-  few: { tone: "urgent" as const, label: "Going quickly" },
+  few: { tone: "urgent" as const, label: "Few places left" },
   soldOut: { tone: "closed" as const, label: "Sold out" },
   waitlist: { tone: "neutral" as const, label: "Waitlist" },
   announced: { tone: "new" as const, label: "Just announced" },

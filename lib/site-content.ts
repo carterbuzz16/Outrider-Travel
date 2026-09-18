@@ -44,7 +44,7 @@ export const CONTACT = {
   ] as string[] | null,
   instagram: "https://www.instagram.com/outridertravel/",
   instagramHandle: "@outridertravel",
-  responseTime: "We answer every message within a day.",
+  responseTime: "We reply within a day.",
 };
 
 /* -- what makes Outrider different ------------------------------------------
@@ -56,7 +56,7 @@ export const VALUE_PROPS = [
     eyebrow: "Small groups",
     title: "Small enough to know everyone",
     body:
-      "Every trip gets its size before it goes on sale, and it stays that size. You share a room with three friends or with one, or take a private penthouse with seven friends. Where there's a guide, it's one for every six of you. By night two it feels like your crew took over the town.",
+      "Every trip is sized before it goes on sale and stays that size. Share a Two King room with three friends or one, or take a whole penthouse with seven. Same hotel, same mountain, same long dinner table as everyone you came with.",
   },
   {
     eyebrow: "Hosted",
@@ -68,7 +68,7 @@ export const VALUE_PROPS = [
     eyebrow: "One price",
     title: "One price, all in",
     body:
-      "Lodging, activities, ground transport, private events, a welcome package and our staff are all in the price. No resort fee at check-in and no surprise shuttle charge. Everyone books and pays for their own spot, all at once or in installments, so nobody fronts the money for friends and nobody spends March chasing the group chat.",
+      "Lodging, activities, ground transport, private events, a welcome package and our staff are all in the price. No resort fee at check-in and no surprise shuttle charge. Everyone books and pays for their own spot, all at once or in installments, so nobody fronts the money for friends or spends the semester chasing Venmo requests.",
   },
   {
     eyebrow: "We go first",
@@ -91,10 +91,9 @@ export const ORIGIN = {
    * how a trip is run is the consequence of choosing the place, not the reason. */
   body: [
     "A trip with your friends should be the best week of your year. A place you've wanted to see for ages, somewhere to stay you'd happily tell your parents about, and everyone you like in one town at the same time.",
-    "So we start with the place. A mountain worth skiing, a town worth walking, a dinner nobody leaves early. We build the whole trip around it.",
+    "So we start with the place and build the whole trip around it. In Telluride that means a box canyon, a mountain that climbs straight out of Main Street, and a free gondola between the two.",
     "That one decision shapes the rest. We choose the property first and book it for the whole group, which is what sets the size of every trip. And a trip only goes on sale once one of us has walked the town, eaten the dinners and slept in the rooms.",
     "Then we take care of everything else. Reservations and activities set before anyone lands, rides both directions, our team on the ground all week, and one price paid up front or in installments. The logistics are our job, so the trip can be all yours.",
-    "What's left is the part worth flying for.",
   ],
 };
 
@@ -121,12 +120,14 @@ export const FOUNDER: {
   },
   secondaryImage: null,
   pullQuote:
-    "Everybody already knows what is wrong with booking travel in college. Nobody had bothered to fix it.",
+    // Carter to approve.
+    "Social chair is the job nobody volunteers for twice.",
   bio: [
     "I went to Auburn, where I was social chair of ATO and then president. Between the two I planned more than thirty trips. Social chair is the job nobody volunteers for twice. You book the formals, move 200 people across state lines, chase deposits for months, and you're the one everybody texts when the rooms are wrong.",
     "Travel is the thing I care most about, and nearly everything I know about running a trip I learned by getting it wrong first, on somebody else's behalf. Being the person who has to fix it with 200 people already on the ground teaches you quickly what matters and what nobody notices.",
     "So Outrider is the company I would have booked. One price with everything already inside it. One property, held before it goes on sale. Someone on the ground for the whole trip. Nobody fronting money for their friends and spending the spring trying to get it back.",
-    "This isn't your typical party trip. Sure, college is all about having fun, and there will be plenty of that with Outrider, but what we care most about is your experience. That high-end exclusive feel you've been chasing. The part worth paying for is a place that holds a standard, a group small enough to actually know, and a few days you're still talking about in ten years.",
+    // Carter to approve.
+    "College trips should be fun, and ours are. What I care about is where you wake up: a hotel you'd show your parents, a group small enough that you know everyone by the second dinner, and a town you'll still bring up years from now.",
   ],
 };
 
@@ -146,64 +147,6 @@ export const PARTNER = {
   ],
 };
 
-/* -- the difference, side by side -------------------------------------------
- * Used on the About page. Every line on the Outrider side is something the
- * trip data or the tier inclusions actually back up, so this stays honest as
- * the product changes. The other column describes the usual state of affairs
- * rather than any named company.
- * ------------------------------------------------------------------------- */
-/**
- * A designed graphic to use instead of the built comparison block.
- *
- * Set this and the About page renders the image; leave it null and it renders
- * the COMPARISON rows below as markup. Keeping both means the text version
- * stays as the accessible fallback and the source of truth for the claims.
- *
- * Export at 2x for the container (about 1600px wide is plenty), and supply
- * `alt` that states the comparison in words, because an image of a table is
- * invisible to a screen reader and to search.
- */
-export const COMPARISON_IMAGE: { src: string; alt: string; width: number; height: number } | null =
-  null;
-
-export const COMPARISON = [
-  {
-    label: "The price",
-    usual: "A low number up front, then lift tickets, rentals, transfers and resort fees on top.",
-    ours: "One price per person with everything in it. The number on the trip page is the whole trip.",
-  },
-  {
-    label: "Where you stay",
-    usual: "Your group split across rentals around town, sorted by whoever booked first.",
-    ours: "One property for the whole group. Everyone under the same roof, walking distance from the same lift.",
-  },
-  {
-    label: "Lift tickets and gear",
-    usual: "Bought one at a time at the window, on the first morning, in line.",
-    ours: "Three-day lift tickets and rentals ready before you land, with performance rentals on the upper tiers.",
-  },
-  {
-    label: "Getting there",
-    usual: "Everyone sorts out their own ride from the airport.",
-    ours: "Ground transport both directions is arranged and included, shared or private depending on your package.",
-  },
-  {
-    label: "Paying for it",
-    usual: "One friend fronts the money and spends months chasing the group chat.",
-    ours: "Everyone books their own spot. A deposit holds it and the rest comes in scheduled payments, or pay in full when you book. Nobody owes a friend a thing.",
-  },
-  {
-    label: "On the trip",
-    usual: "Whoever planned it spends the week as the help desk.",
-    ours: "Our team is with you the whole trip, so the friend who planned it finally gets to ski.",
-  },
-  {
-    label: "How many people",
-    usual: "As many as will pay.",
-    ours: "Set before a single spot goes on sale. Rooms for four or two, a private penthouse for eight, and one instructor for every six.",
-  },
-];
-
 /* -- trips not yet in the database ------------------------------------------
  * Shown on /trips as honest "not open yet" entries. No prices and no CTA,
  * because neither exists yet. Delete an entry when a real trip is created.
@@ -213,21 +156,21 @@ export const UPCOMING_CATEGORIES = [
     name: "Spring break",
     destination: "Destination to be announced",
     window: "Spring 2027",
-    note: "Somewhere warm, hosted the same way. We'll stay there first, keep the group small and plan the days, so all you have to pack is sunscreen.",
+    note: "Somewhere warm, hosted the way we host Telluride. We stay there first and keep the group small. The list hears where before anyone else.",
   },
 ];
 
 /* -- what every Telluride package includes ----------------------------------
  * Shown on /telluride under #included, the anchor the booking emails link to.
  * Each line restates something the site already promises (VALUE_PROPS,
- * COMPARISON, the FAQ), so this list adds no new claim. What differs between
+ * the ComparisonTable, the FAQ), so this list adds no new claim. What differs between
  * packages comes from the tiers in the database, not from here.
  * ------------------------------------------------------------------------- */
 export const SHARED_INCLUSIONS = [
   "Lodging at one property, booked whole for the group",
-  "Lift tickets and rentals, arranged before you land",
+  "Lift tickets and ski or snowboard rentals, ready before you land",
   "Ground transport between Montrose and Telluride, both directions",
-  "The private events on the itinerary",
+  "An afternoon BBQ at Gorrono Ranch, mid-mountain, with the whole group",
   "A welcome package",
   "Outrider staff on the ground for the whole trip",
 ];
@@ -255,8 +198,8 @@ export const TELLURIDE_PROPERTY = {
   name: "The Peaks Resort",
   where: "Mountain Village, Telluride",
   body: [
-    "The whole group stays under one roof at The Peaks Resort, up in Mountain Village rather than down in the canyon. It is ski-in and ski-out, so the day starts at the door rather than in a shuttle queue, and it has its own spa for the afternoon after.",
-    "Town is one free gondola ride down. It runs until midnight, so dinner on main street and getting back up the hill afterwards are the same easy trip.",
+    "The whole group stays under one roof at The Peaks Resort, up in Mountain Village above the canyon. It's ski-in and ski-out, so the day starts at the door, and it has its own spa for the afternoon after.",
+    "Town is one free gondola ride down. It runs until midnight, so dinner on Main Street and the ride back up are the same easy trip.",
   ],
 };
 
@@ -266,7 +209,7 @@ export const TELLURIDE_PROPERTY = {
  * September 2026: the first two packages share the same Two King room, with
  * four people or with two, and at the top a group of eight chooses one of two
  * private four-bedroom penthouses, 702 or 830, and books it whole.
- * If that changes, change it here and in COMPARISON, VALUE_PROPS and the FAQ.
+ * If that changes, change it here and in ComparisonTable, VALUE_PROPS and the FAQ.
  * ------------------------------------------------------------------------- */
 export const TELLURIDE_ROOMS = [
   {
@@ -279,7 +222,7 @@ export const TELLURIDE_ROOMS = [
   },
   {
     label: "A penthouse to yourselves",
-    body: "Your pick of two four-bedroom penthouses at the top of The Peaks, 702 or 830, booked whole by your group of eight. Eight of you, with room to spare.",
+    body: "A four-bedroom penthouse for your group of eight. December has two, 702 and 830. January has 702.",
   },
 ];
 

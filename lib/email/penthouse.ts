@@ -4,6 +4,7 @@ import { formatDate, renderEmailLayout } from "@/lib/email/layout";
 import { getFromAddress, sendEmail } from "@/lib/email/send";
 import { getAppUrl } from "@/lib/site-url";
 import { createPortalUrl } from "@/lib/portal-token";
+import { tierDisplayName } from "@/lib/tier-display";
 import {
   PENTHOUSE_DISCLAIMER,
   claimFromRows,
@@ -211,11 +212,6 @@ function columnValue(column: Column, value: string | null): Database["public"]["
     : { penthouse_reminder_email_sent_at: value };
 }
 
-/** "PENTHOUSE 702" reads as "Penthouse 702" in a sentence. */
-function displayName(name: string): string {
-  return name.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
 const NUMBER_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 function inWords(n: number): string {
   return NUMBER_WORDS[n] ?? String(n);
@@ -236,10 +232,10 @@ function dates(tier: TierContext): string {
 }
 
 async function sendFull(member: MemberRow, tier: TierContext, fill: PenthouseFill) {
-  const name = displayName(tier.name);
+  const name = tierDisplayName(tier.name);
   const tripName = tier.trips?.name ?? "your trip";
   const portalUrl = createPortalUrl(member.id) ?? `${getAppUrl()}/bookings`;
-  const greeting = member.users?.name ? `Hi ${escapeHtml(member.users.name)},` : "Hi,";
+  const greeting = member.users?.name ? `Hi ${escapeHtml(member.users.name)},` : "Hi there,";
   const subject = `${name} is full. All ${inWords(fill.capacity)} of you are in.`;
 
   const bodyHtml = `
@@ -261,7 +257,7 @@ async function sendFull(member: MemberRow, tier: TierContext, fill: PenthouseFil
       ctaUrl: portalUrl,
     }),
     text: [
-      member.users?.name ? `Hi ${member.users.name},` : "Hi,",
+      member.users?.name ? `Hi ${member.users.name},` : "Hi there,",
       "",
       `Every place in ${name} is booked. The penthouse is yours for ${tripName}, ${dates(tier)}.`,
       "",
@@ -274,11 +270,11 @@ async function sendFull(member: MemberRow, tier: TierContext, fill: PenthouseFil
 }
 
 async function sendReminder(member: MemberRow, tier: TierContext, code: string, fill: PenthouseFill) {
-  const name = displayName(tier.name);
+  const name = tierDisplayName(tier.name);
   const open = Math.max(0, fill.capacity - fill.filled);
   const places = `${open} ${open === 1 ? "place" : "places"} open`;
   const shareUrl = `${getAppUrl()}${penthouseInvitePath(tier.trip_id, tier.id, code)}`;
-  const greeting = member.users?.name ? `Hi ${escapeHtml(member.users.name)},` : "Hi,";
+  const greeting = member.users?.name ? `Hi ${escapeHtml(member.users.name)},` : "Hi there,";
   const subject = `Two days left to fill ${name}. ${fill.filled} of ${fill.capacity} in, ${places}.`;
 
   const bodyHtml = `
@@ -301,7 +297,7 @@ async function sendReminder(member: MemberRow, tier: TierContext, code: string, 
       ctaUrl: shareUrl,
     }),
     text: [
-      member.users?.name ? `Hi ${member.users.name},` : "Hi,",
+      member.users?.name ? `Hi ${member.users.name},` : "Hi there,",
       "",
       `${name} has ${fill.filled} of ${fill.capacity} places booked, and about two days left to fill the rest.`,
       "",

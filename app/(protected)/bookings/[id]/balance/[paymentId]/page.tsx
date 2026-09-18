@@ -115,7 +115,7 @@ export default async function BalancePaymentPage(props: {
         </p>
         <h1 className="t-title mt-5 max-w-[18ch] text-[--text]">
           {received
-            ? "Thank you, that is in"
+            ? "Got it. Thank you."
             : processing
               ? "Your payment is on its way"
               : "Pay ahead on your trip"}

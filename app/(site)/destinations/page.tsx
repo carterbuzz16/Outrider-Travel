@@ -14,7 +14,7 @@ export const metadata: Metadata = pageMetadata({
   title: "Destinations: Telluride ski trips for college",
   path: "/destinations",
   description:
-    "Where Outrider takes college groups. Telluride, Colorado: a box canyon town at 8,725 feet, 2,000 acres above it, a free gondola between. Spring break is next.",
+    "Where Outrider takes college groups. Telluride, Colorado: a box canyon town at about 8,750 feet, 2,000 acres above it, a free gondola between. Spring break is next.",
 });
 
 /* Alt text describes the photograph, not the file it is stored in: the
@@ -22,14 +22,14 @@ export const metadata: Metadata = pageMetadata({
  * group, powder.jpg is a hut, tomboy.jpg is a cheeseboard), so these were
  * written by looking at the images. */
 const GALLERY = [
-  { src: "/images/telluride/groomers.jpg", alt: "Telluride's brick main street with the peaks standing behind it." },
-  { src: "/images/telluride/apres.jpg", alt: "A skier turning through deep snow, spray thrown up behind." },
-  { src: "/images/telluride/skiing.jpg", alt: "Gondola cabins crossing above the town and the valley." },
+  { src: "/images/telluride/groomers.jpg", alt: "Telluride's brick Main Street and clock tower, a snow-covered peak rising straight up behind." },
+  { src: "/images/telluride/apres.jpg", alt: "A skier in a pink jacket turning through deep powder among snow-loaded pines." },
+  { src: "/images/telluride/skiing.jpg", alt: "A skier carving a groomed run high above the town, a gondola cabin passing overhead." },
   { src: "/images/telluride/lift.jpg", alt: "A skier in the air off the top of a snowy pitch." },
   { src: "/images/people/friends-slopeside.jpg", alt: "Three friends on the slope in falling snow, one on his knees cheering, a chairlift behind them." },
-  { src: "/images/telluride/powder.jpg", alt: "A timber hut mid-mountain with people out on the deck." },
-  { src: "/images/telluride/town-christmas.jpg", alt: "Main street at night under strung lights, the mountain behind." },
-  { src: "/images/telluride/winter-town.jpg", alt: "Skis racked in rows outside at the end of the day." },
+  { src: "/images/telluride/powder.jpg", alt: "Skiers on the sunny deck outside the old timber saloon at Gorrono Ranch, mid-mountain." },
+  { src: "/images/telluride/town-christmas.jpg", alt: "Main Street at dusk through strings of big colored holiday bulbs, the mountains behind." },
+  { src: "/images/telluride/winter-town.jpg", alt: "Skis and snowboards racked outside Gorrono Ranch, red chairs out on the snow and the San Juans behind." },
   { src: "/images/people/chairlift-dusk.jpg", alt: "Three friends riding a chairlift up a lit run at dusk, between dark pines." },
   { src: "/images/telluride/tomboy.jpg", alt: "Wine and a board of food set out by a fire." },
 ];
@@ -38,11 +38,10 @@ export default function DestinationsPage() {
   return (
     <main className="scheme-light scheme-paint">
       <header className="shell pb-14 pt-32 md:pb-20 md:pt-40">
-        <h1 className="t-display mt-6 max-w-[14ch] text-[--text]">Destinations</h1>
+        <h1 className="t-display mt-6 max-w-[14ch] text-[--text]">Places worth the flight</h1>
         <p className="t-lede mt-8 max-w-measure">
-          We only go places worth the flight, and we go there ourselves before
-          we take anyone else. Right now that&rsquo;s Telluride. Somewhere warm
-          is next.
+          We go ourselves before we take anyone else. Right now that&rsquo;s
+          Telluride. Somewhere warm is next.
         </p>
       </header>
 
@@ -58,8 +57,8 @@ export default function DestinationsPage() {
             </h2>
             <p className="t-lede mt-6 max-w-measure">
               A box canyon in the San Juans with one road in. The town sits at
-              8,725 feet and the ski area climbs to 13,150, so the skiing starts
-              about where most resorts top out.
+              about 8,750 feet and the lifts climb to 13,150, so the day starts
+              high and the views only get bigger.
             </p>
           </div>
         </div>
@@ -67,7 +66,7 @@ export default function DestinationsPage() {
         <div className="relative mt-12 h-[46vh] min-h-[280px] w-full overflow-hidden md:mt-16 md:h-[70vh]">
           <Image
             src="/images/telluride/alpenglow.jpg"
-            alt="Alpenglow on the peaks above Telluride."
+            alt="Pink alpenglow over the snow-covered San Juan peaks, with ski runs cut through dark forest below."
             fill
             sizes="100vw"
             className="object-cover"
@@ -105,22 +104,22 @@ export default function DestinationsPage() {
           <Reveal delay={80}>
             <div className="flex flex-col gap-7">
               <p className="font-body text-lede leading-[1.8] text-[--text]">
-                Telluride takes a little more effort to reach, and it pays you
-                back the moment you arrive. Peaks rise on three sides, and the
-                town starts to feel like yours by the second day.
+                Telluride takes a little more effort to reach. Peaks rise on
+                three sides of town, the gondola swings overhead, and by the
+                second day you&rsquo;re waving at the same faces on Main Street.
               </p>
               <p className="font-body text-body leading-[1.85] text-[--text]">
                 The town is a few streets long, and you can walk it end to end in
                 fifteen minutes. It&rsquo;s an old mining town with brick
-                storefronts and a real main street. The free gondola runs up to
+                storefronts and a real Main Street. The free gondola runs up to
                 Mountain Village until midnight, so dinner downtown and the ride
                 home afterwards are both easy.
               </p>
               <p className="font-body text-body leading-[1.85] text-[--text]">
                 Up top there are 2,000 acres and about 330 inches of snow in an
                 average year. Forty-one percent of the trails are advanced or
-                expert, so strong skiers have plenty to chase, and the front side
-                is gentle enough to give a first timer a great day one.
+                expert, so strong skiers and riders have plenty to chase, and the
+                front side is gentle enough to give a first timer a great day one.
               </p>
             </div>
           </Reveal>
@@ -203,7 +202,7 @@ export default function DestinationsPage() {
         id="waitlist"
         placement="destinations"
         heading="Be first on the next one"
-        body="New destinations go to this list before they reach the site. One email when a trip goes live, and nothing in between."
+        body="New places go to this list before they reach the site. You hear where we're going next before anyone else does."
       />
     </main>
   );

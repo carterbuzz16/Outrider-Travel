@@ -2,6 +2,8 @@ import "server-only";
 import { existsSync } from "node:fs";
 import path from "node:path";
 
+export { tierDisplayName } from "@/lib/tier-display";
+
 /**
  * The rooms at The Peaks Resort behind each package, and their photographs.
  *
@@ -18,7 +20,7 @@ import path from "node:path";
  * September 2026: BASE and MID share the same Two King room, four people or
  * two; each penthouse is its own package, a private four-bedroom penthouse
  * that one group of eight books whole, and guests choose 702 or 830). If the
- * rooming changes, change both, and COMPARISON, VALUE_PROPS and the FAQ with
+ * rooming changes, change both, and ComparisonTable, VALUE_PROPS and the FAQ with
  * them.
  *
  * The penthouse facts are the resort's own listing for each unit, restated.
@@ -96,7 +98,7 @@ const PROPERTY_FACT: RoomFact = { label: "Where", value: "The Peaks Resort, ski-
 const WHOLE_PENTHOUSE = "Eight of you, the whole penthouse";
 
 const PENTHOUSE_SHARED =
-  "Both have an elevator, ski-in and ski-out access, and the resort's pool, hot tub and exercise room. Each sleeps more than eight, so eight of you have room to spare.";
+  "Each penthouse has an elevator and ski-in, ski-out access, and you have the run of the resort's pool, hot tub and exercise room.";
 
 const TWO_KING_PHOTO: RoomPhoto = {
   src: "/images/peaks/two-king-1.jpg",
@@ -106,7 +108,7 @@ const TWO_KING_PHOTO: RoomPhoto = {
 const P702: PenthouseSource = {
   number: "702",
   name: "Penthouse 702",
-  line: "One big open room for cooking, eating and hanging out, with Mt. Wilson and the San Sophia range filling the windows.",
+  line: "Three bedrooms on one main level and a fourth upstairs, around one big open room for cooking, eating and hanging out, with Mt. Wilson and the San Sophia range filling the windows.",
   panel: "Four bedrooms · Mt. Wilson views",
   stats: [
     { value: "4", label: "Bedrooms" },
@@ -237,10 +239,10 @@ const ROOMS: Record<string, RoomSource> = {
     title: "The penthouse",
     summary: "Private four-bedroom penthouse for your group of eight",
     upgrade:
-      "A four-bedroom penthouse at the top of The Peaks, held for your group of eight and nobody else. Eight of you, with room to spare.",
+      "A four-bedroom penthouse at The Peaks, held for your group of eight and nobody else. 702 keeps three bedrooms on one main level with a fourth upstairs. 830 spreads over three stories.",
     figure: { value: "8", unit: "your group only" },
     facts: [
-      { label: "Sharing", value: "Your group of eight, with room to spare" },
+      { label: "Sharing", value: "Your group of eight and nobody else" },
       { label: "Which one", value: "Penthouse 702 or 830" },
       PROPERTY_FACT,
     ],

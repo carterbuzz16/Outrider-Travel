@@ -11,6 +11,10 @@
  * time on Vercel. String.raw keeps every byte as written. That only works
  * while the markup contains no backtick, no dollar-brace sequence and no
  * backslash; check for all three before pasting in a new version.
+ *
+ * Words only (never markup) were edited in September 2026 to match the
+ * owner's decisions: travel insurance is an optional add-on, replies come
+ * within a day, no month named, and no em dashes in the copy.
  */
 export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
@@ -94,7 +98,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
     <tr>
       <td class="gutter" style="padding:20px 48px 0 48px;">
         <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:17px; line-height:1.6; color:#3E342F;">
-          {{first_name}} &mdash; your spot on {{trip_name}}, {{trip_dates}}, is held. One of {{trip_capacity}}, and that is the cap. Your receipt is further down.
+          {{first_name}}, your spot on {{trip_name}}, {{trip_dates}}, is held. One of {{trip_capacity}}, and that is the cap. Your receipt is further down.
         </div>
         <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:17px; line-height:1.6; color:#3E342F; padding-top:14px;">
           First, three things we need from you <strong style="font-weight:600;">today</strong>. All three are in one place and take about five minutes together.
@@ -121,7 +125,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
                   <td valign="top">
                     <div class="h2" style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:22px; line-height:1.25; font-weight:500; color:#3E342F;">Book your flights into Montrose</div>
                     <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:1.6; color:#3E342F; padding-top:8px;">
-                      Montrose Regional (MTJ), not Denver. A handful of winter flights a day and December sells out, so do this one first.
+                      Montrose Regional (MTJ), not Denver. A handful of winter flights a day, and they sell out, so do this one first.
                     </div>
                     <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:1.7; color:#3E342F; padding-top:10px;">
                       Land by <strong style="font-weight:600;">{{arrival_deadline}}</strong><br />
@@ -170,7 +174,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
                       Legal name, date of birth, emergency contact, and your rental sizes. Two minutes.
                     </div>
                     <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; line-height:1.6; color:#6B635C; padding-top:8px;">
-                      This activates your travel insurance and gets your skis or board fitted before you land, so you skip the rental line on day one.
+                      Your name and date of birth go on your lift tickets and lodging records, and on travel insurance if you choose to add it. Your sizes get your skis or board fitted before you land, so you skip the rental line on day one.
                       <a href="{{traveler_details_url}}" style="color:#9C4F2E; text-decoration:underline; font-weight:600;">Add your details</a>
                     </div>
                   </td>
@@ -200,7 +204,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
                 <a href="sms:{{sms_number_raw}}" style="color:#2A2320; text-decoration:none;">Text {{sms_number}}</a>
               </div>
               <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:1.6; color:#2A2320; padding-top:12px;">
-                A person answers, usually inside an hour. Email works too &mdash;
+                A person answers within a day. Email works too:
                 <a href="mailto:bookings@outrider.travel" style="color:#2A2320; text-decoration:underline;">bookings@outrider.travel</a>. Not a ticket queue, not a bot.
               </div>
             </td>
@@ -227,7 +231,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
           <tr><td colspan="2" style="border-top:1px solid #d7d2cb; font-size:0; line-height:0;">&nbsp;</td></tr>
           <tr>
             <td width="132" valign="top" style="padding:14px 16px 14px 0; font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:11px; font-weight:600; letter-spacing:1.6px; text-transform:uppercase; color:#6B635C;">Package</td>
-            <td valign="top" style="padding:14px 0; font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:1.45; color:#3E342F;">{{tier_name}} &mdash; {{total_price}} per person</td>
+            <td valign="top" style="padding:14px 0; font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:1.45; color:#3E342F;">{{tier_name}}, {{total_price}} per person</td>
           </tr>
           <tr><td colspan="2" style="border-top:1px solid #d7d2cb; font-size:0; line-height:0;">&nbsp;</td></tr>
           <tr>
@@ -253,7 +257,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
           <!-- {{#unless has_balance}} -->
           You paid in full, so there are no installments to come.
           <!-- {{/unless}} -->
-          Nothing else gets added &mdash; no booking fee, no service charge.
+          Nothing else gets added: no booking fee, no service charge.
           <a href="{{portal_url}}" style="color:#3E342F; text-decoration:underline;">See your payment schedule</a>
         </div>
       </td>
@@ -287,8 +291,8 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
             <td class="stack stack-gap" width="50%" valign="top" style="padding-left:16px; font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; line-height:1.85; color:#3E342F;">
               Welcome event &amp; Gorrono BBQ<br />
               Hat bar, DJ, live set, O'Bannon's<br />
-              Welcome gift &amp; travel insurance<br />
-              Staff on the ground, all four days
+              Welcome gift<br />
+              Staff on the ground, the whole trip
             </td>
           </tr>
         </table>
@@ -296,7 +300,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
           <tr><td style="border-top:1px solid #d7d2cb; font-size:0; line-height:0;">&nbsp;</td></tr>
         </table>
         <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; line-height:1.6; color:#6B635C; padding-top:14px;">
-          Not in it: flights, and lunch you buy on the mountain. That is the whole list.
+          Not in it: flights, lunch you buy on the mountain, and travel insurance, which you can add if you want it. That is the whole list.
           <a href="https://outrider.travel/telluride#included" style="color:#3E342F; text-decoration:underline;">Full breakdown</a>
         </div>
       </td>

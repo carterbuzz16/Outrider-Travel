@@ -1,6 +1,7 @@
 import Button from "./Button";
 import Badge from "./Badge";
 import { cn } from "./cn";
+import { tierDisplayName } from "@/lib/tier-display";
 
 /**
  * The three packages, side by side.
@@ -150,7 +151,7 @@ function TierColumn({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1.5">
-          <Heading className="t-subheading text-[--text]">{tier.name}</Heading>
+          <Heading className="t-subheading text-[--text]">{tierDisplayName(tier.name)}</Heading>
           {tier.description && (
             <p className="font-body text-body-s text-[--text-secondary]">{tier.description}</p>
           )}
@@ -188,7 +189,7 @@ function TierColumn({
             is running low. */}
         <p className="t-micro min-h-[1.4em] text-[--flag-ink]">
           {!taken && tier.spotsLeft !== null && tier.spotsLeft > 0 && tier.spotsLeft <= 6
-            ? "Selling out fast"
+            ? "Few places left"
             : "\u00a0"}
         </p>
         {taken ? (
