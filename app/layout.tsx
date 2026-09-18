@@ -3,6 +3,7 @@ import { Figtree } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { getAppUrl } from "@/lib/site-url";
+import { CHECKOUT_SANDBOX } from "@/lib/booking-window";
 import "./globals.css";
 
 /**
@@ -92,6 +93,13 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
+        {CHECKOUT_SANDBOX && (
+          // Nobody should mistake this build for the live site. See
+          // lib/booking-window.ts for what turns it on.
+          <div className="pointer-events-none fixed bottom-3 right-3 z-[100] rounded-full bg-[#b3261e] px-3 py-1.5 font-body text-[12px] font-medium text-white shadow-lg">
+            Checkout sandbox · Stripe test mode
+          </div>
+        )}
         {children}
         {/*
           Vercel Analytics and Speed Insights.

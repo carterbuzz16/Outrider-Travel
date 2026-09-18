@@ -2,6 +2,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/types/supabase";
 import type { TripStatus } from "@/components/ui";
+import { CHECKOUT_SANDBOX, isTestTrip } from "@/lib/booking-window";
 
 /**
  * Public trip data.
@@ -91,10 +92,11 @@ export async function getPublishedTrips(): Promise<PublicTrip[]> {
     console.error(`Failed to load published trips: ${error.code} — ${error.message}`);
     return [];
   }
-  if (!data || data.length === 0) return [];
+  const trips = (data ?? []).filter(isVisible);
+  if (trips.length === 0) return [];
 
-  const taken = await countTakenSpots(data.map((t) => t.id));
-  return data.map((trip) => toPublicTrip(trip, taken));
+  const taken = await countTakenSpots(trips.map((t) => t.id));
+  return trips.map((trip) => toPublicTrip(trip, taken));
 }
 
 export async function getPublishedTrip(id: string): Promise<PublicTrip | null> {
@@ -117,10 +119,15 @@ export async function getPublishedTrip(id: string): Promise<PublicTrip | null> {
     console.error(`Failed to load trip ${id}: ${error.code} — ${error.message}`);
     return null;
   }
-  if (!data) return null;
+  if (!data || !isVisible(data)) return null;
 
   const taken = await countTakenSpots([data.id]);
   return toPublicTrip(data, taken);
+}
+
+/** Test trips are published so they can be booked, but only the sandbox shows them. */
+function isVisible(trip: { name: string }): boolean {
+  return CHECKOUT_SANDBOX || !isTestTrip(trip.name);
 }
 
 /** Bookings per tier, so a capped tier can show what's actually left. */
