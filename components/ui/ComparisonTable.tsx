@@ -39,7 +39,7 @@ const ROWS: Row[] = [
       "Bought one at a time at the window, on the first morning, in line.",
     usualShort: "Bought at the window on day one",
     outriderLong:
-      "Three-day lift tickets and rentals ready before you land, with performance rentals on the upper tiers.",
+      "Three-day lift tickets and ski or snowboard rentals ready before you land, with performance rentals on the upper tiers.",
     outriderShort: "Ready before you land",
   },
   {    label: "Getting there",
@@ -55,8 +55,8 @@ const ROWS: Row[] = [
       "One friend fronts the money and spends months chasing the group chat.",
     usualShort: "One friend fronts it and chases the group chat",
     outriderLong:
-      "Everyone books their own spot. A deposit holds it, the rest is split into scheduled payments, and nobody owes a friend a thing.",
-    outriderShort: "Everyone books their own spot, on a payment plan",
+      "Everyone books their own spot. Put down 10% and pay the rest in two installments, or pay in full up front and take $100 off. Nobody owes a friend a thing.",
+    outriderShort: "Everyone books their own spot, in installments or in full",
   },
   {    label: "On the trip",
     usualLong:
@@ -70,7 +70,7 @@ const ROWS: Row[] = [
     usualLong: "As many as will pay.",
     usualShort: "As many as will pay",
     outriderLong:
-      "Set before a single spot goes on sale, and it stays there. Rooms hold four or two, a private penthouse holds eight, and there's one instructor for every six. Small enough that it still feels like your trip.",
+      "Set before a single spot goes on sale, and it stays there. Rooms hold four or two, a penthouse holds eight, and on penthouse packages there's one instructor for every six.",
     outriderShort: "Capped before it sells",
   },
 ];
@@ -88,8 +88,7 @@ export default function ComparisonTable() {
           </h2>
         </div>
         <p className="ocmp-standfirst">
-          Seven things we take care of for you, next to how a group trip
-          usually goes.
+          How a group trip usually goes, and how it goes with us.
         </p>
       </header>
 

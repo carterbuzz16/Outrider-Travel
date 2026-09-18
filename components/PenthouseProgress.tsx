@@ -98,7 +98,7 @@ export default function PenthouseProgress({
         : state === "expired"
           ? `The ${PENTHOUSE_FILL_DAYS} days are up with ${filled} of ${capacity} in. Our team will be in touch about the empty places.`
           : state === "waiting"
-            ? `${filled} of ${capacity} in. Your group has ${PENTHOUSE_FILL_DAYS} days to fill it once the first place is paid for.`
+            ? `${filled} of ${capacity} in. Your group has ${PENTHOUSE_FILL_DAYS} days to fill it once the first place is booked.`
             : `${filled} of ${capacity} in · ${days} left to fill`;
   }
 

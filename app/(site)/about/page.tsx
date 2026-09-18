@@ -227,7 +227,7 @@ export default function AboutPage() {
       <section className="scheme-espresso scheme-paint">
         <div className="shell flex flex-col items-start gap-8 py-16 md:flex-row md:items-center md:justify-between md:py-24">
           <h2 className="t-heading max-w-[18ch] text-[--text]">
-            Two weeks in Telluride this winter
+            Two trips to Telluride this winter: December 14 to 18 and January 4 to 8.
           </h2>
           <div className="flex flex-wrap gap-4">
             <Button href="/trips" variant="primary" size="lg">

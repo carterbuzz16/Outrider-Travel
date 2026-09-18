@@ -8,7 +8,7 @@ export const metadata: Metadata = pageMetadata({
   title: "Contact",
   path: "/contact",
   description:
-    "Questions about a college group trip, a chapter booking or traveling with friends? Write to Outrider. We answer every message within a day.",
+    "Questions about a college group trip, a chapter booking or traveling with friends? Write to Outrider. We reply within a day.",
 });
 
 export default function ContactPage() {
@@ -16,11 +16,11 @@ export default function ContactPage() {
     <main className="scheme-light scheme-paint">
       <header className="shell pb-14 pt-32 md:pb-20 md:pt-40">
         <div>
-          <h1 className="t-display mt-6 max-w-[13ch] text-[--text]">Get in touch</h1>
+          <h1 className="t-display mt-6 max-w-[13ch] text-[--text]">Ask us anything</h1>
           <p className="t-lede mt-8 max-w-measure">
-            Ask us anything. A question about Telluride, a trip for your
-            chapter, a group of friends who want to go together. It all comes
-            straight to our team.
+            A question about Telluride, a trip for your chapter, a group of
+            friends who want to go together. It all comes straight to our
+            team.
           </p>
         </div>
       </header>

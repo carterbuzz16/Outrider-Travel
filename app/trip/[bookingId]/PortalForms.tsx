@@ -182,7 +182,7 @@ export function RoomingTask({
       />
       <p className="font-body text-body-s leading-[1.7] text-[--text-muted]">
         Rooms are assigned in the order requests arrive. We match names by hand, so the people you
-        name do not need to have booked yet.
+        name don&rsquo;t need to have booked yet.
       </p>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
         <Button type="submit" variant="primary" size="md" disabled={pending}>
@@ -282,7 +282,7 @@ export function DetailsTask({
         </Alert>
       )}
 
-      <Group title="For the insurer" hint="The trip insurer needs both.">
+      <Group title="For your records" hint="For your lift tickets and lodging records, and for travel insurance if you choose to add it.">
         <Field
           label="Legal name"
           hint="Exactly as on your driver's license or passport."
@@ -474,7 +474,7 @@ export function TextOptIn({ bookingId, token }: { bookingId: string; token: stri
 
 /*
  * A titled group of fields: a real fieldset, so a screen reader announces
- * "For the insurer" before "Legal name", with the legend set as a label over a
+ * "For your records" before "Legal name", with the legend set as a label over a
  * hairline the way each section of the page opens. Two columns from sm up;
  * a field that needs the width spans both.
  */

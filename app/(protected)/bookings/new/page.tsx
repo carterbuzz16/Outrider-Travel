@@ -13,7 +13,7 @@ import {
 } from "@/lib/deposit";
 import { formatAmount } from "@/lib/balance";
 import { INSTALLMENT_OFFSETS_DAYS } from "@/lib/installments";
-import { countPenthouses, getRoomMedia, tierGrouping } from "@/lib/room-media";
+import { countPenthouses, getRoomMedia, tierDisplayName, tierGrouping } from "@/lib/room-media";
 import { CONTACT } from "@/lib/site-content";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { BOOKINGS_OPEN } from "@/lib/booking-window";
@@ -82,7 +82,7 @@ export default async function NewBookingPage(props: {
   const joinResult: JoinGroupResult = !group?.code
     ? { state: "none" }
     : group.unlocks.length > 0
-      ? { state: "unlocked", tierNames: trip!.tiers.filter((t) => group.unlocks.includes(t.id)).map((t) => t.name) }
+      ? { state: "unlocked", tierNames: trip!.tiers.filter((t) => group.unlocks.includes(t.id)).map((t) => tierDisplayName(t.name)) }
       : group.knownOnTrip
         ? { state: "not-penthouse" }
         : { state: "unknown" };
@@ -136,7 +136,7 @@ export default async function NewBookingPage(props: {
                     renderedAt={new Date().toISOString()}
                     tierId={t.id}
                     groupCode={group.code!}
-                    joining={titleCase(t.name)}
+                    joining={tierDisplayName(t.name)}
                   />
                 ))}
             <div className="mt-10 md:mt-12">
@@ -354,11 +354,6 @@ function Departures({
       })}
     </ul>
   );
-}
-
-/** "PENTHOUSE 702" reads as "Penthouse 702" in a sentence. */
-function titleCase(name: string): string {
-  return name.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function NothingOpen() {

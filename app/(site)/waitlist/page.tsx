@@ -43,11 +43,11 @@ const STEPS = [
   },
   {
     title: "Hear it first",
-    body: "When a trip opens, the list gets one email before it reaches the site. Nothing in between.",
+    body: "When a trip opens, the list hears before the site does.",
   },
   {
     title: "Book your spot",
-    body: "A deposit holds it and the rest runs in installments. Share a group code and you'll room with your friends.",
+    body: "Put down 10% to hold it and pay the rest in two installments. Share a group code and you'll room with your friends.",
   },
 ];
 
@@ -183,7 +183,7 @@ export default async function WaitlistPage() {
               className="t-display mt-7 max-w-[12ch] text-[--text] motion-safe:animate-rise"
               style={rise(1)}
             >
-              Join the list
+              Hear it before campus does
             </h1>
             <p
               className="mt-8 max-w-[44ch] font-body text-lede leading-[1.7] text-[--text] motion-safe:animate-rise"

@@ -1,22 +1,23 @@
 import { cn } from "@/components/ui";
 
 /**
- * A visible stand-in for copy that only the Outrider team can write.
+ * A stand-in for copy that only the Outrider team can write.
  *
- * Deliberately obvious. The alternative is either an empty section, which looks
- * broken, or invented prose, which is worse: a founder's story and a partner's
- * description of themselves are not ours to guess at. This holds the layout so
- * the real copy can be dropped in without redesigning anything, and it is
- * unmistakably not finished, so it cannot be shipped by accident.
+ * It renders on the public site, so everything it shows is written for a
+ * traveler: a "Coming soon" label and a line saying what will be here. The
+ * notes on what the finished copy needs to say live in a comment beside each
+ * use, never in what renders. Search for DraftCopy to find every gap before
+ * launch. The dashed box keeps it visibly unfinished to the team without
+ * reading as broken to a visitor.
  */
 export default function DraftCopy({
   label,
   children,
   className,
 }: {
-  /** What is missing, e.g. "Carter's story". */
+  /** The topic, as a traveler would read it, e.g. "How the Montrose transfer works". */
   label: string;
-  /** What the finished copy should cover. */
+  /** One customer-facing line about what will be here. */
   children: React.ReactNode;
   className?: string;
 }) {
@@ -27,7 +28,7 @@ export default function DraftCopy({
         className,
       )}
     >
-      <p className="t-micro text-[--flag-ink]">Draft placeholder · {label}</p>
+      <p className="t-micro text-[--flag-ink]">Coming soon · {label}</p>
       <div className="mt-3 font-body text-body-s leading-[1.7] text-[--text-secondary]">
         {children}
       </div>

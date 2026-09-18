@@ -85,7 +85,7 @@ export async function sendBookingConfirmationEmail(opts: {
 }) {
   const { to, name, bookingId, trip, tierName, totalAmount, amountPaid, paidInFull, groupCode, upcomingPayments, portalUrl } =
     opts;
-  const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi,";
+  const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi there,";
   const remaining = Math.max(0, totalAmount - amountPaid);
 
   const scheduleHtml =
@@ -126,7 +126,7 @@ export async function sendBookingConfirmationEmail(opts: {
 
   const bodyHtml = `
     <p>${greeting}</p>
-    <p>${paidInFull ? "Your payment" : "Your deposit"} is confirmed for <strong>${escapeHtml(trip.name)}</strong>. You're booked in.</p>
+    <p>You're going to <strong>${escapeHtml(trip.name)}</strong>. ${paidInFull ? "Your payment" : "Your deposit"} is in and your spot is yours.</p>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 24px 0; font-size: 14px;">
       <tr><td style="padding: 4px 0; color: #6B7280; width: 140px;">Destination</td><td style="padding: 4px 0;">${escapeHtml(trip.destination)}</td></tr>
       <tr><td style="padding: 4px 0; color: #6B7280;">Dates</td><td style="padding: 4px 0;">${formatDate(trip.startDate)} – ${formatDate(trip.endDate)}</td></tr>
@@ -170,7 +170,7 @@ export async function sendInstallmentChargedEmail(opts: {
   kind?: "installment" | "balance";
 }) {
   const { to, name, bookingId, tripName, amount, remainingBalance, kind = "installment" } = opts;
-  const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi,";
+  const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi there,";
 
   const opening =
     kind === "balance"
@@ -214,7 +214,7 @@ export async function sendPaymentFailedEmail(opts: {
   willRetry: boolean;
 }) {
   const { to, name, bookingId, tripName, amount, willRetry } = opts;
-  const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi,";
+  const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi there,";
 
   const bodyHtml = `
     <p>${greeting}</p>
@@ -248,7 +248,7 @@ export async function sendActionRequiredEmail(opts: {
   amount: number;
 }) {
   const { to, name, bookingId, paymentId, tripName, amount } = opts;
-  const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi,";
+  const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi there,";
 
   const bodyHtml = `
     <p>${greeting}</p>
@@ -284,7 +284,7 @@ export async function sendOverpaymentRefundEmail(opts: {
   reason: "overpaid" | "cancelled";
 }) {
   const { to, name, bookingId, tripName, amount, reason } = opts;
-  const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi,";
+  const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi there,";
 
   const why =
     reason === "overpaid"
@@ -329,7 +329,7 @@ export async function sendWaitlistWelcome(email: string, token: string) {
   await sendEmail({
     from: getFromAddress(),
     to: email,
-    subject: "You are on the Outrider list",
+    subject: "You're on the Outrider list",
     headers: {
       // RFC 8058. The POST endpoint is what Gmail's own unsubscribe button
       // calls, without the reader ever leaving their inbox.
@@ -337,27 +337,26 @@ export async function sendWaitlistWelcome(email: string, token: string) {
       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
     },
     html: renderEmailLayout({
-      preheader: "Departures open to this list before they go on sale.",
+      preheader: "First dibs on Telluride. The list hears before anyone else.",
       bodyHtml: `
-        <p style="margin:0 0 16px;">You are on the list.</p>
+        <p style="margin:0 0 16px;">You're on the list.</p>
         <p style="margin:0 0 16px;">
-          Departures open to this list before they go on sale. When Telluride is
-          live, you will hear from us first.
+          Trips open to this list before they go on sale. When Telluride goes
+          live, you'll hear it from us before campus does.
         </p>
         <p style="margin:0 0 16px;">
-          That is the only reason we will email you. No newsletter, nothing
-          weekly.
+          We only email when a trip opens. No newsletter, nothing weekly.
         </p>
         <p style="margin:24px 0 0;font-size:12px;color:#6B6B6B;">
           <a href="${url}" style="color:#6B6B6B;">Unsubscribe</a>
         </p>`,
     }),
     text: [
-      "You are on the list.",
+      "You're on the list.",
       "",
-      "Departures open to this list before they go on sale. When Telluride is live, you will hear from us first.",
+      "Trips open to this list before they go on sale. When Telluride goes live, you'll hear it from us before campus does.",
       "",
-      "That is the only reason we will email you. No newsletter, nothing weekly.",
+      "We only email when a trip opens. No newsletter, nothing weekly.",
       "",
       `Unsubscribe: ${url}`,
     ].join("\n"),

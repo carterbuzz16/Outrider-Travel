@@ -3,8 +3,9 @@ import { Alert, Button, SectionDivider } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe";
 import { syncPaymentFromStripe } from "@/lib/stripe-sync";
-import { formatDateRange } from "@/lib/trips";
+import { formatDateRange, formatPrice } from "@/lib/trips";
 import { formatAmount } from "@/lib/balance";
+import { tierDisplayName } from "@/lib/tier-display";
 import CompleteAuthenticationForm from "@/components/CompleteAuthenticationForm";
 
 /**
@@ -90,7 +91,7 @@ export default async function InstallmentAuthenticationPage(
             value={trip ? formatDateRange(trip.start_date, trip.end_date) : "On your booking"}
             numeric={Boolean(trip)}
           />
-          <Fact label="Package" value={payment.bookings?.tiers?.name ?? "Standard"} />
+          <Fact label="Package" value={payment.bookings?.tiers ? tierDisplayName(payment.bookings.tiers.name) : "Your package"} />
         </dl>
 
         <div className="mt-10">

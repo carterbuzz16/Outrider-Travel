@@ -6,6 +6,7 @@ import { useId, useState } from "react";
 import { Field, Input, RadioControl, RoomPanel, RoomPhotosButton, cn, type RoomView } from "@/components/ui";
 import { PendingSubmitButton, SubmitOnceForm } from "@/components/SubmitOnce";
 import { createBooking } from "@/app/(protected)/bookings/actions";
+import { tierDisplayName } from "@/lib/tier-display";
 
 /*
  * Step 1 of checkout: the package and how to pay, as ONE form.
@@ -45,7 +46,7 @@ export type CheckoutTier = {
   taken?: boolean;
   /** Package-specific terms shown on the card (the penthouse fill rule, PENTHOUSE_DISCLAIMER). */
   terms?: string | null;
-  /** Qualitative ("Selling out fast"), never a count; null when unremarkable. */
+  /** Qualitative ("Few places left"), never a count; null when unremarkable. */
   availability: string | null;
   /** The room line, or the tier's own description when there is no room. */
   summary: string | null;
@@ -110,7 +111,7 @@ export default function BookingForm({
           Choose your package
         </legend>
         <p className="clear-both pt-2 font-body text-body-s leading-[1.6] text-[--text-secondary]">
-          Everyone skis the same days and comes to the same events. The package decides the room.
+          Everyone gets the same days on the mountain and the same nights out. Your package decides the room.
         </p>
         <div className="mt-6 flex flex-col gap-4">
           {tiers
@@ -159,7 +160,7 @@ export default function BookingForm({
         <div className="border-b border-[--rule] p-5 sm:p-6">
           <p className="t-micro text-[--text-secondary]">Your package</p>
           <div className="mt-2 flex items-baseline justify-between gap-4">
-            <p className="font-display text-display-s font-medium tracking-title text-[--text]">{selected.name}</p>
+            <p className="font-display text-display-s font-medium tracking-title text-[--text]">{tierDisplayName(selected.name)}</p>
             <p className="font-body text-body tabular-nums text-[--text]">{selected.priceLabel}</p>
           </div>
           {selected.summary && (
@@ -178,7 +179,9 @@ export default function BookingForm({
               onSelect={() => setPlan("deposit")}
               title={`${depositPercent}% deposit today`}
               amount={selected.depositLabel}
-              detail={`The other ${selected.balanceLabel} in ${installments} scheduled payments before you travel.`}
+              // The timing restates INSTALLMENT_OFFSETS_DAYS in lib/installments.ts
+              // (server-only, so not importable here). Change both together.
+              detail={`The other ${selected.balanceLabel} in ${installments} payments, charged to your card 60 and 30 days before the trip.`}
             />
             <PlanOption
               value="full"
@@ -243,16 +246,16 @@ export default function BookingForm({
             className="mt-6 !whitespace-normal text-center !leading-[1.35]"
             disabled={selected.soldOut}
           >
-            Continue to payment — {dueToday}
+            Continue to payment · {dueToday}
           </PendingSubmitButton>
 
           <ul className="m-0 mt-5 flex list-none flex-col gap-2 p-0 font-body text-body-s leading-[1.5] text-[--text-secondary]">
             <li className="flex items-start gap-2.5">
               <LockGlyph />
-              <span>Secure payment by Stripe. You enter your card on the next step.</span>
+              <span>You add your card on the next step. Stripe handles the payment.</span>
             </li>
             <li className="pl-[1.375rem]">
-              Deposit non-refundable; see the{" "}
+              Deposits aren&rsquo;t refundable. Here are the{" "}
               <Link href="/terms#cancellation" target="_blank" rel="noreferrer" className={LINK}>
                 cancellation terms
               </Link>
@@ -348,7 +351,7 @@ function PackageCard({
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
               <span className="font-display text-display-s font-medium tracking-title text-[--text]">
-                {tier.name}
+                {tierDisplayName(tier.name)}
               </span>
               <span className="font-body text-body tabular-nums text-[--text]">
                 {tier.priceLabel}

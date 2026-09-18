@@ -11,6 +11,10 @@
  * time on Vercel. String.raw keeps every byte as written. That only works
  * while the markup contains no backtick, no dollar-brace sequence and no
  * backslash; check for all three before pasting in a new version.
+ *
+ * Words only (never markup) were edited in September 2026 to match the
+ * owner's decisions: travel insurance is an optional add-on, replies come
+ * within a day, no month named, and no em dashes in the copy.
  */
 export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
@@ -63,9 +67,9 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
 <body style="margin:0; padding:0; background-color:#f2efea;">
 
 <!-- SUBJECT:   {{first_name}}, we're still missing a couple of things
-     PREHEADER: Two minutes and you're set for December. -->
+     PREHEADER: Two minutes and you're set for the trip. -->
 <div style="display:none; font-size:1px; color:#f2efea; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden; mso-hide:all;">
-  Two minutes and you're set for December.
+  Two minutes and you're set for the trip.
   &#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;&#8199;
 </div>
 
@@ -102,7 +106,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
     <tr>
       <td class="gutter" style="padding:20px 48px 0 48px;">
         <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:17px; line-height:1.6; color:#3E342F;">
-          {{first_name}} &mdash; {{trip_name}} is {{days_until_trip}} days out and we're holding your spot. Here's what's still open on your side.
+          {{first_name}}, {{trip_name}} is {{days_until_trip}} days out and we're holding your spot. Here's what's still open on your side.
         </div>
       </td>
     </tr>
@@ -150,7 +154,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
                   <td valign="top">
                     <div class="h2" style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:22px; line-height:1.25; font-weight:500; color:#3E342F;">Your traveler details</div>
                     <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:1.6; color:#3E342F; padding-top:8px;">
-                      Legal name, date of birth, emergency contact, rental sizes. This is what activates your insurance and gets your gear fitted before you land.
+                      Legal name, date of birth, emergency contact, rental sizes. Your name and date of birth go on your lift tickets and lodging records, and on travel insurance if you choose to add it. Your sizes get your gear fitted before you land.
                       <a href="{{traveler_details_url}}" style="color:#9C4F2E; text-decoration:underline; font-weight:600;">Add your details</a>
                     </div>
                   </td>
@@ -180,7 +184,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
                 <a href="sms:{{sms_number_raw}}" style="color:#2A2320; text-decoration:none;">Text {{sms_number}}</a>
               </div>
               <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:1.6; color:#2A2320; padding-top:12px;">
-                Send us your roommates in a text if that's easier. We'll put them in for you. A person answers, usually inside an hour.
+                Send us your roommates in a text if that's easier. We'll put them in for you. A person answers within a day.
               </div>
             </td>
           </tr>

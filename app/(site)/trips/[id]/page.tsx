@@ -217,8 +217,8 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
                 : `${tiers.length === 2 ? "Two" : tiers.length === 3 ? "Three" : String(tiers.length)} ways to take the same trip`}
             </h2>
             <p className="t-lede max-w-measure">
-              Everyone skis the same days and comes to the same events. What
-              changes is where you sleep and how much is handled for you.
+              Everyone gets the same days on the mountain and the same nights
+              out. What changes is where you sleep.
             </p>
           </div>
         </Reveal>
@@ -234,11 +234,11 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
         <Reveal>
           <p className="t-micro mt-6 text-[--text-muted]">
             {!BOOKINGS_OPEN && `${COMING_SOON_NOTE} `}
-            Every package includes on-trip staffing. Flights are booked separately; see Getting there for the airport and transfers, or the{" "}
+            Every package includes our team on the ground the whole trip. Flights you book yourself. The{" "}
             <Link href="/flights" className="text-[--accent] underline underline-offset-4">
               flight guide
-            </Link>
-            .
+            </Link>{" "}
+            has the airport and the timing.
           </p>
         </Reveal>
       </section>
@@ -334,7 +334,7 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
                   ? COMING_SOON_NOTE
                   : soldOut
                     ? "Tell us you want in, and you'll hear first when the next trip opens."
-                    : "A deposit holds your spot, and the rest is split into scheduled installments before you go."}
+                    : "Put down 10% to hold your spot and pay the rest in two installments, or pay it all now and take $100 off. Each of you books your own."}
               </p>
             </div>
           </div>

@@ -85,12 +85,12 @@ const HERO_IMAGE = {
 
 const GALLERY = [
   { src: "/images/telluride/skiing.jpg", alt: "A skier carving a groomed run high above the town, a gondola cabin passing overhead." },
-  { src: "/images/telluride/groomers.jpg", alt: "Telluride's brick main street and clock tower, a snow-covered peak rising straight up behind." },
+  { src: "/images/telluride/groomers.jpg", alt: "Telluride's brick Main Street and clock tower, a snow-covered peak rising straight up behind." },
   { src: "/images/telluride/apres.jpg", alt: "A skier in a pink jacket turning through deep powder among snow-loaded pines." },
-  { src: "/images/telluride/town-christmas.jpg", alt: "Main street at dusk through strings of big colored holiday bulbs, the mountains behind." },
+  { src: "/images/telluride/town-christmas.jpg", alt: "Main Street at dusk through strings of big colored holiday bulbs, the mountains behind." },
   { src: "/images/telluride/gondola-night.jpg", alt: "A gondola cabin crossing a snowy ridge, the town far below in the valley." },
-  { src: "/images/telluride/powder.jpg", alt: "Skiers outside a weathered timber saloon on the mountain on a bright day." },
-  { src: "/images/telluride/winter-town.jpg", alt: "Skis and snowboards racked in rows in front of a mountain lodge and open slopes." },
+  { src: "/images/telluride/powder.jpg", alt: "Skiers on the sunny deck outside the old timber saloon at Gorrono Ranch, mid-mountain." },
+  { src: "/images/telluride/winter-town.jpg", alt: "Skis and snowboards racked outside Gorrono Ranch, red chairs out on the snow and the San Juans behind." },
 ];
 
 const EVENING_IMAGE = {
@@ -202,16 +202,17 @@ export default async function TelluridePage() {
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 bg-[rgb(42_35_32_/_0.6)]" />
 
         <div className="shell flex flex-1 flex-col justify-end pb-10 pt-32 md:pb-14 md:pt-40">
-          <p className="t-label text-[--text]">Telluride, Colorado · 8,725 ft</p>
+          <p className="t-label text-[--text]">Telluride, Colorado · About 8,750 ft</p>
           <h1 className="t-display mt-5 text-[--text]">Telluride</h1>
 
           <div className="mt-10 grid gap-10 border-t border-[--rule-strong] pt-8 md:mt-14 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] md:gap-16">
             <div className="flex flex-col items-start gap-8">
               <p className="max-w-[46ch] font-body text-lede leading-[1.6] text-[--text]">
                 {nights !== null ? `${spelled(nights)} nights` : "A week"} with your
-                friends in a box canyon at the end of the road. One property for
-                the whole group, lift tickets and rentals waiting, rides from
-                Montrose both ways, and our team there the entire trip.
+                friends in a box canyon at the end of the road. One hotel for
+                the whole group, lift tickets and ski or snowboard rentals
+                waiting, rides from Montrose both ways, and our team there the
+                whole trip.
               </p>
               <div className="flex flex-wrap gap-4">
                 <Button href="#departures" variant="primary" size="lg">
@@ -256,21 +257,21 @@ export default async function TelluridePage() {
         <div className="mt-10 grid gap-10 md:mt-14 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:gap-20">
           <Reveal>
             <h2 id="why-heading" className="t-title max-w-[14ch] text-[--text]">
-              Hard to reach, worth every mile
+              One road in, 13,000-foot walls
             </h2>
           </Reveal>
           <Reveal delay={80}>
             <div className="flex flex-col gap-6">
               <p className="max-w-measure font-body text-lede leading-[1.7] text-[--text]">
-                A box canyon in the San Juans with one road in and a wall of
-                thirteen-thousand-foot peaks at the far end. It takes a little
-                more to get here, and that&rsquo;s why the town and the mountain
-                feel like yours for the week.
+                A box canyon in the San Juans, closed off at the far end by
+                peaks that clear 13,000 feet. It takes a little more to get
+                here, which is why the town and the mountain feel like yours
+                for the week.
               </p>
               <p className="max-w-measure font-body text-body leading-[1.85] text-[--text-secondary]">
                 The town is a few streets of brick and clapboard you can walk end
-                to end in fifteen minutes, an old mining town with a real main
-                street. Above it are two thousand acres: steep enough for the
+                to end in fifteen minutes, an old mining town with a real Main
+                Street. Above it are two thousand acres: steep enough for the
                 strong skiers in your group, and gentle enough on the front side
                 that first timers have a great day one too.
               </p>
@@ -566,7 +567,7 @@ export default async function TelluridePage() {
                 </h2>
                 <p className="max-w-measure font-body text-body leading-[1.75] text-[--text-secondary]">
                   {TRIP_DETAILS_OPEN
-                    ? "Everyone skis the same days and comes to the same events. What changes is where you sleep and how much is handled for you."
+                    ? "Everyone gets the same days on the mountain and the same nights out. What changes is where you sleep."
                     : "The packages, and what each one adds, go up with the pricing when booking opens."}
                 </p>
               </div>
@@ -628,7 +629,7 @@ export default async function TelluridePage() {
                 <span className="font-display text-display-s font-medium tracking-title text-[--text]">Telluride</span>
                 <span className="t-micro text-[--text-secondary]">Montrose</span>
                 <span className="t-micro text-center text-[--text-secondary]">65 mi · 90 min by road</span>
-                <span className="t-micro text-right text-[--text-secondary]">8,725 ft</span>
+                <span className="t-micro text-right text-[--text-secondary]">About 8,750 ft</span>
               </div>
               <p className="font-body text-body leading-[1.85] text-[--text]">
                 Fly into Montrose, about 65 miles out and roughly an hour and a
@@ -706,7 +707,7 @@ export default async function TelluridePage() {
             <Reveal delay={90}>
               <p className="t-lede text-[--text-secondary]">
                 {openTrips.length > 0
-                  ? "A deposit holds your spot and the rest runs in scheduled installments, or pay for the whole trip now. Each of you books your own."
+                  ? "Put down 10% to hold your spot and pay the rest in two installments, or pay it all now and take $100 off. Each of you books your own."
                   : "Tell us you want in. If a spot opens up or the next trip goes live, you'll hear first."}
               </p>
             </Reveal>
@@ -732,7 +733,7 @@ export default async function TelluridePage() {
           id="waitlist"
           placement="telluride"
           heading="First dibs on Telluride"
-          body="The list hears first when booking opens. One email, and nothing in between."
+          body="First dibs on Telluride. The list hears before anyone else."
         />
       )}
     </main>
@@ -763,7 +764,7 @@ function weekPlan(nights: number, firstDay: string | null, lastDay: string | nul
       when: skiDays === 1 ? "Day 2" : `Days 2–${skiDays + 1}`,
       title: `${spelled(skiDays)} ${skiDays === 1 ? "day" : "days"} on the mountain`,
       body:
-        "Your lift ticket and rentals are ready before you arrive, so the first morning starts on the snow. The private events on the itinerary run through the week, and the free gondola takes you down to town for dinner.",
+        "Your lift ticket and ski or snowboard rentals are ready before you arrive, so the first morning starts on the snow. One afternoon the whole group takes over Gorrono Ranch, mid-mountain, for a BBQ. At night the free gondola drops you on Main Street for dinner, and runs until midnight to bring you back up.",
     },
     {
       when: lastDay ? `Day ${lastIndex} · ${lastDay.slice(0, 3)}` : `Day ${lastIndex}`,
@@ -793,15 +794,15 @@ const ANSWERS: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "How big is the group?",
-    a: "The number is set before a trip goes on sale and doesn't move. Rooms are shared by four or by two, and a private penthouse holds eight, so the group you live with all week stays small.",
+    a: "Up to 100 in December and 50 in January, set before the trip goes on sale. Rooms are shared by four or by two, and a penthouse holds eight.",
   },
   {
     q: "How does paying work?",
     a: (
       <>
-        A deposit holds your spot and the balance runs in scheduled
-        installments, or you pay the whole trip when you book. Nobody fronts
-        money for friends. The detail is in{" "}
+        Put down 10% to hold your spot and pay the rest in two installments,
+        or pay it all now and take $100 off. Each of you books your own, so
+        nobody fronts money for friends. The detail is in{" "}
         <Link href="/terms#payment-plan" className={LINK}>
           the Terms
         </Link>
@@ -811,7 +812,7 @@ const ANSWERS: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "What is not included?",
-    a: "Your flight to Montrose, meals other than those named in your package, and anything you buy on your own account. Everything else on this page is inside the price.",
+    a: "Your flight to Montrose, travel insurance if you want it, meals other than those named in your package, and anything you buy on your own account. Everything else on this page is inside the price.",
   },
   {
     q: "Is somebody from Outrider actually there?",

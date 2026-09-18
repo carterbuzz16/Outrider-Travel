@@ -65,7 +65,7 @@ export default function MobileJoinBar() {
         inert={!visible || undefined}
       >
         <div className="shell flex h-16 items-center justify-between gap-4">
-          <p className="t-micro text-[--text-secondary]">Hear about trips first</p>
+          <p className="t-micro text-[--text-secondary]">First dibs on Telluride</p>
           <div className="flex items-center gap-1">
             <button
               ref={triggerRef}

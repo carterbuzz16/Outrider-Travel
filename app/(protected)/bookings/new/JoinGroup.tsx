@@ -39,10 +39,10 @@ export default function JoinGroup({
       className="mt-10 border border-[--rule] bg-[--surface-raised] p-5 sm:p-6"
     >
       <h2 id="join-group-heading" className="font-body text-body font-medium text-[--text]">
-        Joining friends in a penthouse? Enter their group code
+        Friends already booked a penthouse? Use their group code
       </h2>
       <p className="mt-1 font-body text-body-s leading-[1.6] text-[--text-secondary]">
-        A penthouse is booked by one group. Once a friend has reserved it, their code is how the rest
+        Each penthouse goes to one group. Once a friend has reserved it, their code is how the rest
         of you get in.
       </p>
 
@@ -74,9 +74,9 @@ export default function JoinGroup({
           {result.state === "unlocked" &&
             `Found them. ${result.tierNames.join(" and ")} is open to you, and the code is filled in on your order.`}
           {result.state === "not-penthouse" &&
-            "That code belongs to a group on these dates, but not one holding a penthouse. It is filled in on your order, so you will still be grouped with them."}
+            "That code belongs to a group on these dates, but not one holding a penthouse. It's filled in on your order, so you'll still be grouped with them."}
           {result.state === "unknown" &&
-            "We could not find that code on these dates. Check it with whoever sent it: six letters and numbers, and it only works on the departure they booked."}
+            "We couldn't find that code on these dates. Check it with whoever sent it: six letters and numbers, and it only works on the departure they booked."}
         </p>
       )}
     </section>

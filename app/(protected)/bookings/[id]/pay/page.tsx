@@ -15,6 +15,7 @@ import { getRoomMedia } from "@/lib/room-media";
 import { CONTACT } from "@/lib/site-content";
 import { formatDay } from "@/app/(protected)/dates";
 import { formatDateRange, formatPrice } from "@/lib/trips";
+import { tierDisplayName } from "@/lib/tier-display";
 import CheckoutForm from "@/components/CheckoutForm";
 import CheckoutSteps from "@/components/CheckoutSteps";
 import { PENTHOUSE_DISCLAIMER } from "@/lib/penthouse";
@@ -92,7 +93,7 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
   }
 
   const trip = booking.trips;
-  const tierName = booking.tiers?.name ?? "Standard";
+  const tierName = booking.tiers ? tierDisplayName(booking.tiers.name) : "Your package";
   const room = booking.tiers ? getRoomMedia(booking.tiers.name) : null;
   const photo = room?.photos[0] ?? null;
   const total = Number(booking.total_amount);
@@ -130,13 +131,14 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
                 <span className="tabular-nums text-[--text]">{formatAmount(dueToday)}</span> today for the
                 whole trip
                 {PAY_IN_FULL_DISCOUNT > 0 && `, with ${formatPrice(PAY_IN_FULL_DISCOUNT)} off for paying it all now`}
-                . Nothing else is taken from your card later, and the card is not kept.
+                . Nothing else is taken from your card later, and the card isn&rsquo;t kept. Your
+                place is held for 30 minutes while you pay.
               </>
             ) : (
               <>
                 <span className="tabular-nums text-[--text]">{formatAmount(dueToday)}</span> today holds your
-                spot. The scheduled payments are taken from this same card, and you can change it later by
-                getting in touch.
+                spot. The two installments come off this same card, and you can change it later by getting
+                in touch. Your place is held for 30 minutes while you pay.
               </>
             )}
           </p>

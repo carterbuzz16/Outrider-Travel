@@ -18,7 +18,9 @@ export const metadata: Metadata = pageMetadata({
  * the pay-in-full discount or refund windows. Those live in the Terms and are
  * computed from the booking data, and an FAQ that quotes a number the contract later changes is worse
  * than one that points at the contract. Anything with money or liability in it
- * links to the clause instead. */
+ * links to the clause instead. The one exception is the pay-in-full discount,
+ * which is read from PAY_IN_FULL_DISCOUNT so it cannot drift from checkout. The
+ * group sizes restate each departure's capacity (lib/trip-logistics.ts). */
 type QA = { q: string; a: React.ReactNode };
 type Group = { heading: string; items: QA[] };
 
@@ -30,11 +32,12 @@ const GROUPS: Group[] = [
         q: "What is actually included in the price?",
         a: (
           <>
-            Your lodging, the activities listed on the trip, ground transport at
-            the destination, any private events, and our team with you for the
-            whole trip. The number on the trip page is what the trip costs:
-            no resort fee at check-in and no separate charge for the shuttle.
-            Flights are the one exception, and you book those yourself.
+            Your lodging, lift tickets and ski or snowboard rentals, rides
+            from the airport and back, the group events on the itinerary, and
+            our team with you for the whole trip. The number on the trip page
+            is what the trip costs: no resort fee at check-in and no separate
+            charge for the shuttle. You book your own flights, and travel
+            insurance is an optional add-on.
           </>
         ),
       },
@@ -47,7 +50,7 @@ const GROUPS: Group[] = [
             can pay toward the balance early from your bookings page any time,
             which brings the next installment down. Or pay for the whole trip
             when you book,{" "}
-            {PAY_IN_FULL_DISCOUNT > 0 && "which costs a little less and "}means
+            {PAY_IN_FULL_DISCOUNT > 0 && `which takes $${PAY_IN_FULL_DISCOUNT} off and `}means
             nothing is charged later. Everyone books and pays for their own
             spot, so nobody fronts money for friends or spends the spring
             chasing a group chat. The exact deposit and paying in full
@@ -67,9 +70,11 @@ const GROUPS: Group[] = [
         q: "What happens if a payment fails?",
         a: (
           <>
-            We try it again and email you a link to update your card, or to
-            finish a bank authentication step if your bank asks for one. A
-            failed payment doesn&rsquo;t immediately cost you your spot. The retry
+            We email you and try it again in a few days. If your card has
+            expired or changed, get in touch with us and we&rsquo;ll update it
+            before the retry. If your bank asks for an extra authentication
+            step, the email has a link to finish it. A failed payment
+            doesn&rsquo;t immediately cost you your spot. The retry
             schedule and the point at which a booking is at risk are in{" "}
             <Link href="/terms#failed-payments" className="text-[--accent] underline underline-offset-4">
               the Terms
@@ -90,7 +95,7 @@ const GROUPS: Group[] = [
             . The short version: the deposit holds a room we&rsquo;ve already
             committed to, so it doesn&rsquo;t come back, and the rest is on a
             sliding scale that narrows as the trip gets closer. Travel
-            insurance is worth buying.
+            insurance isn&rsquo;t included, and it&rsquo;s worth adding.
           </>
         ),
       },
@@ -103,11 +108,9 @@ const GROUPS: Group[] = [
         q: "How many people are on a trip?",
         a: (
           <>
-            About 100 to 200. It feels more like a small club than a tour. The
-            number is set before a trip goes on sale and doesn&rsquo;t move to
-            fit demand. Rooms are shared by four or by two, and a private penthouse
-            holds eight, so the group you actually live with all week stays
-            small.
+            Up to 100 in December and 50 in January. The number is set
+            before a trip goes on sale and doesn&rsquo;t move to fit demand.
+            Rooms are shared by four or by two, and a penthouse holds eight.
           </>
         ),
       },
@@ -128,7 +131,7 @@ const GROUPS: Group[] = [
           <>
             Yes, for the whole trip. If a room needs fixing or a plan changes,
             someone from our team is right there to sort it out. It also means
-            the friend who organized the trip gets to ski too.
+            the friend who organized the trip gets to ski or ride too.
           </>
         ),
       },
@@ -136,11 +139,10 @@ const GROUPS: Group[] = [
         q: "Is this a party trip?",
         a: (
           <>
-            We build every trip around the place and the experience: a great
-            property in a town worth exploring, with every detail taken care
-            of. College is fun, and there will be plenty of that.
-            What we care about is that every day is worth the flight and
-            you&rsquo;re still talking about it in ten years.
+            It&rsquo;s a fun week, and we plan it that way. It&rsquo;s also
+            built around the place: a hotel you&rsquo;d show your parents, big
+            days on the mountain, dinners on Main Street, and our team on the
+            ground the whole time.
           </>
         ),
       },
@@ -185,8 +187,10 @@ const GROUPS: Group[] = [
         a: (
           <>
             Yes. Everyone books their own spot, and a group code keeps you
-            together for rooming. That way no one person ends up holding
-            everyone else&rsquo;s money.
+            together. After you book, you name your roommates on your trip
+            page: up to three people in a Four to a Room package, one in a Two
+            to a Room, and a penthouse group rooms together. Rooms are
+            same-gender.
           </>
         ),
       },
@@ -237,7 +241,7 @@ export default function FaqPage() {
           page does not. */}
       <FaqSchema items={GROUPS.flatMap((group) => group.items)} />
       <header className="shell pb-14 pt-32 md:pb-20 md:pt-40">
-        <h1 className="t-display mt-6 max-w-[14ch] text-[--text]">Questions</h1>
+        <h1 className="t-display mt-6 max-w-[14ch] text-[--text]">Before you book</h1>
         <p className="t-lede mt-8 max-w-measure">
           Everything people ask before they book. Anything about money or
           liability links straight to the part of the Terms that covers it,

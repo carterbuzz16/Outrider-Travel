@@ -49,7 +49,7 @@ export const revalidate = 300;
 const SPREAD_IMAGES = [
   { src: "/images/people/friends-snow-throw.jpg", alt: "Four friends on skis, arms linked, laughing as someone throws a handful of powder at them in falling snow." },
   { src: "/images/people/friends-candlelit-dinner.jpg", alt: "A group of friends in hoodies sharing dinner at a long candlelit table in a timber dining room." },
-  { src: "/images/telluride/apres.jpg", alt: "A skier turning through deep snow." },
+  { src: "/images/telluride/apres.jpg", alt: "A skier in a pink jacket turning through deep powder among snow-loaded pines." },
   { src: "/images/telluride/ridge.jpg", alt: "Last light on the peaks above the canyon." },
 ];
 
@@ -62,9 +62,9 @@ export default async function HomePage() {
       <Hero
         video={{ src: "/video/hero.mp4", poster: "/video/hero-poster.jpg" }}
         eyebrow="Ski weeks · Spring break"
-        headline="The week of your life"
-        tagline="Small-group trips for college. Telluride this winter, somewhere warm for spring break. Bring your friends. We'll handle the rest."
-        stampText="Outrider · Scouted · Prepared"
+        headline="Telluride, with your favorite people"
+        tagline="Four nights at The Peaks this December or January. Lift tickets waiting, rides from Montrose both ways, our team on the ground all week. You bring the friends. We host."
+        stampText="Outrider · Scouted first"
         // While nothing can be booked, the first thing to offer is the list;
         // "View trips" leads to departures with no button on them.
         cta={BOOKINGS_OPEN ? { label: "View trips", href: "/trips" } : { label: "Join the list", href: "/waitlist" }}
@@ -197,9 +197,8 @@ export default async function HomePage() {
               Telluride is just the start
             </h2>
             <p className="t-lede mt-6 max-w-measure">
-              Everywhere we go gets the same treatment: one great property, a
-              group that stays small, every detail planned and one price for
-              all of it. Here&rsquo;s what&rsquo;s next.
+              Everywhere we go, we stay there first and keep the group small.
+              Here&rsquo;s what&rsquo;s next.
             </p>
           </Reveal>
 
@@ -243,8 +242,7 @@ export default async function HomePage() {
                   treatment. */}
               <p data-nosnippet className="t-lede max-w-measure text-[--text-secondary]">
                 Before a trip goes up on this site, we&rsquo;ve walked the
-                town, eaten the dinners and slept in the rooms. All that&rsquo;s
-                left is bringing your friends.
+                town, eaten the dinners and slept in the rooms.
               </p>
             </Reveal>
             <Reveal delay={180}>
