@@ -57,19 +57,13 @@ export default function TierTable({
   const groups = [...new Set(tiers.map((t) => t.group).filter((g): g is string => Boolean(g)))];
 
   /*
-   * With three ungrouped tiers, both the middle and the top are marked, for
-   * different reasons: the middle is what most people take, the top is the one
-   * where a penthouse is held for a single group of eight. Marking only the
-   * middle left the most expensive package reading as an afterthought. With
-   * two, the upper one is the steer. A grouped tier (a penthouse) is always
-   * marked as the group's own.
+   * No "most booked" badge: nothing has been booked yet, so it would be a
+   * claim with nothing behind it. With three ungrouped tiers the top one is
+   * still marked, for a fact rather than a steer: a penthouse is held for a
+   * single group of eight. A grouped tier (a penthouse) is always marked as
+   * the group's own.
    */
-  const marks: Record<number, string> =
-    plain.length === 3
-      ? { 1: "Most booked", 2: "Your group only" }
-      : plain.length === 2
-        ? { 1: "Most booked" }
-        : {};
+  const marks: Record<number, string> = plain.length === 3 ? { 2: "Your group only" } : {};
 
   return (
     <div className={cn("flex flex-col gap-10 md:gap-12", className)}>
@@ -189,7 +183,7 @@ function TierColumn({
             is running low. */}
         <p className="t-micro min-h-[1.4em] text-[--flag-ink]">
           {!taken && tier.spotsLeft !== null && tier.spotsLeft > 0 && tier.spotsLeft <= 6
-            ? "Few places left"
+            ? "A few spots left"
             : "\u00a0"}
         </p>
         {taken ? (

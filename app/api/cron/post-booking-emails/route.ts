@@ -3,6 +3,7 @@ import { timingSafeEqual, createHash } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CHASE_AFTER_HOURS, sendChaseEmailOnce, sendConfirmationEmailOnce } from "@/lib/email/post-booking";
 import { sendDuePenthouseEmails } from "@/lib/email/penthouse";
+import { todayInMountain } from "@/lib/mountain-time";
 
 /*
  * Daily, from Vercel Cron (vercel.json). The plan runs crons once a day, so
@@ -80,9 +81,16 @@ export async function GET(request: Request) {
   }
 
   // -- 2. chases --------------------------------------------------------------
+  // Only trips that have not started (Mountain Time, where they are). A
+  // chase for a trip under way can never render, and left in the query those
+  // bookings would sit at the front of the queue for good, crowding out the
+  // ones that can go. Filtering them out is permanent in effect: a trip's
+  // start date only gets further behind, and nothing is written, so a send
+  // stays claimable exactly once as before.
   const { data: candidates, error: chaseError } = await admin
     .from("bookings")
-    .select("id")
+    .select("id, trips!inner(start_date)")
+    .gt("trips.start_date", todayInMountain(new Date(now)))
     .in("status", ["deposit_paid", "paid_in_full"])
     .is("chase_email_sent_at", null)
     .lte("confirmation_email_sent_at", new Date(now - CHASE_AFTER_HOURS * 3_600_000).toISOString())

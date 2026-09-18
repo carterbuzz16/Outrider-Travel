@@ -40,7 +40,7 @@ const STATUS: Record<BookingStatus, { tone: BadgeTone; label: string }> = {
   pending: { tone: "urgent", label: "Deposit due" },
   deposit_paid: { tone: "open", label: "Deposit paid" },
   paid_in_full: { tone: "new", label: "Paid in full" },
-  cancelled: { tone: "closed", label: "Cancelled" },
+  cancelled: { tone: "closed", label: "Canceled" },
 };
 
 const PAYMENT_LABEL: Partial<Record<PaymentStatus, string>> = {
@@ -198,7 +198,7 @@ export default async function TripPortalPage(props: {
         )}
         {booking.status === "cancelled" && (
           <div className="mt-8">
-            <Alert tone="warning" title="This booking was cancelled">
+            <Alert tone="warning" title="This booking was canceled">
               Nothing here can be changed. If that is a surprise, write to{" "}
               <a href={`mailto:${CONTACT.email}`} className="text-[--accent] decoration-[--accent]">
                 {CONTACT.email}
@@ -453,7 +453,7 @@ function LinkProblem({
       <section className="shell flex min-h-[60vh] flex-col justify-center py-20 md:py-28">
         <div className="max-w-measure">
           <h1 className="t-title text-[--text]">
-            {reason === "expired" ? "This link has expired" : "This link does not open a trip"}
+            {reason === "expired" ? "This link has expired" : "This link doesn't open a trip"}
           </h1>
           {reason === "disabled" ? (
             <p className="mt-6 font-body text-body leading-[1.8] text-[--text-secondary]">

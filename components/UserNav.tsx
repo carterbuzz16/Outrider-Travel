@@ -76,7 +76,7 @@ export default async function UserNav() {
           )}
           <form action={logout} className="flex items-center">
             <Button type="submit" variant="ghost" size="sm">
-              Sign out
+              Log out
             </Button>
           </form>
         </div>

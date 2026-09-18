@@ -304,7 +304,7 @@ export function availabilityLabel(status: TripStatus): string {
     case "soldOut":
       return "Sold out";
     case "few":
-      return "Few places left";
+      return "A few spots left";
     default:
       return "Spots available";
   }
@@ -319,7 +319,7 @@ export function tierAvailabilityLabel(spotsLeft: number | null, claimed = false)
   if (claimed) return "Booked";
   if (spotsLeft === null) return null;
   if (spotsLeft <= 0) return "Sold out";
-  if (spotsLeft <= 6) return "Few places left";
+  if (spotsLeft <= 6) return "A few spots left";
   return null;
 }
 

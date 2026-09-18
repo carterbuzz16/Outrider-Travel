@@ -11,7 +11,7 @@ import type { Metadata } from "next";
  */
 export const metadata: Metadata = {
   title: "Log in",
-  description: "Sign in to your Outrider account to see your trips, payments and booking details.",
+  description: "Log in to your Outrider account to see your trips, payments and booking details.",
   robots: { index: false, follow: false },
 };
 

@@ -99,8 +99,8 @@ export default function RoomShowcase({
           intro={
             // Not every departure has both (January has 702 only).
             choices.length > 1
-              ? "Two four-bedroom penthouses at The Peaks. Pick the one you want and it's yours for the trip."
-              : "A four-bedroom penthouse at The Peaks, yours for the trip."
+              ? `${choices.length === 2 ? "Two" : "Several"} four-bedroom penthouses at The Peaks, one group of eight in each. Pick yours and nobody else sleeps there all week, and your group gets a full day on the mountain with private instructors.`
+              : "A four-bedroom penthouse at The Peaks for one group of eight. Nobody else sleeps there all week, and your group gets a full day on the mountain with private instructors."
           }
           note="Each one goes to a single group. Once a group books it, it's theirs."
           shared={choices[0].room.shared}

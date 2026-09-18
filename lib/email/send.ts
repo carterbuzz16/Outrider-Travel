@@ -4,6 +4,7 @@ import { renderEmailLayout, formatCurrency, formatDate } from "@/lib/email/layou
 // One implementation, shared with the Supabase auth redirects in
 // app/auth/actions.ts — see lib/site-url.ts for the resolution order.
 import { getAppUrl } from "@/lib/site-url";
+import { BOOKINGS_OPEN } from "@/lib/booking-window";
 
 // resend.emails.send() resolves with { data, error } rather than throwing
 // on an API-level failure (e.g. an unverified domain) — it only throws on
@@ -104,7 +105,13 @@ export async function sendBookingConfirmationEmail(opts: {
         .join("")}
     </table>
     <p style="font-size: 13px; color: #6B7280;">These will be charged automatically to the card you used today.</p>`
-      : `<p style="margin: 24px 0;">Your trip is paid in full. Nothing more to do on the payment side.</p>`;
+      : paidInFull
+        ? `<p style="margin: 24px 0;">Your trip is paid in full. Nothing more to do on the payment side.</p>`
+        : // No schedule rows yet (they can land a moment after this email is
+          // built). Never "paid in full" unless the booking says so: state
+          // what is still owed and that the dates follow.
+          `<p style="margin: 24px 0 8px; font-weight: 600;">Remaining balance: ${formatCurrency(remaining)}</p>
+    <p style="font-size: 13px; color: #6B7280;">We'll send your payment dates shortly. You'll also find them on your bookings page.</p>`;
 
   const logisticsHtml = trip.logistics
     ? `
@@ -197,7 +204,8 @@ export async function sendInstallmentChargedEmail(opts: {
     to,
     subject: `Payment received: ${tripName}`,
     html: renderEmailLayout({
-      preheader: `We charged ${formatCurrency(amount)} for ${tripName}.`,
+      // Neutral: a balance payment is one the traveler made themselves.
+      preheader: `Payment of ${formatCurrency(amount)} received for ${tripName}.`,
       bodyHtml,
       ctaLabel: "View your booking",
       ctaUrl: `${getAppUrl()}/bookings/${bookingId}/confirmation`,
@@ -289,7 +297,7 @@ export async function sendOverpaymentRefundEmail(opts: {
   const why =
     reason === "overpaid"
       ? `A recent payment took your booking for <strong>${escapeHtml(tripName)}</strong> past its price, so we have refunded the difference.`
-      : `A payment reached your booking for <strong>${escapeHtml(tripName)}</strong> after it was cancelled, so we have refunded it.`;
+      : `A payment reached your booking for <strong>${escapeHtml(tripName)}</strong> after it was canceled, so we've refunded it.`;
 
   const bodyHtml = `
     <p>${greeting}</p>
@@ -325,6 +333,11 @@ export async function sendOverpaymentRefundEmail(opts: {
  */
 export async function sendWaitlistWelcome(email: string, token: string) {
   const url = `${getAppUrl()}/unsubscribe?t=${encodeURIComponent(token)}`;
+  // Before launch the list hears first; once booking is open there is no
+  // "before it goes on sale" left to promise.
+  const waitlistOpening = BOOKINGS_OPEN
+    ? "Telluride is open for booking now, and the list hears first whenever the next trip opens."
+    : "Trips open to this list before they go on sale. When Telluride goes live, you'll hear it from us before campus does.";
 
   await sendEmail({
     from: getFromAddress(),
@@ -337,12 +350,13 @@ export async function sendWaitlistWelcome(email: string, token: string) {
       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
     },
     html: renderEmailLayout({
-      preheader: "First dibs on Telluride. The list hears before anyone else.",
+      preheader: BOOKINGS_OPEN
+        ? "You're on the list. We'll tell you when new trips open."
+        : "First dibs on Telluride. The list hears before anyone else.",
       bodyHtml: `
         <p style="margin:0 0 16px;">You're on the list.</p>
         <p style="margin:0 0 16px;">
-          Trips open to this list before they go on sale. When Telluride goes
-          live, you'll hear it from us before campus does.
+          ${escapeHtml(waitlistOpening)}
         </p>
         <p style="margin:0 0 16px;">
           We only email when a trip opens. No newsletter, nothing weekly.
@@ -350,11 +364,12 @@ export async function sendWaitlistWelcome(email: string, token: string) {
         <p style="margin:24px 0 0;font-size:12px;color:#6B6B6B;">
           <a href="${url}" style="color:#6B6B6B;">Unsubscribe</a>
         </p>`,
+      footerNote: "You're getting this because you joined the Outrider list.",
     }),
     text: [
       "You're on the list.",
       "",
-      "Trips open to this list before they go on sale. When Telluride goes live, you'll hear it from us before campus does.",
+      waitlistOpening,
       "",
       "We only email when a trip opens. No newsletter, nothing weekly.",
       "",

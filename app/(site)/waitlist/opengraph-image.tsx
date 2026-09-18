@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { MARK } from "@/components/ui/Logo";
+import { BOOKINGS_OPEN } from "@/lib/booking-window";
 
 /*
  * The card for the link that actually gets handed out.
@@ -91,7 +92,9 @@ export default async function WaitlistOpengraphImage() {
               JOIN THE LIST
             </div>
             <div style={{ display: "flex", marginTop: 26, fontSize: 32, maxWidth: 760, lineHeight: 1.3, letterSpacing: -0.4 }}>
-              Departures open to the list before they go on sale.
+              {BOOKINGS_OPEN
+                ? "The list hears about every new trip first."
+                : "Departures open to the list before they go on sale."}
             </div>
           </div>
 

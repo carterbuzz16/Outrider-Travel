@@ -16,8 +16,8 @@ import Image from "next/image";
 const PHOTOS = [
   { src: "/images/telluride/groomers.jpg", alt: "Telluride's brick Main Street and clock tower, a snow-covered peak rising straight up behind.", caption: "Main Street" },
   { src: "/images/telluride/gondola-night.jpg", alt: "A gondola cabin above the valley with the San Juans behind.", caption: "The free gondola" },
-  { src: "/images/telluride/apres.jpg", alt: "A skier in a pink jacket turning through deep powder among snow-loaded pines.", caption: "330 inches a year" },
-  { src: "/images/people/friend-dinner-laughing.jpg", alt: "A young man in a mustard sweater laughing across a candlelit dinner table.", caption: "Dinner, arranged" },
+  { src: "/images/telluride/apres.jpg", alt: "A skier in a pink jacket turning through deep powder among snow-loaded pines.", caption: "Knee-deep by lunch" },
+  { src: "/images/people/friend-dinner-laughing.jpg", alt: "A young man in a mustard sweater laughing across a candlelit dinner table.", caption: "Main Street, 8 pm" },
   { src: "/images/telluride/town-christmas.jpg", alt: "Main Street at dusk through strings of big colored holiday bulbs, the mountains behind.", caption: "The town after dark" },
   { src: "/images/telluride/powder.jpg", alt: "Skiers on the sunny deck outside the old timber saloon at Gorrono Ranch, mid-mountain.", caption: "Gorrono Ranch" },
   { src: "/images/people/friends-fire-pit-night.jpg", alt: "Two friends in retro ski suits warming their hands over a fire pit as snow falls at night.", caption: "The end of the day" },

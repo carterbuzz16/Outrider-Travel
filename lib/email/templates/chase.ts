@@ -106,7 +106,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
     <tr>
       <td class="gutter" style="padding:20px 48px 0 48px;">
         <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:17px; line-height:1.6; color:#3E342F;">
-          {{first_name}}, {{trip_name}} is {{days_until_trip}} days out and we're holding your spot. Here's what's still open on your side.
+          {{first_name}}, {{trip_name}} is {{days_until_trip}} out and we're holding your spot. Here's what's still open on your side.
         </div>
       </td>
     </tr>
@@ -139,7 +139,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
                   <td valign="top">
                     <div class="h2" style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:22px; line-height:1.25; font-weight:500; color:#3E342F;">Who you're rooming with</div>
                     <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:1.6; color:#3E342F; padding-top:8px;">
-                      We're assigning in the order requests land. {{rooming_submitted_count}} people have already sent theirs. Assignments lock {{rooming_lock_date}}.
+                      We're assigning in the order requests land. Assignments lock {{rooming_lock_date}}.
                       <a href="{{rooming_url}}" style="color:#9C4F2E; text-decoration:underline; font-weight:600;">Set your roommates</a>
                     </div>
                   </td>

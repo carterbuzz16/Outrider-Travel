@@ -78,7 +78,7 @@ export default async function OpengraphImage() {
               marginTop: 24,
             }}
           >
-            <div style={{ display: "flex", fontSize: 34, letterSpacing: -0.5 }}>Ski weeks. Spring break.</div>
+            <div style={{ display: "flex", fontSize: 34, letterSpacing: -0.5 }}>Ski weeks now. Spring break next.</div>
             <div style={{ display: "flex", fontSize: 22, letterSpacing: 2, color: CLUB_LIGHT }}>outrider.travel</div>
           </div>
         </div>

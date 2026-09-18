@@ -241,7 +241,7 @@ function PaymentForm({
       try {
         accepted = await acceptTermsForBooking(bookingId);
       } catch {
-        accepted = { ok: false, message: "We could not reach the server, so nothing was charged. Please try again." };
+        accepted = { ok: false, message: "We couldn't reach the server, so nothing was charged. Please try again." };
       }
       if (!accepted.ok) {
         setError(accepted.message);
@@ -276,7 +276,7 @@ function PaymentForm({
     } else {
       setSubmitting(false);
       inFlight.current = false;
-      setError("Payment did not complete. Please try again.");
+      setError("Payment didn't complete. Please try again.");
     }
   }
 
@@ -314,7 +314,7 @@ function PaymentForm({
 
       {error && (
         <div className="mt-6">
-          <Alert tone="error" title="That payment did not go through">
+          <Alert tone="error" title="That payment didn't go through">
             {error}
             {released && (
               <>
@@ -346,6 +346,13 @@ function PaymentForm({
             Tick the box above to pay.
           </p>
         )}
+        <p className="mt-4 text-center font-body text-body-s text-[--text-secondary]">
+          Questions before you pay? Email{" "}
+          <a href="mailto:bookings@outrider.travel" className="text-[--accent] underline underline-offset-2">
+            bookings@outrider.travel
+          </a>
+          . We reply within a day.
+        </p>
       </div>
     </form>
   );

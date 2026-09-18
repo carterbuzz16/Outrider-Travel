@@ -17,7 +17,7 @@ import { formatDateRange, formatPrice, getPublishedTrips, nightCount } from "@/l
 export const metadata: Metadata = pageMetadata({
   // The layout's template appends "· Outrider"; the home page is the one place
   // that should lead with the brand instead.
-  title: "Outrider · College group trips: Telluride ski weeks and spring break",
+  title: "Outrider · College group trips: Telluride ski weeks now, spring break next",
   absoluteTitle: true,
   /*
    * The path is stated explicitly. The root layout sets `canonical: "./"`,
@@ -37,7 +37,7 @@ export const metadata: Metadata = pageMetadata({
    * the marketing lead asked. Under 160 characters so it is not cut off.
    */
   description:
-    "Outrider hosts small-group trips for college students: Telluride ski weeks and spring break. We scout it, plan it and come along. You bring your friends.",
+    "Outrider hosts small-group trips for college students: Telluride ski weeks now, spring break next. We scout it, plan it and come along. Bring your friends.",
 });
 
 // The trip list changes when the team publishes or edits a departure, not on
@@ -61,9 +61,9 @@ export default async function HomePage() {
     <>
       <Hero
         video={{ src: "/video/hero.mp4", poster: "/video/hero-poster.jpg" }}
-        eyebrow="Ski weeks · Spring break"
+        eyebrow="Ski weeks now · Spring break next"
         headline="Telluride, with your favorite people"
-        tagline="Four nights at The Peaks this December or January. Lift tickets waiting, rides from Montrose both ways, our team on the ground all week. You bring the friends. We host."
+        tagline="Four nights at The Peaks this December or January. Lift tickets waiting, rides from Montrose both ways, and our team on the ground all week."
         stampText="Outrider · Scouted first"
         // While nothing can be booked, the first thing to offer is the list;
         // "View trips" leads to departures with no button on them.
@@ -79,12 +79,11 @@ export default async function HomePage() {
               {/* The brand book's section label: capitals over a full hairline. */}
               <p className="t-rule-label text-[--text]">What we do</p>
               <h2 className="t-title max-w-[18ch] text-[--text]">
-                We host. You show up.
+                Your only job is the fun part
               </h2>
               <p className="t-lede max-w-measure">
                 We pick the town, stay in the hotel before we book it, plan the
-                days and the nights, and come along for the whole thing. Your
-                only job is to enjoy it with your friends.
+                days and the nights, and come along for the whole thing.
               </p>
             </div>
           </div>
@@ -117,7 +116,7 @@ export default async function HomePage() {
             <div className="mt-8 flex flex-wrap items-end justify-between gap-6">
               <div className="flex flex-col gap-5">
                 <h2 className="t-title max-w-[16ch] text-[--text]">
-                  {featured.length > 0 ? "Where we're headed" : "First trips, coming soon"}
+                  {featured.length > 0 ? "Pick your week" : "First trips, coming soon"}
                 </h2>
               </div>
               {featured.length > 0 && (
@@ -155,7 +154,12 @@ export default async function HomePage() {
                   image: trip.images[0]
                     ? { src: trip.images[0], alt: `${trip.name}, ${trip.destination}` }
                     : undefined,
-                  href: `/trips/${trip.id}`,
+                  // A trip's own page is a teaser before launch; the Telluride
+                  // page carries the detail, so a closed card goes there.
+                  href:
+                    !BOOKINGS_OPEN && trip.destination.toLowerCase().includes("telluride")
+                      ? "/telluride"
+                      : `/trips/${trip.id}`,
                 };
                 return (
                   <Reveal key={trip.id} delay={i * 90}>
@@ -234,15 +238,13 @@ export default async function HomePage() {
           <div className="shell flex flex-col items-start gap-8 py-20 md:py-28">
             <Reveal>
               <h2 className="t-title max-w-[20ch] text-[--text]">
-                We&rsquo;ve already been
+                Four nights in Telluride
               </h2>
             </Reveal>
             <Reveal delay={90}>
-              {/* Same sentence as the one Google quoted, said again, so the same
-                  treatment. */}
               <p data-nosnippet className="t-lede max-w-measure text-[--text-secondary]">
-                Before a trip goes up on this site, we&rsquo;ve walked the
-                town, eaten the dinners and slept in the rooms.
+                Four nights, three days on the mountain, the whole crew under
+                one roof.
               </p>
             </Reveal>
             <Reveal delay={180}>

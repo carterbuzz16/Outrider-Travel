@@ -70,7 +70,7 @@ export type RoomMedia = {
   key: RoomKey;
   /** "The Two King room" */
   title: string;
-  /** One line for a package card: "Two King room, four to a room". */
+  /** One line for a package card: "Four to a Room, in a Two King room". */
   summary: string;
   /** What this room is, and what it adds over the one below it. */
   upgrade: string;
@@ -169,7 +169,7 @@ const P830: PenthouseSource = {
     {
       label: "Standouts",
       value:
-        "The top floor of the building. Your own laundry. Complimentary access to the Peaks Spa and the Peaks Ski Valet.",
+        "The top floor of the building. Your own laundry. Complimentary access to The Peaks Spa and The Peaks Ski Valet.",
     },
   ],
   wanted: [
@@ -207,7 +207,7 @@ const ROOMS: Record<string, RoomSource> = {
   BASE: {
     key: "BASE",
     title: "The Two King room",
-    summary: "Two King room, four to a room",
+    summary: "Four to a Room, in a Two King room",
     upgrade:
       "Where every package starts. A Two King room at The Peaks, shared by four of you, two to a bed, with the rest of the group under the same roof.",
     figure: { value: "4", unit: "to a room" },
@@ -221,7 +221,7 @@ const ROOMS: Record<string, RoomSource> = {
   MID: {
     key: "MID",
     title: "The Two King room, for two",
-    summary: "Two King room, just two of you",
+    summary: "Two to a Room, in the same Two King room",
     upgrade:
       "The same Two King room with half the people in it, so each of you has a king bed of your own.",
     figure: { value: "2", unit: "to a room" },

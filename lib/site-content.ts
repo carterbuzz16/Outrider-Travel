@@ -54,27 +54,27 @@ export const CONTACT = {
 export const VALUE_PROPS = [
   {
     eyebrow: "Small groups",
-    title: "Small enough to know everyone",
+    title: "Familiar faces by day two",
     body:
-      "Every trip is sized before it goes on sale and stays that size. Share a Two King room with three friends or one, or take a whole penthouse with seven. Same hotel, same mountain, same long dinner table as everyone you came with.",
+      "Every trip is sized before it goes on sale and stays that size, small enough that faces are familiar by day two. Share a Two King room with three friends or one, or take a whole penthouse with seven. Everyone you came with is under the same roof and at the same dinner table.",
   },
   {
     eyebrow: "Hosted",
-    title: "Every detail, handled",
+    title: "Your room's ready when you land",
     body:
-      "We scout the hotels, the restaurants and the mountain long before a trip goes on sale, and we only work with places that hold a real standard. When you arrive, your room is ready and your plans are made. Our team knows your name and stays with you the whole trip, so there's always someone to text.",
+      "We scout the hotels, the restaurants and the mountain long before a trip goes on sale, and we only work with places that hold a real standard. When you arrive, your room is ready and your plans are made. Our team knows your name and stays with you the whole trip, so there's always someone to ask.",
   },
   {
-    eyebrow: "One price",
+    eyebrow: "All in",
     title: "One price, all in",
     body:
-      "Lodging, activities, ground transport, private events, a welcome package and our staff are all in the price. No resort fee at check-in and no surprise shuttle charge. Everyone books and pays for their own spot, all at once or in installments, so nobody fronts the money for friends or spends the semester chasing Venmo requests.",
+      "Lodging, lift tickets and rentals, ground transport, the Gorrono Ranch BBQ, a welcome package and our team are all in the price. No resort fee at check-in and no surprise shuttle charge. Everyone books and pays for their own spot, all at once or in installments, so nobody fronts the money for friends or spends the semester chasing Venmo requests.",
   },
   {
     eyebrow: "We go first",
     title: "We've been there first",
     body:
-      "Before a trip goes on sale, we've stayed at the property, held the rooms, bought the tickets and lined up the rides. Then we come along for the whole thing. The friend who usually plans everything finally gets to just be on the trip.",
+      "Before a trip goes on sale, we've stayed at the property, held the rooms, bought the tickets and lined up the rides. Then we come along for the whole thing.",
   },
 ];
 
@@ -92,8 +92,8 @@ export const ORIGIN = {
   body: [
     "A trip with your friends should be the best week of your year. A place you've wanted to see for ages, somewhere to stay you'd happily tell your parents about, and everyone you like in one town at the same time.",
     "So we start with the place and build the whole trip around it. In Telluride that means a box canyon, a mountain that climbs straight out of Main Street, and a free gondola between the two.",
-    "That one decision shapes the rest. We choose the property first and book it for the whole group, which is what sets the size of every trip. And a trip only goes on sale once one of us has walked the town, eaten the dinners and slept in the rooms.",
-    "Then we take care of everything else. Reservations and activities set before anyone lands, rides both directions, our team on the ground all week, and one price paid up front or in installments. The logistics are our job, so the trip can be all yours.",
+    "That one decision shapes the rest. We choose the property first, with the whole group under one roof at The Peaks, which is what sets the size of every trip. And a trip only goes on sale once one of us has walked the town, eaten the dinners and slept in the rooms.",
+    "Then we take care of everything else. Reservations and activities set before anyone lands, rides both directions, our team on the ground all week, and one price paid up front or in installments.",
   ],
 };
 
@@ -127,7 +127,7 @@ export const FOUNDER: {
     "Travel is the thing I care most about, and nearly everything I know about running a trip I learned by getting it wrong first, on somebody else's behalf. Being the person who has to fix it with 200 people already on the ground teaches you quickly what matters and what nobody notices.",
     "So Outrider is the company I would have booked. One price with everything already inside it. One property, held before it goes on sale. Someone on the ground for the whole trip. Nobody fronting money for their friends and spending the spring trying to get it back.",
     // Carter to approve.
-    "College trips should be fun, and ours are. What I care about is where you wake up: a hotel you'd show your parents, a group small enough that you know everyone by the second dinner, and a town you'll still bring up years from now.",
+    "College trips should be fun, and ours are. What I care about is where you wake up: a hotel you'd show your parents, a group small enough that faces are familiar by day two, and a town you'll still bring up years from now.",
   ],
 };
 
@@ -141,9 +141,7 @@ export const PARTNER = {
   url: "https://chptr.house/",
   confirmed: true,
   body: [
-    "Chptr is the all-in-one operations platform built for fraternities and sororities. Organizations use Chptr to manage everything from communication, attendance and events to payments and vendors, giving leaders one place to manage their chapters.",
-    "Through the Chptr Collective, fraternities and sororities are connected with trusted, vetted partners across the services they already need, taking the guesswork out of finding the right vendors.",
-    "Outrider is Chptr's vetted ski trip and mountain travel partner within the Collective. When it is time for group travel, organizations have a trusted partner already in place, one that specializes in creating group travel experiences for college students.",
+    "Chptr runs the day-to-day for fraternities and sororities: events, dues, vendors. Its Collective is a short list of partners chapters can trust, and Outrider is the one for ski trips. If your chapter is on Chptr, we're already vetted.",
   ],
 };
 
@@ -167,24 +165,25 @@ export const UPCOMING_CATEGORIES = [
  * packages comes from the tiers in the database, not from here.
  * ------------------------------------------------------------------------- */
 export const SHARED_INCLUSIONS = [
-  "Lodging at one property, booked whole for the group",
+  "Lodging with the whole group under one roof at The Peaks",
   "Lift tickets and ski or snowboard rentals, ready before you land",
   "Ground transport between Montrose and Telluride, both directions",
   "An afternoon BBQ at Gorrono Ranch, mid-mountain, with the whole group",
   "A welcome package",
-  "Outrider staff on the ground for the whole trip",
+  "Our team on the ground for the whole trip",
 ];
 
 /* -- Telluride, the place -----------------------------------------------------
- * Verified against Telluride Ski Resort's own mountain page and Colorado Ski
- * Country, September 2026. Shared by /destinations and /telluride so the two
+ * Verified against Telluride Ski Resort's own Mountain Facts (2,000+ acres,
+ * 148 trails, 41% advanced/expert, 280 in average snowfall, base 8,725 ft,
+ * top 13,150 ft), 18 September 2026. Shared by /destinations and /telluride so the two
  * pages cannot quote different numbers. Numbers on a marketing page age, so
  * they live here in one block rather than being scattered through the prose.
  * ------------------------------------------------------------------------- */
 export const TELLURIDE_FACTS = [
-  { value: "2,000", label: "Skiable acres", note: "127 trails, 41 percent of them advanced or expert" },
+  { value: "2,000+", label: "Skiable acres", note: "148 trails, 41 percent of them advanced or expert" },
   { value: "13,150 ft", label: "Summit", note: "Base at 8,725 feet, so the town itself sits high" },
-  { value: "330 in", label: "Average annual snowfall", note: "San Juans catch more of it than the Front Range" },
+  { value: "280 in", label: "Average annual snowfall", note: "San Juans catch more of it than the Front Range" },
   { value: "Free", label: "The gondola", note: "The only free transport system of its kind in North America" },
 ];
 
@@ -213,11 +212,11 @@ export const TELLURIDE_PROPERTY = {
  * ------------------------------------------------------------------------- */
 export const TELLURIDE_ROOMS = [
   {
-    label: "Four to a room",
+    label: "Four to a Room",
     body: "A Two King room shared by four, two to a bed. Where every package starts.",
   },
   {
-    label: "Two to a room",
+    label: "Two to a Room",
     body: "The same Two King room shared by two, so each of you has a king bed of your own.",
   },
   {
@@ -228,4 +227,4 @@ export const TELLURIDE_ROOMS = [
 
 /** The one thing deliberately left out, said next to the list above. */
 export const NOT_INCLUDED_NOTE =
-  "Flights are not included. Everyone books their own, into Montrose.";
+  "Flights aren't included. Everyone books their own, into Montrose.";

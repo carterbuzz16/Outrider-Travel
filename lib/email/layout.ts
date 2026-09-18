@@ -51,9 +51,24 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
-export function renderEmailLayout(opts: { preheader: string; bodyHtml: string; ctaLabel?: string; ctaUrl?: string }) {
+/** The footer line most mail carries: it goes to people with a booking. */
+const DEFAULT_FOOTER_NOTE = "You're receiving this because you have a booking with Outrider. Questions? Just reply to this email.";
+
+export function renderEmailLayout(opts: {
+  preheader: string;
+  bodyHtml: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
+  /**
+   * Why the reader is getting this, in the footer. Plain text, escaped here.
+   * Defaults to the booking line; mail to anyone without a booking (the list,
+   * the back office, a released checkout) says its own reason instead.
+   */
+  footerNote?: string;
+}) {
   const { bodyHtml, ctaLabel, ctaUrl } = opts;
   const preheader = escapeHtml(opts.preheader);
+  const footerNote = escapeHtml(opts.footerNote ?? DEFAULT_FOOTER_NOTE);
 
   const ctaHtml =
     ctaLabel && ctaUrl
@@ -97,7 +112,7 @@ export function renderEmailLayout(opts: { preheader: string; bodyHtml: string; c
           ${ctaHtml}
           <tr>
             <td style="padding: 24px 32px; border-top: 1px solid ${BRAND.border}; color: ${BRAND.muted}; font-size: 12px; line-height: 1.5;">
-              You're receiving this because you have a booking with Outrider. Questions? Just reply to this email.
+              ${footerNote}
               <br /><br />
               ${POSTAL_LINE}
             </td>

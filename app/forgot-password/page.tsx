@@ -4,6 +4,7 @@ import { use } from "react";
 import Link from "next/link";
 import { Alert, Button, Field, Input, Logo } from "@/components/ui";
 import { requestPasswordReset } from "@/app/auth/actions";
+import { FORGOT_ERRORS, FORGOT_ERROR_FALLBACK, flashText } from "@/lib/flash";
 
 /*
  * Client for the same single reason as /login and /signup: `Field` hands its
@@ -26,7 +27,8 @@ export default function ForgotPasswordPage(
 ) {
   const searchParams = use(props.searchParams);
   const sent = searchParams.sent === "1";
-  const error = typeof searchParams.error === "string" ? searchParams.error : undefined;
+  // Looked up by code, never printed from the URL (lib/flash.ts).
+  const error = flashText(FORGOT_ERRORS, searchParams.error, FORGOT_ERROR_FALLBACK);
 
   return (
     <main className="scheme-light scheme-paint flex min-h-screen flex-col justify-center py-14 md:py-20">
@@ -47,7 +49,7 @@ export default function ForgotPasswordPage(
 
         {error && (
           <div className="mt-8">
-            <Alert tone="error" title="We could not send that">
+            <Alert tone="error" title="We couldn't send that">
               {error}
             </Alert>
           </div>

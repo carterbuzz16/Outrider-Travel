@@ -33,7 +33,7 @@ export const dynamic = "force-dynamic";
 
 const EXPORTS = [
   { kind: "roster", label: "Full roster", note: "Money and task state" },
-  { kind: "rooming", label: "Rooming list", note: "For the Peaks" },
+  { kind: "rooming", label: "Rooming list", note: "For The Peaks" },
   { kind: "rentals", label: "Rentals", note: "For the ski shop" },
   { kind: "insurance", label: "Insurance", note: "Legal name, date of birth" },
   { kind: "dietary", label: "Dietary", note: "Restrictions only" },

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Alert, Button, Field, Input, Logo } from "@/components/ui";
 import { signup } from "@/app/auth/actions";
 import { MIN_PASSWORD_LENGTH, PASSWORD_RULE } from "@/lib/password";
+import { safePath } from "@/lib/safe-path";
+import { SIGNUP_ERRORS, SIGNUP_ERROR_FALLBACK, flashText } from "@/lib/flash";
 
 /*
  * Client for the same single reason as /login: `Field` hands its control down
@@ -16,36 +18,16 @@ import { MIN_PASSWORD_LENGTH, PASSWORD_RULE } from "@/lib/password";
  * has to do is carry it forward, and app/auth/actions.ts revalidates it.
  */
 
-function safeNext(value: string | string[] | undefined): string | null {
-  if (typeof value !== "string") return null;
-  return value.startsWith("/") && !value.startsWith("//") ? value : null;
-}
-
-function describeError(raw: string): string {
-  if (/already registered|already exists/i.test(raw)) {
-    return "That email already has an account. Log in instead, or reset your password if you have forgotten it.";
-  }
-  // Supabase's own length complaint quotes the dashboard minimum, which can
-  // be lower than ours — restate our rule instead so the two never disagree.
-  // Our server-side copy (lib/password.ts) is already customer-facing and
-  // falls through untouched.
-  if (/password/i.test(raw) && /at least|weak|short/i.test(raw) && !/not the same/i.test(raw)) {
-    return `Pick a password of at least ${MIN_PASSWORD_LENGTH} characters.`;
-  }
-  if (/invalid|valid email/i.test(raw)) {
-    return "That email address does not look right. Check it and try again.";
-  }
-  return raw;
-}
-
 export default function SignupPage(
   props: {
     searchParams: Promise<Record<string, string | string[] | undefined>>;
   }
 ) {
   const searchParams = use(props.searchParams);
-  const next = safeNext(searchParams.next);
-  const error = typeof searchParams.error === "string" ? searchParams.error : undefined;
+  // The same guard the actions use; an empty result means no `next` at all.
+  const next = safePath(searchParams.next, "") || null;
+  // Looked up by code, never printed from the URL (lib/flash.ts).
+  const error = flashText(SIGNUP_ERRORS, searchParams.error, SIGNUP_ERROR_FALLBACK);
 
   const fromBooking = next?.startsWith("/bookings/new") ?? false;
 
@@ -61,15 +43,15 @@ export default function SignupPage(
           <h1 className="t-title text-[--text]">Create an account</h1>
           <p className="font-body text-body leading-[1.7] text-[--text-secondary]">
             {fromBooking
-              ? "Make an account to hold your spot. It takes a minute, and you land right back on the trip you picked."
+              ? "One quick account and you're back on your trip. Takes a minute."
               : "One account for your trips, your payments and your trip page."}
           </p>
         </div>
 
         {error && (
           <div className="mt-8">
-            <Alert tone="error" title="We could not create that account">
-              {describeError(error)}
+            <Alert tone="error" title="We couldn't create that account">
+              {error}
             </Alert>
           </div>
         )}

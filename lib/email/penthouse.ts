@@ -3,6 +3,7 @@ import type { Database } from "@/types/supabase";
 import { formatDate, renderEmailLayout } from "@/lib/email/layout";
 import { getFromAddress, sendEmail } from "@/lib/email/send";
 import { getAppUrl } from "@/lib/site-url";
+import { todayInMountain } from "@/lib/mountain-time";
 import { createPortalUrl } from "@/lib/portal-token";
 import { tierDisplayName } from "@/lib/tier-display";
 import {
@@ -91,7 +92,8 @@ export async function sendDuePenthouseEmails(
 ): Promise<{ full: PenthouseEmailOutcome; reminder: PenthouseEmailOutcome }> {
   const full = { sent: 0, skipped: 0, failed: 0 };
   const reminder = { sent: 0, skipped: 0, failed: 0 };
-  const today = now.toISOString().slice(0, 10);
+  // Mountain Time, where the trips are (lib/mountain-time.ts), not UTC.
+  const today = todayInMountain(now);
 
   const { data: tiers, error } = await admin
     .from("tiers")
@@ -174,9 +176,10 @@ async function sendToMembers(
     }
 
     // The claim: only the caller whose update flips null to a timestamp sends.
+    const claimedAt = new Date().toISOString();
     const { data: claimed } = await admin
       .from("bookings")
-      .update(columnValue(column, new Date().toISOString()))
+      .update(columnValue(column, claimedAt))
       .eq("id", member.id)
       .is(column, null)
       .select("id")
@@ -197,8 +200,9 @@ async function sendToMembers(
       console.error(
         `penthouse email (${column}) to booking ${member.id} failed: ${err instanceof Error ? err.message : err}`,
       );
-      // Released so the next run tries again.
-      await admin.from("bookings").update(columnValue(column, null)).eq("id", member.id);
+      // Released so the next run tries again, but only if the claim is still
+      // ours: another caller may have claimed (and sent) since.
+      await admin.from("bookings").update(columnValue(column, null)).eq("id", member.id).eq(column, claimedAt);
       outcome.failed++;
     }
   }

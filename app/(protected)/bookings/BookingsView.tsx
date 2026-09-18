@@ -8,6 +8,7 @@ import BalancePayment from "./BalancePayment";
 import { createPortalUrl } from "@/lib/portal-token";
 import { confirmationNumber } from "@/lib/confirmation-number";
 import { tierDisplayName } from "@/lib/tier-display";
+import { BOOKINGS_OPEN } from "@/lib/booking-window";
 import type { Database } from "@/types/supabase";
 import PenthouseProgress from "@/components/PenthouseProgress";
 import { penthouseInvitePath, type PenthouseSnapshot } from "@/lib/penthouse";
@@ -63,7 +64,7 @@ const STATUS: Record<BookingStatus, { tone: BadgeTone; label: string }> = {
   pending: { tone: "urgent", label: "Deposit due" },
   deposit_paid: { tone: "open", label: "Deposit paid" },
   paid_in_full: { tone: "new", label: "Paid in full" },
-  cancelled: { tone: "closed", label: "Cancelled" },
+  cancelled: { tone: "closed", label: "Canceled" },
 };
 
 /** A schedule row's state, in the traveler's words rather than the enum's. */
@@ -316,7 +317,7 @@ function BookingCard({ booking }: { booking: BookingRow }) {
 
         {cancelled && (
           <p className="max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
-            This booking was cancelled. Anything already charged is handled by hand, so write to us
+            This booking was canceled. Anything already charged is handled by hand, so write to us
             if you have a question about it.
           </p>
         )}
@@ -361,6 +362,28 @@ function BookingCard({ booking }: { booking: BookingRow }) {
 /* -- nothing booked -------------------------------------------------------- */
 
 function EmptyState() {
+  // Before launch there is nothing to book, so the empty account points at
+  // the trip and the list rather than promising a checkout that isn't open.
+  if (!BOOKINGS_OPEN) {
+    return (
+      <div className="flex flex-col items-start gap-6 border border-[--rule] bg-[--surface-raised] px-6 py-14 md:items-center md:px-8 md:py-20 md:text-center">
+        <p className="stamp-type text-[--text-muted]">Nothing booked yet</p>
+        <h2 className="t-subheading max-w-[20ch] text-[--text]">Booking opens soon</h2>
+        <p className="max-w-measure-tight font-body text-body leading-[1.7] text-[--text-secondary]">
+          Telluride&rsquo;s dates are set for December and January. Join the list and you&rsquo;ll hear
+          the moment spots open.
+        </p>
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-4 md:justify-center">
+          <Button href="/telluride" variant="primary" size="md">
+            See Telluride
+          </Button>
+          <Link href="/waitlist" className="font-body text-body-s text-[--accent] decoration-[--accent]">
+            Join the list
+          </Link>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col items-start gap-6 border border-[--rule] bg-[--surface-raised] px-6 py-14 md:items-center md:px-8 md:py-20 md:text-center">
       <p className="stamp-type text-[--text-muted]">Nothing booked yet</p>

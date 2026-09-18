@@ -3,7 +3,7 @@ import { Alert, Button, SectionDivider } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe";
 import { syncPaymentFromStripe } from "@/lib/stripe-sync";
-import { formatDateRange, formatPrice } from "@/lib/trips";
+import { formatDateRange } from "@/lib/trips";
 import { formatAmount } from "@/lib/balance";
 import { tierDisplayName } from "@/lib/tier-display";
 import CompleteAuthenticationForm from "@/components/CompleteAuthenticationForm";

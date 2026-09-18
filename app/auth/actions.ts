@@ -79,7 +79,7 @@ export async function signup(formData: FormData) {
   // and can be posted to directly. Checked here before anything is created.
   const passwordProblem = checkPasswordPair(password, confirmation);
   if (passwordProblem) {
-    redirect(`/signup?error=${encodeURIComponent(passwordProblem)}&${nextQuery}`);
+    redirect(`/signup?error=${passwordProblem}&${nextQuery}`);
   }
 
   // Keyed by IP, not email: repeat signups to the same email just get
@@ -87,7 +87,7 @@ export async function signup(formData: FormData) {
   // throttling here is scripted mass account creation from one source.
   const allowed = await checkRateLimit(`signup:${(await clientIp())}`, 3, 60 * 60);
   if (!allowed) {
-    redirect(`/signup?error=${encodeURIComponent("Too many signups from this network. Try again later.")}&${nextQuery}`);
+    redirect(`/signup?error=rate_limited&${nextQuery}`);
   }
 
   const supabase = await createClient();
@@ -118,7 +118,18 @@ export async function signup(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/signup?error=${encodeURIComponent(error.message)}&${nextQuery}`);
+    // A code, never Supabase's own text (lib/flash.ts). Its length complaint
+    // quotes the dashboard minimum, which can be lower than ours, so that one
+    // restates our rule instead.
+    const code = /already registered|already exists/i.test(error.message)
+      ? "account_exists"
+      : /password/i.test(error.message) && /at least|weak|short/i.test(error.message)
+        ? "weak_password"
+        : /invalid|valid email/i.test(error.message)
+          ? "invalid_email"
+          : "signup_failed";
+    if (code === "signup_failed") console.error(`signUp failed: ${error.message}`);
+    redirect(`/signup?error=${code}&${nextQuery}`);
   }
 
   revalidatePath("/", "layout");
@@ -144,11 +155,7 @@ export async function signup(formData: FormData) {
      * which is the worse failure for a company taking deposits. The IP throttle
      * above (3 an hour) is what keeps this from being a bulk membership oracle.
      */
-    redirect(
-      `/signup?error=${encodeURIComponent(
-        "An account already exists for that email. Log in instead, or reset your password if you have forgotten it."
-      )}&${nextQuery}`
-    );
+    redirect(`/signup?error=account_exists&${nextQuery}`);
   }
 
   // No session yet means the project requires email confirmation before
@@ -224,9 +231,7 @@ export async function requestPasswordReset(formData: FormData) {
   // mail also costs us money per attempt, and the abuse is per-source.
   const allowed = await checkRateLimit(`password-reset:${(await clientIp())}`, 5, 60 * 60);
   if (!allowed) {
-    redirect(
-      `/forgot-password?error=${encodeURIComponent("Too many reset requests from this network. Try again later.")}`
-    );
+    redirect("/forgot-password?error=rate_limited");
   }
 
   if (EMAIL_PATTERN.test(email)) {
@@ -264,7 +269,7 @@ export async function resetPassword(formData: FormData) {
 
   const passwordProblem = checkPasswordPair(password, confirmation);
   if (passwordProblem) {
-    redirect(`/reset-password?error=${encodeURIComponent(passwordProblem)}`);
+    redirect(`/reset-password?error=${passwordProblem}`);
   }
 
   const supabase = await createClient();
@@ -277,15 +282,19 @@ export async function resetPassword(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(
-      `/forgot-password?error=${encodeURIComponent("That reset link has expired or has already been used. Request a new one.")}`
-    );
+    redirect("/forgot-password?error=link_expired");
   }
 
   const { error } = await supabase.auth.updateUser({ password });
 
   if (error) {
-    redirect(`/reset-password?error=${encodeURIComponent(error.message)}`);
+    const code = /same|different from the old/i.test(error.message)
+      ? "same_password"
+      : /at least|weak|short/i.test(error.message)
+        ? "password_short"
+        : "update_failed";
+    if (code === "update_failed") console.error(`updateUser (password) failed: ${error.message}`);
+    redirect(`/reset-password?error=${code}`);
   }
 
   await supabase.auth.signOut();

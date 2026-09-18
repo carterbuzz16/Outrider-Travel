@@ -38,6 +38,9 @@ import {
   type PublicTrip,
 } from "@/lib/trips";
 import { countPenthouses, getRoomMedia, isTaken, tierGrouping } from "@/lib/room-media";
+import { PAY_IN_FULL_DISCOUNT, computeDepositAmount } from "@/lib/deposit";
+import { formatAmount } from "@/lib/balance";
+import { flightTimesPublished } from "@/lib/trip-logistics";
 
 /*
  * /telluride: both Telluride departures on one page, and the page that sells
@@ -102,6 +105,16 @@ const PROPERTY_IMAGE = {
   src: "/images/peaks/peaks-exterior-night.jpg",
   alt: "The Peaks Resort from above on a winter night, its windows lit and the heated outdoor pool glowing, with snowy peaks behind.",
 };
+
+/**
+ * The smallest deposit on offer across these departures: 10% of the cheapest
+ * package (computeDepositAmount), in dollars, so the close says "$160" rather
+ * than a percentage someone has to work out.
+ */
+function depositFrom(trips: PublicTrip[]): string {
+  const cheapest = Math.min(...trips.map((trip) => trip.priceFrom).filter((p) => p > 0));
+  return Number.isFinite(cheapest) ? formatAmount(computeDepositAmount(cheapest)) : "a 10% deposit";
+}
 
 /** Case-insensitive, so "Telluride, Colorado" and "telluride" both count. */
 function isTelluride(trip: PublicTrip): boolean {
@@ -202,7 +215,7 @@ export default async function TelluridePage() {
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 bg-[rgb(42_35_32_/_0.6)]" />
 
         <div className="shell flex flex-1 flex-col justify-end pb-10 pt-32 md:pb-14 md:pt-40">
-          <p className="t-label text-[--text]">Telluride, Colorado · About 8,750 ft</p>
+          <p className="t-label text-[--text]">Telluride, Colorado · 8,725 ft</p>
           <h1 className="t-display mt-5 text-[--text]">Telluride</h1>
 
           <div className="mt-10 grid gap-10 border-t border-[--rule-strong] pt-8 md:mt-14 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] md:gap-16">
@@ -271,7 +284,7 @@ export default async function TelluridePage() {
               <p className="max-w-measure font-body text-body leading-[1.85] text-[--text-secondary]">
                 The town is a few streets of brick and clapboard you can walk end
                 to end in fifteen minutes, an old mining town with a real Main
-                Street. Above it are two thousand acres: steep enough for the
+                Street. Above it are more than two thousand acres: steep enough for the
                 strong skiers in your group, and gentle enough on the front side
                 that first timers have a great day one too.
               </p>
@@ -463,8 +476,8 @@ export default async function TelluridePage() {
               {trips.length > 1 ? `${spelled(trips.length)} departures, one trip` : "The dates"}
             </h2>
             <p className="t-lede">
-              Every departure is the same trip, with the same property, mountain
-              days and events. Pick the week that works for your crew.
+              Every departure is the same trip, with the same property and the
+              same days on the mountain. Pick the week that works for your crew.
             </p>
           </div>
         </Reveal>
@@ -519,7 +532,7 @@ export default async function TelluridePage() {
               <div className="flex flex-col gap-6 md:sticky md:top-32">
                 <p className="t-rule-label text-[--text]">Included</p>
                 <h2 id="included-heading" className="t-title max-w-[12ch] text-[--text]">
-                  All in the price
+                  What&rsquo;s waiting for you
                 </h2>
                 <p className="max-w-measure-tight font-body text-body leading-[1.75] text-[--text-secondary]">
                   One price per person, and here&rsquo;s everything inside it.
@@ -629,7 +642,7 @@ export default async function TelluridePage() {
                 <span className="font-display text-display-s font-medium tracking-title text-[--text]">Telluride</span>
                 <span className="t-micro text-[--text-secondary]">Montrose</span>
                 <span className="t-micro text-center text-[--text-secondary]">65 mi · 90 min by road</span>
-                <span className="t-micro text-right text-[--text-secondary]">About 8,750 ft</span>
+                <span className="t-micro text-right text-[--text-secondary]">8,725 ft</span>
               </div>
               <p className="font-body text-body leading-[1.85] text-[--text]">
                 Fly into Montrose, about 65 miles out and roughly an hour and a
@@ -638,10 +651,9 @@ export default async function TelluridePage() {
                 canyon, and bring you back at the end.
               </p>
               <p className="font-body text-body leading-[1.85] text-[--text-secondary]">
-                Flights are the one thing you book yourself. The flight guide
-                covers which airport to pick, the arrival and departure windows
-                for each set of dates, and what to do if the only routing you can
-                find is a bad one.
+                {flightTimesPublished()
+                  ? "Flights are the one thing you book yourself. The flight guide covers which airport to pick, the arrival and departure windows for each set of dates, and what to do if the only routing you can find is a bad one."
+                  : "Flights are the one thing you book yourself. The flight guide covers which airport to pick and what to do if the only routing you can find is a bad one, and we'll post the arrival and departure windows for each set of dates there."}
               </p>
               <div>
                 <Button href="/flights" variant="secondary">
@@ -707,7 +719,9 @@ export default async function TelluridePage() {
             <Reveal delay={90}>
               <p className="t-lede text-[--text-secondary]">
                 {openTrips.length > 0
-                  ? "Put down 10% to hold your spot and pay the rest in two installments, or pay it all now and take $100 off. Each of you books your own."
+                  ? `Hold your spot for ${depositFrom(openTrips)} and pay the rest in two installments${
+                      PAY_IN_FULL_DISCOUNT > 0 ? `, or pay it all now and take $${PAY_IN_FULL_DISCOUNT} off` : ""
+                    }. Each of you books your own.`
                   : "Tell us you want in. If a spot opens up or the next trip goes live, you'll hear first."}
               </p>
             </Reveal>
@@ -733,7 +747,7 @@ export default async function TelluridePage() {
           id="waitlist"
           placement="telluride"
           heading="First dibs on Telluride"
-          body="First dibs on Telluride. The list hears before anyone else."
+          body="Booking opens to the list before anyone else. Join and you'll hear first."
         />
       )}
     </main>
@@ -786,7 +800,7 @@ function weekPlan(nights: number, firstDay: string | null, lastDay: string | nul
 const ANSWERS: { q: string; a: React.ReactNode }[] = [
   {
     q: "I've never skied. Is that a problem?",
-    a: "Not at all. The front side is gentle enough for a great first day, and lessons can be arranged. Tell us when you book and we'll have it set up before you land.",
+    a: "Not at all. The front side is gentle enough for a great first day. Lessons are available at the resort's rate: tell us when you book and we'll set one up before you land.",
   },
   {
     q: "Can I room with my friends?",
@@ -800,9 +814,9 @@ const ANSWERS: { q: string; a: React.ReactNode }[] = [
     q: "How does paying work?",
     a: (
       <>
-        Put down 10% to hold your spot and pay the rest in two installments,
-        or pay it all now and take $100 off. Each of you books your own, so
-        nobody fronts money for friends. The detail is in{" "}
+        Put down 10% to hold your spot and pay the rest in two installments
+        {PAY_IN_FULL_DISCOUNT > 0 && `, or pay it all now and take $${PAY_IN_FULL_DISCOUNT} off`}. Each
+        of you books your own, so nobody fronts money for friends. The detail is in{" "}
         <Link href="/terms#payment-plan" className={LINK}>
           the Terms
         </Link>
@@ -812,11 +826,13 @@ const ANSWERS: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "What is not included?",
-    a: "Your flight to Montrose, travel insurance if you want it, meals other than those named in your package, and anything you buy on your own account. Everything else on this page is inside the price.",
+    a: "Your flight to Montrose, meals other than those named in your package, and anything you buy on your own account. Travel insurance isn't included. We'll offer it as an optional add-on. Everything else on this page is inside the price.",
   },
   {
     q: "Is somebody from Outrider actually there?",
-    a: "Yes. Our team is on the ground in Telluride for the whole trip, so the friend who organized the group gets to ski too.",
+    // No texting number is published yet (CONTACT.phone and SMS_NUMBER are
+    // unset), so this promises email, not texts.
+    a: "Yes. Our team is with you from pickup to drop-off, an email away and on the ground all week.",
   },
 ];
 

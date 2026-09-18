@@ -34,3 +34,16 @@ export async function cancelOpenIntent(paymentIntentId: string): Promise<boolean
     return false;
   }
 }
+
+/**
+ * PostgREST filter for the payment rows whose card form may still be open.
+ *
+ * Pending and requires_action, plus a checkout row (no scheduled date) marked
+ * failed: a declined card leaves its PaymentIntent at requires_payment_method,
+ * and the same Elements form will happily take a second card. Every sweep that
+ * stops open forms uses this, and cancelOpenIntent then asks Stripe, which
+ * refuses anything no longer open. Installment rows marked failed are left to
+ * the retry machinery.
+ */
+export const POSSIBLY_OPEN_PAYMENT_FILTER =
+  "status.in.(pending,requires_action),and(status.eq.failed,scheduled_date.is.null)";

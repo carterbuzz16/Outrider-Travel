@@ -4,7 +4,7 @@ import type { Database } from "@/types/supabase";
 import { getStripe } from "@/lib/stripe";
 import { CLAIM_PENDING_WINDOW_MS, parseDbTimestamp } from "@/lib/penthouse";
 import { activeBookingFilter, claimMatches, getTierClaims } from "@/lib/tier-claims";
-import { OPEN_INTENT_STATUSES } from "@/lib/stripe-intents";
+import { OPEN_INTENT_STATUSES, POSSIBLY_OPEN_PAYMENT_FILTER } from "@/lib/stripe-intents";
 import { CHECKOUT_ERRORS } from "@/lib/flash";
 
 type Admin = SupabaseClient<Database>;
@@ -188,7 +188,7 @@ export async function cancelCheckoutIntents(admin: Admin, bookingId: string): Pr
     .from("payments")
     .select("id, stripe_payment_intent_id")
     .eq("booking_id", bookingId)
-    .in("status", ["pending", "requires_action"])
+    .or(POSSIBLY_OPEN_PAYMENT_FILTER)
     .not("stripe_payment_intent_id", "is", null);
 
   const stripe = getStripe();
@@ -206,7 +206,7 @@ export async function cancelCheckoutIntents(admin: Admin, bookingId: string): Pr
       .from("payments")
       .update({ status: "canceled" })
       .eq("id", row.id)
-      .in("status", ["pending", "requires_action"]);
+      .or(POSSIBLY_OPEN_PAYMENT_FILTER);
   }
   return true;
 }

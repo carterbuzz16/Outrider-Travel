@@ -33,5 +33,7 @@ export function tierDisplayName(name: string): string {
     .trim()
     .replace(/\s+/g, " ")
     .toLowerCase()
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+    // Word starts only, after a space or at the start: \b would also fire after
+    // an apostrophe and print "Joe'S Place".
+    .replace(/(^|\s)(\S)/g, (_, space: string, c: string) => space + c.toUpperCase());
 }

@@ -107,7 +107,7 @@ const securityHeaders = [
   },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), payment=(self)",
+    value: "camera=(), microphone=(), geolocation=(), payment=(self \"https://js.stripe.com\")",
   },
   {
     // Report-only: logs, never blocks. See the note at the top of this file.

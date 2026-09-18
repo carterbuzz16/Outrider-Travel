@@ -66,14 +66,27 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
   // The checkout row: the one with no scheduled date. Read by shape rather
   // than position. A checkout whose plan was switched (createBooking carries
   // the booking on and replaces its card form) also has the old row, marked
-  // canceled, so the live one is preferred.
+  // canceled, and a declined card leaves its row failed, so the choice is made
+  // deterministically: pending first, then requires_action, then failed, then
+  // anything else, and within the best status the newest intent by Stripe's
+  // clock (payments rows carry no timestamp of their own; ties by id).
   const checkoutRows = booking.payments.filter((p) => p.scheduled_date === null && p.stripe_payment_intent_id);
-  const payment = checkoutRows.find((p) => p.status !== "canceled") ?? checkoutRows[0];
-  if (!payment?.stripe_payment_intent_id) {
+  if (checkoutRows.length === 0) {
     notFound();
   }
-
-  const paymentIntent = await getStripe().paymentIntents.retrieve(payment.stripe_payment_intent_id);
+  const rank = (status: string) => {
+    const i = ["pending", "requires_action", "failed"].indexOf(status);
+    return i === -1 ? 3 : i;
+  };
+  const bestRank = Math.min(...checkoutRows.map((p) => rank(p.status)));
+  const candidates = await Promise.all(
+    checkoutRows
+      .filter((p) => rank(p.status) === bestRank)
+      .map((p) => getStripe().paymentIntents.retrieve(p.stripe_payment_intent_id!)),
+  );
+  const paymentIntent = candidates.reduce((newest, intent) =>
+    intent.created > newest.created || (intent.created === newest.created && intent.id > newest.id) ? intent : newest,
+  );
 
   // Already paid, and the booking just does not know it yet (a late webhook,
   // or a preview deployment that never gets one). Showing the card form again

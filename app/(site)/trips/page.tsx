@@ -14,10 +14,10 @@ import { BOOKINGS_OPEN } from "@/lib/booking-window";
 import { formatDateRange, formatPrice, getPublishedTrips, nightCount } from "@/lib/trips";
 
 export const metadata: Metadata = pageMetadata({
-  title: "College group trips: Telluride ski weeks and spring break",
+  title: "All trips and dates",
   path: "/trips",
   description:
-    "Every Outrider trip for college students: Telluride ski weeks this winter, spring break next. Small groups, one great property, everything planned before you land.",
+    "Every Outrider trip for college students, with dates: Telluride ski weeks now, spring break next. Small groups, one property, everything planned before you land.",
 });
 
 export const revalidate = 300;
@@ -31,10 +31,8 @@ export default async function TripsPage() {
         <div>
           <h1 className="t-display mt-6 max-w-[14ch] text-[--text]">Where we&rsquo;re going</h1>
           <p className="t-lede mt-8 max-w-measure">
-            Every Outrider trip lives here. We&rsquo;re always scouting
-            somewhere new, and a trip only goes up once it&rsquo;s ready: the
-            hotel held, the plans made, the price set. So the list stays short,
-            and every trip on it is one we&rsquo;d happily go on ourselves.
+            Every Outrider trip lives here. A trip only goes up once
+            we&rsquo;ve held the hotel and set the price.
           </p>
         </div>
       </header>
@@ -72,7 +70,12 @@ export default async function TripsPage() {
                 image: trip.images[0]
                   ? { src: trip.images[0], alt: `${trip.name}, ${trip.destination}` }
                   : undefined,
-                href: `/trips/${trip.id}`,
+                // Before launch a trip's own page is a teaser; the Telluride
+                // page is where the real detail lives, so a closed card goes there.
+                href:
+                  !BOOKINGS_OPEN && trip.destination.toLowerCase().includes("telluride")
+                    ? "/telluride"
+                    : `/trips/${trip.id}`,
               };
               // The first card is above the fold on most screens, so it renders
               // plainly rather than sitting at opacity 0 until hydration.
@@ -107,7 +110,11 @@ export default async function TripsPage() {
         id="waitlist"
         placement="trips"
         heading="Hear about it first"
-        body="First dibs on Telluride. The list hears before it goes on sale."
+        body={
+          BOOKINGS_OPEN
+            ? "Telluride is on sale now. Join the list to hear about the next trip first."
+            : "First dibs on Telluride. The list hears before it goes on sale."
+        }
       />
 
       {/* ---- what's coming --------------------------------------------------

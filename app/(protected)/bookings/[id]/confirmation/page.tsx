@@ -349,8 +349,8 @@ function CancelledBooking({ booking }: { booking: ConfirmationBooking }) {
   return (
     <main>
       <section className="shell max-w-[48rem] pb-16 pt-12 md:pb-24 md:pt-20">
-        <p className="stamp-type text-[--text-muted]">Cancelled</p>
-        <h1 className="t-title mt-5 max-w-[18ch] text-[--text]">This booking is cancelled</h1>
+        <p className="stamp-type text-[--text-muted]">Canceled</p>
+        <h1 className="t-title mt-5 max-w-[18ch] text-[--text]">This booking is canceled</h1>
         <p className="mt-6 max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
           It no longer holds a place on the trip, and nothing more will be taken from your card. If you
           are owed a refund, we will be in touch by email. Questions,{" "}
@@ -366,7 +366,7 @@ function CancelledBooking({ booking }: { booking: ConfirmationBooking }) {
             items={[
               { label: "Trip", value: trip.name },
               { label: "Dates", value: formatDateRange(trip.start_date, trip.end_date) },
-              { label: "Package", value: booking.tiers?.name ?? "Standard" },
+              { label: "Package", value: booking.tiers ? tierDisplayName(booking.tiers.name) : "Your package" },
               { label: "Confirmation", value: confirmationNumber(booking.id) },
             ]}
           />

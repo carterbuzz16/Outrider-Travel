@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { track } from "@vercel/analytics";
 import { cn } from "./cn";
+import { BOOKINGS_OPEN } from "@/lib/booking-window";
 
 /**
  * What somebody sees the moment they are on the list.
@@ -15,7 +16,9 @@ import { cn } from "./cn";
  */
 export default function WaitlistShare({
   heading = "You’re on the list",
-  body = "We'll write when trips open, before they reach the site. A note confirming it is on its way to your inbox.",
+  body = BOOKINGS_OPEN
+    ? "We'll write when the next trip opens, before it reaches the site. A note confirming it is on its way to your inbox."
+    : "We'll write when trips open, before they reach the site. A note confirming it is on its way to your inbox.",
   compact = false,
   className,
   headingId,
@@ -47,7 +50,11 @@ export default function WaitlistShare({
 
   async function share() {
     const url = `${window.location.origin}/waitlist?utm_source=share&utm_medium=referral`;
-    const text = "Outrider opens its trips to this list first. Get on it before the dates go public.";
+    // Before launch the pitch is getting in ahead of the sale; after it,
+    // there is no "before" left for Telluride, so it points at the next trip.
+    const text = BOOKINGS_OPEN
+      ? "Outrider opens its trips to this list first. Get on it for the next one."
+      : "Outrider opens its trips to this list first. Get on it before booking opens.";
 
     if (canShare) {
       try {

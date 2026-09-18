@@ -12,6 +12,7 @@ import { formatAmount, toCents } from "@/lib/balance";
 import { formatDateRange } from "@/lib/trips";
 import { CONTACT } from "@/lib/site-content";
 import { getAppUrl } from "@/lib/site-url";
+import { todayInMountain } from "@/lib/mountain-time";
 
 /*
  * -- The two designed post-booking emails ------------------------------------
@@ -134,12 +135,6 @@ function longDate(iso: string, withYear: boolean): string | undefined {
   return withYear ? `${base}, ${y}` : base;
 }
 
-/** Today's date where the trips are, as "YYYY-MM-DD". */
-function todayInMountainTime(): string {
-  // en-CA formats as YYYY-MM-DD.
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date());
-}
-
 function daysBetween(fromIso: string, toIso: string): number {
   const [fy, fm, fd] = fromIso.split("-").map(Number);
   const [ty, tm, td] = toIso.split("-").map(Number);
@@ -213,7 +208,6 @@ function preferencesUrl(): string {
 async function variablesFor(
   admin: Admin,
   booking: BookingForEmail,
-  { forChase }: { forChase: boolean },
 ): Promise<{ variables: TemplateVariables; portalUrl: string | null; firstName: string | null }> {
   const trip = booking.trips;
   const logistics = trip ? getTripLogistics(trip.start_date) : null;
@@ -264,8 +258,10 @@ async function variablesFor(
   if (trip) {
     set("trip_name", trip.name);
     set("trip_dates", formatDateRange(trip.start_date, trip.end_date));
-    const days = daysBetween(todayInMountainTime(), trip.start_date);
-    if (days > 0) set("days_until_trip", days);
+    // The unit rides in the value ("1 day", "12 days"), so the template's
+    // "is {{days_until_trip}} out" never reads "1 days".
+    const days = daysBetween(todayInMountain(), trip.start_date);
+    if (days > 0) set("days_until_trip", `${days} ${days === 1 ? "day" : "days"}`);
   }
   if (logistics) {
     set("trip_capacity", logistics.tripCapacity ?? placeholder("trip capacity"));
@@ -276,17 +272,6 @@ async function variablesFor(
       "rooming_lock_date",
       logistics.roomingLockDate ? longDate(logistics.roomingLockDate, false) : placeholder("rooming lock date")
     );
-  }
-
-  if (forChase && trip) {
-    // Requests on live bookings for the same departure. Only the chase says
-    // this number, so only the chase pays for the query.
-    const { count, error } = await admin
-      .from("rooming_requests")
-      .select("id, bookings!inner(trip_id, status)", { count: "exact", head: true })
-      .eq("bookings.trip_id", booking.trip_id)
-      .neq("bookings.status", "cancelled");
-    if (!error && count !== null) set("rooming_submitted_count", count);
   }
 
   return { variables, portalUrl, firstName };
@@ -343,7 +328,7 @@ function chaseText(v: TemplateVariables, flags: Record<string, boolean>): string
   if (!flags.rooming_submitted) open.push(`Who you're rooming with: ${v.rooming_url}`);
   if (!flags.details_submitted) open.push(`Your traveler details: ${v.traveler_details_url}`);
   return [
-    `${v.first_name}, ${v.trip_name} is ${v.days_until_trip} days out and we're holding your spot. Still open on your side:`,
+    `${v.first_name}, ${v.trip_name} is ${v.days_until_trip} out and we're holding your spot. Still open on your side:`,
     "",
     ...open.map((line) => `- ${line}`),
     "",
@@ -396,7 +381,7 @@ export async function sendConfirmationEmailOnce(
     }
 
     // Worked out before the claim, so a slow render never holds it.
-    const { variables, portalUrl } = await variablesFor(admin, booking, { forChase: false });
+    const { variables, portalUrl } = await variablesFor(admin, booking);
     let html: string | null = null;
     let missing: string[] = [];
     try {
@@ -538,7 +523,12 @@ export async function sendChaseEmailOnce(admin: Admin, bookingId: string): Promi
     // does not select such a booking again.
     if (flags.flights_booked && flags.rooming_submitted && flags.details_submitted) return "all-done";
 
-    const { variables, firstName } = await variablesFor(admin, booking, { forChase: true });
+    // A trip that has started can never render the chase (there is no "days
+    // out" left to say). The cron's query no longer selects one; this is the
+    // same rule for any other caller.
+    if (booking.trips.start_date.slice(0, 10) <= todayInMountain()) return "not-due";
+
+    const { variables, firstName } = await variablesFor(admin, booking);
     let html: string;
     try {
       html = render(chaseTemplate, variables, flags);

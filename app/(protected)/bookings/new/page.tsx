@@ -377,15 +377,15 @@ function OpensSoon() {
     <div className="mt-10 flex flex-col items-start gap-6 border border-[--rule] bg-[--surface-raised] px-6 py-14 md:px-10 md:py-16">
       <h1 className="t-heading max-w-[22ch] text-[--text]">Booking opens soon</h1>
       <p className="max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
-        The dates, the packages and the pricing are final, and we will be taking spots shortly. Join the
-        waitlist to hear the moment it opens.
+        The dates, the packages and the pricing are final, and we&rsquo;ll be taking spots shortly. Join the
+        list to hear the moment it opens.
       </p>
       <div className="flex flex-wrap gap-3">
         <Button href="/telluride" variant="primary" size="md">
           See the trip
         </Button>
         <Button href="/waitlist" variant="secondary" size="md">
-          Join the waitlist
+          Join the list
         </Button>
       </div>
     </div>

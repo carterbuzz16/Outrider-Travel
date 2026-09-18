@@ -17,15 +17,12 @@ export const MIN_PASSWORD_LENGTH = 8;
 export const PASSWORD_RULE = `At least ${MIN_PASSWORD_LENGTH} characters.`;
 
 /**
- * Server-side check for the two password boxes. Returns customer-facing copy
- * for the first problem found, or null when the pair is acceptable.
+ * Server-side check for the two password boxes. Returns the ?error= code for
+ * the first problem found (the words are in lib/flash.ts), or null when the
+ * pair is acceptable.
  */
-export function checkPasswordPair(password: string, confirmation: string): string | null {
-  if (password.length < MIN_PASSWORD_LENGTH) {
-    return `Passwords need at least ${MIN_PASSWORD_LENGTH} characters. Yours is shorter.`;
-  }
-  if (password !== confirmation) {
-    return "Those two passwords are not the same. Type the second one again.";
-  }
+export function checkPasswordPair(password: string, confirmation: string): "password_short" | "password_mismatch" | null {
+  if (password.length < MIN_PASSWORD_LENGTH) return "password_short";
+  if (password !== confirmation) return "password_mismatch";
   return null;
 }

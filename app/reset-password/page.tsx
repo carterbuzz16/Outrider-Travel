@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Alert, Button, Logo } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
+import { RESET_ERRORS, RESET_ERROR_FALLBACK, flashText } from "@/lib/flash";
 import ResetPasswordForm from "./ResetPasswordForm";
 
 export const metadata: Metadata = {
@@ -28,7 +29,8 @@ export default async function ResetPasswordPage(
   }
 ) {
   const searchParams = await props.searchParams;
-  const error = typeof searchParams.error === "string" ? searchParams.error : undefined;
+  // Looked up by code, never printed from the URL (lib/flash.ts).
+  const error = flashText(RESET_ERRORS, searchParams.error, RESET_ERROR_FALLBACK);
 
   const supabase = await createClient();
   // getUser revalidates against Supabase rather than reading the cookie, so a
@@ -58,7 +60,7 @@ export default async function ResetPasswordPage(
 
         {error && (
           <div className="mt-8">
-            <Alert tone="error" title="We could not save that">
+            <Alert tone="error" title="We couldn't save that">
               {error}
             </Alert>
           </div>

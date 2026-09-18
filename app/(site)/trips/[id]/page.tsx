@@ -18,6 +18,9 @@ import { countPenthouses, getRoomMedia, isTaken, tierGrouping } from "@/lib/room
 import { BOOKINGS_OPEN, COMING_SOON_NOTE, TRIP_DETAILS_OPEN } from "@/lib/booking-window";
 import { getAppUrl } from "@/lib/site-url";
 import { pageMetadata } from "@/lib/metadata";
+import { PAY_IN_FULL_DISCOUNT, computeDepositAmount } from "@/lib/deposit";
+import { formatAmount } from "@/lib/balance";
+import { CONTACT } from "@/lib/site-content";
 import {
   availabilityLabel,
   formatDateRange,
@@ -334,14 +337,27 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
                   ? COMING_SOON_NOTE
                   : soldOut
                     ? "Tell us you want in, and you'll hear first when the next trip opens."
-                    : "Put down 10% to hold your spot and pay the rest in two installments, or pay it all now and take $100 off. Each of you books your own."}
+                    : `Hold your spot for ${formatAmount(computeDepositAmount(trip.priceFrom))} and pay the rest in two installments${
+                        PAY_IN_FULL_DISCOUNT > 0 ? `, or pay it all now and take $${PAY_IN_FULL_DISCOUNT} off` : ""
+                      }. Each of you books your own.`}
               </p>
             </div>
           </div>
           {BOOKINGS_OPEN ? (
-            <Button href={soldOut ? "/contact" : bookingHref} variant="primary" size="lg">
-              {soldOut ? "Get in touch" : "Reserve your spot"}
-            </Button>
+            <div className="flex flex-col items-start gap-3">
+              <Button href={soldOut ? "/contact" : bookingHref} variant="primary" size="lg">
+                {soldOut ? "Get in touch" : "Reserve your spot"}
+              </Button>
+              {!soldOut && (
+                <p className="max-w-measure-tight font-body text-body-s text-[--text-secondary]">
+                  Questions before you pay? Email{" "}
+                  <a href={`mailto:${CONTACT.email}`} className="text-[--accent] underline underline-offset-4">
+                    {CONTACT.email}
+                  </a>
+                  . {CONTACT.responseTime}
+                </p>
+              )}
+            </div>
           ) : (
             <Button href="/contact" variant="primary" size="lg">
               Ask about this trip

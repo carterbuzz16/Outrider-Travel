@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const BADGE_TEXT = "COMING SOON · WINTER 2026 · TELLURIDE · ";
+const BADGE_TEXT = "COMING SOON · WINTER 2026–27 · TELLURIDE · ";
 
 // The original coming-soon panel, kept intact after the marketing site took
 // over "/". Still reachable at /coming-soon, so it can be put back in front —
@@ -42,7 +42,7 @@ export default function Home() {
           viewBox="0 0 200 200"
           className={styles.badgeSpin}
           role="img"
-          aria-label="Coming soon. Winter 2026, Telluride"
+          aria-label="Coming soon. Winter 2026–27, Telluride"
         >
           {/* Full circle, so the text wraps continuously as it rotates. */}
           <path

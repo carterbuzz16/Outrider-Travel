@@ -104,7 +104,7 @@ export default async function FlightsPage() {
           </div>
         ) : (
           <p className="font-body text-body leading-[1.85] text-[--text-secondary]">
-            The departures are not on the site at the moment. The times for
+            The departures aren&rsquo;t on the site at the moment. The times for
             each set of dates will be here when they are.
           </p>
         )}
@@ -144,7 +144,7 @@ export default async function FlightsPage() {
         <Airport code="TEX" name="Telluride Regional" verdict="Only if it suits you">
           <p>
             A few miles from town, and the closest airport by far. It sits at
-            over 9,000 feet, service is limited, and flights are cancelled or
+            over 9,000 feet, service is limited, and flights are canceled or
             diverted when weather comes in. If you book it, have a plan for
             landing somewhere else.
           </p>
@@ -199,7 +199,7 @@ export default async function FlightsPage() {
           </Step>
           <Step title="When to write to us">
             Before you book, if no routing gets you in before the cut-off or
-            out after the earliest departure. We would rather help you choose
+            out after the earliest departure. We&rsquo;d rather help you choose
             than find out on the day.
           </Step>
         </ul>
@@ -208,7 +208,7 @@ export default async function FlightsPage() {
             answered), and what happens to their transfer. The site has no
             phone number yet. */}
         <DraftCopy label="On the day: delays and cancellations">
-          Who to call if your flight is delayed or cancelled on the travel
+          Who to call if your flight is delayed or canceled on the travel
           day. You&rsquo;ll have the number before you fly.
         </DraftCopy>
         {/* Needs: the date by which Outrider needs each traveler's flight
@@ -217,9 +217,9 @@ export default async function FlightsPage() {
           The date we need your flight details by. Sooner is always better.
         </DraftCopy>
         <p className="font-body text-body leading-[1.85] text-[--text-secondary]">
-          Travel insurance isn&rsquo;t included. If you add it, a policy that
-          covers missed connections and weather delays is worth the most on a
-          winter trip.
+          Travel insurance isn&rsquo;t included. We&rsquo;ll offer it as an
+          optional add-on, and on a winter trip the cover that matters most is
+          for missed connections and weather delays.
           Anything else is in the{" "}
           <Link href="/faq" className={LINK}>
             FAQ

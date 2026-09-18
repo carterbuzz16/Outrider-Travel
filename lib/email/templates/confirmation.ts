@@ -150,7 +150,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
                   <td valign="top">
                     <div class="h2" style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:22px; line-height:1.25; font-weight:500; color:#3E342F;">Tell us who you're rooming with</div>
                     <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:1.6; color:#3E342F; padding-top:8px;">
-                      Name up to three people. We assign rooms in the order requests come in, so the earlier you send it the better the odds we can keep your group together.
+                      Name who you want to room with. We assign rooms in the order requests come in, so the earlier you send it the better the odds we can keep your group together.
                     </div>
                     <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; line-height:1.6; color:#6B635C; padding-top:8px;">
                       Same-gender rooms. Assignments lock {{rooming_lock_date}}.
@@ -285,14 +285,13 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
             <td class="stack" width="50%" valign="top" style="padding-right:16px; font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; line-height:1.85; color:#3E342F;">
               Four nights at {{property_name}}<br />
               Three days of lift tickets<br />
-              Ski or board rentals<br />
+              Ski or snowboard rentals<br />
               Airport transport, both ways
             </td>
             <td class="stack stack-gap" width="50%" valign="top" style="padding-left:16px; font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; line-height:1.85; color:#3E342F;">
-              Welcome event &amp; Gorrono BBQ<br />
-              Private group events all week<br />
-              Welcome gift<br />
-              Staff on the ground, the whole trip
+              Welcome drink &amp; Gorrono BBQ<br />
+              Welcome package<br />
+              Our team on the ground, the whole trip
             </td>
           </tr>
         </table>
@@ -300,7 +299,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
           <tr><td style="border-top:1px solid #d7d2cb; font-size:0; line-height:0;">&nbsp;</td></tr>
         </table>
         <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; line-height:1.6; color:#6B635C; padding-top:14px;">
-          Not in it: flights, lunch you buy on the mountain, and travel insurance, which you can add if you want it. That is the whole list.
+          Not in it: flights, meals beyond the BBQ (and your chef night, on a penthouse), and travel insurance. We'll offer it as an optional add-on.
           <a href="https://outrider.travel/telluride#included" style="color:#3E342F; text-decoration:underline;">Full breakdown</a>
         </div>
       </td>

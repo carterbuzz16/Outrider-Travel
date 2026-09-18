@@ -53,7 +53,7 @@ export async function GET(request: Request) {
   // Sending a failed recovery back to /login would be a dead end: what that
   // person needs is another link.
   const failure = recovery
-    ? `/forgot-password?error=${encodeURIComponent("That reset link has expired or has already been used. Request a new one.")}`
+    ? "/forgot-password?error=link_expired"
     : "/login?error=link_failed";
 
   const supabase = await createClient();

@@ -19,7 +19,17 @@ export function safePath(value: unknown, fallback: string): string {
   try {
     const url = new URL(raw, SENTINEL);
     if (url.origin !== SENTINEL) return fallback;
-    return `${url.pathname}${url.search}${url.hash}`;
+    // The origin staying put is not the end of it: dot segments are resolved,
+    // so the path that comes out can itself start with "//" (or "/\\"), which
+    // the browser then reads as protocol-relative and leaves the site. Checked
+    // on the output, and any backslash past the first character refused too:
+    //   "/.//evil.com"   -> pathname "//evil.com"  -> fallback
+    //   "/..//evil.com"  -> pathname "//evil.com"  -> fallback
+    //   "/%2e//evil.com" -> pathname "//evil.com"  -> fallback
+    //   "/./\\evil.com"  -> pathname "//evil.com"  -> fallback
+    const out = `${url.pathname}${url.search}${url.hash}`;
+    if (out.startsWith("//") || out.startsWith("/\\") || out.slice(1).includes("\\")) return fallback;
+    return out;
   } catch {
     return fallback;
   }

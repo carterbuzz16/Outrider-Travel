@@ -63,6 +63,7 @@ export async function sendNewBookingAlert(admin: Admin, bookingId: string): Prom
       preheader: line,
       bodyHtml: `<p style="margin:0 0 16px;">${escapeHtml(line)}</p><p style="margin:0;">Total ${escapeHtml(formatAmount(Number(booking.total_amount)))}.</p>`,
       ctaLabel: "Open the booking",
+      footerNote: "You're receiving this because you're an Outrider admin.",
       ctaUrl: url,
     }),
   });

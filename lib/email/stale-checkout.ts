@@ -27,8 +27,8 @@ export async function sendStaleCheckoutRefundEmail(opts: {
 
   const bodyHtml = `
     <p>${greeting}</p>
-    <p>We are sorry. Your payment for <strong>${escapeHtml(tripName)}</strong> came through after your checkout had been open for more than 30 minutes, and in that time ${why}. So we could not hold the place for you.</p>
-    <p>We have refunded the full <strong>${formatCurrency(amount)}</strong> to the card you paid with. Banks usually take 5 to 10 business days to show it. The booking has been cancelled, and nothing more will be taken.</p>
+    <p>We're sorry. Your payment for <strong>${escapeHtml(tripName)}</strong> came through after your checkout had been open for more than 30 minutes, and in that time ${why}. So we couldn't hold the place for you.</p>
+    <p>We've refunded the full <strong>${formatCurrency(amount)}</strong> to the card you paid with. Banks usually take 5 to 10 business days to show it. The booking has been canceled, and nothing more will be taken.</p>
     <p>If other dates or packages still suit you, you can choose again below. If anything looks wrong, reply to this email.</p>
   `;
 
@@ -41,6 +41,7 @@ export async function sendStaleCheckoutRefundEmail(opts: {
       bodyHtml,
       ctaLabel: "Choose again",
       ctaUrl: `${getAppUrl()}/bookings/new?trip=${encodeURIComponent(tripId)}`,
+      footerNote: "You're receiving this because you started a booking with Outrider. Questions? Just reply to this email.",
     }),
   });
 }

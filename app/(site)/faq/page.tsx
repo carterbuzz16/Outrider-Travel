@@ -5,13 +5,14 @@ import { FaqSchema, Reveal, SectionDivider, WaitlistCTA } from "@/components/ui"
 import { CONTACT } from "@/lib/site-content";
 import { BOOKINGS_OPEN } from "@/lib/booking-window";
 import { PAY_IN_FULL_DISCOUNT } from "@/lib/deposit";
+import { flightTimesPublished } from "@/lib/trip-logistics";
 
 export const metadata: Metadata = pageMetadata({
   title: "FAQ",
   path: "/faq",
   description:
-    "How an Outrider college group trip works: what the price covers, deposits and installments, cancelling, group size, flights, and who's with you on the trip.",
-  shareTitle: "Questions about Outrider trips · Outrider",
+    "How an Outrider college group trip works: what the price covers, deposits and installments, canceling, group size, flights, and who's with you on the trip.",
+  shareTitle: "Questions about Outrider trips",
 });
 
 /* Answers deliberately do not restate deposit percentages, installment counts,
@@ -33,11 +34,13 @@ const GROUPS: Group[] = [
         a: (
           <>
             Your lodging, lift tickets and ski or snowboard rentals, rides
-            from the airport and back, the group events on the itinerary, and
-            our team with you for the whole trip. The number on the trip page
-            is what the trip costs: no resort fee at check-in and no separate
-            charge for the shuttle. You book your own flights, and travel
-            insurance is an optional add-on.
+            from the airport and back, the BBQ at Gorrono Ranch, and our team
+            on the ground for the whole trip.{" "}
+            {BOOKINGS_OPEN
+              ? "The number on the trip page is what the trip costs: no resort fee at check-in and no separate charge for the shuttle."
+              : "No resort fee at check-in and no separate charge for the shuttle."}{" "}
+            You book your own flights. Travel insurance isn&rsquo;t included.
+            We&rsquo;ll offer it as an optional add-on.
           </>
         ),
       },
@@ -95,7 +98,8 @@ const GROUPS: Group[] = [
             . The short version: the deposit holds a room we&rsquo;ve already
             committed to, so it doesn&rsquo;t come back, and the rest is on a
             sliding scale that narrows as the trip gets closer. Travel
-            insurance isn&rsquo;t included, and it&rsquo;s worth adding.
+            insurance isn&rsquo;t included. We&rsquo;ll offer it as an
+            optional add-on.
           </>
         ),
       },
@@ -119,9 +123,8 @@ const GROUPS: Group[] = [
         a: (
           <>
             Not at all. Telluride has plenty of gentle terrain for a first
-            timer, and lessons can be arranged. Tell us when you book and
-            we&rsquo;ll have it set up before you land, so your first morning
-            starts on the snow instead of at the ticket window.
+            timer. Lessons are available at the resort&rsquo;s rate: tell us
+            when you book and we&rsquo;ll set one up before you land.
           </>
         ),
       },
@@ -129,9 +132,9 @@ const GROUPS: Group[] = [
         q: "Is somebody from Outrider actually there?",
         a: (
           <>
-            Yes, for the whole trip. If a room needs fixing or a plan changes,
-            someone from our team is right there to sort it out. It also means
-            the friend who organized the trip gets to ski or ride too.
+            Yes, for the whole trip. Our team is on the ground all week, so if
+            a room needs fixing or a plan changes, someone is right there to
+            sort it out.
           </>
         ),
       },
@@ -143,6 +146,17 @@ const GROUPS: Group[] = [
             built around the place: a hotel you&rsquo;d show your parents, big
             days on the mountain, dinners on Main Street, and our team on the
             ground the whole time.
+          </>
+        ),
+      },
+      {
+        q: "What should my parents know?",
+        a: (
+          <>
+            Our team is on the ground in Telluride all week. You stay at The
+            Peaks, a ski-in, ski-out hotel, and rooms are same-gender. We
+            collect an emergency contact for every traveler before the trip.
+            Each traveler books and pays for their own spot.
           </>
         ),
       },
@@ -172,8 +186,9 @@ const GROUPS: Group[] = [
             <Link href="/flights" className="text-[--accent] underline underline-offset-4">
               flight guide
             </Link>{" "}
-            has the arrival and departure times and what to do about a bad
-            connection.
+            {flightTimesPublished()
+              ? "has the arrival and departure times and what to do about a bad connection."
+              : "covers what to do about a bad connection, and we\u2019ll post the arrival and departure times there."}
           </>
         ),
       },
@@ -206,12 +221,12 @@ const GROUPS: Group[] = [
           </>
         ) : (
           <>
-            Shortly. The dates, the packages and the pricing are final and are
-            already on the{" "}
+            The dates are on the{" "}
             <Link href="/trips" className="text-[--accent] underline underline-offset-4">
               trips page
             </Link>
-            . Join the list below and you&rsquo;ll hear before it goes public.
+            ; packages and pricing go up when booking opens. Join the list
+            below and you&rsquo;ll hear before it goes public.
           </>
         ),
       },
@@ -243,9 +258,9 @@ export default function FaqPage() {
       <header className="shell pb-14 pt-32 md:pb-20 md:pt-40">
         <h1 className="t-display mt-6 max-w-[14ch] text-[--text]">Before you book</h1>
         <p className="t-lede mt-8 max-w-measure">
-          Everything people ask before they book. Anything about money or
-          liability links straight to the part of the Terms that covers it,
-          since the Terms are what you&rsquo;re agreeing to.
+          The questions we get most. Anything about money or liability links
+          to the part of the Terms that covers it, because that&rsquo;s what
+          you&rsquo;re agreeing to.
         </p>
       </header>
 
@@ -297,7 +312,11 @@ export default function FaqPage() {
       <WaitlistCTA
         placement="faq"
         heading="Still deciding?"
-        body="Join the list and you'll hear when trips open, before they go public."
+        body={
+          BOOKINGS_OPEN
+            ? "Join the list and you'll hear about the next trip before it goes public."
+            : "Join the list and you'll hear when trips open, before they go public."
+        }
       />
     </main>
   );

@@ -36,7 +36,7 @@ export const DEFAULT_LINKS: NavLink[] = [
 export default function NavBar({
   links = DEFAULT_LINKS,
   overHero = true,
-  cta = { label: BOOKINGS_OPEN ? "Reserve a spot" : "View trips", href: "/trips" },
+  cta = { label: BOOKINGS_OPEN ? "Reserve your spot" : "View trips", href: "/trips" },
   account = ACCOUNT_LINK,
 }: {
   links?: NavLink[];

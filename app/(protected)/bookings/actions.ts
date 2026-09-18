@@ -33,7 +33,7 @@ import {
 } from "@/lib/stale-checkout";
 import { BOOKINGS_OPEN, CHECKOUT_SANDBOX, isTestTrip } from "@/lib/booking-window";
 import { hasDeparted } from "@/lib/mountain-time";
-import { OPEN_INTENT_STATUSES, cancelOpenIntent } from "@/lib/stripe-intents";
+import { OPEN_INTENT_STATUSES, POSSIBLY_OPEN_PAYMENT_FILTER, cancelOpenIntent } from "@/lib/stripe-intents";
 import type { AccountErrorCode, CheckoutErrorCode } from "@/lib/flash";
 
 export async function createBooking(formData: FormData) {
@@ -431,11 +431,11 @@ export async function acceptTermsForBooking(bookingId: string): Promise<AcceptTe
     .maybeSingle();
 
   if (!booking) {
-    return { ok: false, message: "We could not find that booking. Reload the page and try again." };
+    return { ok: false, message: "We couldn't find that booking. Reload the page and try again." };
   }
   // Only a booking still waiting on its first payment is agreed to here.
   if (booking.status !== "pending") {
-    return { ok: false, message: "This booking is no longer waiting for payment. Reload the page." };
+    return { ok: false, message: "This booking isn't waiting for payment anymore. Reload the page." };
   }
 
   // The last server step before the card is confirmed, so the place to catch a
@@ -458,7 +458,7 @@ export async function acceptTermsForBooking(bookingId: string): Promise<AcceptTe
     console.error(`acceptTermsForBooking(${booking.id}): ${err instanceof Error ? err.message : err}`);
     return {
       ok: false,
-      message: "We could not record your agreement, so nothing was charged. Please try again.",
+      message: "We couldn't record your agreement, so nothing was charged. Please try again.",
     };
   }
 }
@@ -810,8 +810,10 @@ function sameGroup(existing: string | null, typed: string | null): boolean {
 async function openCheckoutIntent(
   booking: OwnPending,
 ): Promise<{ status: "open"; intent: Stripe.PaymentIntent } | { status: "moving" } | null> {
+  // A failed checkout row counts too: a declined card leaves the intent at
+  // requires_payment_method, still able to take another card.
   const rows = booking.payments.filter(
-    (p) => isCheckoutRow(p) && (p.status === "pending" || p.status === "requires_action"),
+    (p) => isCheckoutRow(p) && (p.status === "pending" || p.status === "requires_action" || p.status === "failed"),
   );
   for (const row of rows.reverse()) {
     try {
@@ -988,7 +990,7 @@ export async function cancelBooking(formData: FormData) {
     .from("payments")
     .select("id, stripe_payment_intent_id")
     .eq("booking_id", bookingId)
-    .in("status", ["pending", "requires_action"])
+    .or(POSSIBLY_OPEN_PAYMENT_FILTER)
     .not("stripe_payment_intent_id", "is", null);
 
   await Promise.all(
@@ -998,7 +1000,7 @@ export async function cancelBooking(formData: FormData) {
           .from("payments")
           .update({ status: "canceled" })
           .eq("id", row.id)
-          .in("status", ["pending", "requires_action"]);
+          .or(POSSIBLY_OPEN_PAYMENT_FILTER);
       } else {
         console.error(`cancelBooking: could not stop ${row.stripe_payment_intent_id} on cancelled booking ${bookingId}`);
       }

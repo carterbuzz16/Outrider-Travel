@@ -20,7 +20,9 @@ const BRAND = `
   --brand-body: var(--font-brand);
   --brand-bg: #F2EFEA;
   --brand-ink: #3E342F;
-  --brand-accent: #56643F;
+  /* The site's readable accent (club ink, 5.5:1 against paper type), not the
+     brand book's sage, which the team rejected. From app/globals.css. */
+  --brand-accent: var(--color-club-ink);
   --brand-rule: rgba(62, 52, 47, 0.18);
 
   /* Asymmetric left edge. Everything on the page hangs off this one value:
@@ -56,7 +58,13 @@ const BRAND = `
 }
 `;
 
-const MENU = ["Trips", "Destinations", "About", "FAQ", "Contact"];
+const MENU = [
+  { label: "Trips", href: "/trips" },
+  { label: "Telluride", href: "/telluride" },
+  { label: "About", href: "/about" },
+  { label: "FAQ", href: "/faq" },
+  { label: "Contact", href: "/contact" },
+];
 
 /* One person, read from lib/site-content so his name, role, portrait and bio
  * have a single home. The brief asked for a single self-contained file; this is
@@ -260,14 +268,14 @@ export default function TeamPage() {
         >
           <ul className="m-0 flex list-none flex-col p-0">
             {MENU.map((item, i) => (
-              <li key={item} className={open ? "otr-item" : undefined} style={{ animationDelay: `${i * 60}ms` }}>
+              <li key={item.href} className={open ? "otr-item" : undefined} style={{ animationDelay: `${i * 60}ms` }}>
                 <a
-                  href="#"
+                  href={item.href}
                   onClick={close}
                   className="block font-[family-name:var(--brand-display)] leading-[1.55] text-[color:var(--brand-bg)] no-underline opacity-100 transition-opacity duration-200 hover:opacity-[0.65]"
                   style={{ fontSize: "clamp(40px, 6vw, 84px)" }}
                 >
-                  {item}
+                  {item.label}
                 </a>
               </li>
             ))}

@@ -137,14 +137,14 @@ function ConfirmCancel({
       description={
         <>
           <p>
-            Your booking is cancelled and your spot is released. Any payments still scheduled on it
+            Your booking is canceled and your spot is released. Any payments still scheduled on it
             are stopped, and nothing more will be taken from your card. There is no way to undo this
             online.
           </p>
           <p className="mt-4">
             {paidLabel ? (
               <>
-                You have paid {paidLabel} so far. Cancelling does not refund any of it
+                You have paid {paidLabel} so far. Canceling doesn&rsquo;t refund any of it
                 automatically. The {depositLabel} deposit is non-refundable, and anything you paid
                 above it is refunded by hand to the original card, on the schedule in the{" "}
                 <Link href="/terms#cancellation" className="text-[--accent] underline underline-offset-2">
@@ -187,7 +187,7 @@ function ConfirmCancel({
           // only read.
           aria-busy={pending}
         >
-          {pending ? "Cancelling" : "Cancel booking"}
+          {pending ? "Canceling" : "Cancel booking"}
         </Button>
       </div>
     </Dialog>

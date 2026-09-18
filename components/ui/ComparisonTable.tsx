@@ -23,7 +23,7 @@ const ROWS: Row[] = [
       "A low number up front, then lift tickets, rentals, transfers and resort fees on top.",
     usualShort: "Base price, then tickets, rentals and fees on top",
     outriderLong:
-      "One price per person with everything in it. The number on the trip page is the whole trip.",
+      "One price per person. Everything but your flight is in it.",
     outriderShort: "One price. Everything in it.",
   },
   {    label: "Where you stay",
@@ -39,7 +39,7 @@ const ROWS: Row[] = [
       "Bought one at a time at the window, on the first morning, in line.",
     usualShort: "Bought at the window on day one",
     outriderLong:
-      "Three-day lift tickets and ski or snowboard rentals ready before you land, with performance rentals on the upper tiers.",
+      "Three-day lift tickets and ski or snowboard rentals ready before you land, with performance rentals on Two to a Room and the penthouses.",
     outriderShort: "Ready before you land",
   },
   {    label: "Getting there",
@@ -70,7 +70,7 @@ const ROWS: Row[] = [
     usualLong: "As many as will pay.",
     usualShort: "As many as will pay",
     outriderLong:
-      "Set before a single spot goes on sale, and it stays there. Rooms hold four or two, a penthouse holds eight, and on penthouse packages there's one instructor for every six.",
+      "Set before a single spot goes on sale, and it stays there. Rooms hold four or two, and a penthouse holds eight.",
     outriderShort: "Capped before it sells",
   },
 ];

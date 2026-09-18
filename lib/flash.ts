@@ -11,6 +11,9 @@
  * Pure and client-safe: the login page is a client component.
  */
 
+import { MIN_PASSWORD_LENGTH } from "@/lib/password";
+import { tierDisplayName } from "@/lib/tier-display";
+
 type Table = Readonly<Record<string, string>>;
 
 /**
@@ -28,28 +31,28 @@ export function flashText(table: Table, code: string | string[] | undefined | nu
 
 export const CHECKOUT_ERRORS = {
   invalid_plan: "Choose the deposit or paying in full.",
-  closed: "Booking is not open yet. Dates and pricing are final; we will be taking spots shortly.",
+  closed: "Booking isn't open yet. Dates and pricing are final, and we'll be taking spots shortly.",
   rate_limited: "Too many booking attempts. Please try again in a bit.",
-  unavailable: "That trip or tier is no longer available.",
-  departed: "Those dates are no longer taking bookings.",
-  not_payable_online: "That package cannot be paid for online. Get in touch and we will sort it out.",
+  unavailable: "That trip or package isn't available anymore.",
+  departed: "Those dates aren't taking bookings anymore.",
+  not_payable_online: "That package can't be paid for online. Get in touch and we'll sort it out.",
   group_code_not_found:
     "That group code wasn't found for this trip. Double-check it, or leave it blank to start a new group.",
-  checkout_failed: "We could not start your checkout. Nothing was charged. Please try again in a minute.",
-  sold_out: "That tier just sold out. Please pick another.",
+  checkout_failed: "We couldn't start your checkout. Nothing was charged. Please try again in a minute.",
+  sold_out: "That package just sold out. Please pick another.",
   stale_claimed:
     "Your checkout was open for more than 30 minutes, and in that time another group booked this penthouse. Nothing was charged. Choose again to carry on.",
   stale_full:
-    "Your checkout was open for more than 30 minutes, and in that time the last place in this package was taken. Nothing was charged. Choose again to carry on.",
+    "Your checkout was open for more than 30 minutes, and in that time the last spot in this package was taken. Nothing was charged. Choose again to carry on.",
   daily_limit:
-    "You have started several checkouts today without finishing one. Try again tomorrow, or get in touch and we will help.",
+    "You've started several checkouts today without finishing one. Try again tomorrow, or get in touch and we'll help.",
   payment_moving:
     "A payment on your earlier checkout for this package is going through right now. Give it a few minutes, then check your bookings.",
 } as const;
 
 export type CheckoutErrorCode = keyof typeof CHECKOUT_ERRORS | "tier_claimed";
 
-export const CHECKOUT_ERROR_FALLBACK = "That did not go through. Please try again.";
+export const CHECKOUT_ERROR_FALLBACK = "That didn't go through. Please try again.";
 
 /**
  * The checkout page's line for a code. tier_claimed names the penthouse, which
@@ -57,7 +60,7 @@ export const CHECKOUT_ERROR_FALLBACK = "That did not go through. Please try agai
  */
 export function checkoutErrorText(code: string | undefined, tierName?: string | null): string | undefined {
   if (code === "tier_claimed") {
-    const name = tierName ? tierName.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()) : "This penthouse";
+    const name = tierName ? tierDisplayName(tierName) : "This penthouse";
     return `${name} has been booked by another group. If you're joining them, enter their group code.`;
   }
   return flashText(CHECKOUT_ERRORS, code, CHECKOUT_ERROR_FALLBACK);
@@ -68,49 +71,88 @@ export function checkoutErrorText(code: string | undefined, tierName?: string | 
 export const ACCOUNT_ERRORS = {
   invalid_mode: "Choose the remaining balance or an amount.",
   rate_limited: "Too many payment attempts. Please try again in a bit.",
-  no_balance: "That booking has no balance to pay online.",
+  no_balance: "That booking doesn't have a balance to pay online.",
   payment_moving: "A payment on this booking is going through right now. Give it a few minutes, then refresh.",
   invalid_amount: "Enter an amount in dollars, like 250 or 250.50.",
   nothing_owed: "Nothing is owed on this booking.",
-  balance_too_small: "What is left on this booking is too small to pay by card. Get in touch and we will sort it out.",
-  below_minimum: "That is less than the smallest payment we can take. Try a larger amount.",
-  over_balance: "That is more than you owe. Your balance is shown on your booking.",
+  balance_too_small: "What's left on this booking is too small to pay by card. Get in touch and we'll sort it out.",
+  below_minimum: "That's less than the smallest payment we can take. Try a larger amount.",
+  over_balance: "That's more than you owe. Your balance is on your booking.",
   leaves_remainder:
     "That would leave an amount too small for us to charge later. Pay the full balance, or a little less.",
-  start_failed: "That did not start, and nothing was charged. Please try again in a couple of minutes.",
-  start_failed_retry: "That did not start. Please try again in a couple of minutes.",
-  cannot_cancel: "That booking can't be cancelled online. Get in touch and we'll sort it out.",
-  payment_closed: "That payment is no longer open. Start a new one from your booking if you still want to pay.",
+  start_failed: "That didn't start, and nothing was charged. Please try again in a couple of minutes.",
+  start_failed_retry: "That didn't start. Please try again in a couple of minutes.",
+  cannot_cancel: "That booking can't be canceled online. Get in touch and we'll sort it out.",
+  payment_closed: "That payment isn't open anymore. Start a new one from your booking if you still want to pay.",
   balance_changed: "Your balance has changed since you started this payment. Start a new one from your booking.",
 } as const;
 
 export type AccountErrorCode = keyof typeof ACCOUNT_ERRORS;
 
-export const ACCOUNT_ERROR_FALLBACK = "That did not go through. Please try again.";
+export const ACCOUNT_ERROR_FALLBACK = "That didn't go through. Please try again.";
 
 /* -- /login ------------------------------------------------------------------ */
 
 export const LOGIN_ERRORS = {
   rate_limited: "Too many login attempts. Try again in a few minutes.",
   invalid_credentials:
-    "That email and password do not match an account. Check both, or create an account if this is your first trip.",
+    "That email and password don't match an account. Check both, or create an account if this is your first trip.",
   email_not_confirmed: "Confirm your email first. The link is in the message we sent when you signed up.",
-  login_failed: "We could not log you in. Check your details and try again.",
+  login_failed: "We couldn't log you in. Check your details and try again.",
   invalid_email: "Enter a valid email address.",
   too_many_requests: "Too many requests. Try again in a few minutes.",
-  link_failed: "We could not confirm that link. It may have expired. Try again, or log in.",
+  link_failed: "We couldn't confirm that link. It may have expired. Try again, or log in.",
 } as const;
 
 export type LoginErrorCode = keyof typeof LOGIN_ERRORS;
 
 export const LOGIN_MESSAGES = {
   check_email:
-    "Check your email for a confirmation link, then log in. If it does not arrive, you can send it again below.",
+    "Check your email for a confirmation link, then log in. If it doesn't arrive, you can send it again below.",
   confirmation_resent: "If that address has an account waiting to be confirmed, a new link is on its way.",
   password_changed: "Your password is changed. Log in with the new one.",
 } as const;
 
 export type LoginMessageCode = keyof typeof LOGIN_MESSAGES;
+
+/* -- /signup, /forgot-password, /reset-password ------------------------------- */
+
+const PASSWORD_SHORT = `Passwords need at least ${MIN_PASSWORD_LENGTH} characters. Yours is shorter.`;
+const PASSWORD_MISMATCH = "Those two passwords don't match. Type the second one again.";
+
+export const SIGNUP_ERRORS = {
+  password_short: PASSWORD_SHORT,
+  password_mismatch: PASSWORD_MISMATCH,
+  rate_limited: "Too many signups from this network. Try again later.",
+  account_exists: "An account already exists for that email. Log in instead, or reset your password if you've forgotten it.",
+  weak_password: `Pick a password of at least ${MIN_PASSWORD_LENGTH} characters.`,
+  invalid_email: "That email address doesn't look right. Check it and try again.",
+  signup_failed: "We couldn't create that account. Please try again in a minute.",
+} as const;
+
+export type SignupErrorCode = keyof typeof SIGNUP_ERRORS;
+
+export const SIGNUP_ERROR_FALLBACK = "We couldn't create that account. Please try again.";
+
+export const FORGOT_ERRORS = {
+  rate_limited: "Too many reset requests from this network. Try again later.",
+  link_expired: "That reset link has expired or has already been used. Request a new one.",
+} as const;
+
+export type ForgotErrorCode = keyof typeof FORGOT_ERRORS;
+
+export const FORGOT_ERROR_FALLBACK = "That didn't go through. Please try again.";
+
+export const RESET_ERRORS = {
+  password_short: PASSWORD_SHORT,
+  password_mismatch: PASSWORD_MISMATCH,
+  same_password: "That's the password you already have. Pick a new one.",
+  update_failed: "We couldn't save that password. Please try again, or request a new link.",
+} as const;
+
+export type ResetErrorCode = keyof typeof RESET_ERRORS;
+
+export const RESET_ERROR_FALLBACK = "We couldn't save that password. Please try again.";
 
 /* -- the back office ----------------------------------------------------------- */
 

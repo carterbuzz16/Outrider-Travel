@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { cancelOpenIntent } from "@/lib/stripe-intents";
+import { POSSIBLY_OPEN_PAYMENT_FILTER, cancelOpenIntent } from "@/lib/stripe-intents";
 import { isBookingId } from "@/lib/portal-token";
 
 /*
@@ -51,7 +51,7 @@ async function stopOpenIntents(admin: ReturnType<typeof createAdminClient>, book
     .from("payments")
     .select("id, stripe_payment_intent_id")
     .eq("booking_id", bookingId)
-    .in("status", ["pending", "requires_action"])
+    .or(POSSIBLY_OPEN_PAYMENT_FILTER)
     .not("stripe_payment_intent_id", "is", null);
 
   const results = await Promise.all(
@@ -61,7 +61,7 @@ async function stopOpenIntents(admin: ReturnType<typeof createAdminClient>, book
           .from("payments")
           .update({ status: "canceled" })
           .eq("id", row.id)
-          .in("status", ["pending", "requires_action"]);
+          .or(POSSIBLY_OPEN_PAYMENT_FILTER);
         return true;
       }
       console.error(`Admin: could not stop ${row.stripe_payment_intent_id} on booking ${bookingId}`);

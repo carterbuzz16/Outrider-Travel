@@ -2,6 +2,16 @@ import { isValidElement, type ReactNode } from "react";
 import { CONTACT } from "@/lib/site-content";
 
 /**
+ * JSON for a <script type="application/ld+json">. JSON.stringify leaves "<"
+ * alone, so a trip name or description containing "</script>" would close the
+ * tag early and the rest would be parsed as HTML. Escaped as \u003c, which is
+ * still the same string to any JSON parser.
+ */
+function jsonLd(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, "\\u003c");
+}
+
+/**
  * JSON-LD for search engines.
  *
  * Emitted as a script tag rather than markup because that is the only form
@@ -38,11 +48,11 @@ export function OrganizationSchema({ siteUrl }: { siteUrl: string }) {
       <script
         type="application/ld+json"
         // The content is our own, built from typed data above, not user input.
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(data) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(site) }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(site) }}
       />
     </>
   );
@@ -82,7 +92,7 @@ export function FaqSchema({ items }: { items: { q: string; a: ReactNode }[] }) {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: jsonLd(data) }}
     />
   );
 }
@@ -141,7 +151,7 @@ export function TripSchema({
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: jsonLd(data) }}
     />
   );
 }

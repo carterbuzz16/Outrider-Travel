@@ -12,10 +12,10 @@ import PhotoStrip from "./PhotoStrip";
 import SplitFlap from "./SplitFlap";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Join the list: early access to college ski trips and spring break",
+  title: "Join the list: early access to college trips",
   path: "/waitlist",
   description:
-    "Outrider hosts small-group ski weeks and spring break trips for college students. The list hears about every trip before it goes on sale. Free to join.",
+    "Outrider hosts small-group trips for college students: Telluride ski weeks now, spring break next. The list hears about every trip before it goes on sale.",
   shareTitle: "Join the Outrider list",
   ownImage: true,
 });

@@ -38,7 +38,7 @@ import {
 const OPEN_STATUSES = ["deposit_paid", "paid_in_full"] as const;
 
 const LINK_PROBLEM =
-  "This link has expired or is not valid. Reload the page and ask for a fresh link.";
+  "This link has expired or isn't valid. Reload the page and ask for a fresh link.";
 
 type Authorized = { ok: true; bookingId: string } | { ok: false; result: PortalActionResult };
 
@@ -76,7 +76,7 @@ async function authorize(formData: FormData): Promise<Authorized> {
       ok: false,
       result: {
         ok: false,
-        message: "These forms open once your deposit has cleared, and close if a booking is cancelled.",
+        message: "These forms open once your deposit has cleared, and close if a booking is canceled.",
       },
     };
   }
@@ -110,7 +110,7 @@ export async function setFlightsBooked(
 
   if (error) {
     console.error(`setFlightsBooked(${auth.bookingId}) failed: ${error.code} ${error.message}`);
-    return { ok: false, message: "That did not save. Try again." };
+    return { ok: false, message: "That didn't save. Try again." };
   }
 
   revalidatePath(`/trip/${auth.bookingId}`);
@@ -171,7 +171,7 @@ export async function submitRoomingRequest(
 
   if (error || !saved) {
     console.error(`submitRoomingRequest(${auth.bookingId}) failed: ${error?.code} ${error?.message}`);
-    return { ok: false, message: "That did not save. Try again." };
+    return { ok: false, message: "That didn't save. Try again." };
   }
 
   // Mirrors the row onto bookings for list views and the follow-up email.
@@ -214,7 +214,7 @@ function checkDateOfBirth(raw: string): string | null {
   const dob = new Date(Date.UTC(year, month - 1, day));
   // Rejects 2006-02-31, which Date would roll over into March.
   if (dob.getUTCFullYear() !== year || dob.getUTCMonth() !== month - 1 || dob.getUTCDate() !== day) {
-    return "That date does not exist.";
+    return "That date doesn't exist.";
   }
 
   const now = new Date();
@@ -300,7 +300,7 @@ export async function submitTravelerDetails(
   if (error) {
     // Code and message only. `details` would contain the row.
     console.error(`submitTravelerDetails(${auth.bookingId}) failed: ${error.code} ${error.message}`);
-    return { ok: false, message: "That did not save. Try again." };
+    return { ok: false, message: "That didn't save. Try again." };
   }
 
   const { error: flagError } = await admin
@@ -379,14 +379,14 @@ export async function optInToTexts(
 
   if (error) {
     console.error(`optInToTexts(${auth.bookingId}) lookup failed: ${error.code} ${error.message}`);
-    return { ok: false, message: "That did not save. Try again." };
+    return { ok: false, message: "That didn't save. Try again." };
   }
   if (!details) {
     return { ok: false, message: "Send your traveler details first, so we have a number to text." };
   }
 
   if (!(await recordSmsConsent(auth.bookingId))) {
-    return { ok: false, message: "That did not save. Try again." };
+    return { ok: false, message: "That didn't save. Try again." };
   }
 
   revalidatePath(`/trip/${auth.bookingId}`);

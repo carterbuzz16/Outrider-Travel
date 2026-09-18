@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/metadata";
 import Image from "next/image";
 import {
+  Button,
   Gallery,
   Reveal,
   SectionDivider,
@@ -11,10 +12,10 @@ import {
 import { TELLURIDE_FACTS as FACTS, UPCOMING_CATEGORIES } from "@/lib/site-content";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Destinations: Telluride ski trips for college",
+  title: "Destinations: where Outrider goes",
   path: "/destinations",
   description:
-    "Where Outrider takes college groups. Telluride, Colorado: a box canyon town at about 8,750 feet, 2,000 acres above it, a free gondola between. Spring break is next.",
+    "Where Outrider takes college groups. Telluride, Colorado: a box canyon town at 8,725 feet, 2,000+ acres above it, a free gondola between. Spring break is next.",
 });
 
 /* Alt text describes the photograph, not the file it is stored in: the
@@ -57,9 +58,14 @@ export default function DestinationsPage() {
             </h2>
             <p className="t-lede mt-6 max-w-measure">
               A box canyon in the San Juans with one road in. The town sits at
-              about 8,750 feet and the lifts climb to 13,150, so the day starts
+              8,725 feet and the terrain tops out at 13,150, so the day starts
               high and the views only get bigger.
             </p>
+            <div className="mt-8">
+              <Button href="/telluride" variant="secondary">
+                See the Telluride trip
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -116,8 +122,8 @@ export default function DestinationsPage() {
                 home afterwards are both easy.
               </p>
               <p className="font-body text-body leading-[1.85] text-[--text]">
-                Up top there are 2,000 acres and about 330 inches of snow in an
-                average year. Forty-one percent of the trails are advanced or
+                Up top there are more than 2,000 acres and about 280 inches of
+                snow in an average year. Forty-one percent of the trails are advanced or
                 expert, so strong skiers and riders have plenty to chase, and the
                 front side is gentle enough to give a first timer a great day one.
               </p>

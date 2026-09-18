@@ -72,3 +72,12 @@ export function getTripLogistics(startDate: string): TripLogistics {
   // A copy, so a caller that adjusts the result cannot change it for the next.
   return { ...(LOGISTICS[startDate] ?? EMPTY) };
 }
+
+/**
+ * True once every departure listed here has both its arrival deadline and its
+ * earliest departure. Until then the public pages say the flight guide "will
+ * have" the times rather than that it has them.
+ */
+export function flightTimesPublished(): boolean {
+  return Object.values(LOGISTICS).every((l) => Boolean(l.arrivalDeadline && l.departureEarliest));
+}

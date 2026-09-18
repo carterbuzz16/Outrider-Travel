@@ -160,9 +160,12 @@ async function settleInstallment(
   // the receipt for good, since the redelivery finds the row already settled.
   // The balance it quotes is the same either way: an overpaid booking owes
   // nothing before its refund and after it.
+  // Same rule as the balance path: no "payment received" receipt on a
+  // cancelled booking. That money is refunded below, with its own email, or
+  // waiting on a person.
   if (settled) {
     const context = await getBookingContext(admin, bookingId);
-    if (context?.users?.email) {
+    if (context && context.status !== "cancelled" && context.users?.email) {
       const remainingBalance = await getRemainingBalance(admin, bookingId, context.total_amount);
 
       await sendEmailSafely(() =>
@@ -269,6 +272,11 @@ async function settleCheckoutPayment(
   // A checkout paid after its 30-minute hold, whose place has gone since, is
   // refunded and cancelled rather than confirmed. See settleStaleCheckout.
   if (await settleStaleCheckout(admin, bookingId, paymentIntent)) return;
+
+  // A card form for an amount the booking no longer asks for (a plan switched
+  // in another tab, a form from before a reprice) is refunded, not confirmed.
+  // See refundMismatchedCheckout.
+  if (await refundMismatchedCheckout(admin, bookingId, paymentIntent, kind)) return;
 
   // Money should never reach a booking before its traveler agreed to the Terms
   // and the Assumption of Risk: CheckoutForm records that (acceptTermsForBooking)
@@ -399,7 +407,9 @@ const STALE_CHECKOUT_REFUND_REASON = "stale_checkout";
  * the pay page uses). If it still fits, the payment settles as normal. If not,
  * the payment is refunded in full, the booking is cancelled, and the traveler
  * gets a short apology. Returns true when it handled the payment that way (or
- * finds it already did), so the caller confirms nothing.
+ * finds it already did), so the caller confirms nothing. "Past its window" is
+ * judged at the moment the card was charged: a charge made inside the window
+ * and delivered late settles as normal, with a loud log for the owner.
  *
  * Safe to run again: the refund is looked up by its metadata before one is
  * made, and made with an idempotency key; the row and booking writes are
@@ -431,28 +441,43 @@ async function settleStaleCheckout(
       (r) => r.metadata?.reason === STALE_CHECKOUT_REFUND_REASON && r.status !== "failed" && r.status !== "canceled",
     );
 
+  // Asked first, whatever the booking says now. Once this path has refunded
+  // the payment, the money is gone and the refunded/cancelled ending is the
+  // only true one: a redelivery must finish it, even if another caller (a
+  // page-load sync that read the tier a moment earlier) settled the booking in
+  // between.
   let reason: "full" | "claimed";
-  if (booking.status === "cancelled") {
-    // Only ours if this path already refunded it (a redelivery after the
-    // cancel). A booking cancelled any other way is lib/overpayment.ts's.
-    const refund = await findOwnRefund();
-    if (!refund) return false;
-    reason = refund.metadata?.stale_reason === "claimed" ? "claimed" : "full";
+  const existing = await findOwnRefund();
+  if (existing) {
+    reason = existing.metadata?.stale_reason === "claimed" ? "claimed" : "full";
   } else {
     if (!isStalePending(booking)) return false;
     const conflict = await staleConflict(admin, booking);
     if (!conflict) return false;
     reason = conflict;
 
-    if (!(await findOwnRefund())) {
-      await stripe.refunds.create(
-        {
-          payment_intent: paymentIntent.id,
-          metadata: { reason: STALE_CHECKOUT_REFUND_REASON, stale_reason: reason, bookingId },
-        },
-        { idempotencyKey: `stale-refund-${paymentIntent.id}` },
+    // Stale is measured from when the card was charged, not from now: a
+    // webhook can arrive (or a sync run) long after a charge made inside the
+    // window, and that traveler paid while the place was still theirs. Their
+    // payment settles as normal and the owner is told the tier may now be one
+    // over, which is a person's call to sort out, not a refund's.
+    const chargedAt = await chargeTimeMs(paymentIntent);
+    if (!isStalePending(booking, chargedAt)) {
+      console.error(
+        `STALE CHECKOUT PAID IN TIME: ${paymentIntent.id} was charged inside booking ${bookingId}'s 30-minute ` +
+          `hold but settled after it, and its tier is now ${reason === "claimed" ? "held by another group" : "full"}. ` +
+          `Settled as normal; check the tier for an overfill.`,
       );
+      return false;
     }
+
+    await stripe.refunds.create(
+      {
+        payment_intent: paymentIntent.id,
+        metadata: { reason: STALE_CHECKOUT_REFUND_REASON, stale_reason: reason, bookingId },
+      },
+      { idempotencyKey: `stale-refund-${paymentIntent.id}` },
+    );
   }
 
   // The row records that the money came and went back. Written as refunded
@@ -479,13 +504,20 @@ async function settleStaleCheckout(
     );
   }
 
+  // Cancelled from pending, the normal case. A booking some other caller
+  // settled after the refund was made is cancelled too (the money it was
+  // settled on has gone back), and its schedule stopped, so the cron never
+  // charges installments on a place nobody paid for.
   const { data: cancelled } = await admin
     .from("bookings")
     .update({ status: "cancelled" })
     .eq("id", bookingId)
-    .eq("status", "pending")
+    .in("status", ["pending", "deposit_paid", "paid_in_full"])
     .select("id")
     .maybeSingle();
+  if (cancelled && booking.status !== "pending") {
+    await admin.from("payments").update({ status: "canceled" }).eq("booking_id", bookingId).eq("status", "scheduled");
+  }
 
   if (cancelled) {
     console.error(
@@ -506,6 +538,98 @@ async function settleStaleCheckout(
         }),
       );
     }
+  }
+  return true;
+}
+
+/** When the intent's charge was made, in ms: its latest charge, or the intent itself as a fallback. */
+async function chargeTimeMs(paymentIntent: Stripe.PaymentIntent): Promise<number> {
+  const charge = paymentIntent.latest_charge;
+  if (charge && typeof charge !== "string") return charge.created * 1000;
+  if (typeof charge === "string") {
+    try {
+      return (await getStripe().charges.retrieve(charge)).created * 1000;
+    } catch {
+      // Unreachable Stripe: the intent's own creation time is earlier still,
+      // so this errs toward settling (and alerting) rather than refunding.
+    }
+  }
+  return paymentIntent.created * 1000;
+}
+
+/** Marks the automatic refunds refundMismatchedCheckout makes. */
+const AMOUNT_MISMATCH_REFUND_REASON = "amount_mismatch";
+
+/**
+ * A checkout payment for a different amount than its booking now expects.
+ *
+ * createBooking can carry a pending booking on to a new plan (deposit to pay
+ * in full, or back), which rewrites total_amount and deposit_amount and
+ * replaces the card form. The old form is cancelled at Stripe, but one already
+ * being confirmed in another tab can still land, for the old figure. Moving the
+ * booking out of pending on it would confirm a booking on a payment that does
+ * not match its plan (a deposit booked as paid in full, or the other way).
+ *
+ * So a payment on a pending booking settles only if paymentIntent.amount is
+ * exactly what the booking expects for the intent's kind: total_amount for
+ * full, deposit_amount for a deposit, in cents. Otherwise it is refunded in
+ * full, the row recorded as refunded, the booking left pending exactly as it
+ * is (its current card form still works), and no confirmation goes out.
+ * Returns true when it handled the payment that way.
+ *
+ * Only a pending booking is checked: a booking this same intent already
+ * confirmed is a redelivery, and a cancelled one is lib/overpayment.ts's.
+ * Safe to run again: an existing refund is looked up by metadata, and the
+ * refund is made with an idempotency key.
+ */
+async function refundMismatchedCheckout(
+  admin: SupabaseClient<Database>,
+  bookingId: string,
+  paymentIntent: Stripe.PaymentIntent,
+  kind: "deposit" | "full",
+): Promise<boolean> {
+  if (paymentIntent.status !== "succeeded") return false;
+
+  const { data: booking } = await admin
+    .from("bookings")
+    .select("status, total_amount, deposit_amount")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (!booking || booking.status !== "pending") return false;
+
+  const expectedCents = Math.round(Number(kind === "full" ? booking.total_amount : booking.deposit_amount) * 100);
+  if (paymentIntent.amount === expectedCents) return false;
+
+  const stripe = getStripe();
+  const refunds = await stripe.refunds.list({ payment_intent: paymentIntent.id, limit: 100 });
+  const already = refunds.data.some(
+    (r) => r.metadata?.reason === AMOUNT_MISMATCH_REFUND_REASON && r.status !== "failed" && r.status !== "canceled",
+  );
+  if (!already) {
+    await stripe.refunds.create(
+      { payment_intent: paymentIntent.id, metadata: { reason: AMOUNT_MISMATCH_REFUND_REASON, bookingId } },
+      { idempotencyKey: `mismatch-refund-${paymentIntent.id}` },
+    );
+    console.error(
+      `CHECKOUT AMOUNT MISMATCH REFUNDED: ${kind} payment ${paymentIntent.id} of ${paymentIntent.amount} cents landed on ` +
+        `pending booking ${bookingId}, which now expects ${expectedCents} cents for a ${kind} payment. Refunded in ` +
+        `full; the booking is left pending. Check with the traveler.`,
+    );
+  }
+
+  const amount = paymentIntent.amount / 100;
+  const paidAt = new Date().toISOString();
+  const { data: marked } = await admin
+    .from("payments")
+    .update({ status: "refunded", amount, paid_at: paidAt })
+    .eq("stripe_payment_intent_id", paymentIntent.id)
+    .neq("status", "refunded")
+    .select("id");
+  if (!marked || marked.length === 0) {
+    await admin.from("payments").upsert(
+      { booking_id: bookingId, stripe_payment_intent_id: paymentIntent.id, amount, status: "refunded", paid_at: paidAt },
+      { onConflict: "stripe_payment_intent_id", ignoreDuplicates: true },
+    );
   }
   return true;
 }
