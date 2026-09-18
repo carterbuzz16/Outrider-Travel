@@ -290,7 +290,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
             </td>
             <td class="stack stack-gap" width="50%" valign="top" style="padding-left:16px; font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; line-height:1.85; color:#3E342F;">
               Welcome event &amp; Gorrono BBQ<br />
-              Hat bar, DJ, live set, O'Bannon's<br />
+              Private group events all week<br />
               Welcome gift<br />
               Staff on the ground, the whole trip
             </td>
