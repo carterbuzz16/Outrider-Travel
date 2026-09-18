@@ -172,7 +172,7 @@ function TierCard({ trip, tier }: { trip: PublicTrip; tier: PublicTier }) {
   const saving = payInFullSaving(tier.price);
 
   return (
-    <article className="flex w-full flex-col border border-[--rule] bg-[--surface-raised] p-6 md:p-7">
+    <article className="flex w-full flex-col border border-[--rule] bg-[--surface-raised] p-5 sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
         <h3 className="t-subheading text-[--text]">{tier.name}</h3>
         {soldOut ? (
@@ -206,18 +206,24 @@ function TierCard({ trip, tier }: { trip: PublicTrip; tier: PublicTier }) {
         </ul>
       )}
 
-      <div className="mt-auto pt-7">
-        <BookingForm
-          tripId={trip.id}
-          tierId={tier.id}
-          tierName={tier.name}
-          soldOut={soldOut}
-          // Exact to the cent: formatPrice rounds to the dollar, and these are
-          // the figures that come off the card.
-          depositLabel={formatAmount(deposit)}
-          fullLabel={formatAmount(computePayInFullAmount(tier.price))}
-          savingLabel={saving > 0 ? formatAmount(saving) : null}
-        />
+      {/* mt-auto lines the forms up across a row of cards whatever the
+          length of each package's inclusions; the rule marks where reading
+          about the package ends and choosing it starts. */}
+      <div className="mt-auto pt-8">
+        <div className="border-t border-[--rule] pt-7">
+          <BookingForm
+            tripId={trip.id}
+            tierId={tier.id}
+            tierName={tier.name}
+            soldOut={soldOut}
+            priceLabel={formatAmount(tier.price)}
+            // Exact to the cent: formatPrice rounds to the dollar, and these are
+            // the figures that come off the card.
+            depositLabel={formatAmount(deposit)}
+            fullLabel={formatAmount(computePayInFullAmount(tier.price))}
+            savingLabel={saving > 0 ? formatAmount(saving) : null}
+          />
+        </div>
       </div>
     </article>
   );

@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { Alert, Badge, Button, SectionDivider } from "@/components/ui";
+import { Alert, AmountDue, Button, Facts, ScheduleTable } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe";
 import { paymentKindOf } from "@/lib/payments";
@@ -109,7 +109,7 @@ export default async function BalancePaymentPage(props: {
 
   return (
     <main>
-      <section className="shell max-w-[52rem] py-14 md:py-20">
+      <section className="shell max-w-[48rem] pb-16 pt-12 md:pb-24 md:pt-20">
         <p className="stamp-type text-[--text-muted]">
           {received ? "Payment received" : processing ? "Payment processing" : "Pay toward your balance"}
         </p>
@@ -118,73 +118,67 @@ export default async function BalancePaymentPage(props: {
             ? "Thank you, that is in"
             : processing
               ? "Your payment is on its way"
-              : `Pay ${formatAmount(amount)} now`}
+              : "Pay ahead on your trip"}
         </h1>
-        <p className="mt-6 max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
-          {received
-            ? owedAfter > 0
-              ? `${formatAmount(amount)} has been paid toward ${trip?.name ?? "your trip"}. Your scheduled payments are being reduced to match, and your bookings page shows the new amounts within a minute or two. A receipt is on its way to ${user.email}.`
-              : `${formatAmount(amount)} has been paid toward ${trip?.name ?? "your trip"}, and that covers the rest of it. No more payments will be taken. A receipt is on its way to ${user.email}.`
-            : processing
-              ? `Your bank is still processing ${formatAmount(amount)}. Once it clears, it comes off your scheduled payments and a receipt reaches your inbox. Nothing more is needed from you.`
-              : "This comes off the payments already scheduled on your booking, earliest first. Nothing is charged until you pay below."}
-        </p>
+        {(received || processing) && (
+          <p className="mt-6 max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
+            {received
+              ? owedAfter > 0
+                ? `${formatAmount(amount)} has been paid toward ${trip?.name ?? "your trip"}. Your scheduled payments are being reduced to match, and your bookings page shows the new amounts within a minute or two. A receipt is on its way to ${user.email}.`
+                : `${formatAmount(amount)} has been paid toward ${trip?.name ?? "your trip"}, and that covers the rest of it. No more payments will be taken. A receipt is on its way to ${user.email}.`
+              : `Your bank is still processing ${formatAmount(amount)}. Once it clears, it comes off your scheduled payments and a receipt reaches your inbox. Nothing more is needed from you.`}
+          </p>
+        )}
 
-        <dl className="mt-12 grid grid-cols-2 gap-x-8 gap-y-8 border-t border-[--rule] pt-8 lg:grid-cols-4">
-          <Fact label="Trip" value={trip?.name ?? "Your booking"} />
-          <Fact
-            label="Dates"
-            value={trip ? formatDateRange(trip.start_date, trip.end_date) : "On your booking"}
-            numeric={Boolean(trip)}
-          />
-          <Fact label={received ? "Owed before" : "Owed now"} value={formatAmount(fromCents(owedBefore))} numeric />
-          <Fact label={received ? "Owed now" : "Owed after"} value={formatAmount(fromCents(owedAfter))} numeric />
-        </dl>
+        <Facts
+          className="mt-10 border-t border-[--rule] pt-6"
+          items={[
+            { label: "Trip", value: trip?.name ?? "Your booking" },
+            { label: "Dates", value: trip ? formatDateRange(trip.start_date, trip.end_date) : "On your booking" },
+            { label: received ? "Owed before" : "Owed now", value: formatAmount(fromCents(owedBefore)) },
+            { label: received ? "Owed now" : "Owed after", value: formatAmount(fromCents(owedAfter)) },
+          ]}
+        />
 
         {!received && (
           <>
-            <div className="mt-10 border border-[--rule] bg-[--surface-raised] p-6 md:p-8">
-              <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-                <p className="stamp-type text-[--text-muted]">Your schedule after this</p>
-                <Badge tone="open">{owedAfter > 0 ? "Reduced" : "Paid off"}</Badge>
-              </div>
+            <AmountDue
+              label={processing ? "Processing" : "Charged today"}
+              amount={formatAmount(amount)}
+              className="mt-10"
+            >
+              <p>
+                {processing
+                  ? "Already sent to your bank. It is not charged a second time."
+                  : "This comes off the payments already scheduled on your booking, earliest first. Nothing is charged until you pay below."}
+              </p>
+            </AmountDue>
 
+            <div className="mt-10">
               {schedule.length > 0 ? (
-                <ul className="mt-5 flex list-none flex-col p-0">
-                  {schedule.map((row) => (
-                    <li
-                      key={row.id}
-                      className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-[--rule-faint] py-4 last:border-0"
-                    >
-                      <span className="min-w-0">
-                        <span className="block font-display font-medium text-body-s tabular-nums tracking-title text-[--text]">
-                          {row.date ? formatDay(row.date) : "Date to be set"}
-                        </span>
-                        <span className="t-micro mt-2 block text-[--text-secondary]">
-                          {row.after === 0
-                            ? "No longer charged"
-                            : row.after < row.before
-                              ? `Was ${formatAmount(fromCents(row.before))}`
-                              : "Unchanged"}
-                        </span>
-                      </span>
-                      <span className="font-display font-medium text-display-s tabular-nums tracking-title text-[--text]">
-                        {row.after === 0 ? (
-                          <s className="text-[--text-muted]">{formatAmount(fromCents(row.before))}</s>
-                        ) : (
-                          formatAmount(fromCents(row.after))
-                        )}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                <ScheduleTable
+                  caption={owedAfter > 0 ? "Your schedule after this payment" : "Your schedule, paid off by this payment"}
+                  rows={schedule.map((row) => ({
+                    key: row.id,
+                    date: row.date ? formatDay(row.date) : "Date to be set",
+                    note:
+                      row.after === 0
+                        ? "No longer charged"
+                        : row.after < row.before
+                          ? "Reduced"
+                          : "Unchanged",
+                    amount: formatAmount(fromCents(row.after === 0 ? row.before : row.after)),
+                    was: row.after > 0 && row.after < row.before ? formatAmount(fromCents(row.before)) : undefined,
+                    struck: row.after === 0,
+                  }))}
+                />
               ) : (
-                <p className="mt-5 max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
+                <p className="max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
                   No payments are scheduled on this booking.
                 </p>
               )}
 
-              <p className="mt-6 max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
+              <p className="mt-5 max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
                 {owedAfter > 0
                   ? "Anything still scheduled is taken from the card saved with your deposit, on the dates above."
                   : "With this payment the trip is paid for, and nothing more is taken from your card."}
@@ -192,25 +186,23 @@ export default async function BalancePaymentPage(props: {
             </div>
 
             {!processing && (
-              <>
-                <SectionDivider variant="rule" className="mt-12" />
+              <section className="mt-14 border-t border-[--rule-strong] pt-10" aria-labelledby="payment-heading">
+                <h2 id="payment-heading" className="t-heading text-[--text]">
+                  Payment
+                </h2>
+                <p className="mt-3 max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
+                  Use any card. This payment does not change the card your scheduled payments come
+                  from.
+                </p>
 
-                <section className="mt-12">
-                  <h2 className="t-heading text-[--text]">Payment</h2>
-                  <p className="mt-4 max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
-                    Use any card. This payment does not change the card your scheduled payments come
-                    from.
-                  </p>
-
-                  <CheckoutForm
-                    clientSecret={paymentIntent.client_secret!}
-                    bookingId={params.id}
-                    amountLabel={formatAmount(amount)}
-                    submitLabel={`Pay ${formatAmount(amount)}`}
-                    returnPath={`/bookings/${params.id}/balance/${payment.id}?paid=1`}
-                  />
-                </section>
-              </>
+                <CheckoutForm
+                  clientSecret={paymentIntent.client_secret!}
+                  bookingId={params.id}
+                  amountLabel={formatAmount(amount)}
+                  submitLabel={`Pay ${formatAmount(amount)}`}
+                  returnPath={`/bookings/${params.id}/balance/${payment.id}?paid=1`}
+                />
+              </section>
             )}
           </>
         )}
@@ -225,10 +217,16 @@ export default async function BalancePaymentPage(props: {
           </div>
         )}
 
-        <div className="mt-10 border-t border-[--rule] pt-8">
-          <Button href="/bookings" variant={received ? "primary" : "ghost"} size="sm" className={received ? undefined : "text-[--text-secondary]"}>
-            Back to your bookings
-          </Button>
+        <div className="mt-12 border-t border-[--rule] pt-6">
+          {received ? (
+            <Button href="/bookings" variant="primary" size="md">
+              Back to your bookings
+            </Button>
+          ) : (
+            <Button href="/bookings" variant="ghost" size="sm" className="min-h-11 text-[--text-secondary]">
+              Back to your bookings
+            </Button>
+          )}
         </div>
       </section>
     </main>
@@ -256,19 +254,4 @@ function previewSchedule(
       left -= taken;
       return { id: p.id, date: p.scheduled_date, before, after: before - taken };
     });
-}
-
-function Fact({ label, value, numeric }: { label: string; value: string; numeric?: boolean }) {
-  return (
-    <div className="min-w-0">
-      <dt className="stamp-type text-[--text-muted]">{label}</dt>
-      <dd
-        className={`mt-3 break-words font-display font-medium text-display-s tracking-title text-[--text] ${
-          numeric ? "tabular-nums" : ""
-        }`}
-      >
-        {value}
-      </dd>
-    </div>
-  );
 }

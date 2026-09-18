@@ -76,7 +76,9 @@ export default function CancelBookingButton({
         type="submit"
         variant="ghost"
         size="sm"
-        className="text-[--text-secondary]"
+        // Quiet on purpose: the destructive action on the card is a text
+        // button in the secondary ink, and only its dialog carries the flag.
+        className="min-h-11 text-[--text-secondary]"
         aria-haspopup="dialog"
         onClick={(event) => {
           event.preventDefault();

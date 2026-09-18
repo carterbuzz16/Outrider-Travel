@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Alert, Badge, Button, type BadgeTone } from "@/components/ui";
+import { Alert, Badge, Button, Facts, ScheduleTable, cn, type BadgeTone } from "@/components/ui";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PORTAL_ANCHORS, verifyPortalToken } from "@/lib/portal-token";
 import { formatDay } from "@/app/(protected)/dates";
-import { formatDateRange, formatPrice } from "@/lib/trips";
+import { formatDateRange } from "@/lib/trips";
+import { formatAmount } from "@/lib/balance";
 import { CONTACT } from "@/lib/site-content";
 import { ABILITY_LEVELS, SKI_OR_BOARD, labelFor } from "./fields";
 import { DetailsTask, FlightsToggle, FreshLinkForm, RoomingTask } from "./PortalForms";
@@ -136,23 +137,23 @@ export default async function TripPortalPage(props: {
 
   return (
     <main>
-      <section className="shell max-w-[56rem] pb-10 pt-14 md:pt-20">
-        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
+      <section className="shell max-w-[48rem] pb-10 pt-12 md:pt-20">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
           <div className="min-w-0">
             <p className="stamp-type text-[--text-muted]">{trip?.destination ?? "Your trip"}</p>
             <h1 className="t-title mt-5 text-[--text]">{trip?.name ?? "Your trip"}</h1>
-            <p className="mt-4 font-body text-body text-[--text-secondary]">
+            <p className="mt-4 font-body text-body text-[--text]">
               {trip ? formatDateRange(trip.start_date, trip.end_date) : "Dates to be confirmed"}
-              {booking.tiers?.name ? ` · ${booking.tiers.name}` : ""}
+              {booking.tiers?.name && <span className="text-[--text-secondary]"> · {booking.tiers.name}</span>}
             </p>
           </div>
-          <Badge tone={STATUS[booking.status].tone}>{STATUS[booking.status].label}</Badge>
+          <Badge tone={STATUS[booking.status].tone} className="self-start">
+            {STATUS[booking.status].label}
+          </Badge>
         </div>
 
-        <p className="mt-8 max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
-          {open
-            ? `Three things to sort before you go. ${tasksDone} of 3 done. This page opens without a password, so keep the link to yourself.`
-            : "This page opens without a password, so keep the link to yourself."}
+        <p className="mt-6 max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
+          This page opens without a password, so keep the link to yourself.
         </p>
 
         {booking.status === "pending" && (
@@ -180,12 +181,29 @@ export default async function TripPortalPage(props: {
       </section>
 
       {/* -- tasks ----------------------------------------------------------- */}
-      <section className="shell max-w-[56rem] pb-14" aria-labelledby="tasks-heading">
-        <h2 id="tasks-heading" className="t-rule-label text-[--text-muted]">
-          Before you go
-        </h2>
+      <section className="shell max-w-[48rem] pb-16" aria-labelledby="tasks-heading">
+        <div className="flex items-end justify-between gap-6 border-b border-[--rule-strong] pb-3.5">
+          <h2 id="tasks-heading" className="t-label text-[--text]">
+            Before you go
+          </h2>
+          {open && (
+            <p className="t-micro tabular-nums text-[--text-secondary]">
+              {tasksDone === 3 ? "All done" : `${tasksDone} of 3 done`}
+            </p>
+          )}
+        </div>
+        {/* The same hairline meter as the bookings card, counting tasks
+            rather than dollars. The count beside the heading says it in words. */}
+        {open && (
+          <div aria-hidden="true" className="h-[3px] w-full bg-[--rule-faint]">
+            <div
+              className="h-full bg-[--accent] transition-[width] duration-slow ease-out"
+              style={{ width: `${Math.round((tasksDone / 3) * 100)}%` }}
+            />
+          </div>
+        )}
 
-        <ol className="mt-2 flex list-none flex-col p-0">
+        <ol className="m-0 flex list-none flex-col p-0">
           <Task id={PORTAL_ANCHORS.flights} number={1} title="Flights" done={booking.flights_booked}>
             <p className="max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
               Flights are yours to book. The{" "}
@@ -233,14 +251,18 @@ export default async function TripPortalPage(props: {
             </p>
 
             {details && (
-              <dl className="mt-6 grid grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-3">
-                <Fact label="Riding" value={labelFor(SKI_OR_BOARD, details.ski_or_board)} />
-                <Fact label="Ability" value={labelFor(ABILITY_LEVELS, details.ability_level)} />
-                <Fact label="Height" value={details.height ?? "Not given"} />
-                <Fact label="Weight" value={details.weight ?? "Not given"} />
-                <Fact label="Shoe size" value={details.shoe_size ?? "Not given"} />
-                <Fact label="Dietary" value={details.dietary_restrictions ?? "None"} />
-              </dl>
+              <Facts
+                className="mt-6"
+                columns={3}
+                items={[
+                  { label: "Riding", value: labelFor(SKI_OR_BOARD, details.ski_or_board) },
+                  { label: "Ability", value: labelFor(ABILITY_LEVELS, details.ability_level) },
+                  { label: "Height", value: details.height ?? "Not given" },
+                  { label: "Weight", value: details.weight ?? "Not given" },
+                  { label: "Shoe size", value: details.shoe_size ?? "Not given" },
+                  { label: "Dietary", value: details.dietary_restrictions ?? "None" },
+                ]}
+              />
             )}
 
             {open ? (
@@ -260,54 +282,49 @@ export default async function TripPortalPage(props: {
 
       {/* -- payments -------------------------------------------------------- */}
       {booking.status !== "cancelled" && (
-        <section className="shell max-w-[56rem] pb-20 md:pb-28" aria-labelledby="payments-heading">
-          <h2 id="payments-heading" className="t-rule-label text-[--text-muted]">
+        <section className="shell max-w-[48rem] pb-20 md:pb-28" aria-labelledby="payments-heading">
+          <h2 id="payments-heading" className="t-label border-b border-[--rule-strong] pb-3.5 text-[--text]">
             Payments
           </h2>
 
-          <dl className="mt-8 grid grid-cols-2 gap-x-8 gap-y-6 lg:grid-cols-3">
-            <Fact label="Paid" value={formatPrice(paid)} note={`of ${formatPrice(total)}`} />
-            <Fact label="Remaining" value={formatPrice(remaining)} />
-            <Fact
-              label="Next payment"
-              value={nextInstallment ? formatPrice(Number(nextInstallment.amount)) : "None"}
-              note={
-                nextInstallment?.scheduled_date
+          <Facts
+            className="mt-6"
+            size="l"
+            columns={3}
+            items={[
+              { label: "Paid", value: formatAmount(paid), note: `of ${formatAmount(total)}` },
+              { label: "Remaining", value: formatAmount(remaining) },
+              {
+                label: "Next payment",
+                value: nextInstallment ? formatAmount(Number(nextInstallment.amount)) : "None",
+                note: nextInstallment?.scheduled_date
                   ? formatDay(nextInstallment.scheduled_date)
                   : remaining > 0
                     ? undefined
-                    : "balance settled"
-              }
-            />
-          </dl>
+                    : "Balance settled",
+              },
+            ]}
+          />
 
           {schedule.length > 0 && (
-            <ul className="mt-8 flex list-none flex-col border-t border-[--rule-faint] p-0">
-              {schedule.map((p) => (
-                <li
-                  key={p.id}
-                  className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-[--rule-faint] py-3.5"
-                >
-                  <span className="font-body text-body-s text-[--text-secondary]">
-                    {p.scheduled_date ? formatDay(p.scheduled_date) : "Date to be set"}
-                  </span>
-                  <span className="flex items-baseline gap-4">
-                    <span className="t-micro text-[--text-muted]">{PAYMENT_LABEL[p.status] ?? p.status}</span>
-                    <span className="font-display font-medium text-body-s tracking-title text-[--text]">
-                      {formatPrice(Number(p.amount))}
-                    </span>
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <ScheduleTable
+              className="mt-8"
+              caption="Payment schedule"
+              rows={schedule.map((p) => ({
+                key: p.id,
+                date: p.scheduled_date ? formatDay(p.scheduled_date) : "Date to be set",
+                status: PAYMENT_LABEL[p.status] ?? p.status,
+                amount: formatAmount(Number(p.amount)),
+              }))}
+            />
           )}
 
-          <p className="mt-6 max-w-measure font-body text-body-s leading-[1.7] text-[--text-muted]">
+          <p className="mt-6 max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
             Scheduled payments are taken automatically from the card you booked with. To pay ahead
             or change anything, log in to your bookings.
           </p>
           <div className="mt-6">
-            <Button href="/bookings" variant="secondary" size="sm">
+            <Button href="/bookings" variant="secondary" size="md">
               Manage payments
             </Button>
           </div>
@@ -319,6 +336,13 @@ export default async function TripPortalPage(props: {
 
 /* -- pieces ----------------------------------------------------------------- */
 
+/*
+ * One task on the checklist. The marker is the state: an open square with the
+ * task's number while it is to do, a filled square with a tick once it is
+ * done, and the word beside the title so the state is never carried by the
+ * mark alone. A done task keeps its content (it can still be edited), and
+ * only its title steps back to the secondary ink.
+ */
 function Task({
   id,
   number,
@@ -334,39 +358,44 @@ function Task({
   children: React.ReactNode;
 }) {
   return (
-    <li id={id} className="scroll-mt-8 border-b border-[--rule] py-8 last:border-0">
-      <div className="flex items-baseline justify-between gap-6">
-        <h3 className="t-heading text-[--text]">
-          <span className="t-micro mr-3 align-middle text-[--text-muted]">{String(number).padStart(2, "0")}</span>
-          {title}
-        </h3>
-        {/* A filled square for done, an open one for to do: the same marker
-            vocabulary as Alert, and the word beside it so colour is never the
-            only signal. */}
-        <p className="flex shrink-0 items-center gap-2.5 t-micro text-[--text-secondary]">
-          <span
-            aria-hidden="true"
-            className={
-              done ? "h-2 w-2 bg-[--accent]" : "h-2 w-2 border border-[--rule-strong] bg-transparent"
-            }
-          />
-          {done ? "Done" : "To do"}
-        </p>
-      </div>
-      <div className="mt-4">{children}</div>
-    </li>
-  );
-}
+    <li id={id} className="scroll-mt-8 border-b border-[--rule] py-8 last:border-0 sm:py-10">
+      <div className="flex items-start gap-4 sm:gap-5">
+        <span
+          aria-hidden="true"
+          className={cn(
+            "grid h-8 w-8 shrink-0 place-items-center border",
+            done
+              ? "border-[--accent-solid] bg-[--accent-solid] text-[--accent-contrast]"
+              : "border-[--text-secondary] text-[--text-secondary]",
+          )}
+        >
+          {done ? (
+            <svg
+              viewBox="0 0 12 10"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="square"
+              className="h-3 w-3.5"
+            >
+              <path d="M1.5 5.25 4.5 8.25 10.5 1.75" />
+            </svg>
+          ) : (
+            <span className="t-micro tabular-nums">{number}</span>
+          )}
+        </span>
 
-function Fact({ label, value, note }: { label: string; value: string; note?: string }) {
-  return (
-    <div className="min-w-0">
-      <dt className="stamp-type text-[--text-muted]">{label}</dt>
-      <dd className="mt-3 break-words font-display font-medium text-body tracking-title text-[--text]">
-        {value}
-        {note && <span className="t-micro mt-2 block text-[--text-secondary]">{note}</span>}
-      </dd>
-    </div>
+        <div className="flex min-h-8 min-w-0 flex-1 flex-wrap items-center justify-between gap-x-6 gap-y-1">
+          <h3 className="t-subheading text-[--text]">{title}</h3>
+          <p className={cn("t-micro", done ? "text-[--accent]" : "text-[--text-secondary]")}>
+            {done ? "Done" : "To do"}
+          </p>
+        </div>
+      </div>
+      {/* Indented under the title once there is room; full width on a phone,
+          where 52px of indent would squeeze the forms. */}
+      <div className="mt-4 sm:pl-[3.25rem]">{children}</div>
+    </li>
   );
 }
 

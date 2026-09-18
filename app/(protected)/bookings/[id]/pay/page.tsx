@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Alert, Badge, Button, SectionDivider } from "@/components/ui";
+import { Alert, AmountDue, Button, Facts, ScheduleTable } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe";
 import { INSTALLMENT_OFFSETS_DAYS } from "@/lib/installments";
@@ -80,89 +80,70 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
 
   return (
     <main>
-      <section className="shell max-w-[52rem] py-14 md:py-20">
+      <section className="shell max-w-[48rem] pb-16 pt-12 md:pb-24 md:pt-20">
         <p className="stamp-type text-[--text-muted]">Checkout</p>
         <h1 className="t-title mt-5 max-w-[16ch] text-[--text]">
           {payingInFull ? "Pay for your trip" : "Pay your deposit"}
         </h1>
-        <p className="mt-6 max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
-          {payingInFull
-            ? "One charge now pays for the whole trip. Nothing else is taken from your card later."
-            : "One charge now holds your spot. The balance is split into two dated payments taken from the same card, and nothing else comes off it today."}
-        </p>
+
+        {/* -- what is being bought ------------------------------------------ */}
 
         {trip && (
-          <dl className="mt-12 grid grid-cols-2 gap-x-8 gap-y-8 border-t border-[--rule] pt-8 lg:grid-cols-4">
-            <Fact label="Trip" value={trip.name} />
-            <Fact label="Dates" value={formatDateRange(trip.start_date, trip.end_date)} numeric />
-            <Fact label="Package" value={booking.tiers?.name ?? "Standard"} />
-            <Fact label="Destination" value={trip.destination} />
-          </dl>
+          <Facts
+            className="mt-10 border-t border-[--rule] pt-6"
+            items={[
+              { label: "Trip", value: trip.name },
+              { label: "Dates", value: formatDateRange(trip.start_date, trip.end_date) },
+              { label: "Package", value: booking.tiers?.name ?? "Standard" },
+              { label: "Trip price", value: formatAmount(total) },
+            ]}
+          />
         )}
 
         {/* -- what comes off the card right now ------------------------------ */}
 
-        <div className="mt-10 border border-[--rule] bg-[--surface-raised] p-6 md:p-8">
-          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-            <p className="stamp-type text-[--text-muted]">Charged today</p>
-            <Badge tone="urgent">Due now</Badge>
-          </div>
-
-          <p className="mt-6 font-display font-medium text-display-l tabular-nums tracking-display text-[--text]">
-            {formatAmount(dueToday)}
-          </p>
-
+        <AmountDue label="Charged today" amount={formatAmount(dueToday)} className="mt-10">
           {payingInFull ? (
-            <p className="mt-5 max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
-              This is the full price of the trip
+            <p>
+              The whole trip
               {PAY_IN_FULL_DISCOUNT > 0 && `, with ${formatPrice(PAY_IN_FULL_DISCOUNT)} off for paying it all now`}
-              . Nothing is owed after today.
+              . Nothing else is taken from your card later.
             </p>
           ) : (
-            <p className="mt-5 max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
-              This is the deposit, not the price of the trip. The trip is{" "}
-              <span className="tabular-nums text-[--text]">{formatPrice(total)}</span>, so{" "}
-              <span className="tabular-nums text-[--text]">{formatPrice(balance)}</span> is still owed
-              after today.
+            <p>
+              This is the deposit, not the price of the trip. It holds your spot, and the other{" "}
+              <span className="tabular-nums text-[--text]">{formatAmount(balance)}</span> is taken
+              later, on the dates below. Nothing else comes off your card today.
             </p>
           )}
-        </div>
+        </AmountDue>
 
         {/* -- and what comes off it later ------------------------------------ */}
 
         {schedule.length > 0 && (
-          <div className="mt-6 border border-[--rule] bg-[--surface-raised] p-6 md:p-8">
-            <p className="stamp-type text-[--text-muted]">Charged later</p>
-
-            <ul className="mt-5 flex list-none flex-col p-0">
-              {schedule.map((row) => (
-                <li
-                  key={row.offsetDays}
-                  className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-[--rule-faint] py-4 last:border-0"
-                >
-                  <span className="min-w-0">
-                    <span className="block font-display font-medium text-body-s tabular-nums tracking-title text-[--text]">
-                      {formatDay(row.date)}
-                    </span>
-                    <span className="t-micro mt-2 block text-[--text-secondary]">
-                      {row.offsetDays} days before the trip
-                    </span>
-                  </span>
-                  <span className="font-display font-medium text-display-s tabular-nums tracking-title text-[--text]">
-                    {formatPrice(row.amount)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-
-            <p className="mt-6 max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
-              Both are charged automatically to the card you enter below, on the dates above. You
-              get an email each time one goes through, and the schedule stays on your bookings page.
+          <div className="mt-10">
+            <ScheduleTable
+              caption="Your payment schedule"
+              rows={[
+                { key: "today", date: "Today", note: "Deposit", amount: formatAmount(depositAmount), current: true },
+                ...schedule.map((row) => ({
+                  key: String(row.offsetDays),
+                  date: formatDay(row.date),
+                  note: `${row.offsetDays} days before the trip`,
+                  amount: formatAmount(row.amount),
+                })),
+              ]}
+              total={{ label: "Trip total", amount: formatAmount(total) }}
+            />
+            <p className="mt-5 max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
+              The later payments are charged automatically to the card you enter below, on those
+              dates. You get an email each time one goes through, and the schedule stays on your
+              bookings page.
             </p>
           </div>
         )}
 
-        <div className="mt-6">
+        <div className="mt-8">
           <Alert tone="warning" title="The deposit is non-refundable">
             {payingInFull ? (
               <>
@@ -188,14 +169,14 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
 
         {/* -- the card field -------------------------------------------------- */}
 
-        <SectionDivider variant="rule" className="mt-12" />
-
-        <section className="mt-12">
-          <h2 className="t-heading text-[--text]">Payment</h2>
-          <p className="mt-4 max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
+        <section className="mt-14 border-t border-[--rule-strong] pt-10" aria-labelledby="payment-heading">
+          <h2 id="payment-heading" className="t-heading text-[--text]">
+            Payment
+          </h2>
+          <p className="mt-3 max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
             {payingInFull
               ? "This is the only charge on the booking. The card is not kept for later payments."
-              : "The card you use here is the card the two payments above are taken from. You can change it later by getting in touch."}
+              : "The card you use here is the card the scheduled payments are taken from. You can change it later by getting in touch."}
           </p>
 
           <CheckoutForm
@@ -210,8 +191,8 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
           />
         </section>
 
-        <div className="mt-10 border-t border-[--rule] pt-8">
-          <Button href="/bookings" variant="ghost" size="sm" className="text-[--text-secondary]">
+        <div className="mt-12 border-t border-[--rule] pt-6">
+          <Button href="/bookings" variant="ghost" size="sm" className="min-h-11 text-[--text-secondary]">
             Back to your bookings
           </Button>
         </div>
@@ -247,19 +228,4 @@ function previewInstallments(total: number, deposit: number, startDate: string |
     date.setUTCDate(date.getUTCDate() - offsetDays);
     return { offsetDays, amount: amounts[i] as number, date: date.toISOString().slice(0, 10) };
   });
-}
-
-function Fact({ label, value, numeric }: { label: string; value: string; numeric?: boolean }) {
-  return (
-    <div className="min-w-0">
-      <dt className="stamp-type text-[--text-muted]">{label}</dt>
-      <dd
-        className={`mt-3 break-words font-display font-medium text-display-s tracking-title text-[--text] ${
-          numeric ? "tabular-nums" : ""
-        }`}
-      >
-        {value}
-      </dd>
-    </div>
-  );
 }

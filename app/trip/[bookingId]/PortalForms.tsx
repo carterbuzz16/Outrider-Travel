@@ -81,12 +81,12 @@ export function FlightsToggle({
       {booked ? (
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <p className="font-body text-body-s text-[--text-secondary]">Marked as booked.</p>
-          <Button type="submit" variant="ghost" size="sm" disabled={pending}>
+          <Button type="submit" variant="ghost" size="sm" className="min-h-11" disabled={pending}>
             {pending ? "Saving" : "I have not booked yet"}
           </Button>
         </div>
       ) : (
-        <Button type="submit" variant="primary" size="sm" disabled={pending}>
+        <Button type="submit" variant="primary" size="md" disabled={pending}>
           {pending ? "Saving" : "I've booked my flights"}
         </Button>
       )}
@@ -138,7 +138,7 @@ export function RoomingTask({
           <Button
             type="button"
             variant="secondary"
-            size="sm"
+            size="md"
             onClick={() => {
               setNoPreference(existing.noPreference);
               setEditing(true);
@@ -182,11 +182,18 @@ export function RoomingTask({
         name do not need to have booked yet.
       </p>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-        <Button type="submit" variant="primary" size="sm" disabled={pending}>
+        <Button type="submit" variant="primary" size="md" disabled={pending}>
           {pending ? "Sending" : existing ? "Save changes" : "Send request"}
         </Button>
         {existing && (
-          <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(false)} disabled={pending}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="min-h-11"
+            onClick={() => setEditing(false)}
+            disabled={pending}
+          >
             Cancel
           </Button>
         )}
@@ -231,7 +238,7 @@ export function DetailsTask({
           shown here.
         </p>
         <div className="mt-5">
-          <Button type="button" variant="secondary" size="sm" onClick={() => setReplacing(true)}>
+          <Button type="button" variant="secondary" size="md" onClick={() => setReplacing(true)}>
             Replace my details
           </Button>
         </div>
@@ -245,7 +252,7 @@ export function DetailsTask({
     <form
       action={formAction}
       onSubmit={onSubmit}
-      className="mt-6 grid max-w-[44rem] gap-x-6 gap-y-5 sm:grid-cols-2"
+      className="mt-6 flex max-w-[40rem] flex-col gap-10"
       // Stops the browser offering to save a date of birth into autofill on a
       // phone that may not be the traveler's own.
       autoComplete="off"
@@ -253,109 +260,147 @@ export function DetailsTask({
       <AuthFields bookingId={bookingId} token={token} />
 
       {submitted && (
-        <p className="font-body text-body-s leading-[1.7] text-[--text-secondary] sm:col-span-2">
+        <Alert tone="info" title="Replacing your details">
           Fill in every field again. This replaces what you sent before.
-        </p>
+        </Alert>
       )}
 
-      <Field
-        label="Legal name"
-        hint="Exactly as on your driver's license or passport. The insurer uses it."
-        error={errors.legalName}
-        required
-        className="sm:col-span-2"
-      >
-        {(props) => <Input {...props} name="legalName" maxLength={200} required />}
-      </Field>
+      <Group title="For the insurer" hint="The trip insurer needs both.">
+        <Field
+          label="Legal name"
+          hint="Exactly as on your driver's license or passport."
+          error={errors.legalName}
+          required
+          className="sm:col-span-2"
+        >
+          {(props) => <Input {...props} name="legalName" maxLength={200} required />}
+        </Field>
 
-      <Field label="Date of birth" error={errors.dateOfBirth} required>
-        {(props) => <Input {...props} name="dateOfBirth" type="date" required />}
-      </Field>
+        <Field label="Date of birth" error={errors.dateOfBirth} required>
+          {(props) => <Input {...props} name="dateOfBirth" type="date" required />}
+        </Field>
+      </Group>
 
-      <Field label="Your mobile" error={errors.phone} required>
-        {(props) => <Input {...props} name="phone" type="tel" inputMode="tel" maxLength={40} required />}
-      </Field>
+      <Group title="Contact" hint="A number to reach you on the trip, and someone at home.">
+        <Field label="Your mobile" error={errors.phone} required className="sm:col-span-2">
+          {(props) => <Input {...props} name="phone" type="tel" inputMode="tel" maxLength={40} required />}
+        </Field>
 
-      <Field
-        label="Emergency contact"
-        hint="Someone not on the trip, usually a parent."
-        error={errors.emergencyContactName}
-        required
-      >
-        {(props) => <Input {...props} name="emergencyContactName" maxLength={200} required />}
-      </Field>
+        <Field
+          label="Emergency contact"
+          hint="Someone not on the trip, usually a parent."
+          error={errors.emergencyContactName}
+          required
+        >
+          {(props) => <Input {...props} name="emergencyContactName" maxLength={200} required />}
+        </Field>
 
-      <Field label="Their phone" error={errors.emergencyContactPhone} required>
-        {(props) => (
-          <Input {...props} name="emergencyContactPhone" type="tel" inputMode="tel" maxLength={40} required />
-        )}
-      </Field>
+        <Field label="Their phone" error={errors.emergencyContactPhone} required>
+          {(props) => (
+            <Input {...props} name="emergencyContactPhone" type="tel" inputMode="tel" maxLength={40} required />
+          )}
+        </Field>
+      </Group>
 
-      <Field label="Ski or snowboard" error={errors.skiOrBoard} required>
-        {(props) => (
-          <Select {...props} name="skiOrBoard" defaultValue="" required>
-            <option value="" disabled>
-              Choose one
-            </option>
-            {SKI_OR_BOARD.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
+      <Group title="Rentals" hint="So your skis or board are ready when you arrive.">
+        <Field label="Ski or snowboard" error={errors.skiOrBoard} required>
+          {(props) => (
+            <Select {...props} name="skiOrBoard" defaultValue="" required>
+              <option value="" disabled>
+                Choose one
               </option>
-            ))}
-          </Select>
-        )}
-      </Field>
+              {SKI_OR_BOARD.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
 
-      <Field label="Ability" error={errors.abilityLevel} required>
-        {(props) => (
-          <Select {...props} name="abilityLevel" defaultValue="" required>
-            <option value="" disabled>
-              Choose one
-            </option>
-            {ABILITY_LEVELS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
+        <Field label="Ability" error={errors.abilityLevel} required>
+          {(props) => (
+            <Select {...props} name="abilityLevel" defaultValue="" required>
+              <option value="" disabled>
+                Choose one
               </option>
-            ))}
-          </Select>
-        )}
-      </Field>
+              {ABILITY_LEVELS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
 
-      <Field label="Height" hint={`For example 5'10" or 178 cm.`} error={errors.height} required>
-        {(props) => <Input {...props} name="height" maxLength={40} required />}
-      </Field>
+        <Field label="Height" hint={`For example 5'10" or 178 cm.`} error={errors.height} required>
+          {(props) => <Input {...props} name="height" maxLength={40} required />}
+        </Field>
 
-      <Field label="Weight" hint="For example 165 lb. Used only to set bindings." error={errors.weight} required>
-        {(props) => <Input {...props} name="weight" maxLength={40} required />}
-      </Field>
+        <Field label="Weight" hint="For example 165 lb. Used only to set bindings." error={errors.weight} required>
+          {(props) => <Input {...props} name="weight" maxLength={40} required />}
+        </Field>
 
-      <Field label="Shoe size" hint="US size, and men's or women's." error={errors.shoeSize} required>
-        {(props) => <Input {...props} name="shoeSize" maxLength={40} required />}
-      </Field>
+        <Field label="Shoe size" hint="US size, and men's or women's." error={errors.shoeSize} required>
+          {(props) => <Input {...props} name="shoeSize" maxLength={40} required />}
+        </Field>
+      </Group>
 
-      <Field
-        label="Dietary needs"
-        hint="Allergies, vegetarian, anything the kitchen should know. Leave blank if none."
-        className="sm:col-span-2"
-      >
-        {(props) => <Textarea {...props} name="dietaryRestrictions" rows={3} maxLength={1000} />}
-      </Field>
+      <Group title="Food">
+        <Field
+          label="Dietary needs"
+          hint="Allergies, vegetarian, anything the kitchen should know. Leave blank if none."
+          className="sm:col-span-2"
+        >
+          {(props) => <Textarea {...props} name="dietaryRestrictions" rows={3} maxLength={1000} />}
+        </Field>
+      </Group>
 
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 sm:col-span-2">
-        <Button type="submit" variant="primary" size="sm" disabled={pending}>
-          {pending ? "Sending" : submitted ? "Replace details" : "Send details"}
-        </Button>
-        {submitted && (
-          <Button type="button" variant="ghost" size="sm" onClick={() => setReplacing(false)} disabled={pending}>
-            Keep what I sent
+      <div className="flex flex-col gap-4">
+        <p className="font-body text-body-s text-[--text-secondary]">
+          Fields marked <span aria-hidden="true" className="text-[--flag-ink]">*</span>
+          <span className="sr-only">with an asterisk</span> are required.
+        </p>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+          <Button type="submit" variant="primary" size="md" disabled={pending} aria-busy={pending}>
+            {pending ? "Sending" : submitted ? "Replace details" : "Send details"}
           </Button>
-        )}
-      </div>
-
-      <div className="sm:col-span-2">
+          {submitted && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="min-h-11"
+              onClick={() => setReplacing(false)}
+              disabled={pending}
+            >
+              Keep what I sent
+            </Button>
+          )}
+        </div>
         <Failure state={state} />
       </div>
     </form>
+  );
+}
+
+/*
+ * A titled group of fields: a real fieldset, so a screen reader announces
+ * "For the insurer" before "Legal name", with the legend set as a label over a
+ * hairline the way each section of the page opens. Two columns from sm up;
+ * a field that needs the width spans both.
+ */
+function Group({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <fieldset className="m-0 min-w-0 border-0 p-0">
+      <legend className="float-left w-full border-b border-[--rule] p-0 pb-3 t-label text-[--text]">
+        {title}
+      </legend>
+      {hint && (
+        <p className="clear-both pt-3 font-body text-body-s leading-[1.6] text-[--text-secondary]">{hint}</p>
+      )}
+      <div className="clear-both grid gap-x-6 gap-y-5 pt-5 sm:grid-cols-2">{children}</div>
+    </fieldset>
   );
 }
 

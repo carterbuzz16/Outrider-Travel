@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Alert, Button, SectionDivider, Stamp } from "@/components/ui";
+import { Alert, Button, Facts, ScheduleTable, Stamp } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { syncPaymentFromStripe } from "@/lib/stripe-sync";
 import { formatDay } from "@/app/(protected)/dates";
@@ -102,10 +102,15 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
     .filter((p) => p.scheduled_date && p.status !== "canceled")
     .sort((a, b) => (a.scheduled_date ?? "").localeCompare(b.scheduled_date ?? ""));
 
+  // Before anything clears, the balance after the checkout charge; after, what
+  // has actually cleared, since an early payment or a payment in full leaves
+  // less owed than total less deposit.
+  const balanceLeft = settled ? remaining : Math.max(0, total - (fullPlan ? total : depositAmount));
+
   return (
     <main>
-      <section className="shell max-w-[52rem] py-14 md:py-20">
-        <div className="flex flex-wrap items-start justify-between gap-8">
+      <section className="shell max-w-[48rem] pb-16 pt-12 md:pb-24 md:pt-20">
+        <div className="flex items-start justify-between gap-8">
           <div className="min-w-0 flex-1">
             <p className="stamp-type text-[--text-muted]">
               {settled ? (paidInFull ? "Paid in full" : "Deposit received") : "Payment pending"}
@@ -149,114 +154,123 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
           </div>
         )}
 
-        {portalUrl && (
-          <div className="mt-10 border border-[--rule] border-l-2 border-l-[--accent] bg-[--surface-raised] p-6 md:p-8">
-            <p className="stamp-type text-[--text-muted]">Next, today</p>
-            <h2 className="t-heading mt-4 text-[--text]">
-              Book flights, request roommates, add traveler details
-            </h2>
-            <p className="mt-4 max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
-              All three are on your trip page and take about five minutes together. Winter flights
-              into Montrose are few and fill early, rooms are assigned in the order requests arrive, and
-              your details activate the travel insurance and get your rentals fitted before you
-              land.
+        {/* -- the payment summary ------------------------------------------- */}
+
+        <section className="mt-12" aria-labelledby="summary-heading">
+          <h2 id="summary-heading" className="t-rule-label text-[--text]">
+            Your booking
+          </h2>
+
+          {trip && (
+            <Facts
+              className="mt-6"
+              items={[
+                { label: "Trip", value: trip.name },
+                { label: "Dates", value: formatDateRange(trip.start_date, trip.end_date) },
+                { label: "Package", value: booking.tiers?.name ?? "Standard" },
+                { label: "Confirmation", value: confirmationNumber(booking.id) },
+              ]}
+            />
+          )}
+
+          <Facts
+            size="l"
+            columns={2}
+            className="mt-8 border-t border-[--rule] pt-6"
+            items={[
+              { label: settled ? "Paid" : "Being charged", value: formatAmount(settled ? paid : fullPlan ? total : depositAmount) },
+              { label: "Left to pay", value: formatAmount(balanceLeft), note: `of ${formatPrice(total)}` },
+            ]}
+          />
+
+          {installments.length > 0 ? (
+            <div className="mt-8">
+              <ScheduleTable
+                caption="Scheduled payments"
+                rows={installments.map((p) => ({
+                  key: p.id,
+                  date: p.scheduled_date ? formatDay(p.scheduled_date) : "Date to be set",
+                  amount: formatAmount(Number(p.amount)),
+                }))}
+              />
+              <p className="mt-5 max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
+                {/* Says "after", not "before": nothing in lib/email/send.ts or
+                    the installment cron sends advance notice. The three
+                    installment emails (received, failed, action required) all
+                    go out after an attempt, so promising a heads-up here would
+                    be a promise the system does not keep. */}
+                Each one is taken from the card you just used. You get an email each time one goes
+                through, and straight away if one does not.
+              </p>
+            </div>
+          ) : (
+            <p className="mt-8 max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
+              {fullPlan
+                ? "Nothing is scheduled. The trip is paid for, so no more charges are taken from your card."
+                : "Your payment schedule appears here once the deposit clears. It splits the balance into two dated payments before departure."}
             </p>
-            <div className="mt-6">
-              <Button href={portalUrl} variant="primary" size="md">
+          )}
+        </section>
+
+        {/* -- next, today ----------------------------------------------------
+            The trip page, where the three things we need straight away are
+            done. The one dark panel on the page, because after the receipt it
+            is the only thing left to act on. */}
+
+        {portalUrl && (
+          <section
+            className="scheme-espresso scheme-paint mt-14 px-5 py-8 sm:px-9 sm:py-10"
+            aria-labelledby="next-heading"
+          >
+            <p className="t-label text-[--accent]">Next, today</p>
+            <h2 id="next-heading" className="t-heading mt-4 max-w-[20ch] text-[--text]">
+              Three things for your trip page
+            </h2>
+            <ol className="mt-7 flex list-none flex-col border-t border-[--rule] p-0">
+              {NEXT_STEPS.map((step, i) => (
+                <li key={step.title} className="flex gap-4 border-b border-[--rule] py-4">
+                  <span aria-hidden="true" className="t-micro mt-1 w-5 shrink-0 tabular-nums text-[--text-muted]">
+                    {i + 1}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block font-body text-body font-medium text-[--text]">{step.title}</span>
+                    <span className="mt-1 block font-body text-body-s leading-[1.6] text-[--text-secondary]">
+                      {step.why}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+            <p className="mt-5 font-body text-body-s text-[--text-secondary]">
+              About five minutes, all on one page.
+            </p>
+            <div className="mt-7">
+              <Button href={portalUrl} variant="primary" size="lg" className="w-full sm:w-auto">
                 Open your trip page
               </Button>
             </div>
-          </div>
+          </section>
         )}
 
-        {trip && (
-          <dl className="mt-12 grid grid-cols-2 gap-x-8 gap-y-8 border-t border-[--rule] pt-8 lg:grid-cols-4">
-            <Fact label="Trip" value={trip.name} />
-            <Fact label="Dates" value={formatDateRange(trip.start_date, trip.end_date)} />
-            <Fact label="Package" value={booking.tiers?.name ?? "Standard"} />
-            <Fact label="Confirmation" value={confirmationNumber(booking.id)} />
-          </dl>
-        )}
-
-        <SectionDivider variant="rule" className="mt-12" />
-
-        <div className="mt-12 grid gap-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-          <h2 className="t-heading text-[--text]">What happens next</h2>
-
-          <div className="flex flex-col gap-8">
-            <div>
-              <p className="stamp-type text-[--text-muted]">Balance</p>
-              <p className="mt-3 font-display font-medium text-display-s tracking-title text-[--text]">
-                {/* What has cleared, not total less deposit: an early payment
-                    or a payment in full leaves less owed than that. Before
-                    anything clears, the balance after the checkout charge. */}
-                {formatAmount(settled ? remaining : Math.max(0, total - (fullPlan ? total : depositAmount)))}
-                <span className="t-micro ml-2 text-[--text-secondary]">
-                  of {formatPrice(total)} left
-                </span>
+        {booking.group_code && (
+          <div className="mt-10 flex flex-col gap-3 border border-[--rule] p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:p-6">
+            <div className="min-w-0">
+              <p className="t-micro text-[--text-secondary]">Bring your friends</p>
+              <p className="mt-2 max-w-[44ch] font-body text-body-s leading-[1.7] text-[--text-secondary]">
+                Share your group code with anyone booking this trip and you are placed together.
               </p>
             </div>
-
-            {installments.length > 0 ? (
-              <div>
-                <p className="stamp-type text-[--text-muted]">Scheduled payments</p>
-                <ul className="mt-4 flex list-none flex-col p-0">
-                  {installments.map((p) => (
-                    <li
-                      key={p.id}
-                      className="flex items-baseline justify-between gap-6 border-b border-[--rule-faint] py-3.5 last:border-0"
-                    >
-                      <span className="font-body text-body-s text-[--text-secondary]">
-                        {p.scheduled_date ? formatDay(p.scheduled_date) : "Date to be set"}
-                      </span>
-                      <span className="font-display font-medium text-body-s tracking-title text-[--text]">
-                        {formatPrice(Number(p.amount))}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                <p className="mt-4 font-body text-body-s leading-[1.7] text-[--text-muted]">
-                  {/* Says "after", not "before": nothing in lib/email/send.ts or
-                      the installment cron sends advance notice. The three
-                      installment emails (received, failed, action required) all
-                      go out after an attempt, so promising a heads-up here would
-                      be a promise the system does not keep. */}
-                  Each one is taken from the card you just used. You get an email each time one
-                  goes through, and straight away if one does not.
-                </p>
-              </div>
-            ) : fullPlan ? (
-              <p className="max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
-                Nothing is scheduled. The trip is paid for, so no more charges are taken from
-                your card.
-              </p>
-            ) : (
-              <p className="max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
-                Your payment schedule appears here once the deposit clears. It splits the balance
-                into two dated payments before departure.
-              </p>
-            )}
-
-            {booking.group_code && (
-              <div className="border-l-2 border-[--accent] pl-5">
-                <p className="stamp-type text-[--text-muted]">Bring your friends</p>
-                <p className="mt-3 font-body text-body-s leading-[1.7] text-[--text-secondary]">
-                  Share{" "}
-                  <span className="font-display tracking-label text-[--text]">
-                    {booking.group_code}
-                  </span>{" "}
-                  with anyone booking this trip and you are placed together.
-                </p>
-              </div>
-            )}
+            <p className="shrink-0 font-display text-display-s font-medium tracking-label text-[--text]">
+              {booking.group_code}
+            </p>
           </div>
-        </div>
+        )}
 
-        <div className="mt-14 flex flex-wrap gap-4 border-t border-[--rule] pt-8">
-          <Button href="/bookings" variant="primary" size="md">
+        <div className="mt-12 flex flex-wrap gap-3 border-t border-[--rule] pt-6">
+          <Button href="/bookings" variant={portalUrl ? "secondary" : "primary"} size="md">
             Go to your bookings
           </Button>
-          <Button href="/trips" variant="secondary" size="md">
+          <Button href="/trips" variant="ghost" size="md" className="ml-3 min-h-11">
             Browse trips
           </Button>
         </div>
@@ -265,13 +279,15 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
   );
 }
 
-function Fact({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0">
-      <dt className="stamp-type text-[--text-muted]">{label}</dt>
-      <dd className="mt-3 break-words font-display font-medium text-display-s tracking-title text-[--text]">
-        {value}
-      </dd>
-    </div>
-  );
-}
+/*
+ * What the trip page asks for, and why now. The reasons are the ones this page
+ * already gave in a paragraph; split out so each task is scannable.
+ */
+const NEXT_STEPS = [
+  { title: "Book your flights", why: "Winter flights into Montrose are few and fill early." },
+  { title: "Request your roommates", why: "Rooms are assigned in the order requests arrive." },
+  {
+    title: "Add your traveler details",
+    why: "They activate the travel insurance and get your rentals fitted before you land.",
+  },
+];

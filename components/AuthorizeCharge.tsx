@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useId } from "react";
-import { cn } from "@/components/ui";
+import { CheckRow } from "@/components/ui";
 
 export type ScheduledCharge = { dateLabel: string; amountLabel: string };
 
@@ -42,54 +41,41 @@ export default function AuthorizeCharge({
   /** The later automatic charges, if this booking is on the deposit plan. */
   scheduled?: ScheduledCharge[];
 }) {
-  const id = useId();
   const onPlan = scheduled.length > 0;
 
   return (
-    <div className="border border-[--rule] bg-[--surface-raised] p-5">
-      <div className="flex items-start gap-3.5">
-        <input
-          id={id}
-          type="checkbox"
-          required
-          checked={checked}
-          disabled={disabled}
-          onChange={(e) => onChange(e.target.checked)}
-          className={cn(
-            "mt-1 h-4 w-4 shrink-0 cursor-pointer appearance-none border border-[--rule-strong]",
-            "bg-transparent transition-colors duration-fast disabled:opacity-50",
-            "checked:border-[--accent-solid] checked:bg-[--accent-solid]",
-          )}
-        />
-        <label htmlFor={id} className="font-body text-body-s leading-[1.7] text-[--text-secondary]">
-          {onPlan ? (
-            <>
-              I authorize Outrider to charge{" "}
-              <span className="tabular-nums text-[--text]">{amountLabel}</span> to this card today
-              as my deposit, and to charge the balance to the same card automatically, without
-              asking me again, on the dates shown above:{" "}
-              <span className="tabular-nums text-[--text]">{listCharges(scheduled)}</span>. I
-              understand the deposit is non-refundable, and I have read the{" "}
-            </>
-          ) : (
-            <>
-              I authorize Outrider to charge{" "}
-              <span className="tabular-nums text-[--text]">{amountLabel}</span> to this card
-              today, and I have read the{" "}
-            </>
-          )}
-          <Link
-            href="/terms#cancellation"
-            target="_blank"
-            rel="noreferrer"
-            className="text-[--accent] underline underline-offset-2"
-          >
-            cancellation terms
-          </Link>
-          .
-        </label>
-      </div>
-    </div>
+    <CheckRow
+      required
+      checked={checked}
+      disabled={disabled}
+      onChange={(e) => onChange(e.target.checked)}
+    >
+      {onPlan ? (
+        <>
+          I authorize Outrider to charge{" "}
+          <span className="tabular-nums text-[--text]">{amountLabel}</span> to this card today as
+          my deposit, and to charge the balance to the same card automatically, without asking me
+          again, on the dates shown above:{" "}
+          <span className="tabular-nums text-[--text]">{listCharges(scheduled)}</span>. I understand
+          the deposit is non-refundable, and I have read the{" "}
+        </>
+      ) : (
+        <>
+          I authorize Outrider to charge{" "}
+          <span className="tabular-nums text-[--text]">{amountLabel}</span> to this card today, and
+          I have read the{" "}
+        </>
+      )}
+      <Link
+        href="/terms#cancellation"
+        target="_blank"
+        rel="noreferrer"
+        className="text-[--accent] underline underline-offset-2"
+      >
+        cancellation terms
+      </Link>
+      .
+    </CheckRow>
   );
 }
 

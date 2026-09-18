@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Alert, Badge, Button, type BadgeTone } from "@/components/ui";
+import { Alert, Badge, Button, Facts, ScheduleTable, type BadgeTone } from "@/components/ui";
 import CancelBookingButton from "@/app/(protected)/bookings/CancelBookingButton";
 import { formatDay } from "@/app/(protected)/dates";
-import { formatDateRange, formatPrice } from "@/lib/trips";
+import { formatDateRange } from "@/lib/trips";
+import { formatAmount } from "@/lib/balance";
 import BalancePayment from "./BalancePayment";
 import { createPortalUrl } from "@/lib/portal-token";
 import { confirmationNumber } from "@/lib/confirmation-number";
@@ -54,6 +55,16 @@ const STATUS: Record<BookingStatus, { tone: BadgeTone; label: string }> = {
   cancelled: { tone: "closed", label: "Cancelled" },
 };
 
+/** A schedule row's state, in the traveler's words rather than the enum's. */
+const PAYMENT_LABEL: Partial<Record<PaymentStatus, string>> = {
+  succeeded: "Paid",
+  scheduled: "Scheduled",
+  pending: "Processing",
+  failed: "Did not go through",
+  requires_action: "Needs verifying",
+  refunded: "Refunded",
+};
+
 /** Statuses a traveler can still stand down themselves — see cancelBooking. */
 const CANCELLABLE: BookingStatus[] = ["pending", "deposit_paid"];
 
@@ -83,7 +94,7 @@ export default function BookingsView({
             <p className="mt-2 break-words font-body text-body-s text-[--text-secondary]">{email}</p>
           </div>
 
-          <Button href="/trips" variant="secondary" size="sm">
+          <Button href="/trips" variant="secondary" size="md">
             Browse trips
           </Button>
         </div>
@@ -101,7 +112,7 @@ export default function BookingsView({
         {bookings.length === 0 ? (
           <EmptyState />
         ) : (
-          <ul className="flex list-none flex-col gap-6 p-0">
+          <ul className="m-0 flex max-w-[56rem] list-none flex-col gap-8 p-0">
             {bookings.map((booking) => (
               <li key={booking.id}>
                 <BookingCard booking={booking} />
@@ -155,138 +166,170 @@ function BookingCard({ booking }: { booking: BookingRow }) {
   // The same signed page the emails link to; null if the portal is switched off.
   const portalUrl = !cancelled && booking.status !== "pending" ? createPortalUrl(booking.id) : null;
 
+  const schedule = booking.payments
+    .filter((p) => p.scheduled_date && p.status !== "canceled")
+    .sort((a, b) => (a.scheduled_date ?? "").localeCompare(b.scheduled_date ?? ""));
+
   return (
-    <article className="border border-[--rule] bg-[--surface-raised] p-6 md:p-8">
-      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
-        <div className="min-w-0">
-          <p className="stamp-type text-[--text-muted]">{trip?.destination ?? "Trip"}</p>
-          <h2 className="t-subheading mt-3 text-[--text]">{trip?.name ?? "Booking"}</h2>
-          <p className="mt-3 font-body text-body-s text-[--text-secondary]">
-            {trip ? formatDateRange(trip.start_date, trip.end_date) : "Dates to be confirmed"}
-            {booking.tiers?.name ? ` · ${booking.tiers.name}` : ""}
+    <article className="border border-[--rule] bg-[--surface-raised]" aria-labelledby={`booking-${booking.id}`}>
+      {/* -- what and when ---------------------------------------------------- */}
+      <header className="p-5 sm:p-7">
+        {/* Status shares the top line with the destination, so it is read
+            with the trip rather than found after it on a phone. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <p className="t-micro text-[--text-secondary]">{trip?.destination ?? "Trip"}</p>
+          <Badge tone={status.tone}>{status.label}</Badge>
+        </div>
+        <h2 id={`booking-${booking.id}`} className="t-subheading mt-3 text-[--text]">
+          {trip?.name ?? "Booking"}
+        </h2>
+        <p className="mt-2 font-body text-body-s text-[--text]">
+          {trip ? formatDateRange(trip.start_date, trip.end_date) : "Dates to be confirmed"}
+          {booking.tiers?.name && <span className="text-[--text-secondary]"> · {booking.tiers.name}</span>}
+        </p>
+        {/* The confirmation number is the same reference the email and the
+            confirmation page quote, and is not shown until something is
+            paid, when there is a booking to confirm. */}
+        {(booking.status !== "pending" || booking.group_code) && (
+          <p className="mt-2 flex flex-wrap gap-x-5 gap-y-1 font-body text-body-s text-[--text-secondary]">
+            {booking.status !== "pending" && (
+              <span>
+                Confirmation <span className="tabular-nums text-[--text]">{confirmationNumber(booking.id)}</span>
+              </span>
+            )}
+            {booking.group_code && (
+              <span>
+                Group code <span className="tracking-label text-[--text]">{booking.group_code}</span>
+              </span>
+            )}
           </p>
-          {/* The same reference the confirmation email and page quote. Not
-              shown until something is paid, when there is a booking to confirm. */}
-          {booking.status !== "pending" && (
-            <p className="t-micro mt-2 text-[--text-muted]">Confirmation {confirmationNumber(booking.id)}</p>
-          )}
-        </div>
-        <Badge tone={status.tone}>{status.label}</Badge>
-      </div>
+        )}
+      </header>
 
-      {!cancelled && (
-        <>
-          <dl className="mt-8 grid grid-cols-2 gap-x-8 gap-y-6 border-t border-[--rule-faint] pt-7 lg:grid-cols-4">
-            <Stat label="Paid" value={formatPrice(paid)} note={`of ${formatPrice(total)}`} />
-            <Stat label="Remaining" value={formatPrice(remaining)} />
-            <Stat
-              label="Next payment"
-              value={
-                booking.status === "pending"
-                  ? formatPrice(dueNow)
-                  : nextInstallment
-                    ? formatPrice(Number(nextInstallment.amount))
-                    : "None"
-              }
-              note={
-                booking.status === "pending"
-                  ? fullPlanDue
-                    ? "full price, due now"
-                    : "deposit, due now"
-                  : nextInstallment?.scheduled_date
-                    ? formatDay(nextInstallment.scheduled_date)
-                    : "balance settled"
-              }
+      <div className="border-t border-[--rule] p-5 sm:p-7">
+        {/* -- money -------------------------------------------------------- */}
+        {!cancelled && (
+          <>
+            <Facts
+              size="l"
+              columns={3}
+              items={[
+                { label: "Paid", value: formatAmount(paid), note: `of ${formatAmount(total)}` },
+                { label: "Remaining", value: formatAmount(remaining) },
+                {
+                  label: booking.status === "pending" ? "Due now" : "Next payment",
+                  value:
+                    booking.status === "pending"
+                      ? formatAmount(dueNow)
+                      : nextInstallment
+                        ? formatAmount(Number(nextInstallment.amount))
+                        : "None",
+                  note:
+                    booking.status === "pending"
+                      ? fullPlanDue
+                        ? "The full price"
+                        : "The deposit"
+                      : nextInstallment?.scheduled_date
+                        ? formatDay(nextInstallment.scheduled_date)
+                        : "Balance settled",
+                },
+              ]}
             />
-            <Stat label="Group code" value={booking.group_code ?? "None"} />
-          </dl>
 
-          {/* A hairline meter, not a progress bar: same 1px vocabulary as every
-              other rule on the page. The numbers above already say the amount,
-              so this is decoration and stays out of the accessibility tree. */}
-          <div aria-hidden="true" className="mt-7 h-[3px] w-full bg-[--rule-faint]">
-            <div className="h-full bg-[--accent]" style={{ width: `${paidShare}%` }} />
+            {/* A hairline meter, not a progress bar: same 1px vocabulary as every
+                other rule on the page. The numbers above already say the amount,
+                so this is decoration and stays out of the accessibility tree. */}
+            <div aria-hidden="true" className="mt-6 h-[3px] w-full bg-[--rule-faint]">
+              <div className="h-full bg-[--accent]" style={{ width: `${paidShare}%` }} />
+            </div>
+          </>
+        )}
+
+        {needsAuth && (
+          <div className="mt-7">
+            <Alert tone="warning" title="Your bank needs to verify a payment">
+              {formatAmount(Number(needsAuth.amount))} could not be taken without you confirming it.{" "}
+              <Link
+                href={`/bookings/${booking.id}/installments/${needsAuth.id}`}
+                className="text-[--accent] decoration-[--accent]"
+              >
+                Verify it now
+              </Link>
+              .
+            </Alert>
           </div>
-        </>
-      )}
-
-      {needsAuth && (
-        <div className="mt-7">
-          <Alert tone="warning" title="Your bank needs to verify a payment">
-            {formatPrice(Number(needsAuth.amount))} could not be taken without you confirming it.{" "}
-            <Link
-              href={`/bookings/${booking.id}/installments/${needsAuth.id}`}
-              className="text-[--accent] decoration-[--accent]"
-            >
-              Verify it now
-            </Link>
-            .
-          </Alert>
-        </div>
-      )}
-
-      {failed && (
-        <div className="mt-7">
-          <Alert tone="error" title="A payment did not go through">
-            We could not take {formatPrice(Number(failed.amount))}. Get in touch and we will sort out
-            a new card.
-          </Alert>
-        </div>
-      )}
-
-      {/* Only once the deposit has cleared: before that there is no schedule
-          to pay ahead of, and after paid_in_full nothing is owed. */}
-      {booking.status === "deposit_paid" && remaining > 0 && (
-        <BalancePayment bookingId={booking.id} remaining={remaining} />
-      )}
-
-      <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-[--rule-faint] pt-6">
-        {booking.status === "pending" && (
-          <Button href={`/bookings/${booking.id}/pay`} variant="primary" size="sm">
-            {fullPlanDue ? "Pay now" : "Pay deposit"}
-          </Button>
         )}
-        {booking.status !== "pending" && !cancelled && (
-          <Button href={`/bookings/${booking.id}/confirmation`} variant="secondary" size="sm">
-            Booking details
-          </Button>
+
+        {failed && (
+          <div className="mt-7">
+            <Alert tone="error" title="A payment did not go through">
+              We could not take {formatAmount(Number(failed.amount))}. Get in touch and we will sort
+              out a new card.
+            </Alert>
+          </div>
         )}
-        {portalUrl && (
-          <Button href={portalUrl} variant="secondary" size="sm">
-            Trip details &amp; forms
-          </Button>
-        )}
-        {cancellable && (
-          <CancelBookingButton
-            bookingId={booking.id}
-            tripName={trip?.name ?? "this trip"}
-            paidLabel={paid > 0 ? formatPrice(paid) : null}
-            depositLabel={formatPrice(Number(booking.deposit_amount))}
+
+        {/* -- schedule ----------------------------------------------------- */}
+        {!cancelled && schedule.length > 0 && (
+          <ScheduleTable
+            className="mt-8"
+            caption="Payment schedule"
+            rows={schedule.map((p) => ({
+              key: p.id,
+              date: p.scheduled_date ? formatDay(p.scheduled_date) : "Date to be set",
+              status: PAYMENT_LABEL[p.status] ?? p.status,
+              amount: formatAmount(Number(p.amount)),
+            }))}
           />
         )}
+
+        {/* Only once the deposit has cleared: before that there is no schedule
+            to pay ahead of, and after paid_in_full nothing is owed. */}
+        {booking.status === "deposit_paid" && remaining > 0 && (
+          <BalancePayment bookingId={booking.id} remaining={remaining} />
+        )}
+
         {cancelled && (
-          <p className="font-body text-body-s text-[--text-secondary]">
+          <p className="max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
             This booking was cancelled. Anything already charged is handled by hand, so write to us
             if you have a question about it.
           </p>
         )}
       </div>
-    </article>
-  );
-}
 
-function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
-  return (
-    <div className="min-w-0">
-      <dt className="stamp-type text-[--text-muted]">{label}</dt>
-      <dd className="mt-3 font-display font-medium text-display-s tracking-title text-[--text]">
-        <span className="break-words">{value}</span>
-        {/* Its own line rather than trailing the figure: in the two-column
-            mobile grid an inline note wraps mid-phrase and the column reads
-            ragged. */}
-        {note && <span className="t-micro mt-2 block text-[--text-secondary]">{note}</span>}
-      </dd>
-    </div>
+      {/* -- actions ---------------------------------------------------------
+          The way forward first; cancelling pushed to the far end as a quiet
+          text button, so it is findable but never where a thumb lands first. */}
+      {!cancelled && (
+        <footer className="flex flex-col gap-3 border-t border-[--rule] p-5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4 sm:px-7 sm:py-5">
+          {booking.status === "pending" && (
+            <Button href={`/bookings/${booking.id}/pay`} variant="primary" size="md">
+              {fullPlanDue ? `Pay ${formatAmount(dueNow)} now` : `Pay ${formatAmount(dueNow)} deposit`}
+            </Button>
+          )}
+          {portalUrl && (
+            <Button href={portalUrl} variant="primary" size="md">
+              Trip details &amp; forms
+            </Button>
+          )}
+          {booking.status !== "pending" && (
+            <Button href={`/bookings/${booking.id}/confirmation`} variant="secondary" size="md">
+              Booking details
+            </Button>
+          )}
+          {cancellable && (
+            <div className="mt-1 flex justify-center border-t border-[--rule-faint] pt-3 sm:ml-auto sm:mt-0 sm:border-0 sm:pt-0">
+              <CancelBookingButton
+                bookingId={booking.id}
+                tripName={trip?.name ?? "this trip"}
+                paidLabel={paid > 0 ? formatAmount(paid) : null}
+                depositLabel={formatAmount(Number(booking.deposit_amount))}
+              />
+            </div>
+          )}
+        </footer>
+      )}
+    </article>
   );
 }
 

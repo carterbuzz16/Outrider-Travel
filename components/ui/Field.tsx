@@ -1,6 +1,7 @@
 "use client";
 
 import { useId } from "react";
+import { CheckControl } from "./Choice";
 import { cn } from "./cn";
 
 /**
@@ -173,26 +174,18 @@ export function Checkbox({
   label,
   className,
   ...props
-}: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
-  const id = useId();
+}: { label: string } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "type">) {
+  // The whole row is the label, so the target is the sentence and not only
+  // the 20px box; min-h-11 keeps a one-line row at the 44px touch minimum.
   return (
-    <div className={cn("flex items-start gap-3", className)}>
-      {/* A square that fills with the accent when checked — no rounded tick
-          chip, no custom SVG check; the native mark is fine at this size. */}
-      <input
-        id={id}
-        type="checkbox"
-        className={cn(
-          "mt-1 h-4 w-4 shrink-0 appearance-none border border-[--rule-strong]",
-          "bg-transparent transition-colors duration-fast",
-          "checked:border-[--accent] checked:bg-[--accent]",
-          "cursor-pointer disabled:opacity-50",
-        )}
-        {...props}
-      />
-      <label htmlFor={id} className="font-body text-body-s text-[--text-secondary]">
-        {label}
-      </label>
-    </div>
+    <label
+      className={cn(
+        "flex min-h-11 cursor-pointer items-start gap-3 py-2 has-[:disabled]:cursor-not-allowed",
+        className,
+      )}
+    >
+      <CheckControl className="mt-[0.1rem]" {...props} />
+      <span className="font-body text-body-s text-[--text-secondary]">{label}</span>
+    </label>
   );
 }

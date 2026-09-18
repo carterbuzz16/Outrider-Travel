@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useId, useState } from "react";
-import { AcceptTerms, Field, Input, cn } from "@/components/ui";
+import { AcceptTerms, Badge, CheckRow, Field, Input, RadioControl, cn } from "@/components/ui";
 import { SMS_CONSENT_FIELD, SMS_CONSENT_PARTS } from "@/lib/sms-consent";
 import { PendingSubmitButton, SubmitOnceForm } from "@/components/SubmitOnce";
 import { createBooking } from "@/app/(protected)/bookings/actions";
@@ -19,6 +19,10 @@ import { createBooking } from "@/app/(protected)/bookings/actions";
  * One form per tier rather than one form with a tier selector: the tier is the
  * thing being chosen, so choosing it and submitting are the same gesture.
  *
+ * The plan choice is two native radios drawn as cards. Their selected look is
+ * CSS (`has-[:checked]`), so it is right before hydration; the only thing
+ * state drives is the button's label, which names the plan and the amount.
+ *
  * The figures in the labels are display only. The form posts which plan was
  * picked and nothing else about money; createBooking works out both amounts
  * again from the tier row.
@@ -32,6 +36,7 @@ export default function BookingForm({
   tripId,
   tierId,
   tierName,
+  priceLabel,
   depositLabel,
   fullLabel,
   savingLabel,
@@ -40,7 +45,9 @@ export default function BookingForm({
   tripId: string;
   tierId: string;
   tierName: string;
-  /** The deposit, formatted: "$150". */
+  /** The tier price before any discount, formatted: "$4,500". */
+  priceLabel: string;
+  /** The deposit, formatted: "$450". */
   depositLabel: string;
   /** The pay-in-full price after any discount, formatted. */
   fullLabel: string;
@@ -51,42 +58,63 @@ export default function BookingForm({
   const [plan, setPlan] = useState<"deposit" | "full">("deposit");
   const legendId = useId();
 
+  if (soldOut) {
+    // Nothing to fill in: the button is the whole message, and a disabled
+    // group-code box under a sold-out package only reads as broken.
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="font-body text-body-s leading-[1.7] text-[--text-secondary]">
+          Every place in this package is taken. Another package on the same dates may still be open.
+        </p>
+        <button
+          type="button"
+          disabled
+          className="t-label min-h-12 w-full border border-[--rule] px-6 text-[--text-secondary]"
+        >
+          Sold out<span className="sr-only">, {tierName}</span>
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <SubmitOnceForm action={createBooking} className="flex flex-col gap-5">
+    <SubmitOnceForm action={createBooking} className="flex flex-col">
       <input type="hidden" name="tripId" value={tripId} />
       <input type="hidden" name="tierId" value={tierId} />
 
-      {!soldOut && (
-        <fieldset className="m-0 flex min-w-0 flex-col gap-2.5 border-0 p-0" aria-labelledby={legendId}>
-          <legend id={legendId} className="t-micro mb-2 p-0 text-[--text-secondary]">
-            How you pay
-          </legend>
+      <fieldset className="m-0 min-w-0 border-0 p-0" aria-labelledby={legendId}>
+        <legend id={legendId} className="t-micro p-0 text-[--text-secondary]">
+          How you pay
+        </legend>
+        <div className="mt-3 flex flex-col gap-3">
           <PlanOption
             name="payment_plan"
             value="deposit"
-            checked={plan === "deposit"}
+            defaultChecked
             onSelect={() => setPlan("deposit")}
-            title={`Pay the deposit (${depositLabel})`}
-            detail="The balance is taken in two scheduled payments."
+            title="Deposit"
+            amount={depositLabel}
+            amountNote="today"
+            detail={`Holds your place. The rest of the ${priceLabel} is taken in two scheduled payments before you travel.`}
           />
           <PlanOption
             name="payment_plan"
             value="full"
-            checked={plan === "full"}
             onSelect={() => setPlan("full")}
-            title={
-              savingLabel
-                ? `Pay in full: ${fullLabel} (save ${savingLabel})`
-                : `Pay in full (${fullLabel})`
-            }
+            title="Pay in full"
+            amount={fullLabel}
+            amountNote="today"
+            was={savingLabel ? priceLabel : undefined}
+            badge={savingLabel ? `Save ${savingLabel}` : undefined}
             detail="One payment now, and nothing more to pay later."
           />
-        </fieldset>
-      )}
+        </div>
+      </fieldset>
 
       <Field
         label="Group code"
         hint="Friends already booked? Their code puts you in the same group. Leave it blank to start one."
+        className="mt-8"
       >
         {(field) => (
           <Input
@@ -98,28 +126,28 @@ export default function BookingForm({
             autoComplete="off"
             autoCapitalize="characters"
             spellCheck={false}
-            disabled={soldOut}
           />
         )}
       </Field>
 
-      {/* createBooking rejects a submission without this, and writes a
-          versioned acceptance row before any PaymentIntent exists — see
-          app/(protected)/bookings/actions.ts and lib/legal-acceptance.ts. */}
-      {!soldOut && <AcceptTerms />}
+      <div className="mt-8 flex flex-col gap-3">
+        {/* createBooking rejects a submission without this, and writes a
+            versioned acceptance row before any PaymentIntent exists — see
+            app/(protected)/bookings/actions.ts and lib/legal-acceptance.ts. */}
+        <AcceptTerms />
 
-      {/* Separate from the terms and never required: carriers reject an
-          opt-in that is bundled with the purchase or ticked in advance. */}
-      {!soldOut && <SmsConsent />}
+        {/* Separate from the terms and never required: carriers reject an
+            opt-in that is bundled with the purchase or ticked in advance. */}
+        <SmsConsent />
+      </div>
 
-      <PendingSubmitButton variant="primary" size="md" block disabled={soldOut} pendingLabel="Holding your spot">
-        {soldOut
-          ? "Sold out"
-          : plan === "full"
-            ? `${fullLabel} in full now`
-            : `${depositLabel} deposit now`}
+      <PendingSubmitButton variant="primary" size="lg" block pendingLabel="Holding your spot" className="mt-8">
+        {plan === "full" ? `Pay ${fullLabel} in full` : `Pay ${depositLabel} deposit`}
         <span className="sr-only">, {tierName}</span>
       </PendingSubmitButton>
+      <p className="mt-3 text-center font-body text-body-s text-[--text-secondary]">
+        You enter your card on the next screen.
+      </p>
     </SubmitOnceForm>
   );
 }
@@ -133,98 +161,93 @@ export default function BookingForm({
  * form to read them.
  */
 function SmsConsent() {
-  const id = useId();
-  const [checked, setChecked] = useState(false);
-
   return (
-    <div className="border border-[--rule] p-5">
-      <div className="flex items-start gap-3.5">
-        <input
-          id={id}
-          name={SMS_CONSENT_FIELD}
-          type="checkbox"
-          checked={checked}
-          onChange={(e) => setChecked(e.target.checked)}
-          className={cn(
-            "mt-1 h-4 w-4 shrink-0 cursor-pointer appearance-none border border-[--rule-strong]",
-            "bg-transparent transition-colors duration-fast",
-            "checked:border-[--accent-solid] checked:bg-[--accent-solid]",
-          )}
-        />
-        <label htmlFor={id} className="font-body text-body-s leading-[1.7] text-[--text-secondary]">
-          {SMS_CONSENT_PARTS.lead}
-          <Link
-            href="/privacy"
-            target="_blank"
-            rel="noreferrer"
-            className="text-[--accent] underline underline-offset-2"
-          >
-            {SMS_CONSENT_PARTS.privacyLabel}
-          </Link>
-          {SMS_CONSENT_PARTS.between}
-          <Link
-            href="/terms"
-            target="_blank"
-            rel="noreferrer"
-            className="text-[--accent] underline underline-offset-2"
-          >
-            {SMS_CONSENT_PARTS.termsLabel}
-          </Link>
-          {SMS_CONSENT_PARTS.tail}
-        </label>
-      </div>
-    </div>
+    <CheckRow name={SMS_CONSENT_FIELD}>
+      {SMS_CONSENT_PARTS.lead}
+      <Link href="/privacy" target="_blank" rel="noreferrer" className={LINK}>
+        {SMS_CONSENT_PARTS.privacyLabel}
+      </Link>
+      {SMS_CONSENT_PARTS.between}
+      <Link href="/terms" target="_blank" rel="noreferrer" className={LINK}>
+        {SMS_CONSENT_PARTS.termsLabel}
+      </Link>
+      {SMS_CONSENT_PARTS.tail}
+    </CheckRow>
   );
 }
 
+const LINK = "text-[--accent] underline underline-offset-2";
+
 /*
- * A radio drawn as a hairline row, so the two plans read as choices on the
- * same paperwork as the fields below them. The native input stays in the
- * tree for keyboard and screen readers, restyled with the same tokens as
- * AcceptTerms' checkbox but round, because it is one-of-two rather than a
- * tick. The whole row is its label, so the target is the row, not the dot.
+ * One plan, as a selectable card. The native radio stays in the tree for
+ * keyboard and screen readers (arrow keys move between the two, as a radio
+ * group should), and the whole card is its label, so the target is the card,
+ * not the dot. Selected is a doubled espresso rule, drawn from `:has(:checked)`
+ * so it needs no script; keyboard focus shows as the ring on the card.
  */
 function PlanOption({
   name,
   value,
-  checked,
+  defaultChecked,
   onSelect,
   title,
+  amount,
+  amountNote,
+  was,
+  badge,
   detail,
 }: {
   name: string;
   value: string;
-  checked: boolean;
+  defaultChecked?: boolean;
   onSelect: () => void;
   title: string;
+  amount: string;
+  amountNote: string;
+  /** The undiscounted price, struck through beside the amount. */
+  was?: string;
+  badge?: string;
   detail: string;
 }) {
-  const id = useId();
   return (
     <label
-      htmlFor={id}
       className={cn(
-        "flex cursor-pointer items-start gap-3.5 border p-4 transition-colors duration-fast",
-        checked ? "border-[--accent-solid]" : "border-[--rule] hover:border-[--rule-strong]",
+        "flex cursor-pointer items-start gap-4 border border-[--rule] bg-[--surface] p-4 sm:p-5",
+        "transition-[border-color,box-shadow] duration-fast ease-out hover:border-[--rule-strong]",
+        "has-[:checked]:border-[--accent-solid] has-[:checked]:shadow-[inset_0_0_0_1px_var(--accent-solid)]",
+        "has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[color:var(--focus-ring)]",
       )}
     >
-      <input
-        id={id}
-        type="radio"
+      <RadioControl
         name={name}
         value={value}
-        checked={checked}
-        onChange={onSelect}
-        className={cn(
-          "mt-1 h-4 w-4 shrink-0 cursor-pointer appearance-none rounded-full border border-[--rule-strong]",
-          "bg-transparent transition-colors duration-fast",
-          "checked:border-[--accent-solid] checked:bg-[--accent-solid]",
-          "checked:shadow-[inset_0_0_0_3px_var(--surface-raised)]",
-        )}
+        defaultChecked={defaultChecked}
+        onChange={(e) => {
+          if (e.target.checked) onSelect();
+        }}
+        // The card carries the focus ring; a second one on the dot is noise.
+        className="mt-0.5 [&>input:focus-visible]:outline-none"
       />
-      <span className="min-w-0">
-        <span className="block font-body text-body-s font-medium leading-[1.5] text-[--text]">{title}</span>
-        <span className="mt-1 block font-body text-body-s leading-[1.6] text-[--text-secondary]">{detail}</span>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <span className="t-micro text-[--text]">{title}</span>
+          {badge && <Badge tone="open" plain>{badge}</Badge>}
+        </span>
+        <span className="mt-2.5 flex flex-wrap items-baseline gap-x-2.5">
+          <span className="font-display text-display-s font-medium leading-none tabular-nums tracking-title text-[--text]">
+            {amount}
+          </span>
+          {was && (
+            <s className="font-body text-body-s tabular-nums text-[--text-secondary]">
+              <span className="sr-only">instead of </span>
+              {was}
+            </s>
+          )}
+          <span className="font-body text-body-s text-[--text-secondary]">{amountNote}</span>
+        </span>
+        <span className="mt-2 block font-body text-body-s leading-[1.6] text-[--text-secondary]">
+          {detail}
+        </span>
       </span>
     </label>
   );

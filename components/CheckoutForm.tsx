@@ -46,7 +46,7 @@ function readTokens() {
     text: v("--text") || "#3e342f",
     textSecondary: v("--text-secondary") || "#6b635c",
     textMuted: v("--text-muted") || "#6b635c",
-    accent: v("--accent") || "#56643f",
+    accent: v("--accent") || "#386579",
     flagInk: v("--flag-ink") || "#9c4f2e",
     rule: v("--rule") || "rgba(62, 52, 47, 0.18)",
     ruleStrong: v("--rule-strong") || "rgba(62, 52, 47, 0.5)",
@@ -70,7 +70,7 @@ function buildAppearance(): Appearance {
       colorText: t?.text ?? "#3e342f",
       colorTextSecondary: t?.textSecondary ?? "#6b635c",
       colorTextPlaceholder: t?.textMuted ?? "#6b635c",
-      colorPrimary: t?.accent ?? "#56643f",
+      colorPrimary: t?.accent ?? "#386579",
       colorDanger: t?.flagInk ?? "#9c4f2e",
       iconColor: t?.textSecondary ?? "#6b635c",
     },
@@ -86,21 +86,23 @@ function buildAppearance(): Appearance {
         border: `1px solid ${t?.textSecondary ?? "#6b635c"}`,
       },
       ".Input:focus": {
-        border: `1px solid ${t?.accent ?? "#56643f"}`,
+        border: `1px solid ${t?.accent ?? "#386579"}`,
         boxShadow: "none",
-        outline: `2px solid ${t?.accent ?? "#56643f"}`,
+        outline: `2px solid ${t?.accent ?? "#386579"}`,
         outlineOffset: "2px",
       },
       ".Input--invalid": {
         border: `1px solid ${t?.flagInk ?? "#9c4f2e"}`,
         boxShadow: "none",
       },
-      // Labels and errors borrow the tracked mono voice used by Field's own
-      // <label>, so a Stripe field reads as part of the same form.
+      // Labels and errors borrow the tracked Medium capitals of Field's own
+      // <label> (.t-micro: 11px, 0.12em), so a Stripe field reads as part of
+      // the same form.
       ".Label": {
         fontFamily: DISPLAY_STACK,
         fontSize: "11px",
-        letterSpacing: "0.18em",
+        letterSpacing: "0.12em",
+        fontWeight: "500",
         textTransform: "uppercase",
         color: t?.textSecondary ?? "#6b635c",
         marginBottom: "8px",
@@ -108,7 +110,8 @@ function buildAppearance(): Appearance {
       ".Error": {
         fontFamily: DISPLAY_STACK,
         fontSize: "11px",
-        letterSpacing: "0.18em",
+        letterSpacing: "0.12em",
+        fontWeight: "500",
         textTransform: "uppercase",
         color: t?.flagInk ?? "#9c4f2e",
       },
@@ -117,14 +120,15 @@ function buildAppearance(): Appearance {
         boxShadow: "none",
       },
       ".Tab--selected": {
-        border: `1px solid ${t?.accent ?? "#56643f"}`,
+        border: `1px solid ${t?.accent ?? "#386579"}`,
         boxShadow: "none",
-        color: t?.accent ?? "#56643f",
+        color: t?.accent ?? "#386579",
       },
       ".TabLabel": {
         fontFamily: DISPLAY_STACK,
         fontSize: "11px",
-        letterSpacing: "0.18em",
+        letterSpacing: "0.12em",
+        fontWeight: "500",
         textTransform: "uppercase",
       },
     },

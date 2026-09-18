@@ -40,6 +40,12 @@ export { default as Badge, StatusBadge, TRIP_STATUS } from "./Badge";
 export type { BadgeTone, TripStatus } from "./Badge";
 
 export { Field, Input, InlineInput, Textarea, Select, Checkbox } from "./Field";
+export { CheckControl, RadioControl, CheckRow } from "./Choice";
+export { default as Facts } from "./Facts";
+export type { Fact } from "./Facts";
+export { default as ScheduleTable } from "./ScheduleTable";
+export type { ScheduleRow } from "./ScheduleTable";
+export { default as AmountDue } from "./AmountDue";
 
 export { default as AcceptTerms } from "./AcceptTerms";
 export { default as Dialog } from "./Dialog";

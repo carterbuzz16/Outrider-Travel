@@ -105,7 +105,7 @@ export default function Dialog({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-5">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-5">
       {/* Scrim. A button so a pointer-only user can dismiss by clicking away;
           kept out of the tab order because Escape and the panel's own buttons
           already do the job for everyone else. The fixed deep espresso is the
@@ -129,7 +129,7 @@ export default function Dialog({
         aria-describedby={description ? descriptionId : undefined}
         className={cn(
           "scheme-light scheme-paint relative w-full max-w-[30rem] border border-[--rule]",
-          "max-h-[calc(100dvh-2.5rem)] overflow-y-auto p-7 md:p-9",
+          "max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 sm:p-8 md:p-9",
           "motion-safe:animate-rise",
           className,
         )}

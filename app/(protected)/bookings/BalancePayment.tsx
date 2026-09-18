@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Button, Field, Input } from "@/components/ui";
 import { PendingSubmitButton, SubmitOnceForm } from "@/components/SubmitOnce";
 import { startBalancePayment } from "@/app/(protected)/bookings/actions";
@@ -27,37 +27,45 @@ export default function BalancePayment({ bookingId, remaining }: { bookingId: st
   const owed = toCents(remaining);
   const minimum = fromCents(minimumBalanceCents(owed));
 
+  const formId = useId();
+
   return (
-    <div className="mt-7 border-t border-[--rule-faint] pt-6">
-      <p className="stamp-type text-[--text-muted]">Pay ahead</p>
-      <p className="mt-3 max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
+    <section className="mt-8 border-t border-[--rule] pt-6" aria-labelledby={`${formId}-heading`}>
+      <h3 id={`${formId}-heading`} className="t-micro text-[--text]">
+        Pay ahead
+      </h3>
+      <p className="mt-2 max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
         Pay some or all of what is left now. It comes off your scheduled payments, earliest first.
       </p>
 
-      <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3">
-        <SubmitOnceForm action={startBalancePayment}>
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6">
+        <SubmitOnceForm action={startBalancePayment} className="flex flex-col sm:block">
           <input type="hidden" name="booking_id" value={bookingId} />
           <input type="hidden" name="mode" value="remaining" />
-          <PendingSubmitButton variant="secondary" size="sm" pendingLabel="Starting payment">
+          <PendingSubmitButton variant="secondary" size="md" pendingLabel="Starting payment">
             Pay the remaining balance ({formatAmount(remaining)})
           </PendingSubmitButton>
         </SubmitOnceForm>
 
-        {!custom && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            aria-expanded={false}
-            onClick={() => setCustom(true)}
-          >
-            Pay a different amount
-          </Button>
-        )}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          aria-expanded={custom}
+          aria-controls={`${formId}-custom`}
+          onClick={() => setCustom((open) => !open)}
+          className="min-h-11 self-center sm:self-auto"
+        >
+          {custom ? "Hide custom amount" : "Pay a different amount"}
+        </Button>
       </div>
 
       {custom && (
-        <SubmitOnceForm action={startBalancePayment} className="mt-6 flex max-w-md flex-col gap-4">
+        <SubmitOnceForm
+          id={`${formId}-custom`}
+          action={startBalancePayment}
+          className="mt-6 flex max-w-sm flex-col gap-4"
+        >
           <input type="hidden" name="booking_id" value={bookingId} />
           <input type="hidden" name="mode" value="custom" />
           <Field
@@ -76,25 +84,15 @@ export default function BalancePayment({ bookingId, remaining }: { bookingId: st
                 required
                 autoFocus
                 placeholder={String(Math.round(minimum))}
+                className="tabular-nums"
               />
             )}
           </Field>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-            <PendingSubmitButton variant="primary" size="sm" pendingLabel="Starting payment">
-              Continue to payment
-            </PendingSubmitButton>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="text-[--text-secondary]"
-              onClick={() => setCustom(false)}
-            >
-              Never mind
-            </Button>
-          </div>
+          <PendingSubmitButton variant="primary" size="md" pendingLabel="Starting payment" className="self-start">
+            Continue to payment
+          </PendingSubmitButton>
         </SubmitOnceForm>
       )}
-    </div>
+    </section>
   );
 }
