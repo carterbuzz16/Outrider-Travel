@@ -94,6 +94,9 @@ export default function DashboardView({
         lede="Every booking on the system, newest first, with the state of its payment schedule."
         actions={
           <>
+            <Button href="/admin/bookings" variant="secondary" size="sm">
+              All bookings
+            </Button>
             <Button href="/admin/trips" variant="secondary" size="sm">
               Manage trips
             </Button>
@@ -106,11 +109,13 @@ export default function DashboardView({
 
       <div className="mt-8 grid grid-cols-2 gap-x-8 gap-y-6 lg:grid-cols-4">
         <Figure
+          href="/admin/bookings?status=live"
           label="Live bookings"
           value={live.length}
           note={rows.length === live.length ? undefined : `${rows.length - live.length} cancelled`}
         />
         <Figure
+          href="/admin/bookings?status=pending"
           label="Awaiting payment"
           value={awaiting.length}
           note={
@@ -120,11 +125,13 @@ export default function DashboardView({
           }
         />
         <Figure
+          href="/admin/bookings?owes=1"
           label="Booked value"
           value={formatPrice(bookedValue)}
           note={`${formatAmount(fromCents(collectedCents))} collected, ${formatAmount(fromCents(toComeCents))} to come. Excludes cancellations`}
         />
         <Figure
+          href="/admin/payments"
           label="Flagged installments"
           value={flaggedCount}
           tone={flaggedCount > 0 ? "flag" : "default"}

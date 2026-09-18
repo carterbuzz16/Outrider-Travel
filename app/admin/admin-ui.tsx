@@ -225,12 +225,25 @@ export function Figure({
   value,
   note,
   tone = "default",
+  href,
 }: {
   label: string;
   value: React.ReactNode;
   note?: React.ReactNode;
   tone?: "default" | "flag";
+  /** Makes the whole figure a link, e.g. into a filtered bookings list. */
+  href?: string;
 }) {
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="block min-w-0 no-underline transition-opacity duration-fast hover:opacity-75"
+      >
+        <Figure label={label} value={value} note={note} tone={tone} />
+      </Link>
+    );
+  }
   return (
     <div className="min-w-0 border-t border-[--rule-strong] pt-3.5">
       <p className="t-micro text-[--text-secondary]">{label}</p>
