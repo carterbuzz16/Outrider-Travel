@@ -214,3 +214,22 @@ export const UPCOMING_CATEGORIES = [
     note: "Somewhere warm, with the same standard applied. Real properties, a group small enough to know, and days worth flying for rather than just surviving.",
   },
 ];
+
+/* -- what every Telluride package includes ----------------------------------
+ * Shown on /telluride under #included, the anchor the booking emails link to.
+ * Each line restates something the site already promises (VALUE_PROPS,
+ * COMPARISON, the FAQ), so this list adds no new claim. What differs between
+ * packages comes from the tiers in the database, not from here.
+ * ------------------------------------------------------------------------- */
+export const SHARED_INCLUSIONS = [
+  "Lodging at one property, booked whole for the group",
+  "Lift tickets and rentals, arranged before you land",
+  "Ground transport between Montrose and Telluride, both directions",
+  "The private events on the itinerary",
+  "A welcome package",
+  "Outrider staff on the ground for the whole trip",
+];
+
+/** The one thing deliberately left out, said next to the list above. */
+export const NOT_INCLUDED_NOTE =
+  "Flights are not included. Everyone books their own, into Montrose.";

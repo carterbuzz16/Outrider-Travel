@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   Button,
@@ -204,7 +205,11 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
         <Reveal>
           <p className="t-micro mt-6 text-[--text-muted]">
             {!BOOKINGS_OPEN && `${COMING_SOON_NOTE} `}
-            Every package includes on-trip staffing. Flights are booked separately; see Getting there for the airport and transfers.
+            Every package includes on-trip staffing. Flights are booked separately; see Getting there for the airport and transfers, or the{" "}
+            <Link href="/flights" className="text-[--accent] underline underline-offset-4">
+              flight guide
+            </Link>
+            .
           </p>
         </Reveal>
       </section>

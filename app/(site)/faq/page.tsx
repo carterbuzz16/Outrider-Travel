@@ -156,7 +156,12 @@ const GROUPS: Group[] = [
           <>
             For Telluride, fly into Montrose. It is about 65 miles out, roughly
             an hour and a half of driving, and ground transport in both
-            directions is arranged and included.
+            directions is arranged and included. The{" "}
+            <Link href="/flights" className="text-[--accent] underline underline-offset-4">
+              flight guide
+            </Link>{" "}
+            has the arrival and departure times and what to do about a bad
+            connection.
           </>
         ),
       },

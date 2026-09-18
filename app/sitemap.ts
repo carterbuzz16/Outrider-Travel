@@ -21,6 +21,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/trips`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
     { url: `${base}/waitlist`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
     { url: `${base}/destinations`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
+    // Public before launch as well: both carry dates only until then.
+    { url: `${base}/telluride`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${base}/flights`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: `${base}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: `${base}/faq`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: `${base}/team`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
