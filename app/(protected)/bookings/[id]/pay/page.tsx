@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe";
 import { INSTALLMENT_OFFSETS_DAYS } from "@/lib/installments";
 import { paymentKindOf } from "@/lib/payments";
+import { syncPaymentFromStripe } from "@/lib/stripe-sync";
 import { formatAmount } from "@/lib/balance";
 import { PAY_IN_FULL_DISCOUNT } from "@/lib/deposit";
 import { formatDay } from "@/app/(protected)/dates";
@@ -35,7 +36,7 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, status, total_amount, deposit_amount, trips(name, destination, start_date, end_date), tiers(name), payments(stripe_payment_intent_id)"
+      "id, status, total_amount, deposit_amount, trips(name, destination, start_date, end_date), tiers(name), payments(stripe_payment_intent_id, scheduled_date)"
     )
     .eq("id", params.id)
     .single();
@@ -48,12 +49,22 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
     redirect(`/bookings/${booking.id}/confirmation`);
   }
 
-  const payment = booking.payments[0];
+  // The checkout row: the one with no scheduled date. A pending booking has no
+  // other, but reading it by shape rather than position costs nothing.
+  const payment = booking.payments.find((p) => p.scheduled_date === null && p.stripe_payment_intent_id);
   if (!payment?.stripe_payment_intent_id) {
     notFound();
   }
 
   const paymentIntent = await getStripe().paymentIntents.retrieve(payment.stripe_payment_intent_id);
+
+  // Already paid, and the booking just does not know it yet (a late webhook,
+  // or a preview deployment that never gets one). Showing the card form again
+  // would invite a second payment, so settle it here and move on.
+  if (paymentIntent.status === "succeeded" || paymentIntent.status === "processing") {
+    if (paymentIntent.status === "succeeded") await syncPaymentFromStripe(paymentIntent);
+    redirect(`/bookings/${booking.id}/confirmation`);
+  }
 
   const trip = booking.trips;
   const total = Number(booking.total_amount);

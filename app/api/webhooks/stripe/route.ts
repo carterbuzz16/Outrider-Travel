@@ -36,13 +36,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  switch (event.type) {
-    case "payment_intent.succeeded":
-      await handlePaymentIntentSucceeded(event.data.object);
-      break;
-    case "payment_intent.payment_failed":
-      await handlePaymentIntentFailed(event.data.object);
-      break;
+  // A throw answers 500, and Stripe delivers the event again later. That is
+  // deliberate: the handlers are idempotent, and the one expected throw,
+  // RefundContentionError from lib/overpayment.ts, means two payments on the
+  // same booking were being settled at once and this one should look again
+  // when the other has finished.
+  try {
+    switch (event.type) {
+      case "payment_intent.succeeded":
+        await handlePaymentIntentSucceeded(event.data.object);
+        break;
+      case "payment_intent.payment_failed":
+        await handlePaymentIntentFailed(event.data.object);
+        break;
+    }
+  } catch (err) {
+    console.error(`Stripe webhook ${event.type} ${event.id} failed: ${err instanceof Error ? err.message : err}`);
+    return NextResponse.json({ error: "Handler failed; retry" }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });

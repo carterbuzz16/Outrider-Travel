@@ -248,6 +248,48 @@ export async function sendActionRequiredEmail(opts: {
 }
 
 /**
+ * Sent when lib/overpayment.ts refunds money on its own: a payment took the
+ * booking past its price, or arrived on a booking that was already cancelled.
+ * Nobody at Outrider decided this refund, so the email is the only way the
+ * traveler hears why a credit is on its way. Kept short and factual.
+ */
+export async function sendOverpaymentRefundEmail(opts: {
+  to: string;
+  name: string | null;
+  bookingId: string;
+  tripName: string;
+  amount: number;
+  reason: "overpaid" | "cancelled";
+}) {
+  const { to, name, bookingId, tripName, amount, reason } = opts;
+  const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi,";
+
+  const why =
+    reason === "overpaid"
+      ? `A recent payment took your booking for <strong>${escapeHtml(tripName)}</strong> past its price, so we have refunded the difference.`
+      : `A payment reached your booking for <strong>${escapeHtml(tripName)}</strong> after it was cancelled, so we have refunded it.`;
+
+  const bodyHtml = `
+    <p>${greeting}</p>
+    <p>${why}</p>
+    <p>Refund: <strong>${formatCurrency(amount)}</strong>, back to the card you paid with. Banks usually take 5 to 10 business days to show it.</p>
+    <p>There is nothing you need to do. If the numbers look wrong to you, reply to this email.</p>
+  `;
+
+  await sendEmail({
+    from: getFromAddress(),
+    to,
+    subject: `Refund on its way: ${tripName}`,
+    html: renderEmailLayout({
+      preheader: `We refunded ${formatCurrency(amount)} to your card.`,
+      bodyHtml,
+      ctaLabel: "View your booking",
+      ctaUrl: `${getAppUrl()}/bookings/${bookingId}/confirmation`,
+    }),
+  });
+}
+
+/**
  * Welcome mail, sent to the person who joined.
  *
  * This is the message that carries the unsubscribe link, which is why it

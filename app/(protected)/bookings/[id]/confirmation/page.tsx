@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Alert, Button, SectionDivider, Stamp } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
-import { reconcileDepositPayment } from "@/lib/payments";
+import { syncPaymentFromStripe } from "@/lib/stripe-sync";
 import { formatDay } from "@/app/(protected)/dates";
 import { formatAmount, toCents } from "@/lib/balance";
 import { formatDateRange, formatPrice } from "@/lib/trips";
@@ -54,11 +54,15 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
     : booking.payments.find((p) => p.scheduled_date === null && p.stripe_payment_intent_id);
 
   // Re-check with Stripe directly rather than trusting DB state, which may
-  // lag behind if the webhook hasn't landed yet (e.g. no local forwarding).
+  // lag behind if the webhook hasn't landed yet (e.g. no local forwarding, or
+  // a preview deployment, which Stripe never sends webhooks to). If it has
+  // settled, syncPaymentFromStripe runs the webhook's own handler, so the
+  // installments are scheduled and the confirmation email goes out exactly
+  // as if the webhook had arrived, and once only if it arrives as well.
   const status = alreadySettled
     ? "succeeded"
     : deposit?.stripe_payment_intent_id
-      ? await reconcileDepositPayment(deposit.stripe_payment_intent_id)
+      ? ((await syncPaymentFromStripe(deposit.stripe_payment_intent_id))?.status ?? null)
       : null;
 
   // Reconciling may just have confirmed the booking and written its schedule,

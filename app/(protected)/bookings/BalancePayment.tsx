@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button, Field, Input } from "@/components/ui";
+import { PendingSubmitButton, SubmitOnceForm } from "@/components/SubmitOnce";
 import { startBalancePayment } from "@/app/(protected)/bookings/actions";
 import { formatAmount, fromCents, minimumBalanceCents, toCents } from "@/lib/balance";
 
@@ -14,6 +15,11 @@ import { formatAmount, fromCents, minimumBalanceCents, toCents } from "@/lib/bal
  * re-derives what is owed and checks the amount against it; the figures here
  * are for the traveler to read, and the `min`/`max` on the input are a
  * courtesy, not a control.
+ *
+ * Each form sends once per press, and its button says so until the server
+ * answers (components/SubmitOnce.tsx), so a double-click does not ask for two
+ * card forms. startBalancePayment would hand back the first one anyway; this
+ * keeps the second request from being made.
  */
 export default function BalancePayment({ bookingId, remaining }: { bookingId: string; remaining: number }) {
   const [custom, setCustom] = useState(false);
@@ -29,13 +35,13 @@ export default function BalancePayment({ bookingId, remaining }: { bookingId: st
       </p>
 
       <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3">
-        <form action={startBalancePayment}>
+        <SubmitOnceForm action={startBalancePayment}>
           <input type="hidden" name="booking_id" value={bookingId} />
           <input type="hidden" name="mode" value="remaining" />
-          <Button type="submit" variant="secondary" size="sm">
+          <PendingSubmitButton variant="secondary" size="sm" pendingLabel="Starting payment">
             Pay the remaining balance ({formatAmount(remaining)})
-          </Button>
-        </form>
+          </PendingSubmitButton>
+        </SubmitOnceForm>
 
         {!custom && (
           <Button
@@ -51,7 +57,7 @@ export default function BalancePayment({ bookingId, remaining }: { bookingId: st
       </div>
 
       {custom && (
-        <form action={startBalancePayment} className="mt-6 flex max-w-md flex-col gap-4">
+        <SubmitOnceForm action={startBalancePayment} className="mt-6 flex max-w-md flex-col gap-4">
           <input type="hidden" name="booking_id" value={bookingId} />
           <input type="hidden" name="mode" value="custom" />
           <Field
@@ -74,9 +80,9 @@ export default function BalancePayment({ bookingId, remaining }: { bookingId: st
             )}
           </Field>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-            <Button type="submit" variant="primary" size="sm">
+            <PendingSubmitButton variant="primary" size="sm" pendingLabel="Starting payment">
               Continue to payment
-            </Button>
+            </PendingSubmitButton>
             <Button
               type="button"
               variant="ghost"
@@ -87,7 +93,7 @@ export default function BalancePayment({ bookingId, remaining }: { bookingId: st
               Never mind
             </Button>
           </div>
-        </form>
+        </SubmitOnceForm>
       )}
     </div>
   );

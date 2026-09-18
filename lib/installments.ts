@@ -117,7 +117,7 @@ async function reconcileOnce(admin: SupabaseClient<Database>, bookingId: string)
 
   // Only a deposit_paid booking has a schedule to adjust. A cancelled one
   // should not be collecting anything, and money that arrives on it anyway is
-  // for a person to refund (the balance webhook logs it).
+  // dealt with by refundOverpayment (lib/overpayment.ts).
   if (!booking || booking.status !== "deposit_paid") return "done";
 
   const total = toCents(booking.total_amount);
@@ -193,10 +193,12 @@ async function reconcileOnce(admin: SupabaseClient<Database>, bookingId: string)
   }
   if (total - paid < 0) {
     // Only reachable if two charges crossed despite the guards (a 3DS
-    // confirmation landing in the same second as a balance payment, say).
-    // Refunds are handled by hand, so the job here is to be loud about it.
+    // confirmation landing in the same second as a balance payment, say). The
+    // succeeded handler that called this refunds the excess straight after
+    // (refundOverpayment in lib/overpayment.ts); this line is the trail for
+    // when that refund cannot be made automatically.
     console.error(
-      `reconcileInstallments: booking ${bookingId} is overpaid by $${((paid - total) / 100).toFixed(2)}. Refund by hand.`
+      `reconcileInstallments: booking ${bookingId} is overpaid by $${((paid - total) / 100).toFixed(2)}; the automatic refund follows.`
     );
   }
 

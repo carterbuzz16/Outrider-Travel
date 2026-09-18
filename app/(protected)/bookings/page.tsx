@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { syncRecentPaymentsForUser } from "@/lib/stripe-sync";
 import BookingsView, { type BookingRow } from "./BookingsView";
 
 /**
@@ -18,6 +19,13 @@ export default async function BookingsPage(props: { searchParams: Promise<{ erro
   if (!user) {
     redirect("/login");
   }
+
+  // Before reading anything: settle any of this traveler's recent payments
+  // that Stripe has taken but no webhook has reported (a preview deployment
+  // never gets one, and production can miss one). Bounded to a handful of
+  // recent intents, run in parallel, and it never throws, so a Stripe outage
+  // costs a stale row, not the page. See lib/stripe-sync.ts.
+  await syncRecentPaymentsForUser(user.id);
 
   // RLS ("Users can view own bookings", and the matching policies on trips,
   // tiers and payments) scopes every row below to this session's own account,

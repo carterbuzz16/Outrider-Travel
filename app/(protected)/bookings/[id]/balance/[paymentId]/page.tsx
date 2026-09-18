@@ -3,6 +3,7 @@ import { Alert, Badge, Button, SectionDivider } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe";
 import { paymentKindOf } from "@/lib/payments";
+import { syncPaymentFromStripe } from "@/lib/stripe-sync";
 import { formatAmount, fromCents, owedCents, toCents } from "@/lib/balance";
 import { formatDay } from "@/app/(protected)/dates";
 import { formatDateRange } from "@/lib/trips";
@@ -24,9 +25,9 @@ import CheckoutForm from "@/components/CheckoutForm";
  * Display only; the webhook does the real thing.
  *
  * After a successful charge, CheckoutForm returns here with ?paid=1, and the
- * page shows the payment as received. It does not apply the payment itself:
- * the webhook is the one place the schedule changes, so the page says the
- * new amounts are on their way rather than pretending they already landed.
+ * page shows the payment as received. If the webhook has not recorded it yet,
+ * the page runs the webhook's own handler for it (syncPaymentFromStripe), so
+ * the schedule still changes in exactly one place, whichever gets there first.
  */
 export default async function BalancePaymentPage(props: {
   params: Promise<{ id: string; paymentId: string }>;
@@ -62,6 +63,15 @@ export default async function BalancePaymentPage(props: {
   // The deposit row also has no scheduled date; this page is not for it.
   if (paymentKindOf(paymentIntent) !== "balance" || paymentIntent.metadata.bookingId !== params.id) {
     notFound();
+  }
+
+  // Paid, but the row does not know yet: the webhook is late, or this is a
+  // preview deployment that never gets one. Settle it now through the
+  // webhook's own handler (lib/stripe-sync.ts), so the schedule is reduced and
+  // the receipt goes out without waiting. Safe if the webhook lands at the
+  // same moment; only one of the two does the work.
+  if (payment.status === "pending" && paymentIntent.status === "succeeded") {
+    await syncPaymentFromStripe(paymentIntent);
   }
 
   const booking = payment.bookings;

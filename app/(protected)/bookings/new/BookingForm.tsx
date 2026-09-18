@@ -1,7 +1,8 @@
 "use client";
 
 import { useId, useState } from "react";
-import { AcceptTerms, Button, Field, Input, cn } from "@/components/ui";
+import { AcceptTerms, Field, Input, cn } from "@/components/ui";
+import { PendingSubmitButton, SubmitOnceForm } from "@/components/SubmitOnce";
 import { createBooking } from "@/app/(protected)/bookings/actions";
 
 /*
@@ -19,6 +20,11 @@ import { createBooking } from "@/app/(protected)/bookings/actions";
  * The figures in the labels are display only. The form posts which plan was
  * picked and nothing else about money; createBooking works out both amounts
  * again from the tier row.
+ *
+ * The form sends once per press and the button says so until the server
+ * answers (components/SubmitOnce.tsx). A second press would otherwise create a
+ * second booking holding a second place in the tier; createBooking also sends
+ * a repeat to the first booking's card form, for the repeats this cannot see.
  */
 export default function BookingForm({
   tripId,
@@ -44,7 +50,7 @@ export default function BookingForm({
   const legendId = useId();
 
   return (
-    <form action={createBooking} className="flex flex-col gap-5">
+    <SubmitOnceForm action={createBooking} className="flex flex-col gap-5">
       <input type="hidden" name="tripId" value={tripId} />
       <input type="hidden" name="tierId" value={tierId} />
 
@@ -100,15 +106,15 @@ export default function BookingForm({
           app/(protected)/bookings/actions.ts and lib/legal-acceptance.ts. */}
       {!soldOut && <AcceptTerms />}
 
-      <Button type="submit" variant="primary" size="md" block disabled={soldOut}>
+      <PendingSubmitButton variant="primary" size="md" block disabled={soldOut} pendingLabel="Holding your spot">
         {soldOut
           ? "Sold out"
           : plan === "full"
             ? `${fullLabel} in full now`
             : `${depositLabel} deposit now`}
         <span className="sr-only">, {tierName}</span>
-      </Button>
-    </form>
+      </PendingSubmitButton>
+    </SubmitOnceForm>
   );
 }
 

@@ -46,6 +46,9 @@ export function fromCents(cents: number): number {
  * What is still owed on a booking: the price less every payment that has
  * actually cleared. Only `succeeded` counts. A `pending` row is a card form
  * someone may never submit, and a `scheduled` one is a promise, not money.
+ * Automatic refunds are already in the figures (lib/overpayment.ts): a row
+ * refunded in full is `refunded` and drops out here, and one refunded in part
+ * records only what was kept.
  */
 export function owedCents(total: number, payments: { status: string; amount: number }[]): number {
   const paid = payments
