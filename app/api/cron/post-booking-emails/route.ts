@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { timingSafeEqual, createHash } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CHASE_AFTER_HOURS, sendChaseEmailOnce, sendConfirmationEmailOnce } from "@/lib/email/post-booking";
+import { sendDuePenthouseEmails } from "@/lib/email/penthouse";
 
 /*
  * Daily, from Vercel Cron (vercel.json). The plan runs crons once a day, so
@@ -102,5 +103,17 @@ export async function GET(request: Request) {
     if (outcome === "sent") sent++;
   }
 
-  return NextResponse.json({ confirmations, chases });
+  // -- 3. penthouses ----------------------------------------------------------
+  // "Full" as a backstop for a send the payment path missed, and the reminder
+  // once a group's 7-day fill deadline is under 48 hours away. Each claimed per
+  // recipient booking; see lib/email/penthouse.ts.
+  let penthouses: Awaited<ReturnType<typeof sendDuePenthouseEmails>> | { error: string };
+  try {
+    penthouses = await sendDuePenthouseEmails(admin, new Date(now));
+  } catch (err) {
+    console.error(`post-booking-emails: penthouse step failed: ${err instanceof Error ? err.message : err}`);
+    penthouses = { error: "failed" };
+  }
+
+  return NextResponse.json({ confirmations, chases, penthouses });
 }

@@ -2,6 +2,9 @@ import Link from "next/link";
 import { Alert, Button, cn } from "@/components/ui";
 import CheckoutSteps from "@/components/CheckoutSteps";
 import BookingForm, { type CheckoutTier } from "./BookingForm";
+import JoinGroup, { type JoinGroupResult } from "./JoinGroup";
+import PenthouseProgress from "@/components/PenthouseProgress";
+import { PENTHOUSE_DISCLAIMER } from "@/lib/penthouse";
 import {
   computeDepositAmount,
   computePayInFullAmount,
@@ -14,6 +17,7 @@ import { getRoomMedia, isTaken, tierGrouping } from "@/lib/room-media";
 import { CONTACT } from "@/lib/site-content";
 import {
   availabilityLabel,
+  checkGroupCode,
   formatDateRange,
   formatPrice,
   getPublishedTrip,
@@ -36,7 +40,7 @@ import {
  * asked for and is not open says so, then offers the rest.
  */
 export default async function NewBookingPage(props: {
-  searchParams: Promise<{ error?: string; trip?: string; package?: string }>;
+  searchParams: Promise<{ error?: string; trip?: string; package?: string; group?: string }>;
 }) {
   const searchParams = await props.searchParams;
   const requestedId = searchParams.trip;
@@ -44,6 +48,19 @@ export default async function NewBookingPage(props: {
   const trips: PublicTrip[] = requested ? [requested] : await getPublishedTrips();
   const requestMissed = Boolean(requestedId) && requested === null;
   const trip = trips.length === 1 ? trips[0] : null;
+
+  // ?group=CODE, from a friend's invite link or the JoinGroup form. Checked on
+  // the server against the penthouse claims; the page only ever learns which
+  // tiers this code opens, never whose code holds the others.
+  const hasPenthouse = trip?.tiers.some((t) => t.groupExclusive) ?? false;
+  const group = trip && searchParams.group ? await checkGroupCode(trip, searchParams.group) : null;
+  const joinResult: JoinGroupResult = !group?.code
+    ? { state: "none" }
+    : group.unlocks.length > 0
+      ? { state: "unlocked", tierNames: trip!.tiers.filter((t) => group.unlocks.includes(t.id)).map((t) => t.name) }
+      : group.knownOnTrip
+        ? { state: "not-penthouse" }
+        : { state: "unknown" };
 
   const alerts = (searchParams.error || requestMissed) && (
     <div className="mt-8 flex flex-col gap-4">
@@ -74,9 +91,38 @@ export default async function NewBookingPage(props: {
           <>
             <TripHeader trip={trip} showAll={Boolean(requested) || trips.length > 1} />
             {alerts}
+            {/* Joining friends with their code: their penthouse's progress, shown
+                only because the code matched (checkGroupCode, server-side). */}
+            {group?.code &&
+              trip.tiers
+                .filter((t) => group.progress[t.id])
+                .map((t) => (
+                  <PenthouseProgress
+                    key={t.id}
+                    className="mt-8"
+                    initial={group.progress[t.id]}
+                    renderedAt={new Date().toISOString()}
+                    tierId={t.id}
+                    groupCode={group.code!}
+                    joining={titleCase(t.name)}
+                  />
+                ))}
             <div className="mt-10 md:mt-12">
-              <Packages trip={trip} requestedPackage={searchParams.package} />
+              <Packages
+                trip={trip}
+                requestedPackage={searchParams.package}
+                unlocked={group?.unlocks ?? []}
+                groupCode={group?.knownOnTrip ? (group.code ?? undefined) : undefined}
+              />
             </div>
+            {hasPenthouse && (
+              <JoinGroup
+                tripId={trip.id}
+                requestedPackage={searchParams.package}
+                code={group?.code ?? undefined}
+                result={joinResult}
+              />
+            )}
           </>
         ) : (
           <>
@@ -87,7 +133,7 @@ export default async function NewBookingPage(props: {
               </p>
             </header>
             {alerts}
-            <Departures trips={trips} requestedPackage={searchParams.package} />
+            <Departures trips={trips} requestedPackage={searchParams.package} group={searchParams.group} />
           </>
         )}
       </div>
@@ -127,9 +173,24 @@ function TripHeader({ trip, showAll }: { trip: PublicTrip; showAll: boolean }) {
 
 /* -- the packages ------------------------------------------------------------ */
 
-function Packages({ trip, requestedPackage }: { trip: PublicTrip; requestedPackage?: string }) {
+function Packages({
+  trip,
+  requestedPackage,
+  unlocked,
+  groupCode,
+}: {
+  trip: PublicTrip;
+  requestedPackage?: string;
+  /** Claimed penthouses the ?group= code opens (checked server-side). */
+  unlocked: string[];
+  /** A code known on this trip, to prefill the order's group code field. */
+  groupCode?: string;
+}) {
   const tiers: CheckoutTier[] = trip.tiers.map((tier) => {
-    const soldOut = tier.spotsLeft !== null && tier.spotsLeft <= 0;
+    // A penthouse another group holds is taken, unless the code in the link is
+    // that group's. Then it is theirs to join, capacity permitting.
+    const taken = tier.claimed && !unlocked.includes(tier.id);
+    const soldOut = taken || (tier.spotsLeft !== null && tier.spotsLeft <= 0);
     const room = getRoomMedia(tier.name);
     const full = computePayInFullAmount(tier.price);
     const deposit = computeDepositAmount(tier.price);
@@ -138,12 +199,13 @@ function Packages({ trip, requestedPackage }: { trip: PublicTrip; requestedPacka
       id: tier.id,
       name: tier.name,
       soldOut,
+      taken,
+      terms: tier.groupExclusive ? PENTHOUSE_DISCLAIMER : null,
       availability: soldOut ? null : tierAvailabilityLabel(tier.spotsLeft),
       summary: room?.summary ?? tier.description,
       inclusions: tier.inclusions,
       room,
       ...tierGrouping(tier.name),
-      taken: isTaken(tier.name, tier.spotsLeft),
       // Exact to the cent: formatPrice rounds to the dollar, and these are
       // the figures that come off the card.
       priceLabel: formatAmount(tier.price),
@@ -169,9 +231,14 @@ function Packages({ trip, requestedPackage }: { trip: PublicTrip; requestedPacka
     );
   }
 
-  // The package named in the link, if it is open; otherwise the first open one.
+  // The package named in the link (by name from the trip pages, by id from a
+  // penthouse invite), if it is open; then a penthouse the group code opened;
+  // otherwise the first open one.
   const wanted = requestedPackage?.trim().toLowerCase();
-  const initial = open.find((t) => wanted && t.name.trim().toLowerCase() === wanted) ?? open[0];
+  const initial =
+    open.find((t) => wanted && (t.name.trim().toLowerCase() === wanted || t.id === wanted)) ??
+    open.find((t) => unlocked.includes(t.id)) ??
+    open[0];
 
   return (
     <BookingForm
@@ -181,14 +248,25 @@ function Packages({ trip, requestedPackage }: { trip: PublicTrip; requestedPacka
       depositPercent={Math.round(DEPOSIT_PERCENTAGE * 100)}
       installmentCount={INSTALLMENT_OFFSETS_DAYS.length}
       contactEmail={CONTACT.email}
+      initialGroupCode={groupCode}
     />
   );
 }
 
 /* -- several departures ------------------------------------------------------- */
 
-function Departures({ trips, requestedPackage }: { trips: PublicTrip[]; requestedPackage?: string }) {
-  const packageParam = requestedPackage ? `&package=${encodeURIComponent(requestedPackage)}` : "";
+function Departures({
+  trips,
+  requestedPackage,
+  group,
+}: {
+  trips: PublicTrip[];
+  requestedPackage?: string;
+  group?: string;
+}) {
+  const packageParam =
+    (requestedPackage ? `&package=${encodeURIComponent(requestedPackage)}` : "") +
+    (group ? `&group=${encodeURIComponent(group)}` : "");
   return (
     <ul className="m-0 mt-8 flex list-none flex-col gap-3 p-0">
       {trips.map((trip) => {
@@ -238,6 +316,11 @@ function Departures({ trips, requestedPackage }: { trips: PublicTrip[]; requeste
       })}
     </ul>
   );
+}
+
+/** "PENTHOUSE 702" reads as "Penthouse 702" in a sentence. */
+function titleCase(name: string): string {
+  return name.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function NothingOpen() {

@@ -20,6 +20,7 @@ import { syncPaymentFromStripe } from "@/lib/stripe-sync";
 import { getOrCreateStripeCustomerId } from "@/lib/customers";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { resolveGroupCode } from "@/lib/group-code";
+import { CLAIM_PENDING_WINDOW_MS, claimMatches, getTierClaims } from "@/lib/tier-claims";
 import { hasAcceptedAll, recordAcceptance } from "@/lib/legal-acceptance";
 import { BOOKINGS_OPEN, CHECKOUT_SANDBOX, isTestTrip } from "@/lib/booking-window";
 
@@ -76,7 +77,7 @@ export async function createBooking(formData: FormData) {
   // clean "no longer available" error instead of an RLS-shaped one).
   const { data: tier, error: tierError } = await supabase
     .from("tiers")
-    .select("id, price, trip_id, trips!inner(status, name)")
+    .select("id, name, price, trip_id, group_exclusive, trips!inner(status, name)")
     .eq("id", tierId)
     .eq("trip_id", tripId)
     .eq("trips.status", "published")
@@ -121,7 +122,30 @@ export async function createBooking(formData: FormData) {
   // directly by an authenticated client.
   const admin = createAdminClient();
 
-  const groupCodeResult = await resolveGroupCode(admin, tripId, requestedGroupCode);
+  /*
+   * A penthouse (a group-exclusive tier) is bought out by one friend group:
+   * once someone holds it, only their group code gets in. The
+   * check_tier_capacity trigger is what enforces that, race-safely; this is
+   * the read ahead of it, so the usual case gets a plain message and sends
+   * nothing to Stripe. See lib/tier-claims.ts for what "holds" means.
+   *
+   * A traveler rebooking their own penthouse (a second try after switching
+   * plan, say) left the code box empty, and resolveGroupCode would mint them a
+   * fresh code that their own first booking then locks out. So with no code
+   * typed, their own active booking on this tier supplies it.
+   */
+  let groupCodeToUse = requestedGroupCode;
+  if (tier.group_exclusive) {
+    const penthouseClaim = (await getTierClaims(admin, [tierId])).get(tierId);
+    if (penthouseClaim && !groupCodeToUse) {
+      groupCodeToUse = await ownActiveGroupCode(admin, user.id, tierId);
+    }
+    if (penthouseClaim && !claimMatches(penthouseClaim, groupCodeToUse)) {
+      redirectTierClaimed(tripId, tier);
+    }
+  }
+
+  const groupCodeResult = await resolveGroupCode(admin, tripId, groupCodeToUse);
   if ("error" in groupCodeResult) {
     redirect(`/bookings/new?error=${encodeURIComponent(groupCodeResult.error)}`);
   }
@@ -178,6 +202,11 @@ export async function createBooking(formData: FormData) {
 
   if (bookingError?.message === "tier_at_capacity") {
     redirect("/bookings/new?error=That tier just sold out. Please pick another.");
+  }
+
+  // Another group took the penthouse between the read above and this insert.
+  if (bookingError?.message === "tier_claimed") {
+    redirectTierClaimed(tripId, tier);
   }
 
   if (bookingError || !booking) {
@@ -608,6 +637,45 @@ async function abandonPendingBooking(admin: ReturnType<typeof createAdminClient>
   if (cancelError) {
     console.error(`createBooking: could not undo pending booking ${bookingId}: ${cancelError.message}`);
   }
+}
+
+/**
+ * Back to the package step when a penthouse is held by another group. Keeps
+ * the trip and the package in the link so the traveler lands where they were,
+ * with room to type the code. A plain function so TypeScript knows it ends.
+ */
+function redirectTierClaimed(tripId: string, tier: { id: string; name: string }): never {
+  // Tier names are stored in capitals ("PENTHOUSE 702"); a sentence reads
+  // better with "Penthouse 702".
+  const name = tier.name.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+  const message = `${name} has been booked by another group. If you're joining them, enter their group code.`;
+  redirect(
+    `/bookings/new?trip=${encodeURIComponent(tripId)}&package=${encodeURIComponent(tier.id)}&error=${encodeURIComponent(message)}`,
+  );
+}
+
+/**
+ * The group code on this traveler's own active booking for this tier, if they
+ * have one (same definition of active as lib/tier-claims.ts). Only their own
+ * rows are read, so this never hands anyone another group's code.
+ */
+async function ownActiveGroupCode(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  tierId: string,
+): Promise<string | null> {
+  const since = new Date(Date.now() - CLAIM_PENDING_WINDOW_MS).toISOString();
+  const { data } = await admin
+    .from("bookings")
+    .select("group_code")
+    .eq("user_id", userId)
+    .eq("tier_id", tierId)
+    .or(`status.in.(deposit_paid,paid_in_full),and(status.eq.pending,created_at.gt.${since})`)
+    .not("group_code", "is", null)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return data?.group_code ?? null;
 }
 
 // How recent a pending booking has to be to count as a duplicate submit.

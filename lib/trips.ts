@@ -3,6 +3,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/types/supabase";
 import type { TripStatus } from "@/components/ui";
 import { CHECKOUT_SANDBOX, isTestTrip } from "@/lib/booking-window";
+import {
+  claimMatches,
+  getPenthouseProgress,
+  getTierClaims,
+  normalizeGroupCode,
+  type TierClaim,
+} from "@/lib/tier-claims";
+import { toSnapshot, type PenthouseSnapshot } from "@/lib/penthouse";
 
 /**
  * Public trip data.
@@ -32,6 +40,14 @@ export type PublicTier = {
   maxCapacity: number | null;
   /** null when the tier is uncapped. */
   spotsLeft: number | null;
+  /** Bought out by one friend group (the penthouses). See lib/tier-claims.ts. */
+  groupExclusive: boolean;
+  /**
+   * A group-exclusive tier some group already holds: taken for everyone who
+   * does not have that group's code. Always false for other tiers. The code
+   * itself is never on this type; see groupCodeMatchesClaim.
+   */
+  claimed: boolean;
 };
 
 export type PublicTrip = {
@@ -46,7 +62,7 @@ export type PublicTrip = {
   tiers: PublicTier[];
   /** Lowest tier price — what "from $X" quotes. */
   priceFrom: number;
-  /** Summed across capped tiers; null when every tier is uncapped. */
+  /** Summed across capped tiers, a claimed penthouse counting as none left; null when every tier is uncapped. */
   spotsLeft: number | null;
   status: TripStatus;
 };
@@ -55,7 +71,7 @@ export type PublicTrip = {
 // parsing this string at the type level, and a concatenated one degrades to
 // `GenericStringError` — every field then comes back as `never`.
 const TRIP_COLUMNS =
-  "id, name, destination, start_date, end_date, description, logistics, images, tiers(id, name, price, description, inclusions, max_capacity)";
+  "id, name, destination, start_date, end_date, description, logistics, images, tiers(id, name, price, description, inclusions, max_capacity, group_exclusive)";
 
 /** A booking in any of these states is holding a spot. */
 /*
@@ -95,8 +111,8 @@ export async function getPublishedTrips(): Promise<PublicTrip[]> {
   const trips = (data ?? []).filter(isVisible);
   if (trips.length === 0) return [];
 
-  const taken = await countTakenSpots(trips.map((t) => t.id));
-  return trips.map((trip) => toPublicTrip(trip, taken));
+  const [taken, claims] = await Promise.all([countTakenSpots(trips.map((t) => t.id)), readClaims(trips)]);
+  return trips.map((trip) => toPublicTrip(trip, taken, claims));
 }
 
 export async function getPublishedTrip(id: string): Promise<PublicTrip | null> {
@@ -121,8 +137,8 @@ export async function getPublishedTrip(id: string): Promise<PublicTrip | null> {
   }
   if (!data || !isVisible(data)) return null;
 
-  const taken = await countTakenSpots([data.id]);
-  return toPublicTrip(data, taken);
+  const [taken, claims] = await Promise.all([countTakenSpots([data.id]), readClaims([data])]);
+  return toPublicTrip(data, taken, claims);
 }
 
 /** Test trips are published so they can be booked, but only the sandbox shows them. */
@@ -154,6 +170,60 @@ async function countTakenSpots(tripIds: string[]): Promise<Map<string, number>> 
   return counts;
 }
 
+/** Claims on the group-exclusive tiers of these trips. Used for `claimed` only; the codes stay here. */
+function readClaims(trips: TripRow[]): Promise<Map<string, TierClaim>> {
+  const ids = trips.flatMap((trip) => trip.tiers.filter((t) => t.group_exclusive).map((t) => t.id));
+  return getTierClaims(createAdminClient(), ids);
+}
+
+/**
+ * Whether `code` is the group code holding this penthouse. Server-only (this
+ * module is), and it answers yes or no: the claim's code never leaves it.
+ * False for a tier nobody holds, and for a tier that is not group-exclusive.
+ */
+export async function groupCodeMatchesClaim(tierId: string, code: string | null | undefined): Promise<boolean> {
+  if (!normalizeGroupCode(code)) return false;
+  const admin = createAdminClient();
+  const { data: tier } = await admin.from("tiers").select("group_exclusive").eq("id", tierId).maybeSingle();
+  if (!tier?.group_exclusive) return false;
+  const claims = await getTierClaims(admin, [tierId]);
+  return claimMatches(claims.get(tierId), code);
+}
+
+/**
+ * What a group code typed on the booking page means for one departure: the
+ * claimed tiers it opens, and whether it belongs to anyone on the trip at all
+ * (a Base or Mid group, say). Yes/no answers only, for the same reason as above.
+ */
+export async function checkGroupCode(
+  trip: PublicTrip,
+  code: string | null | undefined,
+): Promise<{
+  code: string | null;
+  knownOnTrip: boolean;
+  unlocks: string[];
+  /** Fill progress of each penthouse this code opens; only ever for those. */
+  progress: Record<string, PenthouseSnapshot>;
+}> {
+  const wanted = normalizeGroupCode(code);
+  if (!wanted) return { code: null, knownOnTrip: false, unlocks: [], progress: {} };
+
+  const admin = createAdminClient();
+  const claimedIds = trip.tiers.filter((t) => t.claimed).map((t) => t.id);
+  const [claims, { data: member }] = await Promise.all([
+    getTierClaims(admin, claimedIds),
+    admin.from("bookings").select("id").eq("trip_id", trip.id).eq("group_code", wanted).limit(1).maybeSingle(),
+  ]);
+  const unlocks = claimedIds.filter((id) => claimMatches(claims.get(id), wanted));
+  const fills = await getPenthouseProgress(
+    admin,
+    unlocks.map((id) => ({ id, tier_id: id, group_code: wanted })),
+  );
+  const progress: Record<string, PenthouseSnapshot> = {};
+  for (const [id, fill] of fills) progress[id] = toSnapshot(fill);
+  return { code: wanted, knownOnTrip: Boolean(member) || unlocks.length > 0, unlocks, progress };
+}
+
 type TripRow = {
   id: string;
   name: string;
@@ -170,10 +240,11 @@ type TripRow = {
     description: string | null;
     inclusions: string[] | null;
     max_capacity: number | null;
+    group_exclusive: boolean;
   }[];
 };
 
-function toPublicTrip(row: TripRow, taken: Map<string, number>): PublicTrip {
+function toPublicTrip(row: TripRow, taken: Map<string, number>, claims: Map<string, TierClaim>): PublicTrip {
   const tiers: PublicTier[] = [...row.tiers]
     // Decimal columns come back as strings through PostgREST when they exceed
     // what a JS number holds exactly; Number() here keeps the rest of the app
@@ -188,12 +259,17 @@ function toPublicTrip(row: TripRow, taken: Map<string, number>): PublicTrip {
         inclusions: tier.inclusions ?? [],
         maxCapacity: capacity,
         spotsLeft: capacity === null ? null : Math.max(0, capacity - (taken.get(tier.id) ?? 0)),
+        groupExclusive: tier.group_exclusive,
+        claimed: tier.group_exclusive && claims.has(tier.id),
       };
     })
     .sort((a, b) => a.price - b.price);
 
   const capped = tiers.filter((t) => t.spotsLeft !== null);
-  const spotsLeft = capped.length === 0 ? null : capped.reduce((n, t) => n + (t.spotsLeft ?? 0), 0);
+  // A held penthouse's empty beds belong to that group, not to the public, so
+  // they do not keep a departure reading as open.
+  const spotsLeft =
+    capped.length === 0 ? null : capped.reduce((n, t) => n + (t.claimed ? 0 : (t.spotsLeft ?? 0)), 0);
 
   return {
     id: row.id,
@@ -249,8 +325,13 @@ export function availabilityLabel(status: TripStatus): string {
   }
 }
 
-/** The same idea for a single tier, which has its own count. */
-export function tierAvailabilityLabel(spotsLeft: number | null): string | null {
+/**
+ * The same idea for a single tier, which has its own count. A penthouse
+ * another group holds reads "Booked": it is taken, not sold out, and a friend
+ * with the group's code can still join it.
+ */
+export function tierAvailabilityLabel(spotsLeft: number | null, claimed = false): string | null {
+  if (claimed) return "Booked";
   if (spotsLeft === null) return null;
   if (spotsLeft <= 0) return "Sold out";
   if (spotsLeft <= 6) return "Selling out fast";

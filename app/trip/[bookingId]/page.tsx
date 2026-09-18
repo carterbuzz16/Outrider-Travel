@@ -11,6 +11,9 @@ import { CONTACT } from "@/lib/site-content";
 import { ABILITY_LEVELS, SKI_OR_BOARD, labelFor } from "./fields";
 import { DetailsTask, FlightsToggle, FreshLinkForm, RoomingTask } from "./PortalForms";
 import type { Database } from "@/types/supabase";
+import PenthouseProgress from "@/components/PenthouseProgress";
+import { getPenthouseProgress } from "@/lib/tier-claims";
+import { penthouseInvitePath, toSnapshot } from "@/lib/penthouse";
 
 /**
  * The trip portal: one booking's to-do list and payment picture, opened from a
@@ -87,7 +90,7 @@ export default async function TripPortalPage(props: {
   const { data: booking, error } = await admin
     .from("bookings")
     .select(
-      `id, status, total_amount, deposit_amount, flights_booked, sms_consent,
+      `id, trip_id, tier_id, group_code, status, total_amount, deposit_amount, flights_booked, sms_consent,
        trips(name, destination, start_date, end_date),
        tiers(name),
        payments(id, status, amount, scheduled_date),
@@ -124,6 +127,11 @@ export default async function TripPortalPage(props: {
   const nextInstallment = schedule.find((p) => p.status === "scheduled");
 
   const tasksDone = [booking.flights_booked, Boolean(rooming), Boolean(details)].filter(Boolean).length;
+
+  // A penthouse booking shows how full the group's penthouse is, with the
+  // invite. Counts only (getPenthouseProgress), and only once this booking
+  // holds a place.
+  const penthouse = open ? (await getPenthouseProgress(admin, [booking])).get(booking.id) : undefined;
 
   let detailsLabel: string | null = null;
   if (details) {
@@ -177,6 +185,17 @@ export default async function TripPortalPage(props: {
               .
             </Alert>
           </div>
+        )}
+
+        {penthouse && booking.group_code && (
+          <PenthouseProgress
+            className="mt-8"
+            initial={toSnapshot(penthouse)}
+            renderedAt={new Date().toISOString()}
+            tierId={booking.tier_id}
+            groupCode={booking.group_code}
+            invitePath={penthouseInvitePath(booking.trip_id, booking.tier_id, booking.group_code)}
+          />
         )}
       </section>
 

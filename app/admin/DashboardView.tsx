@@ -18,6 +18,7 @@ import {
   type PaymentStatus,
 } from "@/app/admin/admin-ui";
 import { isFlagged, readLedger, type Ledger, type LineTone } from "@/app/admin/payment-ledger";
+import PenthouseClaim, { penthouseStatus, type PenthouseTierRows } from "@/app/admin/PenthouseClaim";
 
 /**
  * The dashboard, with no data access in it. Same split as TripsView and
@@ -47,13 +48,24 @@ export type DashboardBooking = {
   payments: DashboardPayment[];
 };
 
+export type DashboardPenthouse = PenthouseTierRows & {
+  id: string;
+  name: string;
+  trip_id: string;
+  trips: { name: string; start_date: string } | null;
+};
+
 export default function DashboardView({
   bookings,
   today,
+  penthouses = [],
 }: {
   bookings: DashboardBooking[];
   today: string;
+  /** Group-exclusive tiers on upcoming trips, with their bookings. */
+  penthouses?: DashboardPenthouse[];
 }) {
+  const unfilled = penthouses.filter((p) => penthouseStatus(p).fill?.state === "expired").length;
   // Everything below is derived from the rows already fetched, so the figure
   // row costs no extra round trip. The ledger is what tells a deposit from a
   // payment in full from an early payment (see payment-ledger.ts).
@@ -144,6 +156,56 @@ export default function DashboardView({
             </Link>
             .
           </Alert>
+        </div>
+      )}
+
+      {penthouses.length > 0 && (
+        <div className="mt-10">
+          <Panel
+            title="Penthouses"
+            description={
+              unfilled > 0
+                ? `${unfilled} unfilled past the 7-day deadline. Nothing is sent or charged automatically; the team decides what happens to the empty places.`
+                : "Who holds each penthouse on upcoming departures, and how full it is."
+            }
+            bleed
+          >
+            <TableScroll label="Penthouse claims">
+              <Table>
+                <thead>
+                  <tr>
+                    <Th>Departure</Th>
+                    <Th>Penthouse</Th>
+                    <Th>Claim</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...penthouses]
+                    .sort(
+                      (a, b) =>
+                        (a.trips?.start_date ?? "").localeCompare(b.trips?.start_date ?? "") ||
+                        a.name.localeCompare(b.name),
+                    )
+                    .map((p) => (
+                      <tr key={p.id}>
+                        <Td>
+                          <Link href={`/admin/trips/${p.trip_id}`} className="text-[--accent] decoration-[--accent]">
+                            {p.trips?.name ?? "Trip"}
+                          </Link>
+                          {p.trips?.start_date && (
+                            <span className="block text-body-s text-[--text-secondary]">{formatDay(p.trips.start_date)}</span>
+                          )}
+                        </Td>
+                        <Td>{p.name}</Td>
+                        <Td>
+                          <PenthouseClaim tier={p} />
+                        </Td>
+                      </tr>
+                    ))}
+                </tbody>
+              </Table>
+            </TableScroll>
+          </Panel>
         </div>
       )}
 

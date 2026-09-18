@@ -93,7 +93,7 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
     inclusions: tier.inclusions,
     spotsLeft: tier.spotsLeft,
     ...tierGrouping(tier.name),
-    taken: isTaken(tier.name, tier.spotsLeft),
+    taken: tier.claimed || isTaken(tier.name, tier.spotsLeft),
   }));
 
   // The rooms at The Peaks behind each package. lib/room-media.ts describes

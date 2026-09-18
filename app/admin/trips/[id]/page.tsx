@@ -22,7 +22,7 @@ export default async function AdminTripDetailPage(
   const { data: trip } = await admin
     .from("trips")
     .select(
-      "id, name, destination, start_date, end_date, description, logistics, status, images, tiers(id, name, price, description, max_capacity, inclusions, bookings(id, status))"
+      "id, name, destination, start_date, end_date, description, logistics, status, images, tiers(id, name, price, description, max_capacity, inclusions, group_exclusive, bookings(id, status, group_code, created_at, payments(paid_at, scheduled_date)))"
     )
     .eq("id", params.id)
     .single();

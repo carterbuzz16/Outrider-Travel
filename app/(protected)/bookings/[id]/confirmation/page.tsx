@@ -8,6 +8,10 @@ import { formatAmount, toCents } from "@/lib/balance";
 import { formatDateRange, formatPrice } from "@/lib/trips";
 import { createPortalUrl } from "@/lib/portal-token";
 import { confirmationNumber } from "@/lib/confirmation-number";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getPenthouseProgress } from "@/lib/tier-claims";
+import { penthouseInvitePath, toSnapshot } from "@/lib/penthouse";
+import PenthouseProgress from "@/components/PenthouseProgress";
 
 export default async function ConfirmationPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -25,7 +29,7 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
     supabase
       .from("bookings")
       .select(
-        "id, status, total_amount, deposit_amount, group_code, trips(name, destination, start_date, end_date), tiers(name), payments(id, status, amount, scheduled_date, stripe_payment_intent_id)"
+        "id, trip_id, tier_id, status, total_amount, deposit_amount, group_code, trips(name, destination, start_date, end_date), tiers(name), payments(id, status, amount, scheduled_date, stripe_payment_intent_id)"
       )
       .eq("id", params.id)
       .single();
@@ -106,6 +110,13 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
   // has actually cleared, since an early payment or a payment in full leaves
   // less owed than total less deposit.
   const balanceLeft = settled ? remaining : Math.max(0, total - (fullPlan ? total : depositAmount));
+
+  // A penthouse booking gets the group's fill progress and its invite link in
+  // place of the plain group code block. Counts only; see getPenthouseProgress.
+  const penthouse =
+    booking.status !== "cancelled" && booking.group_code
+      ? (await getPenthouseProgress(createAdminClient(), [booking])).get(booking.id)
+      : undefined;
 
   return (
     <main>
@@ -252,7 +263,16 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
           </section>
         )}
 
-        {booking.group_code && (
+        {penthouse && booking.group_code ? (
+          <PenthouseProgress
+            className="mt-10"
+            initial={toSnapshot(penthouse)}
+            renderedAt={new Date().toISOString()}
+            tierId={booking.tier_id}
+            groupCode={booking.group_code}
+            invitePath={penthouseInvitePath(booking.trip_id, booking.tier_id, booking.group_code)}
+          />
+        ) : booking.group_code && (
           <div className="mt-10 flex flex-col gap-3 border border-[--rule] p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:p-6">
             <div className="min-w-0">
               <p className="t-micro text-[--text-secondary]">Bring your friends</p>

@@ -8,6 +8,8 @@ import BalancePayment from "./BalancePayment";
 import { createPortalUrl } from "@/lib/portal-token";
 import { confirmationNumber } from "@/lib/confirmation-number";
 import type { Database } from "@/types/supabase";
+import PenthouseProgress from "@/components/PenthouseProgress";
+import { penthouseInvitePath, type PenthouseSnapshot } from "@/lib/penthouse";
 
 /**
  * The account view, with no data access in it.
@@ -32,6 +34,14 @@ export type BookingRow = {
   total_amount: number;
   deposit_amount: number;
   group_code: string | null;
+  /** Optional so fixtures without them still render; the penthouse block needs both. */
+  trip_id?: string;
+  tier_id?: string;
+  /**
+   * Set by the loader for a penthouse booking: the group's fill progress (counts
+   * only, see getPenthouseProgress) and the server clock it was read at.
+   */
+  penthouse?: { snapshot: PenthouseSnapshot; renderedAt: string } | null;
   trips: { name: string; destination: string; start_date: string; end_date: string } | null;
   tiers: { name: string } | null;
   payments: {
@@ -200,11 +210,25 @@ function BookingCard({ booking }: { booking: BookingRow }) {
             {booking.group_code && (
               <span>
                 Group code <span className="tracking-label text-[--text]">{booking.group_code}</span>
+                {!booking.penthouse && " · friends who enter it when they book are placed with you"}
               </span>
             )}
           </p>
         )}
       </header>
+
+      {/* -- a penthouse's fill progress and invite -------------------------- */}
+      {!cancelled && booking.penthouse && booking.group_code && booking.trip_id && booking.tier_id && (
+        <div className="border-t border-[--rule] p-5 sm:p-7">
+          <PenthouseProgress
+            initial={booking.penthouse.snapshot}
+            renderedAt={booking.penthouse.renderedAt}
+            tierId={booking.tier_id}
+            groupCode={booking.group_code}
+            invitePath={penthouseInvitePath(booking.trip_id, booking.tier_id, booking.group_code)}
+          />
+        </div>
+      )}
 
       <div className="border-t border-[--rule] p-5 sm:p-7">
         {/* -- money -------------------------------------------------------- */}

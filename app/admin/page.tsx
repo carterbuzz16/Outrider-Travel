@@ -23,5 +23,14 @@ export default async function AdminDashboardPage() {
     )
     .order("created_at", { ascending: false });
 
-  return <DashboardView bookings={bookings ?? []} today={today} />;
+  // Every penthouse on a trip that has not finished, for the claim panel.
+  const { data: penthouses } = await admin
+    .from("tiers")
+    .select(
+      "id, name, max_capacity, trip_id, trips!inner(name, start_date), bookings(id, status, group_code, created_at, payments(paid_at, scheduled_date))"
+    )
+    .eq("group_exclusive", true)
+    .gte("trips.start_date", today);
+
+  return <DashboardView bookings={bookings ?? []} today={today} penthouses={penthouses ?? []} />;
 }

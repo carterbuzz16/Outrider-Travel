@@ -38,6 +38,13 @@ export type CheckoutTier = {
   id: string;
   name: string;
   soldOut: boolean;
+  /**
+   * A penthouse another group holds (soldOut is true as well, so it is
+   * disabled the same way). Only changes the word: "Booked", not "Sold out".
+   */
+  taken?: boolean;
+  /** Package-specific terms shown on the card (the penthouse fill rule, PENTHOUSE_DISCLAIMER). */
+  terms?: string | null;
   /** Qualitative ("Selling out fast"), never a count; null when unremarkable. */
   availability: string | null;
   /** The room line, or the tier's own description when there is no room. */
@@ -47,8 +54,6 @@ export type CheckoutTier = {
   /** The two penthouses share a group, and are shown together under its name. */
   group: string | null;
   groupNote: string | null;
-  /** A penthouse another group has booked whole. Also soldOut, for now. */
-  taken: boolean;
   /** All formatted, exact to the cent: these are the figures that come off the card. */
   priceLabel: string;
   depositLabel: string;
@@ -70,6 +75,7 @@ export default function BookingForm({
   depositPercent,
   installmentCount,
   contactEmail,
+  initialGroupCode,
 }: {
   tripId: string;
   tiers: CheckoutTier[];
@@ -79,6 +85,8 @@ export default function BookingForm({
   /** How many scheduled payments the balance is split into. */
   installmentCount: number;
   contactEmail: string;
+  /** From a friend's invite link (?group=), already checked by the page. Opens the code box, filled in. */
+  initialGroupCode?: string;
 }) {
   const [tierId, setTierId] = useState(initialTierId);
   const [plan, setPlan] = useState<Plan>("deposit");
@@ -186,7 +194,7 @@ export default function BookingForm({
           </div>
         </fieldset>
 
-        <details className="group border-b border-[--rule] px-5 sm:px-6">
+        <details className="group border-b border-[--rule] px-5 sm:px-6" open={Boolean(initialGroupCode)}>
           <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 font-body text-body-s text-[--text] [&::-webkit-details-marker]:hidden">
             Have a group code?
             <Chevron />
@@ -199,6 +207,7 @@ export default function BookingForm({
                   name="group_code"
                   type="text"
                   maxLength={6}
+                  defaultValue={initialGroupCode}
                   placeholder="K7XPQ2"
                   autoComplete="off"
                   autoCapitalize="characters"
@@ -353,7 +362,7 @@ function PackageCard({
               <span className="mt-3 flex flex-col gap-1">
                 <span className="t-micro text-[--text-secondary]">Taken</span>
                 <span className="font-body text-body-s leading-[1.5] text-[--text-secondary]">
-                  Booked by another group. Have their group code? Enter it in your order.
+                  Booked by another group. Have their group code? Enter it below.
                 </span>
               </span>
             ) : (
@@ -367,6 +376,11 @@ function PackageCard({
                   {tier.soldOut ? "Sold out" : tier.availability}
                 </span>
               )
+            )}
+            {tier.terms && !tier.taken && (
+              <span className="mt-3 border-l-2 border-[--rule-strong] pl-3 font-body text-body-s leading-[1.55] text-[--text-secondary]">
+                {tier.terms}
+              </span>
             )}
             {key.length > 0 && (
               <span className="mt-4 flex flex-col gap-1.5" role="list">

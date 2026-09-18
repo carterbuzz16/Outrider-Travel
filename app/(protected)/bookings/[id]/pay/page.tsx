@@ -15,6 +15,7 @@ import { formatDay } from "@/app/(protected)/dates";
 import { formatDateRange, formatPrice } from "@/lib/trips";
 import CheckoutForm from "@/components/CheckoutForm";
 import CheckoutSteps from "@/components/CheckoutSteps";
+import { PENTHOUSE_DISCLAIMER } from "@/lib/penthouse";
 
 /**
  * Step 2 of checkout: the deposit, or the whole trip when the traveler chose
@@ -46,7 +47,7 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, status, total_amount, deposit_amount, trips(name, destination, start_date, end_date), tiers(name, price), payments(stripe_payment_intent_id, scheduled_date)"
+      "id, status, total_amount, deposit_amount, trips(name, destination, start_date, end_date), tiers(name, price, group_exclusive), payments(stripe_payment_intent_id, scheduled_date)"
     )
     .eq("id", params.id)
     .single();
@@ -234,6 +235,13 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
 
           {/* -- the card ------------------------------------------------------- */}
           <section aria-label="Card details" className="min-w-0 lg:order-1">
+            {/* The penthouse fill rule, read before the card is. Copy only;
+                nothing about the charge changes (PENTHOUSE_DISCLAIMER). */}
+            {booking.tiers?.group_exclusive && (
+              <p className="mb-6 border-l-2 border-[--rule-strong] pl-4 font-body text-body-s leading-[1.6] text-[--text-secondary]">
+                {PENTHOUSE_DISCLAIMER}
+              </p>
+            )}
             <CheckoutForm
               clientSecret={paymentIntent.client_secret!}
               bookingId={booking.id}

@@ -61,6 +61,8 @@ export type Database = {
           flights_booked: boolean
           group_code: string | null
           id: string
+          penthouse_full_email_sent_at: string | null
+          penthouse_reminder_email_sent_at: string | null
           rooming_submitted: boolean
           rooming_submitted_at: string | null
           sms_consent: boolean
@@ -81,6 +83,8 @@ export type Database = {
           flights_booked?: boolean
           group_code?: string | null
           id?: string
+          penthouse_full_email_sent_at?: string | null
+          penthouse_reminder_email_sent_at?: string | null
           rooming_submitted?: boolean
           rooming_submitted_at?: string | null
           sms_consent?: boolean
@@ -101,6 +105,8 @@ export type Database = {
           flights_booked?: boolean
           group_code?: string | null
           id?: string
+          penthouse_full_email_sent_at?: string | null
+          penthouse_reminder_email_sent_at?: string | null
           rooming_submitted?: boolean
           rooming_submitted_at?: string | null
           sms_consent?: boolean
@@ -266,6 +272,7 @@ export type Database = {
       tiers: {
         Row: {
           description: string | null
+          group_exclusive: boolean
           id: string
           inclusions: string[] | null
           max_capacity: number | null
@@ -275,6 +282,7 @@ export type Database = {
         }
         Insert: {
           description?: string | null
+          group_exclusive?: boolean
           id?: string
           inclusions?: string[] | null
           max_capacity?: number | null
@@ -284,6 +292,7 @@ export type Database = {
         }
         Update: {
           description?: string | null
+          group_exclusive?: boolean
           id?: string
           inclusions?: string[] | null
           max_capacity?: number | null

@@ -158,7 +158,7 @@ function toTierViews(tiers: PublicTrip["tiers"], perDeparture: boolean): TierVie
     // remaining spots; availability is on each departure above instead.
     spotsLeft: perDeparture ? tier.spotsLeft : null,
     ...tierGrouping(tier.name),
-    taken: perDeparture && isTaken(tier.name, tier.spotsLeft),
+    taken: perDeparture && (tier.claimed || isTaken(tier.name, tier.spotsLeft)),
   }));
 }
 
