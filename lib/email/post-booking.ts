@@ -255,8 +255,11 @@ async function variablesFor(
   set("rooming_url", portalUrl ? `${portalUrl}#${PORTAL_ANCHORS.rooming}` : null);
   set("traveler_details_url", portalUrl ? `${portalUrl}#${PORTAL_ANCHORS.details}` : null);
   set("preferences_url", preferencesUrl());
-  set("sms_number", sms?.display);
-  set("sms_number_raw", sms?.raw);
+  // No texting number yet is expected before launch: the same stand-in as a
+  // missing trip fact, so the designed emails can still be tested off
+  // production. The raw form sits in an sms: link, which then does nothing.
+  set("sms_number", sms?.display ?? placeholder("text number"));
+  set("sms_number_raw", sms?.raw ?? placeholder("text-number"));
 
   if (trip) {
     set("trip_name", trip.name);
