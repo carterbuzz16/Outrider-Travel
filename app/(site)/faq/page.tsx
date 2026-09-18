@@ -105,8 +105,9 @@ const GROUPS: Group[] = [
           <>
             About 100 to 200. It is meant to feel like a small club rather than
             a tour: the number is set before a departure goes on sale and does
-            not move to fit demand, and rooms are still booked as buyouts of four,
-            six or eight, so the group you are actually living with stays small.
+            not move to fit demand, and rooms are shared by four or by two, with
+            suites booked whole for six or eight, so the group you are actually
+            living with stays small.
           </>
         ),
       },

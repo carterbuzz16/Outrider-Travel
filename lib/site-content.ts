@@ -56,7 +56,7 @@ export const VALUE_PROPS = [
     eyebrow: "Small groups",
     title: "The number of people is a decision, not a ceiling",
     body:
-      "Most operators grow a trip until it stops selling. We cap it before it goes on sale and the number does not move to fit demand. Rooms are booked for four, six or eight, and where there is a guide it is one per six, so the people you actually spend the days with are a handful rather than a crowd.",
+      "Most operators grow a trip until it stops selling. We cap it before it goes on sale and the number does not move to fit demand. Rooms are shared by four or by two, suites are booked whole for six or eight, and where there is a guide it is one per six, so the people you actually spend the days with are a handful rather than a crowd.",
   },
   {
     eyebrow: "High touch",
@@ -198,7 +198,7 @@ export const COMPARISON = [
   {
     label: "How many people",
     usual: "As many as will pay, because volume is the business model.",
-    ours: "Capped by design. Suites are booked as buyouts for four, six or eight, and guiding is one instructor per six.",
+    ours: "Capped by design. Rooms hold four or two, suites are booked as buyouts for six or eight, and guiding is one instructor per six.",
   },
 ];
 
@@ -228,6 +228,56 @@ export const SHARED_INCLUSIONS = [
   "The private events on the itinerary",
   "A welcome package",
   "Outrider staff on the ground for the whole trip",
+];
+
+/* -- Telluride, the place -----------------------------------------------------
+ * Verified against Telluride Ski Resort's own mountain page and Colorado Ski
+ * Country, September 2026. Shared by /destinations and /telluride so the two
+ * pages cannot quote different numbers. Numbers on a marketing page age, so
+ * they live here in one block rather than being scattered through the prose.
+ * ------------------------------------------------------------------------- */
+export const TELLURIDE_FACTS = [
+  { value: "2,000", label: "Skiable acres", note: "127 trails, 41 percent of them advanced or expert" },
+  { value: "13,150 ft", label: "Summit", note: "Base at 8,725 feet, so the town itself sits high" },
+  { value: "330 in", label: "Average annual snowfall", note: "San Juans catch more of it than the Front Range" },
+  { value: "Free", label: "The gondola", note: "The only free transport system of its kind in North America" },
+];
+
+/* -- where the group stays --------------------------------------------------
+ * The property is the owner's (September 2026). What is said about it is
+ * limited to what the resort itself publishes: it is in Mountain Village,
+ * ski-in and ski-out, with a spa. Shown on /telluride only once trip details
+ * are public, alongside the packages.
+ * ------------------------------------------------------------------------- */
+export const TELLURIDE_PROPERTY = {
+  name: "The Peaks Resort",
+  where: "Mountain Village, Telluride",
+  body: [
+    "The whole group stays under one roof at The Peaks Resort, up in Mountain Village rather than down in the canyon. It is ski-in and ski-out, so the day starts at the door rather than in a shuttle queue, and it has its own spa for the afternoon after.",
+    "Town is one free gondola ride down. It runs until midnight, so dinner on main street and getting back up the hill afterwards are the same easy trip.",
+  ],
+};
+
+/* -- how the rooms work ------------------------------------------------------
+ * The rooming behind each package, stated without the package names, which the
+ * team edits in /admin and which can change without this file knowing. As of
+ * September 2026: the first two packages share the same Two King room, with
+ * four people or with two, and the top package is a private suite taken whole.
+ * If that changes, change it here and in COMPARISON, VALUE_PROPS and the FAQ.
+ * ------------------------------------------------------------------------- */
+export const TELLURIDE_ROOMS = [
+  {
+    label: "Four to a room",
+    body: "A Two King room shared by four, two to a bed. Where every package starts.",
+  },
+  {
+    label: "Two to a room",
+    body: "The same Two King room shared by two, so each of you has a king bed of your own.",
+  },
+  {
+    label: "A suite to yourselves",
+    body: "A private suite booked whole, for a group of six or eight who want the door to close on just them.",
+  },
 ];
 
 /** The one thing deliberately left out, said next to the list above. */

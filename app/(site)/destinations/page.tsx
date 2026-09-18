@@ -8,7 +8,7 @@ import {
   WaitlistCTA,
   cellGridClass,
 } from "@/components/ui";
-import { UPCOMING_CATEGORIES } from "@/lib/site-content";
+import { TELLURIDE_FACTS as FACTS, UPCOMING_CATEGORIES } from "@/lib/site-content";
 
 export const metadata: Metadata = pageMetadata({
   title: "Destinations: Telluride, Colorado",
@@ -16,16 +16,6 @@ export const metadata: Metadata = pageMetadata({
   description:
     "Where Outrider goes and why. Telluride, Colorado: a box canyon town at 8,725 feet, 2,000 acres of terrain above it, and a free gondola between the two.",
 });
-
-/* Verified against Telluride Ski Resort's own mountain page and Colorado Ski
- * Country, September 2026. Numbers on a marketing page age, so they live here
- * in one block rather than being scattered through the prose. */
-const FACTS = [
-  { value: "2,000", label: "Skiable acres", note: "127 trails, 41 percent of them advanced or expert" },
-  { value: "13,150 ft", label: "Summit", note: "Base at 8,725 feet, so the town itself sits high" },
-  { value: "330 in", label: "Average annual snowfall", note: "San Juans catch more of it than the Front Range" },
-  { value: "Free", label: "The gondola", note: "The only free transport system of its kind in North America" },
-];
 
 /* Alt text describes the photograph, not the file it is stored in: the
  * filenames in public/images/telluride are unreliable (village.jpg is a posed
