@@ -201,7 +201,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
               </div>
               <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:1.6; color:#2A2320; padding-top:12px;">
                 A person answers, usually inside an hour. Email works too &mdash;
-                <a href="mailto:hello@outrider.travel" style="color:#2A2320; text-decoration:underline;">hello@outrider.travel</a>. Not a ticket queue, not a bot.
+                <a href="mailto:bookings@outrider.travel" style="color:#2A2320; text-decoration:underline;">bookings@outrider.travel</a>. Not a ticket queue, not a bot.
               </div>
             </td>
           </tr>
@@ -247,7 +247,13 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
           <tr><td colspan="2" style="border-top:1px solid #d7d2cb; font-size:0; line-height:0;">&nbsp;</td></tr>
         </table>
         <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; line-height:1.6; color:#6B635C; padding-top:14px;">
-          Next installment of {{next_payment_amount}} comes out {{next_payment_date}} on the card you used. Nothing else gets added &mdash; no booking fee, no service charge.
+          <!-- {{#unless paid_in_full}} -->
+          Next installment of {{next_payment_amount}} comes out {{next_payment_date}} on the card you used.
+          <!-- {{/unless}} -->
+          <!-- {{#unless has_balance}} -->
+          You paid in full, so there are no installments to come.
+          <!-- {{/unless}} -->
+          Nothing else gets added &mdash; no booking fee, no service charge.
           <a href="{{portal_url}}" style="color:#3E342F; text-decoration:underline;">See your payment schedule</a>
         </div>
       </td>
@@ -327,13 +333,13 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
               <a href="{{portal_url}}" style="color:#3E342F; text-decoration:underline;">Your trip</a> &nbsp;&middot;&nbsp;
               <a href="https://outrider.travel/telluride" style="color:#3E342F; text-decoration:underline;">Telluride</a> &nbsp;&middot;&nbsp;
               <a href="https://outrider.travel/faq" style="color:#3E342F; text-decoration:underline;">FAQ</a> &nbsp;&middot;&nbsp;
-              <a href="https://instagram.com/outrider.travel" style="color:#3E342F; text-decoration:underline;">Instagram</a><br />
-              Text <a href="sms:{{sms_number_raw}}" style="color:#3E342F; text-decoration:underline;">{{sms_number}}</a> or email <a href="mailto:hello@outrider.travel" style="color:#3E342F; text-decoration:underline;">hello@outrider.travel</a>.
+              <a href="https://www.instagram.com/outridertravel/" style="color:#3E342F; text-decoration:underline;">Instagram</a><br />
+              Text <a href="sms:{{sms_number_raw}}" style="color:#3E342F; text-decoration:underline;">{{sms_number}}</a> or email <a href="mailto:bookings@outrider.travel" style="color:#3E342F; text-decoration:underline;">bookings@outrider.travel</a>.
             </td>
           </tr>
           <tr>
             <td style="padding-top:18px; font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:11px; line-height:1.6; color:#6B635C;">
-              Outrider LLC &middot; [STREET ADDRESS] &middot; [CITY, STATE ZIP]<br />
+              Outrider Travel, LLC &middot; [STREET ADDRESS] &middot; [CITY, STATE ZIP]<br />
               You're getting this because you booked a trip with us.
               <a href="{{preferences_url}}" style="color:#6B635C; text-decoration:underline;">Email preferences</a>
             </td>

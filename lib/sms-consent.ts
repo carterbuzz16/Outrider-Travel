@@ -14,14 +14,17 @@
  *
  * The copy is the carrier-registration wording from the owner's brief (A2P
  * 10DLC requires the business name, frequency, rates, HELP/STOP and that
- * consent is not a condition of purchase). It names "Outrider LLC" exactly as
- * written there; the name registered with The Campaign Registry has to match.
+ * consent is not a condition of purchase). It names the business by its legal
+ * name, "Outrider Travel, LLC" (LEGAL_NAME in lib/site-content.ts); the name
+ * registered with The Campaign Registry has to match it exactly.
  *
  * History:
- *   sms-optin-2026-09-18  first version.
+ *   sms-optin-2026-09-18    first version, naming "Outrider LLC". Never shown
+ *                           to a traveler: replaced before the opt-in shipped.
+ *   sms-optin-2026-09-18.2  names the business as "Outrider Travel, LLC".
  */
 
-export const SMS_CONSENT_VERSION = "sms-optin-2026-09-18";
+export const SMS_CONSENT_VERSION = "sms-optin-2026-09-18.2";
 
 /**
  * The opt-in text, split around the two links so the form can render them as
@@ -30,7 +33,7 @@ export const SMS_CONSENT_VERSION = "sms-optin-2026-09-18";
  */
 export const SMS_CONSENT_PARTS = {
   lead:
-    "By checking this box, you agree to receive recurring automated text messages from Outrider LLC about your trip, including logistics and reminders. Consent is not a condition of purchase. Message frequency varies. Msg & data rates may apply. Reply HELP for help, STOP to cancel. See our ",
+    "By checking this box, you agree to receive recurring automated text messages from Outrider Travel, LLC about your trip, including logistics and reminders. Consent is not a condition of purchase. Message frequency varies. Msg & data rates may apply. Reply HELP for help, STOP to cancel. See our ",
   privacyLabel: "Privacy Policy",
   between: " and ",
   termsLabel: "Terms",

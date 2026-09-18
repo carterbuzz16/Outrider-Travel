@@ -231,13 +231,13 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
               <a href="{{portal_url}}" style="color:#3E342F; text-decoration:underline;">Your trip</a> &nbsp;&middot;&nbsp;
               <a href="https://outrider.travel/telluride" style="color:#3E342F; text-decoration:underline;">Telluride</a> &nbsp;&middot;&nbsp;
               <a href="https://outrider.travel/faq" style="color:#3E342F; text-decoration:underline;">FAQ</a> &nbsp;&middot;&nbsp;
-              <a href="https://instagram.com/outrider.travel" style="color:#3E342F; text-decoration:underline;">Instagram</a><br />
-              Text <a href="sms:{{sms_number_raw}}" style="color:#3E342F; text-decoration:underline;">{{sms_number}}</a> or email <a href="mailto:hello@outrider.travel" style="color:#3E342F; text-decoration:underline;">hello@outrider.travel</a>.
+              <a href="https://www.instagram.com/outridertravel/" style="color:#3E342F; text-decoration:underline;">Instagram</a><br />
+              Text <a href="sms:{{sms_number_raw}}" style="color:#3E342F; text-decoration:underline;">{{sms_number}}</a> or email <a href="mailto:bookings@outrider.travel" style="color:#3E342F; text-decoration:underline;">bookings@outrider.travel</a>.
             </td>
           </tr>
           <tr>
             <td style="padding-top:18px; font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:11px; line-height:1.6; color:#6B635C;">
-              Outrider LLC &middot; [STREET ADDRESS] &middot; [CITY, STATE ZIP]<br />
+              Outrider Travel, LLC &middot; [STREET ADDRESS] &middot; [CITY, STATE ZIP]<br />
               You're getting this because you booked a trip with us.
               <a href="{{preferences_url}}" style="color:#6B635C; text-decoration:underline;">Email preferences</a>
             </td>

@@ -265,11 +265,14 @@ async function variablesFor(
     if (days > 0) set("days_until_trip", days);
   }
   if (logistics) {
-    set("trip_capacity", logistics.tripCapacity);
-    set("property_name", logistics.propertyName);
-    set("arrival_deadline", logistics.arrivalDeadline);
-    set("departure_earliest", logistics.departureEarliest);
-    set("rooming_lock_date", logistics.roomingLockDate ? longDate(logistics.roomingLockDate, false) : null);
+    set("trip_capacity", logistics.tripCapacity ?? placeholder("trip capacity"));
+    set("property_name", logistics.propertyName ?? placeholder("property name"));
+    set("arrival_deadline", logistics.arrivalDeadline ?? placeholder("arrival deadline"));
+    set("departure_earliest", logistics.departureEarliest ?? placeholder("earliest departure"));
+    set(
+      "rooming_lock_date",
+      logistics.roomingLockDate ? longDate(logistics.roomingLockDate, false) : placeholder("rooming lock date")
+    );
   }
 
   if (forChase && trip) {
@@ -284,6 +287,19 @@ async function variablesFor(
   }
 
   return { variables, portalUrl, firstName };
+}
+
+/**
+ * Stand-in for a trip fact that lib/trip-logistics.ts does not have yet.
+ *
+ * Only off production. On the sandbox and locally, a visible "[arrival deadline
+ * to be confirmed]" lets the designed emails be tested before the facts are
+ * settled. On production it returns null, so the variable is missing and the
+ * plain confirmation goes out instead: a traveler never gets a placeholder.
+ */
+function placeholder(label: string): string | null {
+  if (process.env.VERCEL_ENV === "production") return null;
+  return `[${label} to be confirmed]`;
 }
 
 function render(template: string, variables: TemplateVariables, flags?: Record<string, boolean>) {
@@ -314,7 +330,7 @@ function confirmationText(v: TemplateVariables): string {
     "",
     `Confirmation ${v.confirmation_number}. ${v.tier_name}, ${v.total_price} per person. Paid today ${v.amount_paid}, remaining ${v.balance_due}.`,
     "",
-    `Text ${v.sms_number} or email hello@outrider.travel. A person answers.`,
+    `Text ${v.sms_number} or email bookings@outrider.travel. A person answers.`,
   ].join("\n");
 }
 
@@ -381,7 +397,10 @@ export async function sendConfirmationEmailOnce(
     let html: string | null = null;
     let missing: string[] = [];
     try {
-      html = render(confirmationTemplate, variables);
+      html = render(confirmationTemplate, variables, {
+        paid_in_full: booking.status === "paid_in_full",
+        has_balance: booking.status !== "paid_in_full",
+      });
     } catch (err) {
       if (!(err instanceof TemplateRenderError)) throw err;
       missing = err.missing.length > 0 ? err.missing : [err.message];

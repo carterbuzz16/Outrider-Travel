@@ -30,7 +30,7 @@ confirmation; the designed one is missing: ...`).
       after setting: the Terms page reads SMS_NUMBER at build time.
 - [ ] **PORTAL_TOKEN_SECRET** in Vercel: `openssl rand -hex 32`. At least 32
       characters. Rotating it breaks every link already sent.
-- [ ] **EMAIL_FROM_ADDRESS** = `Outrider <hello@outrider.travel>`, a real inbox
+- [ ] **EMAIL_FROM_ADDRESS** = `Outrider <bookings@outrider.travel>`, a real inbox
       somebody watches. Replies go there too (reply-to is the same address).
 - [ ] **Resend domain** `outrider.travel` verified, with **SPF, DKIM and DMARC**
       records added at the DNS host. Check with mail-tester.com (aim for 9/10).
@@ -60,11 +60,8 @@ confirmation; the designed one is missing: ...`).
 
       Check the `where` before running it: a real traveler's row cleared by
       mistake loses the card their installments are charged to.
-- [ ] **Legal name**: the opt-in copy says "Outrider LLC"; the site's legal name
-      is "Outrider Travel, LLC" (`lib/site-content.ts`). Carriers want the
-      checkbox, the site and the 10DLC brand registration to match exactly.
-      Decide which is right and make all three agree (changing the opt-in
-      text means a new version string in `lib/sms-consent.ts`).
+- [ ] **Legal name**: the opt-in copy, the email footers and the site all say
+      "Outrider Travel, LLC". Register the 10DLC brand under exactly that name.
 
 ## 1. Stripe test checkout, end to end
 
@@ -187,11 +184,8 @@ Both emails:
 - [ ] Nav and footer "FAQ": `https://outrider.travel/faq`
 - [ ] Nav "Text us", the big "Text ..." line, footer number:
       `sms:{{sms_number_raw}}`. Opens Messages on a phone.
-- [ ] Footer "Instagram": `https://instagram.com/outrider.travel` (the site's
-      own Instagram link is `instagram.com/outridertravel`, no dot; one of them
-      is wrong)
-- [ ] Footer email: `mailto:hello@outrider.travel` (the site's contact address
-      is `bookings@outrider.travel`; make sure hello@ exists and is watched)
+- [ ] Footer "Instagram": `https://www.instagram.com/outridertravel/`, the same account the site links to
+- [ ] Footer email: `mailto:bookings@outrider.travel`, the site's watched contact address
 - [ ] Footer "Email preferences": `{{preferences_url}}` =
       `https://outrider.travel/privacy#email`
 - [ ] Footer mark image link: `https://outrider.travel`
@@ -201,7 +195,7 @@ Email 1 only:
 - [ ] "Set your roommates": `{{rooming_url}}` = portal + `#rooming`
 - [ ] "Add your details": `{{traveler_details_url}}` = portal + `#details`
 - [ ] "Do all three now", "See your payment schedule": portal
-- [ ] "Stuck on any of it" email link: `mailto:hello@outrider.travel`
+- [ ] "Stuck on any of it" email link: `mailto:bookings@outrider.travel`
 - [ ] "Full breakdown": `https://outrider.travel/telluride#included` lands on
       the inclusions section
 

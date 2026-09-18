@@ -35,7 +35,7 @@ function getResend(): Resend {
 // Resend's dashboard (Domains -> Add Domain), or every send fails with a
 // "domain is invalid" 422.
 //
-// Production sends as "Outrider <hello@outrider.travel>": a real, watched
+// Production sends as "Outrider <bookings@outrider.travel>": a real, watched
 // inbox, because the emails promise a person answers. Never a noreply@
 // address. Mail about a booking also sets reply-to to this same address (see
 // sendBookingConfirmationEmail and lib/email/post-booking.ts), so a reply
