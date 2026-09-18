@@ -10,7 +10,7 @@ import {
 } from "@/lib/deposit";
 import { formatAmount } from "@/lib/balance";
 import { INSTALLMENT_OFFSETS_DAYS } from "@/lib/installments";
-import { getRoomMedia } from "@/lib/room-media";
+import { getRoomMedia, isTaken, tierGrouping } from "@/lib/room-media";
 import { CONTACT } from "@/lib/site-content";
 import {
   availabilityLabel,
@@ -142,6 +142,8 @@ function Packages({ trip, requestedPackage }: { trip: PublicTrip; requestedPacka
       summary: room?.summary ?? tier.description,
       inclusions: tier.inclusions,
       room,
+      ...tierGrouping(tier.name),
+      taken: isTaken(tier.name, tier.spotsLeft),
       // Exact to the cent: formatPrice rounds to the dollar, and these are
       // the figures that come off the card.
       priceLabel: formatAmount(tier.price),

@@ -56,7 +56,7 @@ export const VALUE_PROPS = [
     eyebrow: "Small groups",
     title: "Small enough to know everyone",
     body:
-      "Every trip gets its size before it goes on sale, and it stays that size. You share a room with three friends or with one, or take a whole suite for six or eight. Where there's a guide, it's one for every six of you. By night two it feels like your crew took over the town.",
+      "Every trip gets its size before it goes on sale, and it stays that size. You share a room with three friends or with one, or take a private penthouse with seven friends. Where there's a guide, it's one for every six of you. By night two it feels like your crew took over the town.",
   },
   {
     eyebrow: "Hosted",
@@ -200,7 +200,7 @@ export const COMPARISON = [
   {
     label: "How many people",
     usual: "As many as will pay.",
-    ours: "Set before a single spot goes on sale. Rooms for four or two, suites taken whole by six or eight, and one instructor for every six.",
+    ours: "Set before a single spot goes on sale. Rooms for four or two, a private penthouse for eight, and one instructor for every six.",
   },
 ];
 
@@ -264,7 +264,8 @@ export const TELLURIDE_PROPERTY = {
  * The rooming behind each package, stated without the package names, which the
  * team edits in /admin and which can change without this file knowing. As of
  * September 2026: the first two packages share the same Two King room, with
- * four people or with two, and the top package is a private suite taken whole.
+ * four people or with two, and at the top a group of eight chooses one of two
+ * private four-bedroom penthouses, 702 or 830, and books it whole.
  * If that changes, change it here and in COMPARISON, VALUE_PROPS and the FAQ.
  * ------------------------------------------------------------------------- */
 export const TELLURIDE_ROOMS = [
@@ -277,8 +278,8 @@ export const TELLURIDE_ROOMS = [
     body: "The same Two King room shared by two, so each of you has a king bed of your own.",
   },
   {
-    label: "A suite to yourselves",
-    body: "A private suite booked whole, for a group of six or eight who want the door to close on just them.",
+    label: "A penthouse to yourselves",
+    body: "Your pick of two four-bedroom penthouses at the top of The Peaks, 702 or 830, booked whole by your group of eight. Eight of you, with room to spare.",
   },
 ];
 

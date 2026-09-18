@@ -37,7 +37,7 @@ import {
   nightCount,
   type PublicTrip,
 } from "@/lib/trips";
-import { getRoomMedia } from "@/lib/room-media";
+import { getRoomMedia, isTaken, tierGrouping } from "@/lib/room-media";
 
 /*
  * /telluride: both Telluride departures on one page, and the page that sells
@@ -99,8 +99,8 @@ const EVENING_IMAGE = {
 };
 
 const PROPERTY_IMAGE = {
-  src: "/images/telluride/group.jpg",
-  alt: "A Telluride gondola cabin passing over a skier throwing up powder in falling snow.",
+  src: "/images/peaks/peaks-exterior-night.jpg",
+  alt: "The Peaks Resort from above on a winter night, its windows lit and the heated outdoor pool glowing, with snowy peaks behind.",
 };
 
 /** Case-insensitive, so "Telluride, Colorado" and "telluride" both count. */
@@ -157,6 +157,8 @@ function toTierViews(tiers: PublicTrip["tiers"], perDeparture: boolean): TierVie
     // One table standing for several departures cannot show one departure's
     // remaining spots; availability is on each departure above instead.
     spotsLeft: perDeparture ? tier.spotsLeft : null,
+    ...tierGrouping(tier.name),
+    taken: perDeparture && isTaken(tier.name, tier.spotsLeft),
   }));
 }
 
@@ -372,9 +374,11 @@ export default async function TelluridePage() {
             <Reveal>
               <Plate
                 image={PROPERTY_IMAGE}
-                ratio="aspect-[4/5]"
+                // The photograph is wide (16:9), so a wide frame keeps the
+                // building, the pool and the peaks all in it.
+                ratio="aspect-[4/3]"
                 sizes="(min-width: 768px) 45vw, 100vw"
-                position="55% 50%"
+                position="55% 55%"
               />
             </Reveal>
 
@@ -781,7 +785,7 @@ const ANSWERS: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "How big is the group?",
-    a: "The number is set before a trip goes on sale and doesn't move. Rooms are shared by four or by two, and suites are taken whole by six or eight, so the group you live with all week stays small.",
+    a: "The number is set before a trip goes on sale and doesn't move. Rooms are shared by four or by two, and a private penthouse holds eight, so the group you live with all week stays small.",
   },
   {
     q: "How does paying work?",

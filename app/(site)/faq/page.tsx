@@ -105,9 +105,9 @@ const GROUPS: Group[] = [
           <>
             About 100 to 200. It feels more like a small club than a tour. The
             number is set before a trip goes on sale and doesn&rsquo;t move to
-            fit demand. Rooms are shared by four or by two, with suites taken
-            whole by six or eight, so the group you actually live with all week
-            stays small.
+            fit demand. Rooms are shared by four or by two, and a private penthouse
+            holds eight, so the group you actually live with all week stays
+            small.
           </>
         ),
       },

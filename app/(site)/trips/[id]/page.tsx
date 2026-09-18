@@ -14,7 +14,7 @@ import {
   type ShowcaseRoom,
   type TierView,
 } from "@/components/ui";
-import { getRoomMedia } from "@/lib/room-media";
+import { getRoomMedia, isTaken, tierGrouping } from "@/lib/room-media";
 import { BOOKINGS_OPEN, COMING_SOON_NOTE, TRIP_DETAILS_OPEN } from "@/lib/booking-window";
 import { getAppUrl } from "@/lib/site-url";
 import {
@@ -92,6 +92,8 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
     description: tier.description,
     inclusions: tier.inclusions,
     spotsLeft: tier.spotsLeft,
+    ...tierGrouping(tier.name),
+    taken: isTaken(tier.name, tier.spotsLeft),
   }));
 
   // The rooms at The Peaks behind each package. lib/room-media.ts describes
@@ -99,7 +101,17 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
   const rooms: ShowcaseRoom[] = trip.destination.toLowerCase().includes("telluride")
     ? trip.tiers.flatMap((tier) => {
         const room = getRoomMedia(tier.name);
-        return room ? [{ id: tier.id, tierName: tier.name, price: formatPrice(tier.price), room }] : [];
+        return room
+          ? [
+              {
+                id: tier.id,
+                tierName: tier.name,
+                price: formatPrice(tier.price),
+                taken: isTaken(tier.name, tier.spotsLeft),
+                room,
+              },
+            ]
+          : [];
       })
     : [];
 

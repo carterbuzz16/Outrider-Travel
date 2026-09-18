@@ -70,7 +70,7 @@ const ROWS: Row[] = [
     usualLong: "As many as will pay.",
     usualShort: "As many as will pay",
     outriderLong:
-      "Set before a single spot goes on sale, and it stays there. Rooms hold four or two, suites are taken whole by six or eight, and there's one instructor for every six. Small enough that it still feels like your trip.",
+      "Set before a single spot goes on sale, and it stays there. Rooms hold four or two, a private penthouse holds eight, and there's one instructor for every six. Small enough that it still feels like your trip.",
     outriderShort: "Capped before it sells",
   },
 ];

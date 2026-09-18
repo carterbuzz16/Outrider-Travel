@@ -28,10 +28,10 @@ export { default as Comparison } from "./Comparison";
 export { default as ComparisonTable } from "./ComparisonTable";
 export type { ComparisonRow } from "./Comparison";
 export { default as EditorialPair } from "./EditorialPair";
-export { default as TierTable } from "./TierTable";
+export { default as TierTable, TAKEN_NOTE } from "./TierTable";
 export type { TierView } from "./TierTable";
 export { default as RoomShowcase, RoomPanel } from "./RoomShowcase";
-export type { RoomView, ShowcaseRoom } from "./RoomShowcase";
+export type { PenthouseView, RoomView, ShowcaseRoom } from "./RoomShowcase";
 export { default as RoomPhotos, RoomPhotosButton } from "./RoomPhotos";
 export type { RoomPhoto } from "./RoomPhotos";
 

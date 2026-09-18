@@ -1,5 +1,6 @@
 import RoomPhotos, { type RoomPhoto } from "./RoomPhotos";
 import { cn } from "./cn";
+import { TAKEN_NOTE } from "./TierTable";
 
 /**
  * The rooms behind the packages, image-led.
@@ -8,7 +9,12 @@ import { cn } from "./cn";
  * paying for, the penthouse above all. So the two shared-room packages sit
  * side by side at the same size (they are the same room, with four or with
  * two), and the top package gets the full width and the bigger type below
- * them, which is also the order the price climbs in.
+ * them, which is also the order the price climbs in. At the top are the two
+ * penthouses, each its own package that one group books whole: they sit side
+ * by side under one "The penthouse" heading, each with its own photographs,
+ * numbers and standouts, so they read as one choice with two versions. A
+ * penthouse another group has booked shows as taken. (A departure still on
+ * the old single TOP package shows the same pair, without the choosing.)
  *
  * Photographs come from lib/room-media.ts, which only returns files that
  * exist. Until a package has any, it gets RoomPanel: the room stated as type
@@ -23,11 +29,24 @@ import { cn } from "./cn";
 
 /** Structurally the same as RoomMedia in lib/room-media.ts, which is server-only. */
 export type RoomView = {
-  key: "BASE" | "MID" | "TOP";
+  key: "BASE" | "MID" | "PENTHOUSE" | "TOP";
   title: string;
   summary: string;
   upgrade: string;
   figure: { value: string; unit: string };
+  facts: { label: string; value: string }[];
+  photos: RoomPhoto[];
+  penthouses?: PenthouseView[];
+  shared?: string;
+};
+
+/** Structurally the same as Penthouse in lib/room-media.ts. */
+export type PenthouseView = {
+  number: string;
+  name: string;
+  line: string;
+  panel: string;
+  stats: { value: string; label: string }[];
   facts: { label: string; value: string }[];
   photos: RoomPhoto[];
 };
@@ -39,10 +58,15 @@ export type ShowcaseRoom = {
   tierName: string;
   /** Formatted, per person. Omitted where the page cannot show prices yet. */
   price?: string | null;
+  /** A penthouse another group has booked whole. */
+  taken?: boolean;
   room: RoomView;
 };
 
-const ORDER = { BASE: 0, MID: 1, TOP: 2 } as const;
+const ORDER = { BASE: 0, MID: 1, PENTHOUSE: 2, TOP: 3 } as const;
+
+/** The package promise for a penthouse, as on its checkout card. */
+const WHOLE_PENTHOUSE = "Eight of you, the whole penthouse";
 
 export default function RoomShowcase({
   rooms,
@@ -52,9 +76,13 @@ export default function RoomShowcase({
   className?: string;
 }) {
   if (rooms.length === 0) return null;
-  const sorted = [...rooms].sort((a, b) => ORDER[a.room.key] - ORDER[b.room.key]);
-  const shared = sorted.filter((r) => r.room.key !== "TOP");
-  const feature = sorted.filter((r) => r.room.key === "TOP");
+  const sorted = [...rooms].sort(
+    (a, b) => ORDER[a.room.key] - ORDER[b.room.key] || a.tierName.localeCompare(b.tierName),
+  );
+  const shared = sorted.filter((r) => r.room.key === "BASE" || r.room.key === "MID");
+  const choices = sorted.filter((r) => r.room.key === "PENTHOUSE");
+  // The old single top package, only when the penthouses are not sold apart.
+  const top = choices.length === 0 ? sorted.find((r) => r.room.key === "TOP") : undefined;
 
   return (
     <div className={cn("flex flex-col gap-16 md:gap-20", className)}>
@@ -65,9 +93,29 @@ export default function RoomShowcase({
           ))}
         </div>
       )}
-      {feature.map((r) => (
-        <FeatureRoom key={r.id} room={r} />
-      ))}
+      {choices.length > 0 && (
+        <PenthouseGroup
+          intro="Two four-bedroom penthouses at the top of The Peaks. Pick the one you love and it's yours for the trip."
+          note="Each one goes to a single group. Once a group books it, it's theirs."
+          shared={choices[0].room.shared}
+          cards={choices.flatMap((r) =>
+            (r.room.penthouses ?? []).map((penthouse) => ({
+              penthouse,
+              price: r.price,
+              taken: r.taken,
+            })),
+          )}
+        />
+      )}
+      {top && (
+        <PenthouseGroup
+          packageLine={<PackageLine tierName={top.tierName} price={top.price} />}
+          intro={top.room.upgrade}
+          note="There are two, 702 and 830, and each one goes to a single group."
+          shared={top.room.shared}
+          cards={(top.room.penthouses ?? []).map((penthouse) => ({ penthouse }))}
+        />
+      )}
     </div>
   );
 }
@@ -100,28 +148,110 @@ function RoomCard({ room: { tierName, price, room } }: { room: ShowcaseRoom }) {
 
 /* -- the penthouse -------------------------------------------------------------- */
 
-function FeatureRoom({ room: { tierName, price, room } }: { room: ShowcaseRoom }) {
+type PenthouseCardData = {
+  penthouse: PenthouseView;
+  /** Per person, when each penthouse is its own package. */
+  price?: string | null;
+  taken?: boolean;
+};
+
+function PenthouseGroup({
+  packageLine,
+  intro,
+  note,
+  shared,
+  cards,
+}: {
+  /** The old single TOP package names itself once, above the pair. */
+  packageLine?: React.ReactNode;
+  intro: string;
+  note: string;
+  shared?: string;
+  cards: PenthouseCardData[];
+}) {
   return (
-    <article className="grid gap-8 border-t border-[--rule-strong] pt-10 md:pt-14 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] lg:gap-14">
-      {room.photos.length > 0 ? (
-        <RoomPhotos
-          photos={room.photos}
-          title={room.title}
-          sizes="(min-width: 1024px) 58vw, 100vw"
-          maxThumbs={4}
-        />
-      ) : (
-        <RoomPanel room={room} size="large" />
-      )}
-      <div className="flex flex-col gap-5 lg:pt-2">
-        <PackageLine tierName={tierName} price={price} />
-        <h3 className="t-title text-[--text]">{room.title}</h3>
-        <p className="max-w-measure font-body text-lede font-light leading-[1.6] text-[--text]">
-          {room.upgrade}
-        </p>
-        <RoomFacts facts={room.facts} className="mt-3" />
+    <article className="flex flex-col gap-12 border-t border-[--rule-strong] pt-10 md:gap-14 md:pt-14">
+      <header className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-end lg:gap-14">
+        <div className="flex flex-col gap-4">
+          {packageLine}
+          <h3 className="t-title text-[--text]">The penthouse</h3>
+        </div>
+        <div className="flex flex-col gap-4">
+          <p className="max-w-measure font-body text-lede font-light leading-[1.6] text-[--text]">
+            {intro}
+          </p>
+          <p className="max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
+            {note}
+          </p>
+        </div>
+      </header>
+
+      <div className={cn("grid gap-14 md:gap-10", cards.length > 1 && "md:grid-cols-2")}>
+        {cards.map((card) => (
+          <PenthouseCard key={card.penthouse.number} {...card} />
+        ))}
       </div>
+
+      {shared && (
+        <p className="max-w-measure border-t border-[--rule] pt-5 font-body text-body-s leading-[1.7] text-[--text-secondary]">
+          {shared}
+        </p>
+      )}
     </article>
+  );
+}
+
+function PenthouseCard({ penthouse, price, taken = false }: PenthouseCardData) {
+  return (
+    <section className="flex flex-col gap-6" aria-label={penthouse.name}>
+      <div className={cn("relative", taken && "opacity-60")}>
+        {penthouse.photos.length > 0 ? (
+          <RoomPhotos
+            photos={penthouse.photos}
+            title={penthouse.name}
+            sizes="(min-width: 768px) 45vw, 100vw"
+          />
+        ) : (
+          <RoomPanel
+            room={{ title: penthouse.name, figure: { value: penthouse.number, unit: penthouse.panel } }}
+            size="large"
+          />
+        )}
+      </div>
+      <div className="flex flex-col gap-3">
+        <p className="t-micro flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[--accent]">
+          <span>{taken ? "Taken" : WHOLE_PENTHOUSE}</span>
+          {price && !taken && (
+            <span className="tabular-nums text-[--text-secondary]">{price} per person</span>
+          )}
+        </p>
+        <h4 className="t-heading text-[--text]">{penthouse.name}</h4>
+        <p className="max-w-measure font-body text-body leading-[1.75] text-[--text-secondary]">
+          {penthouse.line}
+        </p>
+        {taken && (
+          <p className="max-w-measure border-l-2 border-[--flag] pl-3 font-body text-body-s leading-[1.6] text-[--text]">
+            {TAKEN_NOTE}
+          </p>
+        )}
+      </div>
+      <div>
+        <dl className="m-0 grid grid-cols-4 border-t border-[--rule]">
+          {penthouse.stats.map((stat, i) => (
+            <div
+              key={stat.label}
+              className={cn("flex flex-col gap-1.5 py-4", i > 0 && "border-l border-[--rule] pl-3 sm:pl-4")}
+            >
+              <dt className="t-micro order-2 text-[--text-secondary]">{stat.label}</dt>
+              <dd className="order-1 m-0 font-display text-display-s font-extrabold leading-none tabular-nums text-[--accent]">
+                {stat.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+        <RoomFacts facts={penthouse.facts} />
+      </div>
+    </section>
   );
 }
 

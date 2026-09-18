@@ -8,39 +8,33 @@ import path from "node:path";
  * The owner's brief: people should see what they are getting for each tier,
  * the penthouse above all. The package names and prices live in the database
  * (edited in /admin); this is the room-level detail the database has no
- * column for, keyed by the tier's name. The DB names are "BASE", "MID" and
- * "TOP"; matching ignores case and surrounding space, and a tier with any
- * other name simply gets no room panel.
+ * column for, keyed by the tier's name. The DB names are "BASE", "MID",
+ * "PENTHOUSE 702" and "PENTHOUSE 830"; matching ignores case and extra space,
+ * and a tier with any other name simply gets no room panel. "TOP" (the single
+ * top package the penthouses replaced) still resolves, to both penthouses, so
+ * a departure not yet moved over keeps its room panel.
  *
  * The facts here restate TELLURIDE_ROOMS in lib/site-content.ts (as of
  * September 2026: BASE and MID share the same Two King room, four people or
- * two; TOP is a private suite taken whole for six or eight). If the rooming
- * changes, change both, and COMPARISON, VALUE_PROPS and the FAQ with them.
+ * two; each penthouse is its own package, a private four-bedroom penthouse
+ * that one group of eight books whole, and guests choose 702 or 830). If the
+ * rooming changes, change both, and COMPARISON, VALUE_PROPS and the FAQ with
+ * them.
+ *
+ * The penthouse facts are the resort's own listing for each unit, restated.
+ * Both sleep eleven; Outrider puts exactly eight in either, so the site never
+ * quotes eleven as a group size. Spa access and the ski valet are listed for
+ * 830 only, so they are not claimed for 702.
  *
  * ---------------------------------------------------------------------------
- * PHOTOGRAPHS: the owner will supply these. Drop them in public/images/peaks/
- * with exactly these names (public/images/peaks/README.md says the same):
- *
- *   base-1.jpg   BASE hero: the Two King room made up for four
- *   base-2.jpg   BASE: its bathroom
- *   mid-1.jpg    MID hero: the same Two King room, made up for two
- *   mid-2.jpg    MID: the spa at The Peaks
- *   top-1.jpg    TOP hero: the suite / penthouse living room
- *   top-2.jpg    TOP: the view from its windows
- *   top-3.jpg    TOP: a bedroom
- *   top-4.jpg    TOP: a second bedroom
- *   top-5.jpg    TOP: the kitchen and dining table (the private chef dinner)
- *   top-6.jpg    TOP: a bathroom
- *   top-7.jpg    TOP: the terrace or hot tub, if the suite has one
- *
- * Landscape 3:2, 2400px wide, JPEG. The first photo of each tier is its hero
- * and the image on its package card at checkout, so it should be the room at
- * its best, shot wide. The alt text below describes the shot asked for; when
- * the real photographs arrive, reread each one and correct its alt to what is
- * actually in the frame.
+ * PHOTOGRAPHS live in public/images/peaks/ (README.md there lists them). The
+ * Two King room has one photograph, used by BASE and MID alike since it is
+ * the same room. Each penthouse has its own set, hero first; the TOP fallback
+ * shows 702's then 830's. To add a photo, drop the file in and add a line
+ * below with alt text that says what is actually in the frame.
  *
  * Only files that exist are returned, checked on the server at render time,
- * so a missing photo is never a broken image: a tier with none renders its
+ * so a missing photo is never a broken image: a room with none renders its
  * typographic panel instead (components/ui/RoomShowcase.tsx). On Vercel the
  * public folder is served from the CDN and is not in the server bundle, so
  * next.config.mjs traces public/images/peaks into the routes that call this;
@@ -48,9 +42,27 @@ import path from "node:path";
  * ---------------------------------------------------------------------------
  */
 
-export type RoomKey = "BASE" | "MID" | "TOP";
+/** "PENTHOUSE" is one penthouse sold as its own package; "TOP" is the old single top package. */
+export type RoomKey = "BASE" | "MID" | "PENTHOUSE" | "TOP";
 export type RoomPhoto = { src: string; alt: string };
 export type RoomFact = { label: string; value: string };
+
+/** One of the two penthouses. */
+export type Penthouse = {
+  /** "702" */
+  number: string;
+  /** "Penthouse 702" */
+  name: string;
+  /** One line that sells it. */
+  line: string;
+  /** Short under the number on the typographic panel: "Three stories · 270° views". */
+  panel: string;
+  /** The at-a-glance numbers: "4" over "Bedrooms". */
+  stats: { value: string; label: string }[];
+  facts: RoomFact[];
+  /** Existing files only, hero first. */
+  photos: RoomPhoto[];
+};
 
 export type RoomMedia = {
   key: RoomKey;
@@ -65,12 +77,133 @@ export type RoomMedia = {
   facts: RoomFact[];
   /** Existing files only, hero first. Empty until the photographs arrive. */
   photos: RoomPhoto[];
+  /** PENTHOUSE: the one penthouse this package is. TOP: both. */
+  penthouses?: Penthouse[];
+  /** PENTHOUSE and TOP: what both penthouses share, said once under the pair. */
+  shared?: string;
+};
+
+type PenthouseSource = Omit<Penthouse, "photos"> & { wanted: RoomPhoto[] };
+type RoomSource = Omit<RoomMedia, "key" | "photos" | "penthouses"> & {
+  key: RoomKey;
+  wanted: RoomPhoto[];
+  penthouses?: PenthouseSource[];
 };
 
 const PROPERTY_FACT: RoomFact = { label: "Where", value: "The Peaks Resort, ski-in and ski-out" };
 
-const ROOMS: Record<RoomKey, Omit<RoomMedia, "key" | "photos"> & { wanted: RoomPhoto[] }> = {
+/** The package promise, the same words on every penthouse surface. */
+const WHOLE_PENTHOUSE = "Eight of you, the whole penthouse";
+
+const PENTHOUSE_SHARED =
+  "Both have an elevator, ski-in and ski-out access, and the resort's pool, hot tub and exercise room. Each sleeps more than eight, so eight of you have room to spare.";
+
+const TWO_KING_PHOTO: RoomPhoto = {
+  src: "/images/peaks/two-king-1.jpg",
+  alt: "A Two King room at The Peaks: two white king beds with dark leather headboards, and a sliding door to a balcony at sunset.",
+};
+
+const P702: PenthouseSource = {
+  number: "702",
+  name: "Penthouse 702",
+  line: "One big open room for cooking, eating and hanging out, with Mt. Wilson and the San Sophia range filling the windows.",
+  panel: "Four bedrooms · Mt. Wilson views",
+  stats: [
+    { value: "4", label: "Bedrooms" },
+    { value: "4.5", label: "Baths" },
+    { value: "3", label: "King beds" },
+    { value: "2", label: "Dining areas" },
+  ],
+  facts: [
+    {
+      label: "Beds",
+      value:
+        "Three kings (one splits into two twins) and two fulls upstairs. Every bedroom has its own bath.",
+    },
+    {
+      label: "Views",
+      value:
+        "Mt. Wilson and the San Sophia range from the living space, the Mountain Village core from the family room",
+    },
+    {
+      label: "Standouts",
+      value:
+        "A primary bath with a soaking tub, steam shower and double sinks. A full kitchen with a gas range and breakfast bar. A separate family room with couches and a TV. Central air.",
+    },
+  ],
+  wanted: [
+    {
+      src: "/images/peaks/penthouse-702-1.jpg",
+      alt: "The great room in Penthouse 702: two dining tables, leather sofas, a stone fireplace with bookshelves and a vaulted wood ceiling with skylights, and a wall of windows onto the mountains at dusk.",
+    },
+    {
+      src: "/images/peaks/penthouse-702-2.jpg",
+      alt: "A long dining table in Penthouse 702 set for ten under an iron chandelier, with floor-to-ceiling windows onto the mountains at dusk.",
+    },
+    {
+      src: "/images/peaks/penthouse-702-3.jpg",
+      alt: "The kitchen in Penthouse 702, with a breakfast bar and granite counters, a dining table on a red rug, and the stairs up to the fourth bedroom.",
+    },
+  ],
+};
+
+const P830: PenthouseSource = {
+  number: "830",
+  name: "Penthouse 830",
+  line: "Three floors at the very top of The Peaks, with a view that wraps 270 degrees around the mountains.",
+  panel: "Three stories · 270° views",
+  stats: [
+    { value: "4", label: "Bedrooms" },
+    { value: "4", label: "Baths" },
+    { value: "3", label: "Stories" },
+    { value: "270°", label: "Views" },
+  ],
+  facts: [
+    { label: "Beds", value: "A king, a king, a convertible king and two bunk beds" },
+    {
+      label: "Views",
+      value: "Mt. Wilson, the Telluride Golf Course, the ski resort and the San Sophia range",
+    },
+    {
+      label: "Standouts",
+      value:
+        "The top floor of the building. Your own laundry. Complimentary access to the Peaks Spa and the Peaks Ski Valet.",
+    },
+  ],
+  wanted: [
+    {
+      src: "/images/peaks/penthouse-830-1.jpg",
+      alt: "The top-floor great room in Penthouse 830 under a peaked log-beam ceiling and an antler chandelier, with windows on every side over Mountain Village in fall, a long dining table and a kitchen island.",
+    },
+    {
+      src: "/images/peaks/penthouse-830-2.jpg",
+      alt: "The primary bedroom in Penthouse 830: a king bed under a coffered ceiling, with windows onto Mt. Wilson and the aspens.",
+    },
+    {
+      src: "/images/peaks/penthouse-830-3.jpg",
+      alt: "The bunk room in Penthouse 830: two bunk beds, each with a full bed below and striped blankets, and a window onto the valley.",
+    },
+  ],
+};
+
+/** One penthouse, sold as its own package. */
+function penthousePackage(p: PenthouseSource, summaryTail: string): RoomSource {
+  return {
+    key: "PENTHOUSE",
+    title: p.name,
+    summary: `${WHOLE_PENTHOUSE}. ${summaryTail}`,
+    upgrade: p.line,
+    figure: { value: p.number, unit: "the whole penthouse" },
+    facts: [{ label: "Sharing", value: WHOLE_PENTHOUSE }, ...p.facts, PROPERTY_FACT],
+    shared: PENTHOUSE_SHARED,
+    wanted: [],
+    penthouses: [p],
+  };
+}
+
+const ROOMS: Record<string, RoomSource> = {
   BASE: {
+    key: "BASE",
     title: "The Two King room",
     summary: "Two King room, four to a room",
     upgrade:
@@ -81,12 +214,10 @@ const ROOMS: Record<RoomKey, Omit<RoomMedia, "key" | "photos"> & { wanted: RoomP
       { label: "Sharing", value: "Four, two to a bed" },
       PROPERTY_FACT,
     ],
-    wanted: [
-      { src: "/images/peaks/base-1.jpg", alt: "A Two King room at The Peaks Resort, both beds made up." },
-      { src: "/images/peaks/base-2.jpg", alt: "The bathroom of a Two King room at The Peaks Resort." },
-    ],
+    wanted: [TWO_KING_PHOTO],
   },
   MID: {
+    key: "MID",
     title: "The Two King room, for two",
     summary: "Two King room, just two of you",
     upgrade:
@@ -97,38 +228,36 @@ const ROOMS: Record<RoomKey, Omit<RoomMedia, "key" | "photos"> & { wanted: RoomP
       { label: "Sharing", value: "Two, a king bed each" },
       PROPERTY_FACT,
     ],
-    wanted: [
-      { src: "/images/peaks/mid-1.jpg", alt: "A Two King room at The Peaks Resort, made up for two." },
-      { src: "/images/peaks/mid-2.jpg", alt: "The spa at The Peaks Resort." },
-    ],
+    wanted: [TWO_KING_PHOTO],
   },
+  "PENTHOUSE 702": penthousePackage(P702, "Four bedrooms, 4.5 baths."),
+  "PENTHOUSE 830": penthousePackage(P830, "Three stories, 270° views."),
   TOP: {
+    key: "TOP",
     title: "The penthouse",
-    summary: "Private suite or penthouse for your group",
+    summary: "Private four-bedroom penthouse for your group of eight",
     upgrade:
-      "A private suite booked whole, for a group of six or eight who want the door to close on just them. Your own living room and kitchen, and nobody else's.",
-    figure: { value: "6–8", unit: "your group only" },
+      "A four-bedroom penthouse at the top of The Peaks, held for your group of eight and nobody else. Eight of you, with room to spare.",
+    figure: { value: "8", unit: "your group only" },
     facts: [
-      { label: "Sharing", value: "Your group of six or eight" },
-      { label: "Booked", value: "Whole, for your group only" },
+      { label: "Sharing", value: "Your group of eight, with room to spare" },
+      { label: "Which one", value: "Penthouse 702 or 830" },
       PROPERTY_FACT,
     ],
-    wanted: [
-      { src: "/images/peaks/top-1.jpg", alt: "The living room of the suite at The Peaks Resort." },
-      { src: "/images/peaks/top-2.jpg", alt: "The view of the San Juan peaks from the suite's windows." },
-      { src: "/images/peaks/top-3.jpg", alt: "A bedroom in the suite." },
-      { src: "/images/peaks/top-4.jpg", alt: "A second bedroom in the suite." },
-      { src: "/images/peaks/top-5.jpg", alt: "The suite's kitchen and dining table, set for a private chef dinner." },
-      { src: "/images/peaks/top-6.jpg", alt: "A bathroom in the suite." },
-      { src: "/images/peaks/top-7.jpg", alt: "The suite's terrace." },
-    ],
+    shared: PENTHOUSE_SHARED,
+    wanted: [],
+    penthouses: [P702, P830],
   },
 };
 
-/** Case and space insensitive, so "Top" and " TOP " both match. */
+/** "Penthouse  702 " and "PENTHOUSE 702" are the same name. */
+function normalise(tierName: string): string {
+  return tierName.trim().replace(/\s+/g, " ").toUpperCase();
+}
+
+/** The kind of room behind a package, or null for a name this file does not know. */
 export function roomKeyFor(tierName: string): RoomKey | null {
-  const key = tierName.trim().toUpperCase();
-  return key in ROOMS ? (key as RoomKey) : null;
+  return ROOMS[normalise(tierName)]?.key ?? null;
 }
 
 function fileExists(src: string): boolean {
@@ -139,10 +268,45 @@ function fileExists(src: string): boolean {
   }
 }
 
+const existing = (photos: RoomPhoto[]) => photos.filter((photo) => fileExists(photo.src));
+
 /** The room behind a package, with only the photographs that exist, or null. */
 export function getRoomMedia(tierName: string): RoomMedia | null {
-  const key = roomKeyFor(tierName);
-  if (!key) return null;
-  const { wanted, ...room } = ROOMS[key];
-  return { key, ...room, photos: wanted.filter((photo) => fileExists(photo.src)) };
+  const source = ROOMS[normalise(tierName)];
+  if (!source) return null;
+  const { wanted, penthouses, ...room } = source;
+  if (!penthouses) return { ...room, photos: existing(wanted) };
+
+  const resolved: Penthouse[] = penthouses.map(({ wanted: shots, ...p }) => ({
+    ...p,
+    photos: existing(shots),
+  }));
+  return {
+    ...room,
+    penthouses: resolved,
+    photos: [...existing(wanted), ...resolved.flatMap((p) => p.photos)],
+  };
+}
+
+/**
+ * How a package sits in the package table: the two penthouses are grouped
+ * under one heading, everything else stands alone. Spread into a TierView.
+ */
+export function tierGrouping(tierName: string): { group: string | null; groupNote: string | null } {
+  return roomKeyFor(tierName) === "PENTHOUSE"
+    ? {
+        group: "The penthouse",
+        groupNote:
+          "Choose 702 or 830. Eight of you get the whole penthouse, and nobody else stays in it.",
+      }
+    : { group: null, groupNote: null };
+}
+
+/**
+ * A penthouse another group has booked. For now that is the tier being full,
+ * which is what a whole-group booking of eight makes it; the reservation
+ * logic that decides it properly (a group code getting back in) replaces this.
+ */
+export function isTaken(tierName: string, spotsLeft: number | null): boolean {
+  return roomKeyFor(tierName) === "PENTHOUSE" && spotsLeft !== null && spotsLeft <= 0;
 }

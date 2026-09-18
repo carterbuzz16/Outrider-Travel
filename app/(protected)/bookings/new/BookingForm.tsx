@@ -44,6 +44,11 @@ export type CheckoutTier = {
   summary: string | null;
   inclusions: string[];
   room: RoomView | null;
+  /** The two penthouses share a group, and are shown together under its name. */
+  group: string | null;
+  groupNote: string | null;
+  /** A penthouse another group has booked whole. Also soldOut, for now. */
+  taken: boolean;
   /** All formatted, exact to the cent: these are the figures that come off the card. */
   priceLabel: string;
   depositLabel: string;
@@ -82,6 +87,7 @@ export default function BookingForm({
   const planLegend = useId();
   const dueToday = plan === "full" ? selected.fullLabel : selected.depositLabel;
   const installments = installmentCount === 2 ? "two" : String(installmentCount);
+  const groups = [...new Set(tiers.map((t) => t.group).filter((g): g is string => Boolean(g)))];
 
   return (
     <SubmitOnceForm
@@ -99,14 +105,41 @@ export default function BookingForm({
           Everyone skis the same days and comes to the same events. The package decides the room.
         </p>
         <div className="mt-6 flex flex-col gap-4">
-          {tiers.map((tier) => (
-            <PackageCard
-              key={tier.id}
-              tier={tier}
-              defaultChecked={tier.id === initialTierId}
-              onSelect={() => setTierId(tier.id)}
-            />
-          ))}
+          {tiers
+            .filter((tier) => !tier.group)
+            .map((tier) => (
+              <PackageCard
+                key={tier.id}
+                tier={tier}
+                defaultChecked={tier.id === initialTierId}
+                onSelect={() => setTierId(tier.id)}
+              />
+            ))}
+          {/* The penthouses: one choice in two versions, so they sit together
+              under their own heading rather than as two more equal cards.
+              Still the same radio group, so the form posts exactly as before. */}
+          {groups.map((group) => {
+            const members = tiers.filter((tier) => tier.group === group);
+            const note = members.find((tier) => tier.groupNote)?.groupNote;
+            return (
+              <div key={group} className="mt-4 flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5 border-t border-[--rule-strong] pt-5">
+                  <p className="font-display text-display-s font-medium tracking-title text-[--text]">{group}</p>
+                  {note && (
+                    <p className="font-body text-body-s leading-[1.6] text-[--text-secondary]">{note}</p>
+                  )}
+                </div>
+                {members.map((tier) => (
+                  <PackageCard
+                    key={tier.id}
+                    tier={tier}
+                    defaultChecked={tier.id === initialTierId}
+                    onSelect={() => setTierId(tier.id)}
+                  />
+                ))}
+              </div>
+            );
+          })}
         </div>
       </fieldset>
 
@@ -316,15 +349,24 @@ function PackageCard({
             {tier.summary && (
               <span className="mt-1 font-body text-body leading-[1.5] text-[--text-secondary]">{tier.summary}</span>
             )}
-            {(tier.soldOut || tier.availability) && (
-              <span
-                className={cn(
-                  "t-micro mt-3",
-                  tier.soldOut ? "text-[--text-secondary]" : "text-[--flag-ink]",
-                )}
-              >
-                {tier.soldOut ? "Sold out" : tier.availability}
+            {tier.taken ? (
+              <span className="mt-3 flex flex-col gap-1">
+                <span className="t-micro text-[--text-secondary]">Taken</span>
+                <span className="font-body text-body-s leading-[1.5] text-[--text-secondary]">
+                  Booked by another group. Have their group code? Enter it in your order.
+                </span>
               </span>
+            ) : (
+              (tier.soldOut || tier.availability) && (
+                <span
+                  className={cn(
+                    "t-micro mt-3",
+                    tier.soldOut ? "text-[--text-secondary]" : "text-[--flag-ink]",
+                  )}
+                >
+                  {tier.soldOut ? "Sold out" : tier.availability}
+                </span>
+              )
             )}
             {key.length > 0 && (
               <span className="mt-4 flex flex-col gap-1.5" role="list">
