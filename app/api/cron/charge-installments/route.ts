@@ -4,6 +4,7 @@ import Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { INSTALLMENT_RETRY_AFTER_DAYS, MAX_INSTALLMENT_ATTEMPTS } from "@/lib/payments";
+import { BALANCE_PAYMENT_HOLD_HOURS, balancePaymentOpen, reconcileInstallments } from "@/lib/installments";
 
 // Plain !== leaks timing information proportional to how many leading
 // characters match, which could help an attacker guess CRON_SECRET one
@@ -83,12 +84,66 @@ export async function GET(request: Request) {
   const stripe = getStripe();
   let attempted = 0;
 
+  // Per booking, once: whether its installments can be charged this run.
+  const clearToCharge = new Map<string, boolean>();
+
   for (const payment of eligible) {
     const saved = paymentMethodByBooking.get(payment.booking_id);
     if (!saved?.customerId || !saved.paymentMethodId) {
       console.error(`charge-installments: booking ${payment.booking_id} has no saved payment method, skipping payment ${payment.id}`);
       continue;
     }
+
+    /*
+     * A traveler can pay down the balance from the bookings page at any time,
+     * so the schedule read above may already be out of date.
+     *
+     * If one of those payments could still take money (its card form is open,
+     * or it is going through Stripe, or it cleared without its webhook landing
+     * yet), the booking is skipped for today: charging now could collect the
+     * same balance twice. See balancePaymentOpen for how long an open form
+     * holds things up. Otherwise the schedule is brought into line with what
+     * is owed before anything is charged, which also covers a balance payment
+     * whose webhook adjusted nothing because it met an installment mid-charge.
+     */
+    if (!clearToCharge.has(payment.booking_id)) {
+      const open = await balancePaymentOpen(admin, payment.booking_id, {
+        cancelOpenOlderThanMs: BALANCE_PAYMENT_HOLD_HOURS * 60 * 60 * 1000,
+      });
+      if (!open) await reconcileInstallments(admin, payment.booking_id);
+      clearToCharge.set(payment.booking_id, !open);
+    }
+    if (!clearToCharge.get(payment.booking_id)) {
+      console.error(`charge-installments: booking ${payment.booking_id} has a balance payment open, skipping payment ${payment.id} until the next run`);
+      continue;
+    }
+
+    /*
+     * Claim the row before charging it: stamp last_attempted_at, conditional
+     * on the row still being a due installment with the timestamp this run
+     * read. The update and the amount it returns are one statement, so the
+     * figure charged below is the row as it stands after any reconcile, and
+     * never one an early payment has since reduced.
+     *
+     * The stamp is also the lock reconcileInstallments honours (see
+     * INSTALLMENT_LOCK_MINUTES): from here until the webhook, nothing reduces
+     * this row. And its own writes are conditional on the same timestamp, so
+     * if it read the row before this claim, its write misses and it re-reads.
+     * A missed claim here means someone else changed the row first, and it is
+     * left for the next run.
+     */
+    let claim = admin
+      .from("payments")
+      .update({ last_attempted_at: new Date().toISOString() })
+      .eq("id", payment.id)
+      .eq("status", "scheduled")
+      .lt("attempt_count", MAX_INSTALLMENT_ATTEMPTS);
+    claim = payment.last_attempted_at
+      ? claim.eq("last_attempted_at", payment.last_attempted_at)
+      : claim.is("last_attempted_at", null);
+    const { data: claimed } = await claim.select("id, amount, attempt_count").maybeSingle();
+
+    if (!claimed) continue;
 
     attempted++;
     try {
@@ -103,19 +158,23 @@ export async function GET(request: Request) {
        *
        * Keyed on the payment row id and the attempt number, so a genuine retry
        * after a decline still goes through while a repeat of the same attempt
-       * is collapsed by Stripe into the original charge.
+       * is collapsed by Stripe into the original charge. The amount is in the
+       * key too: an early payment can reduce an installment without it being
+       * a new attempt, and Stripe rejects a reused key sent with a different
+       * amount rather than charging the new one.
        */
+      const cents = Math.round(claimed.amount * 100);
       const paymentIntent = await stripe.paymentIntents.create(
         {
-          amount: Math.round(payment.amount * 100),
+          amount: cents,
           currency: "usd",
           customer: saved.customerId,
           payment_method: saved.paymentMethodId,
           off_session: true,
           confirm: true,
-          metadata: { bookingId: payment.booking_id, paymentId: payment.id },
+          metadata: { bookingId: payment.booking_id, paymentId: payment.id, kind: "installment" },
         },
-        { idempotencyKey: `installment-${payment.id}-attempt-${payment.attempt_count}` },
+        { idempotencyKey: `installment-${payment.id}-attempt-${claimed.attempt_count}-${cents}` },
       );
 
       await admin

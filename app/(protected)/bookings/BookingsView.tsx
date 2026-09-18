@@ -3,6 +3,7 @@ import { Alert, Badge, Button, type BadgeTone } from "@/components/ui";
 import { cancelBooking } from "@/app/(protected)/bookings/actions";
 import { formatDay } from "@/app/(protected)/dates";
 import { formatDateRange, formatPrice } from "@/lib/trips";
+import BalancePayment from "./BalancePayment";
 import type { Database } from "@/types/supabase";
 
 /**
@@ -14,7 +15,8 @@ import type { Database } from "@/types/supabase";
  * reads the session's own rows and hands them straight over.
  *
  * Still a Server Component: the only interactive parts are links and a form
- * posting a server action, so nothing here hydrates.
+ * posting a server action, so nothing here hydrates. The one exception is
+ * BalancePayment, a small client island for paying the balance down early.
  */
 
 type BookingStatus = Database["public"]["Enums"]["booking_status"];
@@ -112,10 +114,21 @@ export default function BookingsView({
 /* -- the card -------------------------------------------------------------- */
 
 function BookingCard({ booking }: { booking: BookingRow }) {
-  const status = STATUS[booking.status];
   const trip = booking.trips;
 
   const total = Number(booking.total_amount);
+
+  // What a pending booking is waiting on: the deposit, or the whole price when
+  // the traveler chose to pay in full at booking. Read from its checkout row
+  // (the only unscheduled one a pending booking has), since deposit_amount is
+  // recorded either way.
+  const checkoutRow =
+    booking.status === "pending"
+      ? booking.payments.find((p) => !p.scheduled_date && (p.status === "pending" || p.status === "failed"))
+      : undefined;
+  const dueNow = checkoutRow ? Number(checkoutRow.amount) : Number(booking.deposit_amount);
+  const fullPlanDue = booking.status === "pending" && dueNow >= total;
+  const status = fullPlanDue ? { ...STATUS.pending, label: "Payment due" } : STATUS[booking.status];
   // Only a `succeeded` row is money in the bank. `pending` is the deposit
   // PaymentIntent sitting unconfirmed and `scheduled` is a future installment,
   // so neither counts toward what has been paid.
@@ -160,14 +173,16 @@ function BookingCard({ booking }: { booking: BookingRow }) {
               label="Next payment"
               value={
                 booking.status === "pending"
-                  ? formatPrice(Number(booking.deposit_amount))
+                  ? formatPrice(dueNow)
                   : nextInstallment
                     ? formatPrice(Number(nextInstallment.amount))
                     : "None"
               }
               note={
                 booking.status === "pending"
-                  ? "deposit, due now"
+                  ? fullPlanDue
+                    ? "full price, due now"
+                    : "deposit, due now"
                   : nextInstallment?.scheduled_date
                     ? formatDay(nextInstallment.scheduled_date)
                     : "balance settled"
@@ -209,10 +224,16 @@ function BookingCard({ booking }: { booking: BookingRow }) {
         </div>
       )}
 
+      {/* Only once the deposit has cleared: before that there is no schedule
+          to pay ahead of, and after paid_in_full nothing is owed. */}
+      {booking.status === "deposit_paid" && remaining > 0 && (
+        <BalancePayment bookingId={booking.id} remaining={remaining} />
+      )}
+
       <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-[--rule-faint] pt-6">
         {booking.status === "pending" && (
           <Button href={`/bookings/${booking.id}/pay`} variant="primary" size="sm">
-            Pay deposit
+            {fullPlanDue ? "Pay now" : "Pay deposit"}
           </Button>
         )}
         {booking.status !== "pending" && !cancelled && (

@@ -137,10 +137,16 @@ export default function CheckoutForm({
   bookingId,
   /** Rendered into the submit label, so the button says what it takes. */
   amountLabel,
+  /** Replaces the default "Pay $X deposit" when the charge is not a deposit. */
+  submitLabel,
+  /** Where to land once paid. Defaults to the booking's confirmation page. */
+  returnPath,
 }: {
   clientSecret: string;
   bookingId: string;
   amountLabel: string;
+  submitLabel?: string;
+  returnPath?: string;
 }) {
   // Computed once per mount. The result never reaches the DOM this component
   // renders, only Stripe's iframe, so the server/client difference is not a
@@ -149,12 +155,15 @@ export default function CheckoutForm({
 
   return (
     <Elements stripe={stripePromise} options={{ clientSecret, appearance, fonts: STRIPE_FONTS }}>
-      <PaymentForm bookingId={bookingId} amountLabel={amountLabel} />
+      <PaymentForm
+        label={submitLabel ?? `Pay ${amountLabel} deposit`}
+        returnPath={returnPath ?? `/bookings/${bookingId}/confirmation`}
+      />
     </Elements>
   );
 }
 
-function PaymentForm({ bookingId, amountLabel }: { bookingId: string; amountLabel: string }) {
+function PaymentForm({ label, returnPath }: { label: string; returnPath: string }) {
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
@@ -178,7 +187,7 @@ function PaymentForm({ bookingId, amountLabel }: { bookingId: string; amountLabe
     const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: `${window.location.origin}/bookings/${bookingId}/confirmation`,
+        return_url: `${window.location.origin}${returnPath}`,
       },
       redirect: "if_required",
     });
@@ -190,7 +199,7 @@ function PaymentForm({ bookingId, amountLabel }: { bookingId: string; amountLabe
     }
 
     if (paymentIntent?.status === "succeeded") {
-      router.push(`/bookings/${bookingId}/confirmation`);
+      router.push(returnPath);
     } else {
       setSubmitting(false);
       setError("Payment did not complete. Please try again.");
@@ -237,7 +246,7 @@ function PaymentForm({ bookingId, amountLabel }: { bookingId: string; amountLabe
           aria-busy={submitting}
           className="w-full sm:w-auto"
         >
-          {submitting ? "Processing" : `Pay ${amountLabel} deposit`}
+          {submitting ? "Processing" : label}
         </Button>
       </div>
     </form>

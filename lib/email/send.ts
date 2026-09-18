@@ -62,13 +62,17 @@ export async function sendBookingConfirmationEmail(opts: {
   trip: TripInfo;
   tierName: string;
   totalAmount: number;
-  depositAmount: number;
+  /** What the checkout charge took: the deposit, or the whole (discounted) price. */
+  amountPaid: number;
+  /** Paid in full at checkout: no schedule follows, and the copy says so. */
+  paidInFull: boolean;
   groupCode: string | null;
   upcomingPayments: UpcomingPayment[];
 }) {
-  const { to, name, bookingId, trip, tierName, totalAmount, depositAmount, groupCode, upcomingPayments } = opts;
+  const { to, name, bookingId, trip, tierName, totalAmount, amountPaid, paidInFull, groupCode, upcomingPayments } =
+    opts;
   const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi,";
-  const remaining = totalAmount - depositAmount;
+  const remaining = Math.max(0, totalAmount - amountPaid);
 
   const scheduleHtml =
     upcomingPayments.length > 0
@@ -102,12 +106,12 @@ export async function sendBookingConfirmationEmail(opts: {
 
   const bodyHtml = `
     <p>${greeting}</p>
-    <p>Your deposit is confirmed for <strong>${escapeHtml(trip.name)}</strong>. You're booked in.</p>
+    <p>${paidInFull ? "Your payment" : "Your deposit"} is confirmed for <strong>${escapeHtml(trip.name)}</strong>. You're booked in.</p>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 24px 0; font-size: 14px;">
       <tr><td style="padding: 4px 0; color: #6B7280; width: 140px;">Destination</td><td style="padding: 4px 0;">${escapeHtml(trip.destination)}</td></tr>
       <tr><td style="padding: 4px 0; color: #6B7280;">Dates</td><td style="padding: 4px 0;">${formatDate(trip.startDate)} – ${formatDate(trip.endDate)}</td></tr>
       <tr><td style="padding: 4px 0; color: #6B7280;">Package</td><td style="padding: 4px 0;">${escapeHtml(tierName)}</td></tr>
-      <tr><td style="padding: 4px 0; color: #6B7280;">Deposit paid</td><td style="padding: 4px 0;">${formatCurrency(depositAmount)}</td></tr>
+      <tr><td style="padding: 4px 0; color: #6B7280;">${paidInFull ? "Paid in full" : "Deposit paid"}</td><td style="padding: 4px 0;">${formatCurrency(amountPaid)}</td></tr>
     </table>
     ${scheduleHtml}
     ${logisticsHtml}
@@ -119,7 +123,9 @@ export async function sendBookingConfirmationEmail(opts: {
     to,
     subject: `You're booked: ${trip.name}`,
     html: renderEmailLayout({
-      preheader: `Your deposit for ${trip.name} is confirmed.`,
+      preheader: paidInFull
+        ? `Your payment for ${trip.name} is confirmed.`
+        : `Your deposit for ${trip.name} is confirmed.`,
       bodyHtml,
       ctaLabel: "View your booking",
       ctaUrl: `${getAppUrl()}/bookings/${bookingId}/confirmation`,
@@ -134,18 +140,34 @@ export async function sendInstallmentChargedEmail(opts: {
   tripName: string;
   amount: number;
   remainingBalance: number;
+  /**
+   * `installment` is the cron's scheduled charge. `balance` is a payment the
+   * traveler made themselves from the bookings page, which comes off the
+   * scheduled ones, so the receipt says that instead of "as scheduled".
+   */
+  kind?: "installment" | "balance";
 }) {
-  const { to, name, bookingId, tripName, amount, remainingBalance } = opts;
+  const { to, name, bookingId, tripName, amount, remainingBalance, kind = "installment" } = opts;
   const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi,";
+
+  const opening =
+    kind === "balance"
+      ? `We received your payment of <strong>${formatCurrency(amount)}</strong> toward your upcoming trip, <strong>${escapeHtml(tripName)}</strong>.`
+      : `We charged <strong>${formatCurrency(amount)}</strong> toward your upcoming trip, <strong>${escapeHtml(tripName)}</strong>, as scheduled.`;
+
+  const balanceLine =
+    remainingBalance > 0
+      ? kind === "balance"
+        ? `Remaining balance: <strong>${formatCurrency(remainingBalance)}</strong>. We took this off your next scheduled payments, earliest first, and your bookings page shows the new amounts.`
+        : `Remaining balance: <strong>${formatCurrency(remainingBalance)}</strong>.`
+      : kind === "balance"
+        ? `That covers the rest of the trip. You're paid in full, and no more payments will be taken.`
+        : `That was your final payment. You're all paid up.`;
 
   const bodyHtml = `
     <p>${greeting}</p>
-    <p>We charged <strong>${formatCurrency(amount)}</strong> toward your upcoming trip, <strong>${escapeHtml(tripName)}</strong>, as scheduled.</p>
-    <p>${
-      remainingBalance > 0
-        ? `Remaining balance: <strong>${formatCurrency(remainingBalance)}</strong>.`
-        : `That was your final payment. You're all paid up.`
-    }</p>
+    <p>${opening}</p>
+    <p>${balanceLine}</p>
   `;
 
   await sendEmail({

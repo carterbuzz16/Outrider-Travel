@@ -1,0 +1,106 @@
+/*
+ * Money arithmetic for paying down a booking's balance.
+ *
+ * Kept free of any server import so the bookings page's client form can show
+ * the same minimum the server enforces, rather than restating it. The server
+ * never trusts the form: startBalancePayment re-derives what is owed from the
+ * payments table and runs the requested figure through validateBalanceAmount
+ * again before a PaymentIntent exists.
+ *
+ * Everything is done in whole cents. The amounts come out of Postgres as
+ * numeric(10,2) and arrive as JS floats, and summing floats is how a booking
+ * ends up "owing" $0.0000000001 and never reaching paid_in_full.
+ */
+
+/** The smallest extra payment taken, unless less than this is owed. */
+export const MIN_BALANCE_PAYMENT = 50;
+
+/**
+ * How a PaymentIntent is told apart in the webhook (metadata.kind).
+ *
+ * `deposit` and `full` are created at checkout (createBooking), `balance` from
+ * the bookings page (startBalancePayment), and `installment` by the cron.
+ * PaymentIntents created before this field existed have no kind: the handlers
+ * treat those as a deposit, or as an installment when metadata.paymentId is
+ * set, which is exactly what they were.
+ */
+export type PaymentKind = "deposit" | "full" | "balance" | "installment";
+
+/** What the traveler picks at checkout. Anything else is rejected. */
+export const PAYMENT_PLANS = ["deposit", "full"] as const;
+export type PaymentPlan = (typeof PAYMENT_PLANS)[number];
+
+export function isPaymentPlan(value: string): value is PaymentPlan {
+  return (PAYMENT_PLANS as readonly string[]).includes(value);
+}
+
+export function toCents(amount: number): number {
+  return Math.round(Number(amount) * 100);
+}
+
+export function fromCents(cents: number): number {
+  return cents / 100;
+}
+
+/**
+ * What is still owed on a booking: the price less every payment that has
+ * actually cleared. Only `succeeded` counts. A `pending` row is a card form
+ * someone may never submit, and a `scheduled` one is a promise, not money.
+ */
+export function owedCents(total: number, payments: { status: string; amount: number }[]): number {
+  const paid = payments
+    .filter((p) => p.status === "succeeded")
+    .reduce((sum, p) => sum + toCents(p.amount), 0);
+  return Math.max(0, toCents(total) - paid);
+}
+
+/** The floor for a custom amount: $50, or everything owed when that is less. */
+export function minimumBalanceCents(owed: number): number {
+  return Math.min(toCents(MIN_BALANCE_PAYMENT), owed);
+}
+
+/**
+ * Parses what the traveler typed into the custom amount field.
+ *
+ * Accepts "250", "250.5", "$1,250.00". Rejects anything with more than two
+ * decimal places rather than rounding it, because silently charging a figure
+ * other than the one typed is worse than asking again.
+ */
+export function parseAmountInput(raw: string): number | null {
+  const cleaned = raw.replace(/[$,\s]/g, "");
+  if (!/^\d+(\.\d{1,2})?$/.test(cleaned)) return null;
+  const cents = Math.round(Number(cleaned) * 100);
+  return Number.isSafeInteger(cents) ? cents : null;
+}
+
+export function validateBalanceAmount(
+  cents: number,
+  owed: number,
+): { ok: true } | { ok: false; message: string } {
+  if (owed <= 0) {
+    return { ok: false, message: "Nothing is owed on this booking." };
+  }
+  const minimum = minimumBalanceCents(owed);
+  if (cents < minimum) {
+    return { ok: false, message: `The smallest payment we can take is ${formatAmount(fromCents(minimum))}.` };
+  }
+  if (cents > owed) {
+    return { ok: false, message: `That is more than you owe. The balance is ${formatAmount(fromCents(owed))}.` };
+  }
+  return { ok: true };
+}
+
+/**
+ * Dollars, with cents only when there are any.
+ *
+ * lib/trips.ts formatPrice rounds to the dollar, which suits a tier price but
+ * not a balance: "$1,000" on a button that takes $999.60 is a small lie on the
+ * one screen where the figure has to be exact.
+ */
+export function formatAmount(amount: number): string {
+  const cents = toCents(amount);
+  return `$${(cents / 100).toLocaleString("en-US", {
+    minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
