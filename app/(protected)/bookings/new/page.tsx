@@ -13,8 +13,10 @@ import {
 } from "@/lib/deposit";
 import { formatAmount } from "@/lib/balance";
 import { INSTALLMENT_OFFSETS_DAYS } from "@/lib/installments";
-import { getRoomMedia, isTaken, tierGrouping } from "@/lib/room-media";
+import { countPenthouses, getRoomMedia, tierGrouping } from "@/lib/room-media";
 import { CONTACT } from "@/lib/site-content";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/client-ip";
 import {
   availabilityLabel,
   checkGroupCode,
@@ -53,7 +55,14 @@ export default async function NewBookingPage(props: {
   // the server against the penthouse claims; the page only ever learns which
   // tiers this code opens, never whose code holds the others.
   const hasPenthouse = trip?.tiers.some((t) => t.groupExclusive) ?? false;
-  const group = trip && searchParams.group ? await checkGroupCode(trip, searchParams.group) : null;
+  //
+  // Each check answers "is this a real code on these dates", so it is capped
+  // per IP like /api/penthouse-progress: plenty for a group typing a code
+  // wrong a few times, useless for walking the code space. Over the cap the
+  // code is simply not checked.
+  const groupAllowed =
+    Boolean(trip && searchParams.group) && (await checkRateLimit(`group-check:${await clientIp()}`, 60, 60 * 60));
+  const group = trip && searchParams.group && groupAllowed ? await checkGroupCode(trip, searchParams.group) : null;
   const joinResult: JoinGroupResult = !group?.code
     ? { state: "none" }
     : group.unlocks.length > 0
@@ -205,7 +214,7 @@ function Packages({
       summary: room?.summary ?? tier.description,
       inclusions: tier.inclusions,
       room,
-      ...tierGrouping(tier.name),
+      ...tierGrouping(tier.name, countPenthouses(trip.tiers)),
       // Exact to the cent: formatPrice rounds to the dollar, and these are
       // the figures that come off the card.
       priceLabel: formatAmount(tier.price),

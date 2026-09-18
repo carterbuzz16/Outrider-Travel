@@ -22,8 +22,9 @@ export const PENTHOUSE_DISCLAIMER =
 export const PENTHOUSE_FILL_DAYS = 7;
 
 /**
- * How long a pending (mid-checkout) booking holds a penthouse for its group.
- * Must match the INTERVAL in the check_tier_capacity trigger.
+ * How long a pending (mid-checkout) booking holds a penthouse for its group,
+ * and its bed in any capped tier. Must match both INTERVALs in the
+ * check_tier_capacity trigger (capacity_counts_live_bookings migration).
  */
 export const CLAIM_PENDING_WINDOW_MS = 30 * 60 * 1000;
 

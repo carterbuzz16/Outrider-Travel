@@ -95,7 +95,12 @@ export default function RoomShowcase({
       )}
       {choices.length > 0 && (
         <PenthouseGroup
-          intro="Two four-bedroom penthouses at the top of The Peaks. Pick the one you love and it's yours for the trip."
+          intro={
+            // Not every departure has both (January has 702 only).
+            choices.length > 1
+              ? "Two four-bedroom penthouses at the top of The Peaks. Pick the one you love and it's yours for the trip."
+              : "A four-bedroom penthouse at the top of The Peaks, yours for the trip."
+          }
           note="Each one goes to a single group. Once a group books it, it's theirs."
           shared={choices[0].room.shared}
           cards={choices.flatMap((r) =>

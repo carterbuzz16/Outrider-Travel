@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { RoomPanel, ScheduleTable } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { chooseAgainPath, isStalePending, recheckStaleCheckout, staleCheckoutMessage } from "@/lib/stale-checkout";
 import { getStripe } from "@/lib/stripe";
 import { INSTALLMENT_OFFSETS_DAYS } from "@/lib/installments";
 import { paymentKindOf } from "@/lib/payments";
@@ -47,7 +49,7 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, status, total_amount, deposit_amount, trips(name, destination, start_date, end_date), tiers(name, price, group_exclusive), payments(stripe_payment_intent_id, scheduled_date)"
+      "id, status, created_at, total_amount, deposit_amount, trips(name, destination, start_date, end_date), tiers(name, price, group_exclusive), payments(stripe_payment_intent_id, scheduled_date)"
     )
     .eq("id", params.id)
     .single();
@@ -75,6 +77,15 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
   if (paymentIntent.status === "succeeded" || paymentIntent.status === "processing") {
     if (paymentIntent.status === "succeeded") await syncPaymentFromStripe(paymentIntent);
     redirect(`/bookings/${booking.id}/confirmation`);
+  }
+
+  // A checkout opened more than 30 minutes ago no longer holds its bed. If
+  // the package filled up, or another group took the penthouse, in that time,
+  // the checkout is released here rather than offered a card form it could
+  // overfill the tier with (lib/stale-checkout.ts). Otherwise it carries on.
+  if (isStalePending(booking)) {
+    const stale = await recheckStaleCheckout(createAdminClient(), booking.id);
+    if (!stale.ok) redirect(chooseAgainPath(stale.tripId, staleCheckoutMessage(stale.reason)));
   }
 
   const trip = booking.trips;

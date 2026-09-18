@@ -292,14 +292,25 @@ export function getRoomMedia(tierName: string): RoomMedia | null {
  * How a package sits in the package table: the two penthouses are grouped
  * under one heading, everything else stands alone. Spread into a TierView.
  */
-export function tierGrouping(tierName: string): { group: string | null; groupNote: string | null } {
+export function tierGrouping(
+  tierName: string,
+  /** How many penthouse packages the departure has. Not every date has both (January has 702 only). */
+  penthouseCount = 2,
+): { group: string | null; groupNote: string | null } {
   return roomKeyFor(tierName) === "PENTHOUSE"
     ? {
         group: "The penthouse",
         groupNote:
-          "Choose 702 or 830. Eight of you get the whole penthouse, and nobody else stays in it.",
+          penthouseCount > 1
+            ? "Choose 702 or 830. Eight of you get the whole penthouse, and nobody else stays in it."
+            : "Eight of you get the whole penthouse, and nobody else stays in it.",
       }
     : { group: null, groupNote: null };
+}
+
+/** How many of these packages are penthouses, for tierGrouping. */
+export function countPenthouses(tiers: { name: string }[]): number {
+  return tiers.filter((tier) => roomKeyFor(tier.name) === "PENTHOUSE").length;
 }
 
 /**

@@ -37,7 +37,7 @@ import {
   nightCount,
   type PublicTrip,
 } from "@/lib/trips";
-import { getRoomMedia, isTaken, tierGrouping } from "@/lib/room-media";
+import { countPenthouses, getRoomMedia, isTaken, tierGrouping } from "@/lib/room-media";
 
 /*
  * /telluride: both Telluride departures on one page, and the page that sells
@@ -157,7 +157,7 @@ function toTierViews(tiers: PublicTrip["tiers"], perDeparture: boolean): TierVie
     // One table standing for several departures cannot show one departure's
     // remaining spots; availability is on each departure above instead.
     spotsLeft: perDeparture ? tier.spotsLeft : null,
-    ...tierGrouping(tier.name),
+    ...tierGrouping(tier.name, countPenthouses(tiers)),
     taken: perDeparture && (tier.claimed || isTaken(tier.name, tier.spotsLeft)),
   }));
 }

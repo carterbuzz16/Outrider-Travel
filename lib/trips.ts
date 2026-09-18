@@ -1,9 +1,9 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { Database } from "@/types/supabase";
 import type { TripStatus } from "@/components/ui";
 import { CHECKOUT_SANDBOX, isTestTrip } from "@/lib/booking-window";
 import {
+  activeBookingFilter,
   claimMatches,
   getPenthouseProgress,
   getTierClaims,
@@ -73,25 +73,13 @@ export type PublicTrip = {
 const TRIP_COLUMNS =
   "id, name, destination, start_date, end_date, description, logistics, images, tiers(id, name, price, description, inclusions, max_capacity, group_exclusive)";
 
-/** A booking in any of these states is holding a spot. */
 /*
- * What counts as a spot taken.
- *
- * `pending` is deliberately absent: a booking sits at pending from the moment
- * the row is created until Stripe confirms the deposit, which includes every
- * abandoned checkout. Counting those made departures look fuller than they
- * were, in the admin and on the public page.
- *
- * The trade-off is that two people can be in checkout for the last spot at the
- * same time and both succeed. With capacities in the tens and deposits taken
- * immediately, that is far less likely than the overcounting it replaces. If it
- * ever does bite, the fix is to count pending rows created in the last hour
- * rather than counting them forever.
+ * What counts as a spot taken: the same rule as the check_tier_capacity
+ * trigger and the penthouse claim (activeBookingFilter in lib/tier-claims.ts).
+ * Paid, or pending and created within the last 30 minutes. An abandoned
+ * checkout stops counting once its 30 minutes are up, and two people in
+ * checkout for the last spot are not both shown it as open.
  */
-const SPOT_HOLDING: Database["public"]["Enums"]["booking_status"][] = [
-  "deposit_paid",
-  "paid_in_full",
-];
 
 export async function getPublishedTrips(): Promise<PublicTrip[]> {
   const admin = createAdminClient();
@@ -155,7 +143,7 @@ async function countTakenSpots(tripIds: string[]): Promise<Map<string, number>> 
     .from("bookings")
     .select("tier_id")
     .in("trip_id", tripIds)
-    .in("status", SPOT_HOLDING);
+    .or(activeBookingFilter());
 
   if (error) {
     // Availability is a nice-to-have; losing it must not take the page with

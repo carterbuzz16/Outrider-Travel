@@ -7,6 +7,7 @@ import { DEPOSIT_PERCENTAGE, PAY_IN_FULL_DISCOUNT } from "@/lib/deposit";
 import { BALANCE_PAYMENT_HOLD_HOURS, INSTALLMENT_OFFSETS_DAYS } from "@/lib/installments";
 import { MAX_INSTALLMENT_ATTEMPTS, INSTALLMENT_RETRY_AFTER_DAYS } from "@/lib/payments";
 import { MIN_BALANCE_PAYMENT, formatAmount } from "@/lib/balance";
+import { PENTHOUSE_DISCLAIMER } from "@/lib/penthouse";
 import LegalDocument, { LegalList, LegalSection } from "../legal/LegalDocument";
 
 /**
@@ -730,8 +731,21 @@ export default function TermsPage() {
           anyone else, does not change what anyone else owes, and does not
           entitle anyone else to a refund. Being in a group does not guarantee a
           specific room, a specific room-mate or a specific suite: those depend
-          on the tier booked and on availability.
+          on the tier booked and on availability. All of this applies except
+          for a penthouse, as set out in{" "}
+          <a href="#penthouses">Penthouses</a> below.
         </p>
+
+        <h3 id="penthouses">Penthouses</h3>
+        <p>
+          A penthouse is sold to one group as a whole, and the group code is
+          how the rest of the group joins it. By booking a place in a
+          penthouse, you agree to the following, which is also shown on the
+          booking and payment pages:
+        </p>
+        <blockquote className="m-0 border-l-2 border-[--rule-strong] pl-4">
+          <p>{PENTHOUSE_DISCLAIMER}</p>
+        </blockquote>
 
         <h3>Transfers and name changes</h3>
         <p>

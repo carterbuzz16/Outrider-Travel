@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 
@@ -6,10 +7,13 @@ import type { Database } from "@/types/supabase";
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const CODE_LENGTH = 6;
 
+// A penthouse's code is the key to it (lib/tier-claims.ts), so it is drawn
+// from the CSPRNG. Math.random's generator can be reconstructed from enough
+// of its outputs, and every traveler sees the codes this process hands out.
 function generateCode(): string {
   let code = "";
   for (let i = 0; i < CODE_LENGTH; i++) {
-    code += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+    code += CODE_CHARS[randomInt(CODE_CHARS.length)];
   }
   return code;
 }

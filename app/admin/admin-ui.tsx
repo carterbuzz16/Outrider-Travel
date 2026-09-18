@@ -395,9 +395,10 @@ export function totalCapacity(tiers: { max_capacity: number | null }[]): number 
  *
  * A `pending` booking is a row created when someone opened checkout, and it
  * stays pending until Stripe confirms the deposit, so every abandoned checkout
- * looked like a sale here. Only a paid deposit counts, which matches what the
- * public availability on the trip page reports (see SPOT_HOLDING in
- * lib/trips.ts). Use `countPending` if you want the unconfirmed ones.
+ * looked like a sale here. Only a paid deposit counts. (Public availability
+ * and the capacity trigger also count a pending checkout for its first 30
+ * minutes, so they can read a place fuller than this; see activeBookingFilter
+ * in lib/tier-claims.ts.) Use `countPending` if you want the unconfirmed ones.
  */
 export function countHeld(bookings: { status: BookingStatus }[]): number {
   return bookings.filter(

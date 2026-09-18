@@ -81,7 +81,13 @@ export const TERMS: LegalDocumentMeta = {
   // 2.1.1: PATCH, wording only. The text-message box moved from the booking
   // form to the trip page, and the agreement to these terms moved into the one
   // box on the payment page; the two sentences that said where are corrected.
-  version: "2.1.1",
+  // 2.2.0: MINOR, a new subsection: Penthouses, under Groups, quoting
+  // PENTHOUSE_DISCLAIMER (lib/penthouse.ts) word for word, and one sentence in
+  // Group codes carving penthouses out of "no joint booking or shared
+  // liability". It adds an obligation for penthouse bookings only (the group
+  // owes for places left empty after 7 days), which every penthouse booking
+  // was already shown at checkout; nothing changes for any other tier.
+  version: "2.2.0",
   status: "in-force",
   effectiveDate: "2026-09-18",
   lastUpdated: "2026-09-18",

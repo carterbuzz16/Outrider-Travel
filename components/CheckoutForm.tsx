@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe, type Appearance } from "@stripe/stripe-js";
@@ -203,6 +204,9 @@ function PaymentForm({
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Set when the checkout itself has gone (released past its 30-minute hold):
+  // the card cannot be retried, so the error points the way back instead.
+  const [released, setReleased] = useState<string | null>(null);
   const [authorized, setAuthorized] = useState(false);
   const inFlight = useRef(false);
 
@@ -241,6 +245,11 @@ function PaymentForm({
       }
       if (!accepted.ok) {
         setError(accepted.message);
+        if (accepted.href) {
+          // Nothing to retry: the booking is gone. The form stays disabled.
+          setReleased(accepted.href);
+          return;
+        }
         setSubmitting(false);
         inFlight.current = false;
         return;
@@ -307,6 +316,14 @@ function PaymentForm({
         <div className="mt-6">
           <Alert tone="error" title="That payment did not go through">
             {error}
+            {released && (
+              <>
+                {" "}
+                <Link href={released} className="text-[--accent] underline underline-offset-2">
+                  Choose again
+                </Link>
+              </>
+            )}
           </Alert>
         </div>
       )}
@@ -317,12 +334,12 @@ function PaymentForm({
           variant="primary"
           size="lg"
           block
-          disabled={!stripe || submitting || !authorized}
+          disabled={!stripe || submitting || !authorized || released !== null}
           // aria-busy rather than the label alone, so the wait is announced
           // and not only read.
           aria-busy={submitting}
         >
-          {submitting ? "Processing" : label}
+          {released ? "Checkout closed" : submitting ? "Processing" : label}
         </Button>
         {!authorized && !submitting && (
           <p className="mt-3 text-center font-body text-body-s text-[--text-secondary]">

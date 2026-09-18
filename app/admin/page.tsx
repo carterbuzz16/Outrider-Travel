@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/admin";
 import DashboardView from "./DashboardView";
 
 // No dynamic route segment, so without this Next attempts to prerender it
@@ -13,6 +14,9 @@ export const dynamic = "force-dynamic";
 // is a read-only internal report, not a privileged write, so that's an
 // acceptable use of the same admin client the checkout flow already relies on.
 export default async function AdminDashboardPage() {
+  // Checked here as well as in the layout: on a client navigation Next can
+  // render a page segment without re-running the layout above it.
+  await requireAdmin();
   const admin = createAdminClient();
   const today = new Date().toISOString().slice(0, 10);
 

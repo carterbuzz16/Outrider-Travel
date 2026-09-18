@@ -14,7 +14,7 @@ import {
   type ShowcaseRoom,
   type TierView,
 } from "@/components/ui";
-import { getRoomMedia, isTaken, tierGrouping } from "@/lib/room-media";
+import { countPenthouses, getRoomMedia, isTaken, tierGrouping } from "@/lib/room-media";
 import { BOOKINGS_OPEN, COMING_SOON_NOTE, TRIP_DETAILS_OPEN } from "@/lib/booking-window";
 import { getAppUrl } from "@/lib/site-url";
 import {
@@ -92,7 +92,7 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
     description: tier.description,
     inclusions: tier.inclusions,
     spotsLeft: tier.spotsLeft,
-    ...tierGrouping(tier.name),
+    ...tierGrouping(tier.name, countPenthouses(trip.tiers)),
     taken: tier.claimed || isTaken(tier.name, tier.spotsLeft),
   }));
 
@@ -107,7 +107,7 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
                 id: tier.id,
                 tierName: tier.name,
                 price: formatPrice(tier.price),
-                taken: isTaken(tier.name, tier.spotsLeft),
+                taken: tier.claimed || isTaken(tier.name, tier.spotsLeft),
                 room,
               },
             ]

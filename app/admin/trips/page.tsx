@@ -1,10 +1,14 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/admin";
 import TripsView from "./TripsView";
 
 // See app/admin/page.tsx for why force-dynamic is needed here too.
 export const dynamic = "force-dynamic";
 
 export default async function AdminTripsPage() {
+  // Checked here as well as in the layout: on a client navigation Next can
+  // render a page segment without re-running the layout above it.
+  await requireAdmin();
   const admin = createAdminClient();
 
   // `tiers(max_capacity)` and `bookings(status)` are embedded rather than

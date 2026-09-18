@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/admin";
 import TripEditor from "./TripEditor";
 
 // See app/admin/page.tsx for why force-dynamic is needed here too.
@@ -11,6 +12,9 @@ export default async function AdminTripDetailPage(
     searchParams: Promise<{ error?: string }>;
   }
 ) {
+  // Checked here as well as in the layout: on a client navigation Next can
+  // render a page segment without re-running the layout above it.
+  await requireAdmin();
   const searchParams = await props.searchParams;
   const params = await props.params;
   const admin = createAdminClient();

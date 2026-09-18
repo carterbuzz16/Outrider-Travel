@@ -19,7 +19,9 @@ type Cell = string | number | boolean | null | undefined;
 
 export function csvCell(value: Cell): string {
   let text = value === null || value === undefined ? "" : typeof value === "boolean" ? (value ? "Yes" : "No") : String(value);
-  if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+  // Leading spaces too: some importers trim a cell before deciding whether it
+  // is a formula, so " =HYPERLINK(...)" is as live as "=HYPERLINK(...)".
+  if (/^\s*[=+\-@]/.test(text) || /^[\t\r]/.test(text)) text = `'${text}`;
   return `"${text.replace(/"/g, '""')}"`;
 }
 

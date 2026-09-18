@@ -31,6 +31,21 @@ import {
 
 export { CLAIM_PENDING_WINDOW_MS };
 
+/**
+ * The PostgREST `or` filter for a booking that holds its place: paid, or
+ * pending and created within CLAIM_PENDING_WINDOW_MS. The one definition, used
+ * for claims here, for availability in lib/trips.ts and for the stale-checkout
+ * check in lib/stale-checkout.ts; the check_tier_capacity trigger uses the same
+ * rule for both capacity and claims (capacity_counts_live_bookings migration).
+ *
+ * created_at is a timestamp without time zone written in UTC; Postgres drops
+ * the zone from the ISO string when it casts it, so the two compare as UTC.
+ */
+export function activeBookingFilter(now: number = Date.now()): string {
+  const since = new Date(now - CLAIM_PENDING_WINDOW_MS).toISOString();
+  return `status.in.(deposit_paid,paid_in_full),and(status.eq.pending,created_at.gt.${since})`;
+}
+
 export type TierClaim = {
   /** The claiming group's code. null only for a legacy row written without one. */
   code: string | null;
@@ -51,14 +66,11 @@ export async function getTierClaims(admin: Admin, tierIds: string[]): Promise<Ma
   const claims = new Map<string, TierClaim>();
   if (tierIds.length === 0) return claims;
 
-  // created_at is a timestamp without time zone written in UTC; the ISO string
-  // compares the same way findOpenCheckout's window does in bookings/actions.ts.
-  const since = new Date(Date.now() - CLAIM_PENDING_WINDOW_MS).toISOString();
   const { data, error } = await admin
     .from("bookings")
     .select("tier_id, group_code")
     .in("tier_id", tierIds)
-    .or(`status.in.(deposit_paid,paid_in_full),and(status.eq.pending,created_at.gt.${since})`)
+    .or(activeBookingFilter())
     .order("created_at", { ascending: true })
     .order("id", { ascending: true });
 

@@ -20,8 +20,14 @@ import { syncPaymentFromStripe } from "@/lib/stripe-sync";
 import { getOrCreateStripeCustomerId } from "@/lib/customers";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { resolveGroupCode } from "@/lib/group-code";
-import { CLAIM_PENDING_WINDOW_MS, claimMatches, getTierClaims } from "@/lib/tier-claims";
+import { activeBookingFilter, claimMatches, getTierClaims } from "@/lib/tier-claims";
 import { hasAcceptedAll, recordAcceptance } from "@/lib/legal-acceptance";
+import {
+  abandonPendingBooking,
+  chooseAgainPath,
+  recheckStaleCheckout,
+  staleCheckoutMessage,
+} from "@/lib/stale-checkout";
 import { BOOKINGS_OPEN, CHECKOUT_SANDBOX, isTestTrip } from "@/lib/booking-window";
 
 export async function createBooking(formData: FormData) {
@@ -294,7 +300,10 @@ export async function createBooking(formData: FormData) {
   redirect(`/bookings/${booking.id}/pay`);
 }
 
-export type AcceptTermsResult = { ok: true } | { ok: false; message: string };
+export type AcceptTermsResult =
+  | { ok: true }
+  /** `href`, when set, is where the traveler should go next (a released checkout). */
+  | { ok: false; message: string; href?: string };
 
 /**
  * Records that the traveler agreed to the Terms and the Assumption of Risk,
@@ -340,6 +349,15 @@ export async function acceptTermsForBooking(bookingId: string): Promise<AcceptTe
   // Only a booking still waiting on its first payment is agreed to here.
   if (booking.status !== "pending") {
     return { ok: false, message: "This booking is no longer waiting for payment. Reload the page." };
+  }
+
+  // The last server step before the card is confirmed, so the place to catch a
+  // checkout left open past its 30-minute hold whose bed or penthouse has gone
+  // since (lib/stale-checkout.ts). Before the acceptance shortcut below, which
+  // a retry would otherwise take straight past this.
+  const stale = await recheckStaleCheckout(createAdminClient(), booking.id);
+  if (!stale.ok) {
+    return { ok: false, message: staleCheckoutMessage(stale.reason), href: chooseAgainPath(stale.tripId) };
   }
 
   if (await hasAcceptedAll(booking.id)) return { ok: true };
@@ -616,30 +634,6 @@ const BALANCE_IDEMPOTENCY_BUCKET_MS = 2 * 60 * 1000;
 const CHECKOUT_FAILED_MESSAGE = "We could not start your checkout. Nothing was charged. Please try again in a minute.";
 
 /**
- * Undoes a pending booking createBooking could not finish.
- *
- * Deleted, since nothing points at it yet: createBooking writes no acceptance
- * (that happens on the payment step), so there are no append-only legal rows
- * to keep. A delete that fails (a payment row already points at it) falls back
- * to cancelling, which frees its place in the tier just the same: the capacity
- * trigger does not count cancelled bookings. Both are conditional on the
- * booking still being pending, so a payment that somehow landed is never
- * undone.
- */
-async function abandonPendingBooking(admin: ReturnType<typeof createAdminClient>, bookingId: string) {
-  const { error } = await admin.from("bookings").delete().eq("id", bookingId).eq("status", "pending");
-  if (!error) return;
-  const { error: cancelError } = await admin
-    .from("bookings")
-    .update({ status: "cancelled" })
-    .eq("id", bookingId)
-    .eq("status", "pending");
-  if (cancelError) {
-    console.error(`createBooking: could not undo pending booking ${bookingId}: ${cancelError.message}`);
-  }
-}
-
-/**
  * Back to the package step when a penthouse is held by another group. Keeps
  * the trip and the package in the link so the traveler lands where they were,
  * with room to type the code. A plain function so TypeScript knows it ends.
@@ -664,13 +658,12 @@ async function ownActiveGroupCode(
   userId: string,
   tierId: string,
 ): Promise<string | null> {
-  const since = new Date(Date.now() - CLAIM_PENDING_WINDOW_MS).toISOString();
   const { data } = await admin
     .from("bookings")
     .select("group_code")
     .eq("user_id", userId)
     .eq("tier_id", tierId)
-    .or(`status.in.(deposit_paid,paid_in_full),and(status.eq.pending,created_at.gt.${since})`)
+    .or(activeBookingFilter())
     .not("group_code", "is", null)
     .order("created_at", { ascending: true })
     .limit(1)
