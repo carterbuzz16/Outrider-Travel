@@ -9,7 +9,8 @@ import { getAppUrl } from "@/lib/site-url";
 // a network-level error. Without this wrapper, a real send failure would
 // silently return undefined instead of surfacing anywhere, including
 // through the sendEmailSafely try/catch in lib/payments.ts.
-async function sendEmail(params: Parameters<Resend["emails"]["send"]>[0]) {
+// Exported for lib/email/post-booking.ts, which sends the owner's templates.
+export async function sendEmail(params: Parameters<Resend["emails"]["send"]>[0]) {
   const { data, error } = await getResend().emails.send(params);
   if (error) {
     throw new Error(`Resend send failed: ${error.name} — ${error.message}`);
@@ -33,7 +34,13 @@ function getResend(): Resend {
 // sandbox sender anymore. EMAIL_FROM_ADDRESS must use a domain verified in
 // Resend's dashboard (Domains -> Add Domain), or every send fails with a
 // "domain is invalid" 422.
-function getFromAddress(): string {
+//
+// Production sends as "Outrider <hello@outrider.travel>": a real, watched
+// inbox, because the emails promise a person answers. Never a noreply@
+// address. Mail about a booking also sets reply-to to this same address (see
+// sendBookingConfirmationEmail and lib/email/post-booking.ts), so a reply
+// lands with a person even if a client ignores From for replies.
+export function getFromAddress(): string {
   if (!process.env.EMAIL_FROM_ADDRESS) {
     throw new Error(
       "EMAIL_FROM_ADDRESS is not set. Verify a domain in Resend (Domains -> Add Domain) and set this to an address on it, e.g. 'Outrider <bookings@yourdomain.com>'."
@@ -68,8 +75,14 @@ export async function sendBookingConfirmationEmail(opts: {
   paidInFull: boolean;
   groupCode: string | null;
   upcomingPayments: UpcomingPayment[];
+  /**
+   * The signed trip-page link (lib/portal-token.ts). This plain email is the
+   * fallback for the designed one in lib/email/post-booking.ts, so when a link
+   * can be made it still carries the three things we need straight away.
+   */
+  portalUrl?: string | null;
 }) {
-  const { to, name, bookingId, trip, tierName, totalAmount, amountPaid, paidInFull, groupCode, upcomingPayments } =
+  const { to, name, bookingId, trip, tierName, totalAmount, amountPaid, paidInFull, groupCode, upcomingPayments, portalUrl } =
     opts;
   const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi,";
   const remaining = Math.max(0, totalAmount - amountPaid);
@@ -104,6 +117,12 @@ export async function sendBookingConfirmationEmail(opts: {
     <p>Share your group code so we know to room you together: <strong style="letter-spacing: 2px;">${escapeHtml(groupCode)}</strong></p>`
     : "";
 
+  const portalHtml = portalUrl
+    ? `
+    <p style="margin: 24px 0 8px; font-weight: 600;">Three things to do now</p>
+    <p>Book your flights, tell us who you are rooming with, and add your traveler details. All three are on your trip page: <a href="${escapeHtml(portalUrl)}">open your trip page</a>.</p>`
+    : "";
+
   const bodyHtml = `
     <p>${greeting}</p>
     <p>${paidInFull ? "Your payment" : "Your deposit"} is confirmed for <strong>${escapeHtml(trip.name)}</strong>. You're booked in.</p>
@@ -113,6 +132,7 @@ export async function sendBookingConfirmationEmail(opts: {
       <tr><td style="padding: 4px 0; color: #6B7280;">Package</td><td style="padding: 4px 0;">${escapeHtml(tierName)}</td></tr>
       <tr><td style="padding: 4px 0; color: #6B7280;">${paidInFull ? "Paid in full" : "Deposit paid"}</td><td style="padding: 4px 0;">${formatCurrency(amountPaid)}</td></tr>
     </table>
+    ${portalHtml}
     ${scheduleHtml}
     ${logisticsHtml}
     ${groupCodeHtml}
@@ -120,6 +140,7 @@ export async function sendBookingConfirmationEmail(opts: {
 
   await sendEmail({
     from: getFromAddress(),
+    replyTo: getFromAddress(),
     to,
     subject: `You're booked: ${trip.name}`,
     html: renderEmailLayout({

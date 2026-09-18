@@ -6,6 +6,8 @@ import { syncPaymentFromStripe } from "@/lib/stripe-sync";
 import { formatDay } from "@/app/(protected)/dates";
 import { formatAmount, toCents } from "@/lib/balance";
 import { formatDateRange, formatPrice } from "@/lib/trips";
+import { createPortalUrl } from "@/lib/portal-token";
+import { confirmationNumber } from "@/lib/confirmation-number";
 
 export default async function ConfirmationPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -87,6 +89,12 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
 
   // Cancelled rows are installments an early payment covered; they are not
   // part of the schedule any more.
+  // The trip page, where the three things we need straight away are done:
+  // flights, a roommate request and traveler details. Asked for here, at the
+  // moment of booking, not days later by email. Null when the portal is
+  // switched off (no PORTAL_TOKEN_SECRET), and then the block is left out.
+  const portalUrl = settled ? createPortalUrl(booking.id) : null;
+
   const installments = booking.payments
     .filter((p) => p.scheduled_date && p.status !== "canceled")
     .sort((a, b) => (a.scheduled_date ?? "").localeCompare(b.scheduled_date ?? ""));
@@ -138,12 +146,32 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
           </div>
         )}
 
+        {portalUrl && (
+          <div className="mt-10 border border-[--rule] border-l-2 border-l-[--accent] bg-[--surface-raised] p-6 md:p-8">
+            <p className="stamp-type text-[--text-muted]">Next, today</p>
+            <h2 className="t-heading mt-4 text-[--text]">
+              Book flights, request roommates, add traveler details
+            </h2>
+            <p className="mt-4 max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
+              All three are on your trip page and take about five minutes together. Winter flights
+              into Montrose are few and fill early, rooms are assigned in the order requests arrive, and
+              your details activate the travel insurance and get your rentals fitted before you
+              land.
+            </p>
+            <div className="mt-6">
+              <Button href={portalUrl} variant="primary" size="md">
+                Open your trip page
+              </Button>
+            </div>
+          </div>
+        )}
+
         {trip && (
           <dl className="mt-12 grid grid-cols-2 gap-x-8 gap-y-8 border-t border-[--rule] pt-8 lg:grid-cols-4">
             <Fact label="Trip" value={trip.name} />
             <Fact label="Dates" value={formatDateRange(trip.start_date, trip.end_date)} />
             <Fact label="Package" value={booking.tiers?.name ?? "Standard"} />
-            <Fact label="Group code" value={booking.group_code ?? "None"} />
+            <Fact label="Confirmation" value={confirmationNumber(booking.id)} />
           </dl>
         )}
 

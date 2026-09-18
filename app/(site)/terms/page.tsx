@@ -39,6 +39,9 @@ const [firstOffset, secondOffset] = INSTALLMENT_OFFSETS_DAYS;
 // promise one: every sentence that mentions it is conditional on this.
 const payInFullDiscount = PAY_IN_FULL_DISCOUNT > 0 ? formatAmount(PAY_IN_FULL_DISCOUNT) : null;
 const minimumEarlyPayment = formatAmount(MIN_BALANCE_PAYMENT);
+// The text line, from the same env var the emails use. Left out of the SMS
+// section until it is set, rather than printing a placeholder number.
+const smsNumber = process.env.SMS_NUMBER?.trim() || null;
 
 export default function TermsPage() {
   return (
@@ -894,6 +897,45 @@ export default function TermsPage() {
           change materially affects what you owe or what you can claim, we will
           tell travelers with live bookings and, where it applies to their
           booking, ask them to accept it.
+        </p>
+      </LegalSection>
+
+      <LegalSection doc={TERMS} id="sms">
+        <p>
+          <strong>Outrider trip texts</strong> is our text-message program for
+          travelers. If you tick the text-message box when you book, we send
+          automated texts about your trip to the mobile number you give us:
+          logistics such as transfer and meeting times, reminders about payments
+          and the things we need from you before you travel, and changes to
+          plans. You can text us back, and a person replies.
+        </p>
+        <LegalList
+          items={[
+            <>Message frequency varies.</>,
+            <>Message and data rates may apply.</>,
+            <>
+              Reply <strong>HELP</strong> for help, or email{" "}
+              <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
+              {smsNumber ? <>, or text {smsNumber}</> : null}.
+            </>,
+            <>
+              Reply <strong>STOP</strong> to cancel at any time. You will get one
+              message confirming it, and no more after that unless you opt in
+              again. Any other reasonable request to stop, by text or by email,
+              is honored the same way.
+            </>,
+            <>
+              Consent to receive texts is not a condition of booking or of any
+              purchase. The box is separate from your acceptance of these terms,
+              and it is never ticked for you.
+            </>,
+            <>Carriers are not liable for delayed or undelivered messages.</>,
+          ]}
+        />
+        <p>
+          How we handle your mobile number and your consent is set out in{" "}
+          <Link href="/privacy#sms">the Privacy Policy</Link>. We do not share
+          either with third parties for their marketing.
         </p>
       </LegalSection>
 

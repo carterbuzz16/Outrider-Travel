@@ -95,6 +95,14 @@ export function createPortalUrl(bookingId: string): string | null {
   return `${getAppUrl()}/trip/${encodeURIComponent(bookingId.toLowerCase())}?t=${token}`;
 }
 
+/**
+ * Fragments on the portal page, one per task. The page puts them on its task
+ * list items and the emails append them to the portal URL (rooming_url and
+ * traveler_details_url in lib/email/post-booking.ts), so they live here, the
+ * one module both already import.
+ */
+export const PORTAL_ANCHORS = { flights: "flights", rooming: "rooming", details: "details" } as const;
+
 export type PortalTokenResult = { ok: true } | { ok: false; reason: "invalid" | "expired" | "disabled" };
 
 /**

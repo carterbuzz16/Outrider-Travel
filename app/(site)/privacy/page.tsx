@@ -77,6 +77,45 @@ export default function PrivacyPage() {
           mountain.
         </p>
 
+        <h3>Your trip page and traveler details</h3>
+        <p>
+          After you book, we send you a private link to your trip page. The link
+          opens the page without a password, so anyone who has it can see your
+          booking and payment schedule and use the forms on it. Please keep it
+          to yourself. Links stop working after a while; the page can send a
+          fresh one, and it only ever goes to the email address on your booking.
+        </p>
+        <p>On the trip page we ask for:</p>
+        <LegalList
+          items={[
+            <>
+              your legal name as it appears on your ID and your date of birth,
+              which the travel insurer covering the trip needs in order to
+              insure you;
+            </>,
+            <>
+              your phone number, and the name and phone number of an emergency
+              contact, so trip staff can reach you and someone at home;
+            </>,
+            <>
+              your height, weight and shoe size, whether you ski or snowboard,
+              and your ability level, so the rental shop can have your
+              equipment ready before you arrive;
+            </>,
+            <>any dietary restrictions, for meals on the trip;</>,
+            <>
+              the names of up to three people you would like to room with, or
+              that you have no preference, and the time you sent the request,
+              because rooms are assigned in the order requests arrive;
+            </>,
+            <>whether you have booked your flights.</>,
+          ]}
+        />
+        <p>
+          We never send your legal name, date of birth or emergency contact by
+          email, and the trip page does not show them back once they are saved.
+        </p>
+
         <h3>Messages you send us</h3>
         <p>
           The contact form takes your name, email address and message and emails
@@ -164,7 +203,12 @@ export default function PrivacyPage() {
             <>
               email you about your booking: confirmation, receipts, a warning
               when a payment fails, a request to verify a payment with your bank,
-              and practical information before departure;
+              a link to your trip page and a reminder if something on it is
+              still open, and practical information before departure;
+            </>,
+            <>
+              text you about your trip, if you opted in to texts when you
+              booked (see section {sectionIndex("sms")});
             </>,
             <>
               answer messages you send us, and keep a record of what was agreed;
@@ -221,7 +265,8 @@ export default function PrivacyPage() {
         <p>
           <strong>Booking email is not marketing and cannot be turned off</strong>{" "}
           while you have a live booking: a receipt, a failed-payment warning, a
-          request to verify a payment with your bank, and pre-departure
+          request to verify a payment with your bank, your trip-page link and a
+          reminder when something on it is still open, and pre-departure
           logistics are part of the service you bought. If you do not want them,
           cancel the booking.
         </p>
@@ -231,6 +276,33 @@ export default function PrivacyPage() {
           messages, or email {CONTACT.email} and we will remove you. Your address
           is held in our database and in our mailing audience at Resend;
           unsubscribing marks you unsubscribed in both.
+        </p>
+      </LegalSection>
+
+      <LegalSection doc={PRIVACY} id="sms">
+        <p>
+          The booking form has a separate box for text messages. It is not
+          ticked for you, and booking does not depend on it. If you tick it, we
+          record that you agreed, when, and which version of the wording you
+          saw, and we use the mobile number you give us to send you automated
+          texts about your trip: logistics, reminders and answers to your
+          questions. Message frequency varies, and message and data rates may
+          apply. Reply HELP for help, or STOP at any time to stop them. The
+          program is described in{" "}
+          <Link href="/terms#sms">the Terms of Service</Link>.
+        </p>
+        <p>
+          <strong>
+            No mobile information will be shared with third parties or
+            affiliates for marketing or promotional purposes.
+          </strong>{" "}
+          We do not sell, rent or share your mobile number, your text-message
+          opt-in or your consent with anyone for their own marketing. Text
+          messaging opt-in data and consent are excluded from every kind of
+          sharing described in section {sectionIndex("sharing")}, and will not
+          be shared with any third party, apart from the text-messaging service
+          that sends our texts on our behalf, which may use them only to deliver
+          our messages.
         </p>
       </LegalSection>
 
@@ -272,6 +344,11 @@ export default function PrivacyPage() {
             <>
               <strong>Vercel</strong>, hosting and server logs.
             </>,
+            <>
+              A <strong>text-messaging service</strong>, only if you opted in to
+              texts: your mobile number and the messages between us, used only
+              to deliver them. See section {sectionIndex("sms")}.
+            </>,
           ]}
         />
 
@@ -285,6 +362,15 @@ export default function PrivacyPage() {
           insurer needs to cover you. Where something is medically relevant to
           your safety, we share it with the people responsible for you on the
           mountain.
+        </p>
+        <p>
+          In particular, the traveler details from your trip page go only where
+          running the trip needs them: your legal name and date of birth to the
+          travel insurer covering the trip; your height, weight, shoe size,
+          ski-or-snowboard choice and ability level to the rental shop fitting
+          your equipment; your dietary restrictions to whoever is feeding the
+          group; and your phone number and emergency contact to the trip staff
+          looking after you. None of it is shared for anyone&rsquo;s marketing.
         </p>
 
         <h3>Professional advisers and authorities</h3>
@@ -328,6 +414,7 @@ export default function PrivacyPage() {
               erased;
             </>,
             <>stop sending you marketing email;</>,
+            <>stop texting you, which you can also do by replying STOP;</>,
             <>
               stop using your card for future installments, though this does not
               cancel the booking or what you owe under it.

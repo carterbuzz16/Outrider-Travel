@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Alert, Badge, Button, type BadgeTone } from "@/components/ui";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { verifyPortalToken } from "@/lib/portal-token";
+import { PORTAL_ANCHORS, verifyPortalToken } from "@/lib/portal-token";
 import { formatDay } from "@/app/(protected)/dates";
 import { formatDateRange, formatPrice } from "@/lib/trips";
 import { CONTACT } from "@/lib/site-content";
@@ -186,7 +186,7 @@ export default async function TripPortalPage(props: {
         </h2>
 
         <ol className="mt-2 flex list-none flex-col p-0">
-          <Task number={1} title="Flights" done={booking.flights_booked}>
+          <Task id={PORTAL_ANCHORS.flights} number={1} title="Flights" done={booking.flights_booked}>
             <p className="max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
               Flights are yours to book. The{" "}
               <Link href="/flights" className="text-[--accent] decoration-[--accent]">
@@ -198,7 +198,7 @@ export default async function TripPortalPage(props: {
             {open && <FlightsToggle bookingId={booking.id} token={token} booked={booking.flights_booked} />}
           </Task>
 
-          <Task number={2} title="Roommate request" done={Boolean(rooming)}>
+          <Task id={PORTAL_ANCHORS.rooming} number={2} title="Roommate request" done={Boolean(rooming)}>
             <p className="max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
               Name up to three people you want to share with, or tell us you are happy anywhere.
               Requests are assigned in the order they arrive.
@@ -226,7 +226,7 @@ export default async function TripPortalPage(props: {
             )}
           </Task>
 
-          <Task number={3} title="Traveler details" done={Boolean(details)}>
+          <Task id={PORTAL_ANCHORS.details} number={3} title="Traveler details" done={Boolean(details)}>
             <p className="max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
               Your legal name and date of birth for the trip insurance, a number to reach you and
               someone at home, and your sizes so rentals are ready when you arrive.
@@ -320,18 +320,21 @@ export default async function TripPortalPage(props: {
 /* -- pieces ----------------------------------------------------------------- */
 
 function Task({
+  id,
   number,
   title,
   done,
   children,
 }: {
+  /** The fragment the emails link to (rooming_url, traveler_details_url). */
+  id: string;
   number: number;
   title: string;
   done: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <li className="border-b border-[--rule] py-8 last:border-0">
+    <li id={id} className="scroll-mt-8 border-b border-[--rule] py-8 last:border-0">
       <div className="flex items-baseline justify-between gap-6">
         <h3 className="t-heading text-[--text]">
           <span className="t-micro mr-3 align-middle text-[--text-muted]">{String(number).padStart(2, "0")}</span>

@@ -5,6 +5,7 @@ import { formatDay } from "@/app/(protected)/dates";
 import { formatDateRange, formatPrice } from "@/lib/trips";
 import BalancePayment from "./BalancePayment";
 import { createPortalUrl } from "@/lib/portal-token";
+import { confirmationNumber } from "@/lib/confirmation-number";
 import type { Database } from "@/types/supabase";
 
 /**
@@ -164,6 +165,11 @@ function BookingCard({ booking }: { booking: BookingRow }) {
             {trip ? formatDateRange(trip.start_date, trip.end_date) : "Dates to be confirmed"}
             {booking.tiers?.name ? ` · ${booking.tiers.name}` : ""}
           </p>
+          {/* The same reference the confirmation email and page quote. Not
+              shown until something is paid, when there is a booking to confirm. */}
+          {booking.status !== "pending" && (
+            <p className="t-micro mt-2 text-[--text-muted]">Confirmation {confirmationNumber(booking.id)}</p>
+          )}
         </div>
         <Badge tone={status.tone}>{status.label}</Badge>
       </div>

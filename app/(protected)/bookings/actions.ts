@@ -22,6 +22,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { resolveGroupCode } from "@/lib/group-code";
 import { recordAcceptance } from "@/lib/legal-acceptance";
 import { BOOKINGS_OPEN } from "@/lib/booking-window";
+import { SMS_CONSENT_FIELD, SMS_CONSENT_VERSION } from "@/lib/sms-consent";
 
 export async function createBooking(formData: FormData) {
   const tripId = String(formData.get("tripId") ?? "");
@@ -30,6 +31,10 @@ export async function createBooking(formData: FormData) {
   // Checked before anything is created. A booking that exists without an
   // acceptance record is exactly the situation this is here to prevent.
   const acceptedTerms = formData.get("accept_terms") === "on";
+  // Optional, and never a reason to refuse a booking. Only an explicit tick
+  // counts; anything else (including a form rendered before the box existed)
+  // is no consent.
+  const smsConsent = formData.get(SMS_CONSENT_FIELD) === "on";
   // The only thing taken from the form about money is which of two plans was
   // picked, and only if it is one of the two. Every figure is worked out below
   // from the tier row. A form rendered before this field existed sends nothing,
@@ -150,6 +155,19 @@ export async function createBooking(formData: FormData) {
       total_amount: totalAmount,
       deposit_amount: depositAmount,
       group_code: groupCodeResult.code,
+      // The evidence if consent to texts is ever questioned: the tick, the
+      // server's clock (not the browser's), and which wording was on screen
+      // (lib/sms-consent.ts). Written only with a yes: the columns default to
+      // false and null, which is what a blank box means, and leaving them out
+      // keeps an unticked booking working on a database the post-booking
+      // migration has not reached yet.
+      ...(smsConsent
+        ? {
+            sms_consent: true,
+            sms_consent_at: new Date().toISOString(),
+            sms_consent_text_version: SMS_CONSENT_VERSION,
+          }
+        : {}),
     })
     .select("id")
     .single();

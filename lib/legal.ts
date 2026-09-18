@@ -69,13 +69,16 @@ export const TERMS: LegalDocumentMeta = {
   title: "Terms of Service",
   shortTitle: "Terms of Service",
   description:
-    "The agreement between you and Outrider when you book a departure: deposits, paying in full, the installment plan and paying ahead, cancellation, weather, suppliers, insurance and liability.",
+    "The agreement between you and Outrider when you book a departure: deposits, paying in full, the installment plan and paying ahead, cancellation, weather, suppliers, insurance, liability and trip text messages.",
   // 2.0.0: a MAJOR change under the rules above. The deposit fell from 20% to
   // 10%, and the terms now cover paying in full at booking (and how its
   // deposit portion is refunded), paying ahead, the charge authorization and
   // automatic refund of overpayments. Needs counsel sign-off before it is
   // relied on, and notice to travelers with live bookings.
-  version: "2.0.0",
+  // 2.1.0: MINOR, a new section: the text-message program disclosure
+  // (Outrider trip texts) that carrier registration requires. It adds
+  // nothing a traveler owes; opting in is optional and separate.
+  version: "2.1.0",
   status: "in-force",
   effectiveDate: "2026-09-18",
   lastUpdated: "2026-09-18",
@@ -98,6 +101,7 @@ export const TERMS: LegalDocumentMeta = {
     { id: "site", title: "Using this website" },
     { id: "governing-law", title: "Governing law and disputes" },
     { id: "changes", title: "Changes to these terms" },
+    { id: "sms", title: "Text messages: Outrider trip texts" },
     { id: "contact", title: "How to reach us" },
   ],
 };
@@ -107,11 +111,16 @@ export const PRIVACY: LegalDocumentMeta = {
   title: "Privacy Policy",
   shortTitle: "Privacy Policy",
   description:
-    "What Outrider collects when you join the waitlist or book a trip, where card details actually go, who your information is shared with, and how to have it deleted.",
-  version: "1.0.2",
+    "What Outrider collects when you join the waitlist or book a trip, where card details actually go, who your information is shared with, how trip texts work, and how to have it deleted.",
+  // 1.1.0: MINOR. New: the trip page and the traveler details it collects
+  // (and the insurer and rental shop they go to), and a text-message section
+  // stating that mobile numbers and SMS consent are not shared for marketing,
+  // which carrier registration requires. New recipients, no change to what
+  // existing recipients get.
+  version: "1.1.0",
   status: "in-force",
-  effectiveDate: "2026-09-08",
-  lastUpdated: "2026-09-08",
+  effectiveDate: "2026-09-18",
+  lastUpdated: "2026-09-18",
   sections: [
     { id: "scope", title: "Scope and who is responsible" },
     { id: "what-we-collect", title: "What we collect" },
@@ -119,6 +128,7 @@ export const PRIVACY: LegalDocumentMeta = {
     { id: "how-we-use", title: "How we use your information" },
     { id: "cookies", title: "Cookies and session storage" },
     { id: "email", title: "Email, the waitlist and marketing" },
+    { id: "sms", title: "Text messages" },
     { id: "logs", title: "Server logs, security and rate limiting" },
     { id: "sharing", title: "Who we share information with" },
     { id: "retention", title: "How long we keep information" },

@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useId, useState } from "react";
 import { AcceptTerms, Field, Input, cn } from "@/components/ui";
+import { SMS_CONSENT_FIELD, SMS_CONSENT_PARTS } from "@/lib/sms-consent";
 import { PendingSubmitButton, SubmitOnceForm } from "@/components/SubmitOnce";
 import { createBooking } from "@/app/(protected)/bookings/actions";
 
@@ -106,6 +108,10 @@ export default function BookingForm({
           app/(protected)/bookings/actions.ts and lib/legal-acceptance.ts. */}
       {!soldOut && <AcceptTerms />}
 
+      {/* Separate from the terms and never required: carriers reject an
+          opt-in that is bundled with the purchase or ticked in advance. */}
+      {!soldOut && <SmsConsent />}
+
       <PendingSubmitButton variant="primary" size="md" block disabled={soldOut} pendingLabel="Holding your spot">
         {soldOut
           ? "Sold out"
@@ -115,6 +121,59 @@ export default function BookingForm({
         <span className="sr-only">, {tierName}</span>
       </PendingSubmitButton>
     </SubmitOnceForm>
+  );
+}
+
+/*
+ * The text-message opt-in. Unchecked by default, not required, and its own
+ * box rather than a clause in AcceptTerms, because consent to texts must not
+ * be a condition of booking. The wording comes from lib/sms-consent.ts, which
+ * also holds the version createBooking stores with the tick. The links open in
+ * a new tab for the same reason AcceptTerms' do: nobody loses a part-filled
+ * form to read them.
+ */
+function SmsConsent() {
+  const id = useId();
+  const [checked, setChecked] = useState(false);
+
+  return (
+    <div className="border border-[--rule] p-5">
+      <div className="flex items-start gap-3.5">
+        <input
+          id={id}
+          name={SMS_CONSENT_FIELD}
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => setChecked(e.target.checked)}
+          className={cn(
+            "mt-1 h-4 w-4 shrink-0 cursor-pointer appearance-none border border-[--rule-strong]",
+            "bg-transparent transition-colors duration-fast",
+            "checked:border-[--accent-solid] checked:bg-[--accent-solid]",
+          )}
+        />
+        <label htmlFor={id} className="font-body text-body-s leading-[1.7] text-[--text-secondary]">
+          {SMS_CONSENT_PARTS.lead}
+          <Link
+            href="/privacy"
+            target="_blank"
+            rel="noreferrer"
+            className="text-[--accent] underline underline-offset-2"
+          >
+            {SMS_CONSENT_PARTS.privacyLabel}
+          </Link>
+          {SMS_CONSENT_PARTS.between}
+          <Link
+            href="/terms"
+            target="_blank"
+            rel="noreferrer"
+            className="text-[--accent] underline underline-offset-2"
+          >
+            {SMS_CONSENT_PARTS.termsLabel}
+          </Link>
+          {SMS_CONSENT_PARTS.tail}
+        </label>
+      </div>
+    </div>
   );
 }
 

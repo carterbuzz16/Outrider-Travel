@@ -4,11 +4,11 @@ import { reconcileInstallments, scheduleInstallments } from "@/lib/installments"
 import { owedCents, type PaymentKind } from "@/lib/balance";
 import { refundOverpayment } from "@/lib/overpayment";
 import {
-  sendBookingConfirmationEmail,
   sendInstallmentChargedEmail,
   sendPaymentFailedEmail,
   sendActionRequiredEmail,
 } from "@/lib/email/send";
+import { sendConfirmationEmailOnce } from "@/lib/email/post-booking";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 
@@ -307,45 +307,19 @@ async function settleCheckoutPayment(
   // open, or it had somehow been paid already.
   await refundOverpayment(admin, bookingId, paymentIntent);
 
-  if (!booking) return;
-
-  if (kind === "deposit") {
+  if (booking && kind === "deposit") {
     await scheduleInstallments(admin, booking);
   }
 
-  const context = await getBookingContext(admin, bookingId);
-  if (context?.users?.email) {
-    const { data: upcoming } = await admin
-      .from("payments")
-      .select("amount, scheduled_date")
-      .eq("booking_id", bookingId)
-      .eq("status", "scheduled")
-      .order("scheduled_date");
-
-    await sendEmailSafely(() =>
-      sendBookingConfirmationEmail({
-        to: context.users!.email,
-        name: context.users!.name,
-        bookingId,
-        trip: {
-          name: context.trips!.name,
-          destination: context.trips!.destination,
-          startDate: context.trips!.start_date,
-          endDate: context.trips!.end_date,
-          logistics: context.trips!.logistics,
-        },
-        tierName: context.tiers!.name,
-        totalAmount: context.total_amount,
-        amountPaid: paymentIntent.amount / 100,
-        paidInFull: kind === "full",
-        groupCode: context.group_code,
-        upcomingPayments: (upcoming ?? []).map((p) => ({
-          amount: p.amount,
-          scheduledDate: p.scheduled_date,
-        })),
-      })
-    );
-  }
+  // The confirmation email, once per booking whoever gets here first. Every
+  // caller asks, not only the one that confirmed the booking above: the email
+  // is claimed on bookings.confirmation_email_sent_at, so a redelivery or the
+  // sync can send one that failed, and none of them can send a second. The
+  // confirming caller says it has finished scheduling; the others wait until
+  // the schedule is visible. See lib/email/post-booking.ts.
+  await sendEmailSafely(() =>
+    sendConfirmationEmailOnce(admin, bookingId, { afterScheduling: Boolean(booking) })
+  );
 }
 
 export async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
