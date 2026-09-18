@@ -47,7 +47,21 @@ const nextConfig = {
   poweredByHeader: false,
 
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      {
+        // The trip portal carries its access token in the query string (see
+        // lib/portal-token.ts). Listed after the catch-all so these win: no
+        // Referer at all, not even to our own pages, and no indexing even if
+        // a link is pasted somewhere public. Cache-Control is left to Next,
+        // which sends no-store for these force-dynamic pages.
+        source: "/trip/:path*",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
+        ],
+      },
+    ];
   },
 };
 

@@ -53,10 +53,19 @@ export type Database = {
       }
       bookings: {
         Row: {
+          chase_email_sent_at: string | null
+          confirmation_email_sent_at: string | null
           created_at: string
           deposit_amount: number
+          details_submitted: boolean
+          flights_booked: boolean
           group_code: string | null
           id: string
+          rooming_submitted: boolean
+          rooming_submitted_at: string | null
+          sms_consent: boolean
+          sms_consent_at: string | null
+          sms_consent_text_version: string | null
           status: Database["public"]["Enums"]["booking_status"]
           tier_id: string
           total_amount: number
@@ -64,10 +73,19 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          chase_email_sent_at?: string | null
+          confirmation_email_sent_at?: string | null
           created_at?: string
           deposit_amount: number
+          details_submitted?: boolean
+          flights_booked?: boolean
           group_code?: string | null
           id?: string
+          rooming_submitted?: boolean
+          rooming_submitted_at?: string | null
+          sms_consent?: boolean
+          sms_consent_at?: string | null
+          sms_consent_text_version?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
           tier_id: string
           total_amount: number
@@ -75,10 +93,19 @@ export type Database = {
           user_id: string
         }
         Update: {
+          chase_email_sent_at?: string | null
+          confirmation_email_sent_at?: string | null
           created_at?: string
           deposit_amount?: number
+          details_submitted?: boolean
+          flights_booked?: boolean
           group_code?: string | null
           id?: string
+          rooming_submitted?: boolean
+          rooming_submitted_at?: string | null
+          sms_consent?: boolean
+          sms_consent_at?: string | null
+          sms_consent_text_version?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
           tier_id?: string
           total_amount?: number
@@ -201,6 +228,41 @@ export type Database = {
           },
         ]
       }
+      rooming_requests: {
+        Row: {
+          booking_id: string
+          id: string
+          no_preference: boolean
+          roommate_names: string[]
+          submitted_at: string
+          updated_at: string
+        }
+        Insert: {
+          booking_id: string
+          id?: string
+          no_preference?: boolean
+          roommate_names?: string[]
+          submitted_at?: string
+          updated_at?: string
+        }
+        Update: {
+          booking_id?: string
+          id?: string
+          no_preference?: boolean
+          roommate_names?: string[]
+          submitted_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rooming_requests_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tiers: {
         Row: {
           description: string | null
@@ -235,6 +297,68 @@ export type Database = {
             columns: ["trip_id"]
             isOneToOne: false
             referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      traveler_details: {
+        Row: {
+          ability_level: string
+          booking_id: string
+          date_of_birth: string
+          dietary_restrictions: string | null
+          emergency_contact_name: string
+          emergency_contact_phone: string
+          height: string | null
+          id: string
+          legal_name: string
+          phone: string
+          shoe_size: string | null
+          ski_or_board: string
+          submitted_at: string
+          updated_at: string
+          weight: string | null
+        }
+        Insert: {
+          ability_level: string
+          booking_id: string
+          date_of_birth: string
+          dietary_restrictions?: string | null
+          emergency_contact_name: string
+          emergency_contact_phone: string
+          height?: string | null
+          id?: string
+          legal_name: string
+          phone: string
+          shoe_size?: string | null
+          ski_or_board: string
+          submitted_at?: string
+          updated_at?: string
+          weight?: string | null
+        }
+        Update: {
+          ability_level?: string
+          booking_id?: string
+          date_of_birth?: string
+          dietary_restrictions?: string | null
+          emergency_contact_name?: string
+          emergency_contact_phone?: string
+          height?: string | null
+          id?: string
+          legal_name?: string
+          phone?: string
+          shoe_size?: string | null
+          ski_or_board?: string
+          submitted_at?: string
+          updated_at?: string
+          weight?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "traveler_details_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
         ]

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Figtree } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
+import Telemetry from "@/components/Telemetry";
 import { getAppUrl } from "@/lib/site-url";
 import { CHECKOUT_SANDBOX } from "@/lib/booking-window";
 import "./globals.css";
@@ -107,9 +106,10 @@ export default function RootLayout({
           store no identifier on the visitor's device, so they do not trigger
           the consent requirement and the cookie banner stays switched off.
           They also only report on a real deployment, so local runs stay clean.
+          Wrapped so access tokens in query strings are not reported; see
+          components/Telemetry.tsx.
         */}
-        <Analytics />
-        <SpeedInsights />
+        <Telemetry />
       </body>
     </html>
   );
