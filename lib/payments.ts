@@ -9,6 +9,7 @@ import {
   sendActionRequiredEmail,
 } from "@/lib/email/send";
 import { sendConfirmationEmailOnce } from "@/lib/email/post-booking";
+import { hasAcceptedAll } from "@/lib/legal-acceptance";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 
@@ -259,6 +260,20 @@ async function settleCheckoutPayment(
   paymentIntent: Stripe.PaymentIntent,
   kind: "deposit" | "full",
 ) {
+  // Money should never reach a booking before its traveler agreed to the Terms
+  // and the Assumption of Risk: CheckoutForm records that (acceptTermsForBooking)
+  // before it confirms the card. If a payment lands without it anyway (a form
+  // from before that change, or a confirm made outside the page), the booking
+  // is still settled below, since the money has moved and undoing it is a
+  // person's call, not this handler's. It is logged loudly for that person.
+  if (!(await hasAcceptedAll(bookingId))) {
+    console.error(
+      `LEGAL ACCEPTANCE MISSING: ${kind} payment ${paymentIntent.id} settled on booking ${bookingId} ` +
+        `with no recorded acceptance of the Terms and Assumption of Risk. Not refunded automatically; ` +
+        `get the traveler to accept, or decide on a refund.`,
+    );
+  }
+
   // Deposit charge. setup_future_usage was set when this PaymentIntent was
   // created (see bookings/actions.ts), so Stripe attaches the payment
   // method to the customer on success — save its id so the cron can charge

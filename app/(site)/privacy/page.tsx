@@ -207,8 +207,8 @@ export default function PrivacyPage() {
               still open, and practical information before departure;
             </>,
             <>
-              text you about your trip, if you opted in to texts when you
-              booked (see section {sectionIndex("sms")});
+              text you about your trip, if you opted in to texts on your
+              trip page (see section {sectionIndex("sms")});
             </>,
             <>
               answer messages you send us, and keep a record of what was agreed;
@@ -281,7 +281,7 @@ export default function PrivacyPage() {
 
       <LegalSection doc={PRIVACY} id="sms">
         <p>
-          The booking form has a separate box for text messages. It is not
+          Your trip page has a separate box for text messages. It is not
           ticked for you, and booking does not depend on it. If you tick it, we
           record that you agreed, when, and which version of the wording you
           saw, and we use the mobile number you give us to send you automated

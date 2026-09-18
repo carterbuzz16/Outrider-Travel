@@ -13,8 +13,9 @@ import { LEGAL_DOCUMENTS } from "@/lib/legal";
  * Three things make the record worth having:
  *   - it stores the document VERSION, not just a boolean, so the exact text
  *     accepted can be reproduced from lib/legal.ts;
- *   - it is written with the service role inside the booking action, so it
- *     cannot be forged or edited by the account it describes;
+ *   - it is written with the service role by acceptTermsForBooking, on the
+ *     payment step before the card is confirmed, so it cannot be forged or
+ *     edited by the account it describes;
  *   - it is append-only. A booking is governed by the versions in force when it
  *     was made, so these rows are never updated or deleted.
  */
@@ -68,6 +69,28 @@ export async function recordAcceptance(opts: {
       `Failed to record legal acceptance for booking ${opts.bookingId}: ${error.code} ${error.message}`,
     );
   }
+}
+
+/**
+ * True when the booking has a row for every required document.
+ *
+ * One cheap read of the slugs on the booking. Used to make acceptance on the
+ * payment step idempotent, and by the payment webhook to flag money that was
+ * taken without it. Returns false on a read error, which to both callers
+ * means "not proven", the safe reading.
+ */
+export async function hasAcceptedAll(bookingId: string): Promise<boolean> {
+  const { data, error } = await createAdminClient()
+    .from("legal_acceptances")
+    .select("document_slug")
+    .eq("booking_id", bookingId);
+
+  if (error) {
+    console.error(`hasAcceptedAll(${bookingId}) failed: ${error.code} ${error.message}`);
+    return false;
+  }
+  const slugs = new Set((data ?? []).map((row) => row.document_slug));
+  return REQUIRED_DOCUMENTS.every((slug) => slugs.has(slug));
 }
 
 /** What a traveler accepted, for their own booking page. */

@@ -1,8 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { startTransition, useActionState, useEffect, useState, type FormEvent } from "react";
-import { Alert, Button, Checkbox, Field, Input, Select, Textarea } from "@/components/ui";
+import { Alert, Button, CheckRow, Checkbox, Field, Input, Select, Textarea } from "@/components/ui";
+import { SMS_CONSENT_FIELD, SMS_CONSENT_PARTS } from "@/lib/sms-consent";
 import {
+  optInToTexts,
   requestFreshPortalLink,
   setFlightsBooked,
   submitRoomingRequest,
@@ -218,10 +221,13 @@ export function DetailsTask({
   bookingId,
   token,
   submitted,
+  smsConsented,
 }: {
   bookingId: string;
   token: string;
   submitted: { label: string } | null;
+  /** Already opted in to texts: the box is not offered again. */
+  smsConsented: boolean;
 }) {
   const [replacing, setReplacing] = useState(false);
   const { state, formAction, pending, onSubmit } = usePortalAction(submitTravelerDetails);
@@ -242,6 +248,17 @@ export function DetailsTask({
             Replace my details
           </Button>
         </div>
+
+        {/* Texts are opted into on this page rather than at checkout: this is
+            where the number they go to is given. The standalone row is for a
+            traveler who sent their details without ticking the box. */}
+        {smsConsented ? (
+          <p className="mt-8 border-t border-[--rule] pt-6 font-body text-body-s leading-[1.7] text-[--text-secondary]">
+            You get trip texts at the number on your details. Reply STOP to any of them to stop.
+          </p>
+        ) : (
+          <TextOptIn bookingId={bookingId} token={token} />
+        )}
       </div>
     );
   }
@@ -285,6 +302,16 @@ export function DetailsTask({
         <Field label="Your mobile" error={errors.phone} required className="sm:col-span-2">
           {(props) => <Input {...props} name="phone" type="tel" inputMode="tel" maxLength={40} required />}
         </Field>
+
+        {/* Directly under the number it is about. Optional and never ticked
+            for you; an unticked box on a replace leaves an earlier yes alone
+            (see submitTravelerDetails). Once opted in, it is not offered again:
+            replying STOP is how texts are turned off. */}
+        {!smsConsented && (
+          <div className="sm:col-span-2">
+            <SmsConsentBox disabled={pending} />
+          </div>
+        )}
 
         <Field
           label="Emergency contact"
@@ -380,6 +407,67 @@ export function DetailsTask({
         </div>
         <Failure state={state} />
       </div>
+    </form>
+  );
+}
+
+/* -- text messages --------------------------------------------------------- */
+
+/*
+ * The opt-in, in the exact carrier-registered wording from lib/sms-consent.ts
+ * (the version stored with a tick is SMS_CONSENT_VERSION there, so the words
+ * must never be edited here). The links open in a new tab so a half-filled
+ * form is not lost to reading them.
+ */
+function SmsConsentBox({ required, disabled }: { required?: boolean; disabled?: boolean }) {
+  return (
+    <CheckRow name={SMS_CONSENT_FIELD} required={required} disabled={disabled}>
+      {SMS_CONSENT_PARTS.lead}
+      <Link href="/privacy" target="_blank" rel="noreferrer" className={LINK}>
+        {SMS_CONSENT_PARTS.privacyLabel}
+      </Link>
+      {SMS_CONSENT_PARTS.between}
+      <Link href="/terms" target="_blank" rel="noreferrer" className={LINK}>
+        {SMS_CONSENT_PARTS.termsLabel}
+      </Link>
+      {SMS_CONSENT_PARTS.tail}
+    </CheckRow>
+  );
+}
+
+const LINK = "text-[--accent] underline underline-offset-2";
+
+/**
+ * Opting in to texts on its own, for a traveler whose details are in but who
+ * left the box empty. The page only renders this while consent is false.
+ */
+export function TextOptIn({ bookingId, token }: { bookingId: string; token: string }) {
+  const { state, formAction, pending, onSubmit } = usePortalAction(optInToTexts);
+
+  return (
+    <form
+      action={formAction}
+      onSubmit={onSubmit}
+      className="mt-8 border-t border-[--rule] pt-6"
+      aria-labelledby="text-opt-in-heading"
+    >
+      <AuthFields bookingId={bookingId} token={token} />
+      <h4 id="text-opt-in-heading" className="font-body text-body font-medium text-[--text]">
+        Text me trip updates
+      </h4>
+      <p className="mt-1.5 max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
+        Meeting times, transfer changes and reminders, to the mobile number on your details.
+        Optional.
+      </p>
+      <div className="mt-4 max-w-[40rem]">
+        <SmsConsentBox required disabled={pending} />
+      </div>
+      <div className="mt-4">
+        <Button type="submit" variant="secondary" size="md" disabled={pending} aria-busy={pending}>
+          {pending ? "Saving" : "Text me trip updates"}
+        </Button>
+      </div>
+      <Failure state={state} />
     </form>
   );
 }

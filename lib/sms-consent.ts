@@ -1,10 +1,13 @@
 /**
- * The SMS opt-in shown on the booking form, and the version stored with it.
+ * The SMS opt-in shown on the trip page, and the version stored with it.
  *
  * The wording is the evidence if consent is ever challenged, so it lives here
- * once: BookingForm renders it from these constants and createBooking stores
- * SMS_CONSENT_VERSION on the booking (sms_consent_text_version) next to the
- * tick and the server's timestamp. Same idea as the versioned legal documents
+ * once: the trip page (app/trip/[bookingId]/PortalForms.tsx) renders it from
+ * these constants, under the phone field and in the standalone "Text me trip
+ * updates" row, and the portal actions store SMS_CONSENT_VERSION on the
+ * booking (sms_consent_text_version) next to the tick and the server's
+ * timestamp. It used to sit on the booking form; it moved to where the phone
+ * number is given, with the wording and version unchanged. Same idea as the versioned legal documents
  * in lib/legal.ts and the rows lib/legal-acceptance.ts writes.
  *
  * CHANGING ANY WORD OF THE TEXT MEANS A NEW VERSION STRING. Never edit the

@@ -30,6 +30,10 @@ export type { ComparisonRow } from "./Comparison";
 export { default as EditorialPair } from "./EditorialPair";
 export { default as TierTable } from "./TierTable";
 export type { TierView } from "./TierTable";
+export { default as RoomShowcase, RoomPanel } from "./RoomShowcase";
+export type { RoomView, ShowcaseRoom } from "./RoomShowcase";
+export { default as RoomPhotos, RoomPhotosButton } from "./RoomPhotos";
+export type { RoomPhoto } from "./RoomPhotos";
 
 export { default as SectionDivider } from "./SectionDivider";
 export { default as Stamp } from "./Stamp";
@@ -47,7 +51,6 @@ export { default as ScheduleTable } from "./ScheduleTable";
 export type { ScheduleRow } from "./ScheduleTable";
 export { default as AmountDue } from "./AmountDue";
 
-export { default as AcceptTerms } from "./AcceptTerms";
 export { default as Dialog } from "./Dialog";
 export { default as Alert } from "./Alert";
 export type { AlertTone } from "./Alert";

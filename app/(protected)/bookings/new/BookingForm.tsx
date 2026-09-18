@@ -1,254 +1,458 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useId, useState } from "react";
-import { AcceptTerms, Badge, CheckRow, Field, Input, RadioControl, cn } from "@/components/ui";
-import { SMS_CONSENT_FIELD, SMS_CONSENT_PARTS } from "@/lib/sms-consent";
+import { Field, Input, RadioControl, RoomPanel, RoomPhotosButton, cn, type RoomView } from "@/components/ui";
 import { PendingSubmitButton, SubmitOnceForm } from "@/components/SubmitOnce";
 import { createBooking } from "@/app/(protected)/bookings/actions";
 
 /*
- * The per-tier booking form.
+ * Step 1 of checkout: the package and how to pay, as ONE form.
  *
- * Split out of the page and marked client for one reason: `Field` passes its
- * control down through a render-prop child, and a function cannot cross the
- * server/client boundary. The page around it stays a Server Component, and
- * `createBooking` is still a server action — nothing about the submit path
- * moves into the browser.
+ * It used to be a full form per package, side by side, three buttons and three
+ * sets of plan cards; the owner found it cluttered and hard to read. Now the
+ * packages are a single radio group (the cards on the left) and everything
+ * else sits once in the order panel beside them: the plan, a group code if
+ * there is one, the total, and one button. Nothing else is asked here. The
+ * terms are agreed in the one box on the payment step, and texts are opted
+ * into later on the trip page.
  *
- * One form per tier rather than one form with a tier selector: the tier is the
- * thing being chosen, so choosing it and submitting are the same gesture.
+ * It works before hydration and without script: every choice is a native
+ * radio, selected looks come from CSS (`has-[:checked]`), and the form posts
+ * straight to createBooking. What script adds is the order panel and the
+ * button following the selection; with none, they show the default package,
+ * and the server works everything out again from what was posted anyway.
  *
- * The plan choice is two native radios drawn as cards. Their selected look is
- * CSS (`has-[:checked]`), so it is right before hydration; the only thing
- * state drives is the button's label, which names the plan and the amount.
- *
- * The figures in the labels are display only. The form posts which plan was
- * picked and nothing else about money; createBooking works out both amounts
- * again from the tier row.
+ * The field names are the contract with createBooking and must not change:
+ * tripId, tierId, payment_plan, group_code. The figures here are display only;
+ * createBooking re-derives every amount from the tier row.
  *
  * The form sends once per press and the button says so until the server
  * answers (components/SubmitOnce.tsx). A second press would otherwise create a
- * second booking holding a second place in the tier; createBooking also sends
- * a repeat to the first booking's card form, for the repeats this cannot see.
+ * second booking holding a second place; createBooking also sends a repeat to
+ * the first booking's card form, for the repeats this cannot see.
  */
+
+export type CheckoutTier = {
+  id: string;
+  name: string;
+  soldOut: boolean;
+  /** Qualitative ("Selling out fast"), never a count; null when unremarkable. */
+  availability: string | null;
+  /** The room line, or the tier's own description when there is no room. */
+  summary: string | null;
+  inclusions: string[];
+  room: RoomView | null;
+  /** All formatted, exact to the cent: these are the figures that come off the card. */
+  priceLabel: string;
+  depositLabel: string;
+  fullLabel: string;
+  balanceLabel: string;
+  /** What paying in full saves, or null when there is no discount. */
+  savingLabel: string | null;
+};
+
+type Plan = "deposit" | "full";
+
+/** How many inclusions a card shows before "See everything included". */
+const KEY_INCLUSIONS = 4;
+
 export default function BookingForm({
   tripId,
-  tierId,
-  tierName,
-  priceLabel,
-  depositLabel,
-  fullLabel,
-  savingLabel,
-  soldOut = false,
+  tiers,
+  initialTierId,
+  depositPercent,
+  installmentCount,
+  contactEmail,
 }: {
   tripId: string;
-  tierId: string;
-  tierName: string;
-  /** The tier price before any discount, formatted: "$4,500". */
-  priceLabel: string;
-  /** The deposit, formatted: "$450". */
-  depositLabel: string;
-  /** The pay-in-full price after any discount, formatted. */
-  fullLabel: string;
-  /** What paying in full saves, formatted, or null when there is no discount. */
-  savingLabel: string | null;
-  soldOut?: boolean;
+  tiers: CheckoutTier[];
+  /** Selected on arrival: the package named in the link, or the first open one. */
+  initialTierId: string;
+  depositPercent: number;
+  /** How many scheduled payments the balance is split into. */
+  installmentCount: number;
+  contactEmail: string;
 }) {
-  const [plan, setPlan] = useState<"deposit" | "full">("deposit");
-  const legendId = useId();
-
-  if (soldOut) {
-    // Nothing to fill in: the button is the whole message, and a disabled
-    // group-code box under a sold-out package only reads as broken.
-    return (
-      <div className="flex flex-col gap-3">
-        <p className="font-body text-body-s leading-[1.7] text-[--text-secondary]">
-          Every place in this package is taken. Another package on the same dates may still be open.
-        </p>
-        <button
-          type="button"
-          disabled
-          className="t-label min-h-12 w-full border border-[--rule] px-6 text-[--text-secondary]"
-        >
-          Sold out<span className="sr-only">, {tierName}</span>
-        </button>
-      </div>
-    );
-  }
+  const [tierId, setTierId] = useState(initialTierId);
+  const [plan, setPlan] = useState<Plan>("deposit");
+  const selected = tiers.find((t) => t.id === tierId) ?? tiers[0];
+  const packagesLegend = useId();
+  const planLegend = useId();
+  const dueToday = plan === "full" ? selected.fullLabel : selected.depositLabel;
+  const installments = installmentCount === 2 ? "two" : String(installmentCount);
 
   return (
-    <SubmitOnceForm action={createBooking} className="flex flex-col">
+    <SubmitOnceForm
+      action={createBooking}
+      className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_23rem] lg:gap-12 xl:gap-16"
+    >
       <input type="hidden" name="tripId" value={tripId} />
-      <input type="hidden" name="tierId" value={tierId} />
 
-      <fieldset className="m-0 min-w-0 border-0 p-0" aria-labelledby={legendId}>
-        <legend id={legendId} className="t-micro p-0 text-[--text-secondary]">
-          How you pay
+      {/* -- the packages ------------------------------------------------------ */}
+      <fieldset className="m-0 min-w-0 border-0 p-0" aria-labelledby={packagesLegend}>
+        <legend id={packagesLegend} className="t-subheading float-left w-full p-0 text-[--text]">
+          Choose your package
         </legend>
-        <div className="mt-3 flex flex-col gap-3">
-          <PlanOption
-            name="payment_plan"
-            value="deposit"
-            defaultChecked
-            onSelect={() => setPlan("deposit")}
-            title="Deposit"
-            amount={depositLabel}
-            amountNote="today"
-            detail={`Holds your place. The rest of the ${priceLabel} is taken in two scheduled payments before you travel.`}
-          />
-          <PlanOption
-            name="payment_plan"
-            value="full"
-            onSelect={() => setPlan("full")}
-            title="Pay in full"
-            amount={fullLabel}
-            amountNote="today"
-            was={savingLabel ? priceLabel : undefined}
-            badge={savingLabel ? `Save ${savingLabel}` : undefined}
-            detail="One payment now, and nothing more to pay later."
-          />
+        <p className="clear-both pt-2 font-body text-body-s leading-[1.6] text-[--text-secondary]">
+          Everyone skis the same days and comes to the same events. The package decides the room.
+        </p>
+        <div className="mt-6 flex flex-col gap-4">
+          {tiers.map((tier) => (
+            <PackageCard
+              key={tier.id}
+              tier={tier}
+              defaultChecked={tier.id === initialTierId}
+              onSelect={() => setTierId(tier.id)}
+            />
+          ))}
         </div>
       </fieldset>
 
-      <Field
-        label="Group code"
-        hint="Friends already booked? Their code puts you in the same group. Leave it blank to start one."
-        className="mt-8"
+      {/* -- the order panel --------------------------------------------------- */}
+      <aside
+        aria-label="Your order"
+        className="border border-[--rule] bg-[--surface-raised] lg:sticky lg:top-8"
       >
-        {(field) => (
-          <Input
-            {...field}
-            name="group_code"
-            type="text"
-            maxLength={6}
-            placeholder="K7XPQ2"
-            autoComplete="off"
-            autoCapitalize="characters"
-            spellCheck={false}
-          />
-        )}
-      </Field>
+        <div className="border-b border-[--rule] p-5 sm:p-6">
+          <p className="t-micro text-[--text-secondary]">Your package</p>
+          <div className="mt-2 flex items-baseline justify-between gap-4">
+            <p className="font-display text-display-s font-medium tracking-title text-[--text]">{selected.name}</p>
+            <p className="font-body text-body tabular-nums text-[--text]">{selected.priceLabel}</p>
+          </div>
+          {selected.summary && (
+            <p className="mt-1 font-body text-body-s leading-[1.6] text-[--text-secondary]">{selected.summary}</p>
+          )}
+        </div>
 
-      <div className="mt-8 flex flex-col gap-3">
-        {/* createBooking rejects a submission without this, and writes a
-            versioned acceptance row before any PaymentIntent exists — see
-            app/(protected)/bookings/actions.ts and lib/legal-acceptance.ts. */}
-        <AcceptTerms />
+        <fieldset className="m-0 min-w-0 border-0 border-b border-[--rule] p-5 sm:p-6" aria-labelledby={planLegend}>
+          <legend id={planLegend} className="t-micro float-left w-full p-0 text-[--text-secondary]">
+            How you pay
+          </legend>
+          <div className="clear-both flex flex-col gap-2.5 pt-3">
+            <PlanOption
+              value="deposit"
+              defaultChecked
+              onSelect={() => setPlan("deposit")}
+              title={`${depositPercent}% deposit today`}
+              amount={selected.depositLabel}
+              detail={`The other ${selected.balanceLabel} in ${installments} scheduled payments before you travel.`}
+            />
+            <PlanOption
+              value="full"
+              onSelect={() => setPlan("full")}
+              title="Pay in full"
+              amount={selected.fullLabel}
+              detail={
+                selected.savingLabel
+                  ? `${selected.savingLabel} off the price, and nothing more to pay later.`
+                  : "One payment, and nothing more to pay later."
+              }
+            />
+          </div>
+        </fieldset>
 
-        {/* Separate from the terms and never required: carriers reject an
-            opt-in that is bundled with the purchase or ticked in advance. */}
-        <SmsConsent />
-      </div>
+        <details className="group border-b border-[--rule] px-5 sm:px-6">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 font-body text-body-s text-[--text] [&::-webkit-details-marker]:hidden">
+            Have a group code?
+            <Chevron />
+          </summary>
+          <div className="pb-5">
+            <Field label="Group code" hint="Friends already booked? Their code puts you in the same group.">
+              {(field) => (
+                <Input
+                  {...field}
+                  name="group_code"
+                  type="text"
+                  maxLength={6}
+                  placeholder="K7XPQ2"
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                />
+              )}
+            </Field>
+          </div>
+        </details>
 
-      <PendingSubmitButton variant="primary" size="lg" block pendingLabel="Holding your spot" className="mt-8">
-        {plan === "full" ? `Pay ${fullLabel} in full` : `Pay ${depositLabel} deposit`}
-        <span className="sr-only">, {tierName}</span>
-      </PendingSubmitButton>
-      <p className="mt-3 text-center font-body text-body-s text-[--text-secondary]">
-        You enter your card on the next screen.
-      </p>
+        <div className="p-5 sm:p-6">
+          <dl className="m-0 flex flex-col gap-2.5 font-body text-body-s">
+            <Line label="Trip price" value={selected.priceLabel} />
+            {plan === "full" && selected.savingLabel && (
+              <Line label="Paying in full" value={`−${selected.savingLabel}`} />
+            )}
+            {plan === "deposit" && <Line label="Paid later" value={selected.balanceLabel} />}
+            <div className="mt-2 flex items-baseline justify-between gap-4 border-t border-[--rule-strong] pt-4">
+              <dt className="font-body text-body font-medium text-[--text]">Due today</dt>
+              <dd className="m-0 font-display text-display-s font-medium tabular-nums tracking-title text-[--text]">
+                {dueToday}
+              </dd>
+            </div>
+          </dl>
+
+          <PendingSubmitButton
+            variant="primary"
+            size="lg"
+            block
+            pendingLabel="Holding your spot"
+            // Wraps rather than overflowing the panel at 375px; the base
+            // button is nowrap, so this needs the important modifier to win.
+            className="mt-6 !whitespace-normal text-center !leading-[1.35]"
+            disabled={selected.soldOut}
+          >
+            Continue to payment — {dueToday}
+          </PendingSubmitButton>
+
+          <ul className="m-0 mt-5 flex list-none flex-col gap-2 p-0 font-body text-body-s leading-[1.5] text-[--text-secondary]">
+            <li className="flex items-start gap-2.5">
+              <LockGlyph />
+              <span>Secure payment by Stripe. You enter your card on the next step.</span>
+            </li>
+            <li className="pl-[1.375rem]">
+              Deposit non-refundable; see the{" "}
+              <Link href="/terms#cancellation" target="_blank" rel="noreferrer" className={LINK}>
+                cancellation terms
+              </Link>
+              .
+            </li>
+            <li className="pl-[1.375rem]">
+              Questions?{" "}
+              <a href={`mailto:${contactEmail}`} className={LINK}>
+                {contactEmail}
+              </a>
+            </li>
+          </ul>
+        </div>
+      </aside>
     </SubmitOnceForm>
-  );
-}
-
-/*
- * The text-message opt-in. Unchecked by default, not required, and its own
- * box rather than a clause in AcceptTerms, because consent to texts must not
- * be a condition of booking. The wording comes from lib/sms-consent.ts, which
- * also holds the version createBooking stores with the tick. The links open in
- * a new tab for the same reason AcceptTerms' do: nobody loses a part-filled
- * form to read them.
- */
-function SmsConsent() {
-  return (
-    <CheckRow name={SMS_CONSENT_FIELD}>
-      {SMS_CONSENT_PARTS.lead}
-      <Link href="/privacy" target="_blank" rel="noreferrer" className={LINK}>
-        {SMS_CONSENT_PARTS.privacyLabel}
-      </Link>
-      {SMS_CONSENT_PARTS.between}
-      <Link href="/terms" target="_blank" rel="noreferrer" className={LINK}>
-        {SMS_CONSENT_PARTS.termsLabel}
-      </Link>
-      {SMS_CONSENT_PARTS.tail}
-    </CheckRow>
   );
 }
 
 const LINK = "text-[--accent] underline underline-offset-2";
 
+/* -- one package ------------------------------------------------------------ */
+
 /*
- * One plan, as a selectable card. The native radio stays in the tree for
- * keyboard and screen readers (arrow keys move between the two, as a radio
- * group should), and the whole card is its label, so the target is the card,
- * not the dot. Selected is a doubled espresso rule, drawn from `:has(:checked)`
- * so it needs no script; keyboard focus shows as the ring on the card.
+ * A package as a selectable card, room first. The radio is native and the
+ * card's selected look is `:has(:checked)`, so it is right before hydration.
+ *
+ * The picture and the text are both <label>s for the radio, so a tap almost
+ * anywhere selects it. The two things that are not (the full inclusions list
+ * and the photo viewer) sit outside the labels: interactive content inside a
+ * label is invalid and would fight the radio for the tap.
  */
+function PackageCard({
+  tier,
+  defaultChecked,
+  onSelect,
+}: {
+  tier: CheckoutTier;
+  defaultChecked: boolean;
+  onSelect: () => void;
+}) {
+  const inputId = useId();
+  const key = tier.inclusions.slice(0, KEY_INCLUSIONS);
+  const more = tier.inclusions.length > KEY_INCLUSIONS;
+  const photo = tier.room?.photos[0] ?? null;
+
+  return (
+    <div
+      className={cn(
+        "grid border border-[--rule] bg-[--surface-raised] transition-[border-color,box-shadow] duration-fast ease-out",
+        "sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] md:grid-cols-[minmax(0,17rem)_minmax(0,1fr)]",
+        tier.soldOut
+          ? "opacity-60"
+          : "hover:border-[--rule-strong] has-[:checked]:border-[--accent-solid] has-[:checked]:shadow-[inset_0_0_0_1px_var(--accent-solid)]",
+        "has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[color:var(--focus-ring)]",
+      )}
+    >
+      {tier.room && (
+        <label htmlFor={inputId} className={cn("block", tier.soldOut ? "cursor-not-allowed" : "cursor-pointer")}>
+          {photo ? (
+            <span className="relative block aspect-[3/2] h-full w-full overflow-hidden bg-[--surface-inset] sm:aspect-auto sm:min-h-full">
+              <Image
+                src={photo.src}
+                alt={photo.alt}
+                fill
+                sizes="(min-width: 768px) 17rem, (min-width: 640px) 14rem, 100vw"
+                className="object-cover"
+              />
+            </span>
+          ) : (
+            <RoomPanel room={tier.room} size="card" />
+          )}
+        </label>
+      )}
+
+      <div className={cn("flex min-w-0 flex-col p-5 sm:p-6", !tier.room && "sm:col-span-2")}>
+        <label
+          htmlFor={inputId}
+          className={cn("flex items-start gap-3.5", tier.soldOut ? "cursor-not-allowed" : "cursor-pointer")}
+        >
+          <RadioControl
+            id={inputId}
+            name="tierId"
+            value={tier.id}
+            defaultChecked={defaultChecked}
+            disabled={tier.soldOut}
+            required
+            onChange={(e) => {
+              if (e.target.checked) onSelect();
+            }}
+            // The card carries the focus ring; a second one on the dot is noise.
+            className="mt-1 [&>input:focus-visible]:outline-none"
+          />
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <span className="font-display text-display-s font-medium tracking-title text-[--text]">
+                {tier.name}
+              </span>
+              <span className="font-body text-body tabular-nums text-[--text]">
+                {tier.priceLabel}
+                <span className="ml-1.5 text-body-s text-[--text-secondary]">per person</span>
+              </span>
+            </span>
+            {tier.summary && (
+              <span className="mt-1 font-body text-body leading-[1.5] text-[--text-secondary]">{tier.summary}</span>
+            )}
+            {(tier.soldOut || tier.availability) && (
+              <span
+                className={cn(
+                  "t-micro mt-3",
+                  tier.soldOut ? "text-[--text-secondary]" : "text-[--flag-ink]",
+                )}
+              >
+                {tier.soldOut ? "Sold out" : tier.availability}
+              </span>
+            )}
+            {key.length > 0 && (
+              <span className="mt-4 flex flex-col gap-1.5" role="list">
+                {key.map((item) => (
+                  <Inclusion key={item}>{item}</Inclusion>
+                ))}
+              </span>
+            )}
+          </span>
+        </label>
+
+        {(more || (tier.room?.photos.length ?? 0) > 0) && (
+          <div className="mt-2 flex flex-wrap items-start gap-x-6 pl-[2.125rem]">
+            {more && (
+              <details className="group min-w-0 basis-full">
+                <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 font-body text-body-s text-[--accent] underline underline-offset-4 [&::-webkit-details-marker]:hidden">
+                  <span className="group-open:hidden">See everything included</span>
+                  <span className="hidden group-open:inline">Show less</span>
+                </summary>
+                <span className="flex flex-col gap-1.5 pb-1" role="list">
+                  {tier.inclusions.slice(KEY_INCLUSIONS).map((item) => (
+                    <Inclusion key={item}>{item}</Inclusion>
+                  ))}
+                </span>
+              </details>
+            )}
+            {tier.room && tier.room.photos.length > 0 && (
+              <RoomPhotosButton photos={tier.room.photos} title={tier.room.title} />
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Inclusion({ children }: { children: React.ReactNode }) {
+  return (
+    <span role="listitem" className="flex gap-3 font-body text-body-s leading-[1.55] text-[--text]">
+      <span aria-hidden="true" className="mt-[0.6em] h-1 w-1 shrink-0 bg-[--accent]" />
+      <span>{children}</span>
+    </span>
+  );
+}
+
+/* -- one plan --------------------------------------------------------------- */
+
 function PlanOption({
-  name,
   value,
   defaultChecked,
   onSelect,
   title,
   amount,
-  amountNote,
-  was,
-  badge,
   detail,
 }: {
-  name: string;
-  value: string;
+  value: Plan;
   defaultChecked?: boolean;
   onSelect: () => void;
   title: string;
   amount: string;
-  amountNote: string;
-  /** The undiscounted price, struck through beside the amount. */
-  was?: string;
-  badge?: string;
   detail: string;
 }) {
   return (
     <label
       className={cn(
-        "flex cursor-pointer items-start gap-4 border border-[--rule] bg-[--surface] p-4 sm:p-5",
+        "flex cursor-pointer items-start gap-3.5 border border-[--rule] bg-[--surface] p-4",
         "transition-[border-color,box-shadow] duration-fast ease-out hover:border-[--rule-strong]",
         "has-[:checked]:border-[--accent-solid] has-[:checked]:shadow-[inset_0_0_0_1px_var(--accent-solid)]",
         "has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[color:var(--focus-ring)]",
       )}
     >
       <RadioControl
-        name={name}
+        name="payment_plan"
         value={value}
         defaultChecked={defaultChecked}
         onChange={(e) => {
           if (e.target.checked) onSelect();
         }}
-        // The card carries the focus ring; a second one on the dot is noise.
         className="mt-0.5 [&>input:focus-visible]:outline-none"
       />
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-          <span className="t-micro text-[--text]">{title}</span>
-          {badge && <Badge tone="open" plain>{badge}</Badge>}
+        <span className="flex flex-wrap items-baseline justify-between gap-x-3">
+          <span className="font-body text-body font-medium text-[--text]">{title}</span>
+          <span className="font-body text-body font-medium tabular-nums text-[--text]">{amount}</span>
         </span>
-        <span className="mt-2.5 flex flex-wrap items-baseline gap-x-2.5">
-          <span className="font-display text-display-s font-medium leading-none tabular-nums tracking-title text-[--text]">
-            {amount}
-          </span>
-          {was && (
-            <s className="font-body text-body-s tabular-nums text-[--text-secondary]">
-              <span className="sr-only">instead of </span>
-              {was}
-            </s>
-          )}
-          <span className="font-body text-body-s text-[--text-secondary]">{amountNote}</span>
-        </span>
-        <span className="mt-2 block font-body text-body-s leading-[1.6] text-[--text-secondary]">
-          {detail}
-        </span>
+        <span className="mt-1 font-body text-body-s leading-[1.5] text-[--text-secondary]">{detail}</span>
       </span>
     </label>
+  );
+}
+
+function Line({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4">
+      <dt className="text-[--text-secondary]">{label}</dt>
+      <dd className="m-0 tabular-nums text-[--text]">{value}</dd>
+    </div>
+  );
+}
+
+function Chevron() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 12 8"
+      className="h-2 w-3 shrink-0 text-[--text-secondary] transition-transform duration-fast group-open:rotate-180"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.25"
+    >
+      <path d="M1 1.5l5 5 5-5" />
+    </svg>
+  );
+}
+
+/* The padlock from CheckoutForm, in the same 1px vocabulary. Decorative. */
+function LockGlyph() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 12 14"
+      className="mt-[0.3rem] h-3 w-3 shrink-0 text-[--accent]"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1"
+    >
+      <rect x="0.5" y="5.5" width="11" height="8" />
+      <path d="M3 5.5V3.5a3 3 0 0 1 6 0v2" />
+    </svg>
   );
 }

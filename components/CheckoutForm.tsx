@@ -6,6 +6,7 @@ import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-
 import { loadStripe, type Appearance } from "@stripe/stripe-js";
 import { Alert, Button } from "@/components/ui";
 import AuthorizeCharge, { type ScheduledCharge } from "@/components/AuthorizeCharge";
+import { acceptTermsForBooking } from "@/app/(protected)/bookings/actions";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -148,6 +149,12 @@ export default function CheckoutForm({
   submitLabel,
   /** Where to land once paid. Defaults to the booking's confirmation page. */
   returnPath,
+  /**
+   * The booking's first payment: the one box also agrees to the Terms and the
+   * Assumption of Risk, and that agreement is recorded before the card is
+   * confirmed. Off for balance payments, which were agreed to at booking.
+   */
+  acceptTerms = false,
 }: {
   clientSecret: string;
   bookingId: string;
@@ -155,6 +162,7 @@ export default function CheckoutForm({
   scheduledCharges?: ScheduledCharge[];
   submitLabel?: string;
   returnPath?: string;
+  acceptTerms?: boolean;
 }) {
   // Computed once per mount. The result never reaches the DOM this component
   // renders, only Stripe's iframe, so the server/client difference is not a
@@ -164,6 +172,8 @@ export default function CheckoutForm({
   return (
     <Elements stripe={stripePromise} options={{ clientSecret, appearance, fonts: STRIPE_FONTS }}>
       <PaymentForm
+        bookingId={bookingId}
+        acceptTerms={acceptTerms}
         amountLabel={amountLabel}
         scheduledCharges={scheduledCharges}
         label={submitLabel ?? `Pay ${amountLabel} deposit`}
@@ -174,11 +184,15 @@ export default function CheckoutForm({
 }
 
 function PaymentForm({
+  bookingId,
+  acceptTerms,
   amountLabel,
   scheduledCharges,
   label,
   returnPath,
 }: {
+  bookingId: string;
+  acceptTerms: boolean;
   amountLabel: string;
   scheduledCharges?: ScheduledCharge[];
   label: string;
@@ -215,6 +229,24 @@ function PaymentForm({
       return;
     }
 
+    // The agreement is written before the card is confirmed, never after: if
+    // it cannot be recorded, nothing is charged. After elements.submit() so a
+    // mistyped card number does not get as far as a server round trip.
+    if (acceptTerms) {
+      let accepted: Awaited<ReturnType<typeof acceptTermsForBooking>>;
+      try {
+        accepted = await acceptTermsForBooking(bookingId);
+      } catch {
+        accepted = { ok: false, message: "We could not reach the server, so nothing was charged. Please try again." };
+      }
+      if (!accepted.ok) {
+        setError(accepted.message);
+        setSubmitting(false);
+        inFlight.current = false;
+        return;
+      }
+    }
+
     const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
       elements,
       confirmParams: {
@@ -240,18 +272,18 @@ function PaymentForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-8">
+    <form onSubmit={handleSubmit} className="mt-6">
       <fieldset className="m-0 min-w-0 border-0 p-0" disabled={submitting}>
-        <legend className="t-micro p-0 text-[--text-secondary]">Card details</legend>
+        <legend className="sr-only">Card details</legend>
 
         {/* The hairline container is ours; everything inside it is Stripe's
             iframe. Padding sits on this box rather than on the frame so the
             fields line up with the rules above and below them. */}
-        <div className="mt-3 border border-[--rule-strong] bg-[--surface-raised] p-4 md:p-5">
+        <div className="border border-[--rule] bg-[--surface-raised] p-4 sm:p-6">
           <PaymentElement />
         </div>
 
-        <p className="mt-3.5 flex items-start gap-2.5 font-body text-body-s leading-[1.6] text-[--text-secondary]">
+        <p className="mt-3 flex items-start gap-2.5 font-body text-body-s leading-[1.6] text-[--text-secondary]">
           <LockGlyph />
           <span>
             Your card goes straight to Stripe over an encrypted connection. Outrider never sees or
@@ -267,6 +299,7 @@ function PaymentForm({
           disabled={submitting}
           amountLabel={amountLabel}
           scheduled={scheduledCharges}
+          withTerms={acceptTerms}
         />
       </div>
 
@@ -278,19 +311,24 @@ function PaymentForm({
         </div>
       )}
 
-      <div className="mt-8">
+      <div className="mt-6">
         <Button
           type="submit"
           variant="primary"
           size="lg"
+          block
           disabled={!stripe || submitting || !authorized}
           // aria-busy rather than the label alone, so the wait is announced
           // and not only read.
           aria-busy={submitting}
-          className="w-full sm:w-auto"
         >
           {submitting ? "Processing" : label}
         </Button>
+        {!authorized && !submitting && (
+          <p className="mt-3 text-center font-body text-body-s text-[--text-secondary]">
+            Tick the box above to pay.
+          </p>
+        )}
       </div>
     </form>
   );

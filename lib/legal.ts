@@ -78,7 +78,10 @@ export const TERMS: LegalDocumentMeta = {
   // 2.1.0: MINOR, a new section: the text-message program disclosure
   // (Outrider trip texts) that carrier registration requires. It adds
   // nothing a traveler owes; opting in is optional and separate.
-  version: "2.1.0",
+  // 2.1.1: PATCH, wording only. The text-message box moved from the booking
+  // form to the trip page, and the agreement to these terms moved into the one
+  // box on the payment page; the two sentences that said where are corrected.
+  version: "2.1.1",
   status: "in-force",
   effectiveDate: "2026-09-18",
   lastUpdated: "2026-09-18",
@@ -117,7 +120,9 @@ export const PRIVACY: LegalDocumentMeta = {
   // stating that mobile numbers and SMS consent are not shared for marketing,
   // which carrier registration requires. New recipients, no change to what
   // existing recipients get.
-  version: "1.1.0",
+  // 1.1.1: PATCH, wording only. The text-message box is on the trip page, not
+  // the booking form; the two sentences that said where are corrected.
+  version: "1.1.1",
   status: "in-force",
   effectiveDate: "2026-09-18",
   lastUpdated: "2026-09-18",

@@ -123,7 +123,10 @@ export default function TierTable({
                 <p className="t-micro mt-2 text-[--text-muted]">Sold out</p>
               ) : bookHref ? (
                 <Button
-                  href={bookHref}
+                  // Names the package, so checkout opens with it already
+                  // selected (by name, since one table can stand for several
+                  // departures whose tier ids differ).
+                  href={withPackage(bookHref, tier.name)}
                   variant={featured ? "primary" : "secondary"}
                   size="sm"
                   block
@@ -140,4 +143,8 @@ export default function TierTable({
       })}
     </div>
   );
+}
+
+function withPackage(href: string, name: string): string {
+  return `${href}${href.includes("?") ? "&" : "?"}package=${encodeURIComponent(name)}`;
 }

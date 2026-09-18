@@ -20,21 +20,19 @@ import { syncPaymentFromStripe } from "@/lib/stripe-sync";
 import { getOrCreateStripeCustomerId } from "@/lib/customers";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { resolveGroupCode } from "@/lib/group-code";
-import { recordAcceptance } from "@/lib/legal-acceptance";
+import { hasAcceptedAll, recordAcceptance } from "@/lib/legal-acceptance";
 import { BOOKINGS_OPEN, CHECKOUT_SANDBOX, isTestTrip } from "@/lib/booking-window";
-import { SMS_CONSENT_FIELD, SMS_CONSENT_VERSION } from "@/lib/sms-consent";
 
 export async function createBooking(formData: FormData) {
   const tripId = String(formData.get("tripId") ?? "");
   const tierId = String(formData.get("tierId") ?? "");
   const requestedGroupCode = String(formData.get("group_code") ?? "").trim() || null;
-  // Checked before anything is created. A booking that exists without an
-  // acceptance record is exactly the situation this is here to prevent.
-  const acceptedTerms = formData.get("accept_terms") === "on";
-  // Optional, and never a reason to refuse a booking. Only an explicit tick
-  // counts; anything else (including a form rendered before the box existed)
-  // is no consent.
-  const smsConsent = formData.get(SMS_CONSENT_FIELD) === "on";
+  // Neither the terms nor the text-message opt-in is asked for here any more.
+  // The terms are agreed to in the one box on the payment step, recorded by
+  // acceptTermsForBooking before the card is confirmed; texts are opted into
+  // on the trip page, once there is a phone number to send them to. A form
+  // rendered before this change still posts accept_terms and sms_consent, and
+  // both are ignored.
   // The only thing taken from the form about money is which of two plans was
   // picked, and only if it is one of the two. Every figure is worked out below
   // from the tier row. A form rendered before this field existed sends nothing,
@@ -128,15 +126,6 @@ export async function createBooking(formData: FormData) {
     redirect(`/bookings/new?error=${encodeURIComponent(groupCodeResult.error)}`);
   }
 
-  if (!acceptedTerms) {
-    redirect(
-      "/bookings/new?error=" +
-        encodeURIComponent(
-          "Please accept the Terms of Service and the Assumption of Risk to book.",
-        ),
-    );
-  }
-
   /*
    * A second submit of the same form is the same booking, not another one.
    *
@@ -156,8 +145,8 @@ export async function createBooking(formData: FormData) {
   // Before the booking exists, not after: this is the Stripe call most likely
   // to fail (an account carrying a customer id Stripe does not know, or Stripe
   // being unreachable), and failing here leaves nothing behind. Failing after
-  // the insert used to strand a pending booking holding a place in the tier,
-  // with an acceptance record and no card form.
+  // the insert used to strand a pending booking holding a place in the tier
+  // with no card form.
   //
   // setup_future_usage (below) attaches the payment method used here to this
   // Customer on success, so the installment cron can charge it off-session
@@ -180,19 +169,9 @@ export async function createBooking(formData: FormData) {
       total_amount: totalAmount,
       deposit_amount: depositAmount,
       group_code: groupCodeResult.code,
-      // The evidence if consent to texts is ever questioned: the tick, the
-      // server's clock (not the browser's), and which wording was on screen
-      // (lib/sms-consent.ts). Written only with a yes: the columns default to
-      // false and null, which is what a blank box means, and leaving them out
-      // keeps an unticked booking working on a database the post-booking
-      // migration has not reached yet.
-      ...(smsConsent
-        ? {
-            sms_consent: true,
-            sms_consent_at: new Date().toISOString(),
-            sms_consent_text_version: SMS_CONSENT_VERSION,
-          }
-        : {}),
+      // sms_consent and its evidence columns are left to their defaults (false
+      // and null). The opt-in lives on the trip page now; see
+      // app/trip/[bookingId]/actions.ts.
     })
     .select("id")
     .single();
@@ -225,11 +204,10 @@ export async function createBooking(formData: FormData) {
    * a failure part-way never leaves a pending booking holding a place in the
    * tier with no card form behind it. The undo is abandonPendingBooking.
    *
-   * The acceptance goes before the PaymentIntent, deliberately. If it fails,
-   * no card has been charged, which is a far better failure than money taken
-   * against a booking with no record of what the traveler agreed to.
-   * recordAcceptance stores the document versions, not a boolean, so the
-   * exact text accepted can be reproduced later.
+   * No acceptance is written here. It is recorded on the payment step, by
+   * acceptTermsForBooking, after the traveler ticks the one box there and
+   * before their card is confirmed, so a booking abandoned before that point
+   * has nothing to agree to and nothing to keep.
    *
    * setup_future_usage attaches the card to the Customer on success, so the
    * cron can charge installments off-session later. No separate SetupIntent is
@@ -238,11 +216,7 @@ export async function createBooking(formData: FormData) {
    * charges, so its card is not kept.
    */
   let paymentIntent: Stripe.PaymentIntent | undefined;
-  let accepted = false;
   try {
-    await recordAcceptance({ bookingId: booking.id, userId: user.id });
-    accepted = true;
-
     // metadata.kind is how the webhook tells a deposit from a payment in full
     // (see paymentKindOf in lib/payments.ts). bookingStatus is the status this
     // path saw before creating the intent, which lib/overpayment.ts relies on to
@@ -284,11 +258,75 @@ export async function createBooking(formData: FormData) {
         .paymentIntents.cancel(paymentIntent.id)
         .catch(() => undefined);
     }
-    await abandonPendingBooking(admin, booking.id, { accepted });
+    await abandonPendingBooking(admin, booking.id);
     redirect("/bookings/new?error=" + encodeURIComponent(CHECKOUT_FAILED_MESSAGE));
   }
 
   redirect(`/bookings/${booking.id}/pay`);
+}
+
+export type AcceptTermsResult = { ok: true } | { ok: false; message: string };
+
+/**
+ * Records that the traveler agreed to the Terms and the Assumption of Risk,
+ * from the one box on the payment step.
+ *
+ * CheckoutForm calls this after Stripe has validated the card fields and
+ * before it confirms the payment, and does not confirm if this fails. That
+ * order is the point: no card is charged against a booking with no record of
+ * what its traveler agreed to. The webhook checks the same thing afterwards
+ * and logs loudly if it ever finds a payment without one (lib/payments.ts).
+ *
+ * Idempotent. A retry after a declined card, a second tab, or a double press
+ * finds the rows already written and returns ok without writing again; the
+ * rows are append-only evidence of the versions in force at the first tick.
+ * The table's unique (booking_id, document_slug) catches a race between two
+ * presses, and the loser reads the winner's rows and returns ok too.
+ */
+export async function acceptTermsForBooking(bookingId: string): Promise<AcceptTermsResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false, message: "Your session has ended. Log in again to finish paying." };
+  }
+
+  if (!(await checkRateLimit(`accept:${user.id}`, 30, 60 * 60))) {
+    return { ok: false, message: "Too many attempts. Please try again in a bit." };
+  }
+
+  // Through the traveler's own client, so RLS ("Users can view own bookings")
+  // is what proves the booking is theirs: someone else's id comes back empty.
+  const { data: booking } = await supabase
+    .from("bookings")
+    .select("id, status")
+    .eq("id", bookingId)
+    .maybeSingle();
+
+  if (!booking) {
+    return { ok: false, message: "We could not find that booking. Reload the page and try again." };
+  }
+  // Only a booking still waiting on its first payment is agreed to here.
+  if (booking.status !== "pending") {
+    return { ok: false, message: "This booking is no longer waiting for payment. Reload the page." };
+  }
+
+  if (await hasAcceptedAll(booking.id)) return { ok: true };
+
+  try {
+    await recordAcceptance({ bookingId: booking.id, userId: user.id });
+    return { ok: true };
+  } catch (err) {
+    // A concurrent press may have written them first, which is success.
+    if (await hasAcceptedAll(booking.id)) return { ok: true };
+    console.error(`acceptTermsForBooking(${booking.id}): ${err instanceof Error ? err.message : err}`);
+    return {
+      ok: false,
+      message: "We could not record your agreement, so nothing was charged. Please try again.",
+    };
+  }
 }
 
 /*
@@ -551,23 +589,17 @@ const CHECKOUT_FAILED_MESSAGE = "We could not start your checkout. Nothing was c
 /**
  * Undoes a pending booking createBooking could not finish.
  *
- * Deleted when nothing points at it yet. Once the acceptance is recorded it is
- * never deleted (those rows are append-only evidence, and deleting the booking
- * would either fail on them or take them with it), so it is cancelled instead,
- * which frees its place in the tier just the same: the capacity trigger does
- * not count cancelled bookings. A delete that fails (a payment row already
- * points at it) falls back to the same. Both are conditional on the booking
- * still being pending, so a payment that somehow landed is never undone.
+ * Deleted, since nothing points at it yet: createBooking writes no acceptance
+ * (that happens on the payment step), so there are no append-only legal rows
+ * to keep. A delete that fails (a payment row already points at it) falls back
+ * to cancelling, which frees its place in the tier just the same: the capacity
+ * trigger does not count cancelled bookings. Both are conditional on the
+ * booking still being pending, so a payment that somehow landed is never
+ * undone.
  */
-async function abandonPendingBooking(
-  admin: ReturnType<typeof createAdminClient>,
-  bookingId: string,
-  { accepted }: { accepted: boolean },
-) {
-  if (!accepted) {
-    const { error } = await admin.from("bookings").delete().eq("id", bookingId).eq("status", "pending");
-    if (!error) return;
-  }
+async function abandonPendingBooking(admin: ReturnType<typeof createAdminClient>, bookingId: string) {
+  const { error } = await admin.from("bookings").delete().eq("id", bookingId).eq("status", "pending");
+  if (!error) return;
   const { error: cancelError } = await admin
     .from("bookings")
     .update({ status: "cancelled" })

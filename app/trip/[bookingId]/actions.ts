@@ -6,6 +6,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/client-ip";
 import { createPortalUrl, isBookingId, verifyPortalToken } from "@/lib/portal-token";
 import { sendPortalLinkEmail } from "@/lib/email/portal-link";
+import { SMS_CONSENT_FIELD, SMS_CONSENT_VERSION } from "@/lib/sms-consent";
 import {
   ABILITY_LEVELS,
   MAX_NAME_LENGTH,
@@ -308,6 +309,84 @@ export async function submitTravelerDetails(
     .eq("id", auth.bookingId);
   if (flagError) {
     console.error(`details flag for ${auth.bookingId} failed: ${flagError.code} ${flagError.message}`);
+  }
+
+  // The text-message box under the phone field. Optional, and only a tick
+  // does anything: an unticked box on a later "Replace my details" leaves an
+  // earlier yes where it is, because opting out is by replying STOP, not by
+  // leaving a box empty. The details are already saved, so a failure here
+  // does not fail the form: it is logged, and the page then shows the
+  // separate "Text me trip updates" row, since consent is still false.
+  if (formData.get(SMS_CONSENT_FIELD) === "on") {
+    await recordSmsConsent(auth.bookingId);
+  }
+
+  revalidatePath(`/trip/${auth.bookingId}`);
+  return { ok: true };
+}
+
+/* -- text messages --------------------------------------------------------- */
+
+/**
+ * The evidence if consent to texts is ever questioned: the tick, the server's
+ * clock (not the browser's), and which wording was on screen
+ * (lib/sms-consent.ts). Only written over a no, so a traveler who already
+ * agreed keeps the time and the wording of their first yes.
+ *
+ * Returns false when it did not save (already logged).
+ */
+async function recordSmsConsent(bookingId: string): Promise<boolean> {
+  const { error } = await createAdminClient()
+    .from("bookings")
+    .update({
+      sms_consent: true,
+      sms_consent_at: new Date().toISOString(),
+      sms_consent_text_version: SMS_CONSENT_VERSION,
+    })
+    .eq("id", bookingId)
+    .eq("sms_consent", false);
+
+  if (error) {
+    console.error(`recordSmsConsent(${bookingId}) failed: ${error.code} ${error.message}`);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Opting in to texts on its own, for a traveler who sent their details
+ * without ticking the box. Needs those details first: the number texts go to
+ * is the one on that form.
+ */
+export async function optInToTexts(
+  _prev: PortalActionResult | null,
+  formData: FormData
+): Promise<PortalActionResult> {
+  const auth = await authorize(formData);
+  if (!auth.ok) return auth.result;
+
+  // The box is required in the browser; a hand-made post without it is not
+  // consent, whatever else it says.
+  if (formData.get(SMS_CONSENT_FIELD) !== "on") {
+    return { ok: false, message: "Tick the box to agree to trip texts." };
+  }
+
+  const { data: details, error } = await createAdminClient()
+    .from("traveler_details")
+    .select("booking_id")
+    .eq("booking_id", auth.bookingId)
+    .maybeSingle();
+
+  if (error) {
+    console.error(`optInToTexts(${auth.bookingId}) lookup failed: ${error.code} ${error.message}`);
+    return { ok: false, message: "That did not save. Try again." };
+  }
+  if (!details) {
+    return { ok: false, message: "Send your traveler details first, so we have a number to text." };
+  }
+
+  if (!(await recordSmsConsent(auth.bookingId))) {
+    return { ok: false, message: "That did not save. Try again." };
   }
 
   revalidatePath(`/trip/${auth.bookingId}`);

@@ -46,6 +46,20 @@ const nextConfig = {
   // Do not advertise the framework and its version.
   poweredByHeader: false,
 
+  // lib/room-media.ts checks which room photographs exist with fs on the
+  // server, so nothing renders a broken image. public/ is served from the CDN
+  // and is not in the server bundle on Vercel, so the routes that call it get
+  // that folder traced in. Keys are route globs (groups stripped), matched
+  // with `contains`, so "/trips/\\[id\\]" also catches /admin/trips/[id]; that
+  // costs a few photos in the admin bundle and nothing else. Brackets are
+  // escaped because a glob reads [id] as a character class.
+  outputFileTracingIncludes: {
+    "/telluride": ["./public/images/peaks/**/*"],
+    "/trips/\\[id\\]": ["./public/images/peaks/**/*"],
+    "/bookings/new": ["./public/images/peaks/**/*"],
+    "/bookings/*/pay": ["./public/images/peaks/**/*"],
+  },
+
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },

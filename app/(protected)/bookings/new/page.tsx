@@ -1,230 +1,254 @@
 import Link from "next/link";
-import { Alert, Badge, Button, SectionDivider } from "@/components/ui";
-import BookingForm from "./BookingForm";
+import { Alert, Button, cn } from "@/components/ui";
+import CheckoutSteps from "@/components/CheckoutSteps";
+import BookingForm, { type CheckoutTier } from "./BookingForm";
 import {
   computeDepositAmount,
   computePayInFullAmount,
   DEPOSIT_PERCENTAGE,
-  PAY_IN_FULL_DISCOUNT,
   payInFullSaving,
 } from "@/lib/deposit";
 import { formatAmount } from "@/lib/balance";
+import { INSTALLMENT_OFFSETS_DAYS } from "@/lib/installments";
+import { getRoomMedia } from "@/lib/room-media";
+import { CONTACT } from "@/lib/site-content";
 import {
+  availabilityLabel,
   formatDateRange,
   formatPrice,
   getPublishedTrip,
   getPublishedTrips,
   nightCount,
-  type PublicTier,
+  tierAvailabilityLabel,
   type PublicTrip,
 } from "@/lib/trips";
 
 /*
- * Where a reservation actually gets made.
+ * Step 1 of checkout: choose the package, choose how to pay.
  *
- * The trip pages link here as /bookings/new?trip=<id> so that a visitor who
- * came through login does not have to find their trip again. That parameter is
- * honoured here: with a valid published trip it narrows the page to that one
- * departure, and with anything else it falls back to the full list and says so
- * rather than silently showing everything.
+ * The trip pages link here as /bookings/new?trip=<id>, and a package's Reserve
+ * button adds &package=<tier name> so it arrives already selected. Both survive
+ * the trip through /login (middleware keeps the query string on `next`).
+ *
+ * With one trip (asked for, or the only one open) the page is the package
+ * form. With several and none asked for, it first asks which dates, as a short
+ * list of links, since the packages belong to a departure. A trip that was
+ * asked for and is not open says so, then offers the rest.
  */
-export default async function NewBookingPage(
-  props: {
-    searchParams: Promise<{ error?: string; trip?: string }>;
-  }
-) {
+export default async function NewBookingPage(props: {
+  searchParams: Promise<{ error?: string; trip?: string; package?: string }>;
+}) {
   const searchParams = await props.searchParams;
   const requestedId = searchParams.trip;
   const requested = requestedId ? await getPublishedTrip(requestedId) : null;
   const trips: PublicTrip[] = requested ? [requested] : await getPublishedTrips();
-
-  // Asked for a specific trip and it is not open: say so, then show the rest.
   const requestMissed = Boolean(requestedId) && requested === null;
+  const trip = trips.length === 1 ? trips[0] : null;
+
+  const alerts = (searchParams.error || requestMissed) && (
+    <div className="mt-8 flex flex-col gap-4">
+      {searchParams.error && (
+        <Alert tone="warning" title="That did not go through">
+          {searchParams.error}
+        </Alert>
+      )}
+      {requestMissed && (
+        <Alert tone="info" title="That trip is closed">
+          The departure you followed is no longer taking bookings. Everything still open is below.
+        </Alert>
+      )}
+    </div>
+  );
 
   return (
     <main>
-      <header className="shell pt-14 md:pt-20">
-        <p className="stamp-type text-[--text-muted]">Reserve a spot</p>
-        <h1 className="t-title mt-5 max-w-[16ch] text-[--text]">
-          {requested ? requested.name : "Pick your departure"}
-        </h1>
-        <p className="mt-6 max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
-          Choose a package, then pay a {Math.round(DEPOSIT_PERCENTAGE * 100)}% deposit or the whole trip now. The
-          deposit holds the room, and the balance is split into two scheduled payments, taken automatically
-          before you travel.
-          {PAY_IN_FULL_DISCOUNT > 0 && ` Paying in full takes ${formatPrice(PAY_IN_FULL_DISCOUNT)} off the price.`}
-        </p>
-
-        {requested && (
-          <p className="mt-6">
-            <Link
-              href="/bookings/new"
-              className="t-micro text-[--accent] decoration-[--accent] underline-offset-4"
-            >
-              See every open trip
-            </Link>
-          </p>
-        )}
-      </header>
-
-      <div className="shell pb-20 pt-10 md:pb-28">
-        {(searchParams.error || requestMissed) && (
-          <div className="mb-10 flex flex-col gap-4">
-            {searchParams.error && (
-              <Alert tone="warning" title="That did not go through">
-                {searchParams.error}
-              </Alert>
-            )}
-            {requestMissed && (
-              <Alert tone="info" title="That trip is closed">
-                The departure you followed is no longer taking bookings. Everything still open is
-                below.
-              </Alert>
-            )}
-          </div>
-        )}
+      <div className="shell max-w-[76rem] pb-20 pt-8 md:pb-28 md:pt-12">
+        <CheckoutSteps current={1} />
 
         {trips.length === 0 ? (
-          <div className="flex flex-col items-start gap-6 border border-[--rule] bg-[--surface-raised] px-6 py-14 md:items-center md:px-8 md:py-20 md:text-center">
-            <p className="stamp-type text-[--text-muted]">Nothing open</p>
-            <h2 className="t-subheading max-w-[22ch] text-[--text]">
-              No departures are taking bookings right now
-            </h2>
-            <p className="max-w-measure-tight font-body text-body leading-[1.7] text-[--text-secondary]">
-              Trips go up a few at a time. Tell us where your chapter wants to go and you hear about
-              the next one first.
-            </p>
-            <Button href="/contact" variant="primary" size="md">
-              Get in touch
-            </Button>
-          </div>
+          <>
+            {alerts}
+            <NothingOpen />
+          </>
+        ) : trip ? (
+          <>
+            <TripHeader trip={trip} showAll={Boolean(requested) || trips.length > 1} />
+            {alerts}
+            <div className="mt-10 md:mt-12">
+              <Packages trip={trip} requestedPackage={searchParams.package} />
+            </div>
+          </>
         ) : (
-          <div className="flex flex-col gap-16 md:gap-24">
-            {trips.map((trip, i) => (
-              <section key={trip.id}>
-                {i > 0 && <SectionDivider variant="rule" className="mb-12" />}
-                <TripBlock trip={trip} single={trips.length === 1} />
-              </section>
-            ))}
-          </div>
+          <>
+            <header className="mt-8 border-b border-[--rule] pb-6 md:mt-10">
+              <h1 className="t-heading text-[--text]">Choose your dates</h1>
+              <p className="mt-2 font-body text-body text-[--text-secondary]">
+                Every departure is the same trip. Pick the week, then the package.
+              </p>
+            </header>
+            {alerts}
+            <Departures trips={trips} requestedPackage={searchParams.package} />
+          </>
         )}
       </div>
     </main>
   );
 }
 
-function TripBlock({ trip, single }: { trip: PublicTrip; single: boolean }) {
+/* -- the trip, compactly ---------------------------------------------------- */
+
+function TripHeader({ trip, showAll }: { trip: PublicTrip; showAll: boolean }) {
   const nights = nightCount(trip.startDate, trip.endDate);
-
   return (
-    <>
-      {/* On a single-trip page the masthead above already carries the name, so
-          this drops to the facts rather than repeating the headline. */}
-      <div className="flex flex-col gap-4 border-t border-[--rule] pt-7">
-        {!single && (
-          <>
-            <p className="stamp-type text-[--text-muted]">{trip.destination}</p>
-            <h2 className="t-heading text-[--text]">{trip.name}</h2>
-          </>
-        )}
-        <dl className="flex flex-wrap gap-x-10 gap-y-5">
-          <div>
-            <dt className="stamp-type text-[--text-muted]">Dates</dt>
-            <dd className="mt-3 font-display font-medium text-display-s tracking-title text-[--text]">
-              {formatDateRange(trip.startDate, trip.endDate)}
-            </dd>
-          </div>
-          <div>
-            <dt className="stamp-type text-[--text-muted]">Length</dt>
-            <dd className="mt-3 font-display font-medium text-display-s tracking-title text-[--text]">
-              {nights} {nights === 1 ? "night" : "nights"}
-            </dd>
-          </div>
-          <div>
-            <dt className="stamp-type text-[--text-muted]">Where</dt>
-            <dd className="mt-3 font-display font-medium text-display-s tracking-title text-[--text]">
-              {trip.destination}
-            </dd>
-          </div>
-        </dl>
-
-        {trip.description && (
-          <p className="mt-3 max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
-            {trip.description}
-          </p>
-        )}
+    <header className="mt-8 flex flex-col gap-3 border-b border-[--rule] pb-6 sm:flex-row sm:items-end sm:justify-between md:mt-10">
+      <div className="min-w-0">
+        <h1 className="t-heading text-[--text]">{trip.name}</h1>
+        <p className="mt-2 font-body text-body text-[--text-secondary]">
+          <span className="text-[--text]">{formatDateRange(trip.startDate, trip.endDate)}</span>
+          <span aria-hidden="true"> · </span>
+          <span className="sr-only">, </span>
+          {nights} {nights === 1 ? "night" : "nights"}
+          <span aria-hidden="true"> · </span>
+          <span className="sr-only">, </span>
+          {trip.destination}
+        </p>
       </div>
-
-      <ul className="mt-10 grid list-none grid-cols-1 gap-6 p-0 lg:grid-cols-2 xl:grid-cols-3">
-        {trip.tiers.map((tier) => (
-          <li key={tier.id} className="flex">
-            <TierCard trip={trip} tier={tier} />
-          </li>
-        ))}
-      </ul>
-    </>
+      {showAll && (
+        <Link
+          href="/bookings/new"
+          className="inline-flex min-h-11 shrink-0 items-center font-body text-body-s text-[--accent] underline underline-offset-4"
+        >
+          Change dates
+        </Link>
+      )}
+    </header>
   );
 }
 
-function TierCard({ trip, tier }: { trip: PublicTrip; tier: PublicTier }) {
-  const soldOut = tier.spotsLeft !== null && tier.spotsLeft <= 0;
-  const deposit = computeDepositAmount(tier.price);
-  const saving = payInFullSaving(tier.price);
+/* -- the packages ------------------------------------------------------------ */
+
+function Packages({ trip, requestedPackage }: { trip: PublicTrip; requestedPackage?: string }) {
+  const tiers: CheckoutTier[] = trip.tiers.map((tier) => {
+    const soldOut = tier.spotsLeft !== null && tier.spotsLeft <= 0;
+    const room = getRoomMedia(tier.name);
+    const full = computePayInFullAmount(tier.price);
+    const deposit = computeDepositAmount(tier.price);
+    const saving = payInFullSaving(tier.price);
+    return {
+      id: tier.id,
+      name: tier.name,
+      soldOut,
+      availability: soldOut ? null : tierAvailabilityLabel(tier.spotsLeft),
+      summary: room?.summary ?? tier.description,
+      inclusions: tier.inclusions,
+      room,
+      // Exact to the cent: formatPrice rounds to the dollar, and these are
+      // the figures that come off the card.
+      priceLabel: formatAmount(tier.price),
+      depositLabel: formatAmount(deposit),
+      fullLabel: formatAmount(full),
+      balanceLabel: formatAmount(Math.round((tier.price - deposit) * 100) / 100),
+      savingLabel: saving > 0 ? formatAmount(saving) : null,
+    };
+  });
+
+  const open = tiers.filter((t) => !t.soldOut);
+  if (open.length === 0) {
+    return (
+      <div className="flex flex-col items-start gap-5 border border-[--rule] bg-[--surface-raised] p-6 md:p-10">
+        <h2 className="t-subheading text-[--text]">Every package on these dates is taken</h2>
+        <p className="max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
+          Another departure may still have room.
+        </p>
+        <Button href="/bookings/new" variant="secondary" size="md">
+          See every open trip
+        </Button>
+      </div>
+    );
+  }
+
+  // The package named in the link, if it is open; otherwise the first open one.
+  const wanted = requestedPackage?.trim().toLowerCase();
+  const initial = open.find((t) => wanted && t.name.trim().toLowerCase() === wanted) ?? open[0];
 
   return (
-    <article className="flex w-full flex-col border border-[--rule] bg-[--surface-raised] p-5 sm:p-7">
-      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-        <h3 className="t-subheading text-[--text]">{tier.name}</h3>
-        {soldOut ? (
-          <Badge tone="closed">Sold out</Badge>
-        ) : tier.spotsLeft !== null && tier.spotsLeft <= 6 ? (
-          <Badge tone="urgent">{tier.spotsLeft} left</Badge>
-        ) : null}
-      </div>
+    <BookingForm
+      tripId={trip.id}
+      tiers={tiers}
+      initialTierId={initial.id}
+      depositPercent={Math.round(DEPOSIT_PERCENTAGE * 100)}
+      installmentCount={INSTALLMENT_OFFSETS_DAYS.length}
+      contactEmail={CONTACT.email}
+    />
+  );
+}
 
-      <p className="mt-4 font-display font-medium text-display-m tracking-title text-[--text]">
-        {formatPrice(tier.price)}
-        <span className="t-micro ml-2 text-[--text-secondary]">per person</span>
-      </p>
+/* -- several departures ------------------------------------------------------- */
 
-      {tier.description && (
-        <p className="mt-4 font-body text-body-s leading-[1.7] text-[--text-secondary]">
-          {tier.description}
-        </p>
-      )}
-
-      {tier.inclusions.length > 0 && (
-        <ul className="mt-5 flex list-none flex-col gap-2.5 p-0">
-          {tier.inclusions.map((item) => (
-            <li key={item} className="flex gap-3">
-              <span aria-hidden="true" className="mt-[0.6rem] h-1 w-1 shrink-0 bg-[--accent]" />
-              <span className="font-body text-body-s leading-[1.6] text-[--text-secondary]">
-                {item}
+function Departures({ trips, requestedPackage }: { trips: PublicTrip[]; requestedPackage?: string }) {
+  const packageParam = requestedPackage ? `&package=${encodeURIComponent(requestedPackage)}` : "";
+  return (
+    <ul className="m-0 mt-8 flex list-none flex-col gap-3 p-0">
+      {trips.map((trip) => {
+        const soldOut = trip.status === "soldOut";
+        const nights = nightCount(trip.startDate, trip.endDate);
+        const body = (
+          <>
+            <span className="flex min-w-0 flex-col gap-1">
+              <span className="font-display text-display-s font-medium tracking-title text-[--text]">
+                {formatDateRange(trip.startDate, trip.endDate)}
               </span>
-            </li>
-          ))}
-        </ul>
-      )}
+              <span className="font-body text-body-s text-[--text-secondary]">
+                {trip.name} · {nights} {nights === 1 ? "night" : "nights"} · {trip.destination}
+              </span>
+            </span>
+            <span className="flex shrink-0 flex-col items-start gap-1 sm:items-end">
+              <span className="font-body text-body tabular-nums text-[--text]">
+                From {formatPrice(trip.priceFrom)}
+              </span>
+              <span className={cn("t-micro", trip.status === "few" ? "text-[--flag-ink]" : "text-[--text-secondary]")}>
+                {availabilityLabel(trip.status)}
+              </span>
+            </span>
+          </>
+        );
+        const box =
+          "flex flex-col gap-4 border border-[--rule] bg-[--surface-raised] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6";
+        return (
+          <li key={trip.id}>
+            {soldOut ? (
+              <div className={cn(box, "opacity-60")} aria-disabled="true">
+                {body}
+              </div>
+            ) : (
+              <Link
+                href={`/bookings/new?trip=${trip.id}${packageParam}`}
+                className={cn(
+                  box,
+                  "no-underline transition-colors duration-fast hover:border-[--accent-solid]",
+                )}
+              >
+                {body}
+              </Link>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
-      {/* mt-auto lines the forms up across a row of cards whatever the
-          length of each package's inclusions; the rule marks where reading
-          about the package ends and choosing it starts. */}
-      <div className="mt-auto pt-8">
-        <div className="border-t border-[--rule] pt-7">
-          <BookingForm
-            tripId={trip.id}
-            tierId={tier.id}
-            tierName={tier.name}
-            soldOut={soldOut}
-            priceLabel={formatAmount(tier.price)}
-            // Exact to the cent: formatPrice rounds to the dollar, and these are
-            // the figures that come off the card.
-            depositLabel={formatAmount(deposit)}
-            fullLabel={formatAmount(computePayInFullAmount(tier.price))}
-            savingLabel={saving > 0 ? formatAmount(saving) : null}
-          />
-        </div>
-      </div>
-    </article>
+function NothingOpen() {
+  return (
+    <div className="mt-10 flex flex-col items-start gap-6 border border-[--rule] bg-[--surface-raised] px-6 py-14 md:px-10 md:py-16">
+      <h1 className="t-heading max-w-[22ch] text-[--text]">No departures are taking bookings right now</h1>
+      <p className="max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
+        Trips go up a few at a time. Tell us where your chapter wants to go and you hear about the
+        next one first.
+      </p>
+      <Button href="/contact" variant="primary" size="md">
+        Get in touch
+      </Button>
+    </div>
   );
 }

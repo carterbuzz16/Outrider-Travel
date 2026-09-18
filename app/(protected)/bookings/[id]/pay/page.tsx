@@ -1,26 +1,36 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Alert, AmountDue, Button, Facts, ScheduleTable } from "@/components/ui";
+import { RoomPanel, ScheduleTable } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe";
 import { INSTALLMENT_OFFSETS_DAYS } from "@/lib/installments";
 import { paymentKindOf } from "@/lib/payments";
 import { syncPaymentFromStripe } from "@/lib/stripe-sync";
 import { formatAmount } from "@/lib/balance";
-import { PAY_IN_FULL_DISCOUNT } from "@/lib/deposit";
+import { DEPOSIT_PERCENTAGE, PAY_IN_FULL_DISCOUNT } from "@/lib/deposit";
+import { getRoomMedia } from "@/lib/room-media";
+import { CONTACT } from "@/lib/site-content";
 import { formatDay } from "@/app/(protected)/dates";
 import { formatDateRange, formatPrice } from "@/lib/trips";
 import CheckoutForm from "@/components/CheckoutForm";
+import CheckoutSteps from "@/components/CheckoutSteps";
 
 /**
- * The deposit screen, or the whole-trip screen when the traveler chose to pay
- * in full at booking.
+ * Step 2 of checkout: the deposit, or the whole trip when the traveler chose
+ * to pay in full.
  *
- * Everything above the card field exists to answer the three questions a
- * traveler has with their wallet already out: what am I buying, what comes off
- * the card right now, and what happens to the rest. The reading order is the
- * DOM order — a single column, card field last — so the answers can't be
- * scrolled past on a narrow screen.
+ * Two columns from lg up, the same shape as step 1: the card on the left, and
+ * on the right the order it pays for, which answers the three questions a
+ * traveler has with their wallet out: what am I buying, what comes off the
+ * card right now, and what happens to the rest. On a phone the heading, then
+ * the order, come before the card field in the DOM and on screen, so none of
+ * that can be scrolled past on the way to paying.
+ *
+ * The one checkbox for the whole checkout is here, above the pay button:
+ * agreement to the Terms and the Assumption of Risk, and authorization of the
+ * charges (components/AuthorizeCharge.tsx). CheckoutForm records the agreement
+ * before it confirms the card.
  */
 export default async function PayPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -36,7 +46,7 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, status, total_amount, deposit_amount, trips(name, destination, start_date, end_date), tiers(name), payments(stripe_payment_intent_id, scheduled_date)"
+      "id, status, total_amount, deposit_amount, trips(name, destination, start_date, end_date), tiers(name, price), payments(stripe_payment_intent_id, scheduled_date)"
     )
     .eq("id", params.id)
     .single();
@@ -67,6 +77,9 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
   }
 
   const trip = booking.trips;
+  const tierName = booking.tiers?.name ?? "Standard";
+  const room = booking.tiers ? getRoomMedia(booking.tiers.name) : null;
+  const photo = room?.photos[0] ?? null;
   const total = Number(booking.total_amount);
   const depositAmount = Number(booking.deposit_amount);
   const balance = Math.max(0, Math.round((total - depositAmount) * 100) / 100);
@@ -77,127 +90,191 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
   const payingInFull = paymentKindOf(paymentIntent) === "full";
   const schedule = payingInFull ? [] : previewInstallments(total, depositAmount, trip?.start_date);
   const dueToday = payingInFull ? total : depositAmount;
+  // The tier's list price, for showing the pay-in-full saving as a line. Only
+  // when it is really the difference; the booking row is what is charged.
+  const listPrice = booking.tiers ? Number(booking.tiers.price) : null;
+  // A tier repriced since booking would make the difference something else,
+  // so it only shows when it is exactly what the discount can account for.
+  const difference = listPrice !== null ? Math.round((listPrice - total) * 100) / 100 : 0;
+  const saving = payingInFull && difference > 0 && difference <= PAY_IN_FULL_DISCOUNT ? difference : 0;
 
   return (
     <main>
-      <section className="shell max-w-[48rem] pb-16 pt-12 md:pb-24 md:pt-20">
-        <p className="stamp-type text-[--text-muted]">Checkout</p>
-        <h1 className="t-title mt-5 max-w-[16ch] text-[--text]">
-          {payingInFull ? "Pay for your trip" : "Pay your deposit"}
-        </h1>
+      <div className="shell max-w-[76rem] pb-20 pt-8 md:pb-28 md:pt-12">
+        <CheckoutSteps current={2} />
 
-        {/* -- what is being bought ------------------------------------------ */}
-
-        {trip && (
-          <Facts
-            className="mt-10 border-t border-[--rule] pt-6"
-            items={[
-              { label: "Trip", value: trip.name },
-              { label: "Dates", value: formatDateRange(trip.start_date, trip.end_date) },
-              { label: "Package", value: booking.tiers?.name ?? "Standard" },
-              { label: "Trip price", value: formatAmount(total) },
-            ]}
-          />
-        )}
-
-        {/* -- what comes off the card right now ------------------------------ */}
-
-        <AmountDue label="Charged today" amount={formatAmount(dueToday)} className="mt-10">
-          {payingInFull ? (
-            <p>
-              The whole trip
-              {PAY_IN_FULL_DISCOUNT > 0 && `, with ${formatPrice(PAY_IN_FULL_DISCOUNT)} off for paying it all now`}
-              . Nothing else is taken from your card later.
-            </p>
-          ) : (
-            <p>
-              This is the deposit, not the price of the trip. It holds your spot, and the other{" "}
-              <span className="tabular-nums text-[--text]">{formatAmount(balance)}</span> is taken
-              later, on the dates below. Nothing else comes off your card today.
-            </p>
-          )}
-        </AmountDue>
-
-        {/* -- and what comes off it later ------------------------------------ */}
-
-        {schedule.length > 0 && (
-          <div className="mt-10">
-            <ScheduleTable
-              caption="Your payment schedule"
-              rows={[
-                { key: "today", date: "Today", note: "Deposit", amount: formatAmount(depositAmount), current: true },
-                ...schedule.map((row) => ({
-                  key: String(row.offsetDays),
-                  date: formatDay(row.date),
-                  note: `${row.offsetDays} days before the trip`,
-                  amount: formatAmount(row.amount),
-                })),
-              ]}
-              total={{ label: "Trip total", amount: formatAmount(total) }}
-            />
-            <p className="mt-5 max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
-              The later payments are charged automatically to the card you enter below, on those
-              dates. You get an email each time one goes through, and the schedule stays on your
-              bookings page.
-            </p>
-          </div>
-        )}
-
-        <div className="mt-8">
-          <Alert tone="warning" title="The deposit is non-refundable">
+        {/* Above both columns, so on a phone the page opens on what it is for,
+            then the order, then the card. */}
+        <header className="mt-8 border-b border-[--rule] pb-6 md:mt-10">
+          <h1 id="payment-heading" className="t-heading text-[--text]">
+            {payingInFull ? "Pay for your trip" : "Pay your deposit"}
+          </h1>
+          <p className="mt-2 max-w-measure font-body text-body leading-[1.65] text-[--text-secondary]">
             {payingInFull ? (
               <>
-                Of this payment, <span className="tabular-nums">{formatAmount(depositAmount)}</span> is
-                the deposit, and once it clears that part is not refundable, whatever the reason for
-                canceling. The rest is refunded on a sliding scale that closes 30 days before the
-                trip.
+                <span className="tabular-nums text-[--text]">{formatAmount(dueToday)}</span> today for the
+                whole trip
+                {PAY_IN_FULL_DISCOUNT > 0 && `, with ${formatPrice(PAY_IN_FULL_DISCOUNT)} off for paying it all now`}
+                . Nothing else is taken from your card later, and the card is not kept.
               </>
             ) : (
               <>
-                Once this payment clears, the deposit is not refundable, whatever the reason for
-                canceling. Anything you pay above it is refunded on a sliding scale that closes 30
-                days before the trip.
+                <span className="tabular-nums text-[--text]">{formatAmount(dueToday)}</span> today holds your
+                spot. The scheduled payments are taken from this same card, and you can change it later by
+                getting in touch.
               </>
-            )}{" "}
-            Read the{" "}
-            <Link href="/terms#cancellation" className="text-[--accent] decoration-[--accent]">
-              cancellation terms
-            </Link>{" "}
-            before you pay.
-          </Alert>
-        </div>
-
-        {/* -- the card field -------------------------------------------------- */}
-
-        <section className="mt-14 border-t border-[--rule-strong] pt-10" aria-labelledby="payment-heading">
-          <h2 id="payment-heading" className="t-heading text-[--text]">
-            Payment
-          </h2>
-          <p className="mt-3 max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
-            {payingInFull
-              ? "This is the only charge on the booking. The card is not kept for later payments."
-              : "The card you use here is the card the scheduled payments are taken from. You can change it later by getting in touch."}
+            )}
           </p>
+        </header>
 
-          <CheckoutForm
-            clientSecret={paymentIntent.client_secret!}
-            bookingId={booking.id}
-            amountLabel={formatAmount(dueToday)}
-            submitLabel={payingInFull ? `Pay ${formatAmount(dueToday)}` : undefined}
-            scheduledCharges={schedule.map((row) => ({
-              dateLabel: formatDay(row.date),
-              amountLabel: formatAmount(row.amount),
-            }))}
-          />
-        </section>
+        <div className="mt-8 grid items-start gap-10 md:mt-10 lg:grid-cols-[minmax(0,1fr)_23rem] lg:gap-12 xl:gap-16">
+          {/* -- the order ------------------------------------------------------ */}
+          <aside
+            aria-labelledby="order-heading"
+            className="border border-[--rule] bg-[--surface-raised] lg:sticky lg:top-8 lg:order-2"
+          >
+            <h2 id="order-heading" className="sr-only">
+              Your order
+            </h2>
 
-        <div className="mt-12 border-t border-[--rule] pt-6">
-          <Button href="/bookings" variant="ghost" size="sm" className="min-h-11 text-[--text-secondary]">
-            Back to your bookings
-          </Button>
+            <div className="flex gap-4 border-b border-[--rule] p-5 sm:p-6">
+              {room && (
+                <div className="w-28 shrink-0 sm:w-32">
+                  {photo ? (
+                    <div className="relative aspect-[3/2] overflow-hidden bg-[--surface-inset]">
+                      <Image src={photo.src} alt={photo.alt} fill sizes="8rem" className="object-cover" />
+                    </div>
+                  ) : (
+                    <RoomPanel room={room} size="thumb" />
+                  )}
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="font-display text-display-s font-medium tracking-title text-[--text]">{tierName}</p>
+                {room && (
+                  <p className="mt-0.5 font-body text-body-s leading-[1.5] text-[--text-secondary]">{room.summary}</p>
+                )}
+              </div>
+            </div>
+
+            {trip && (
+              <dl className="m-0 flex flex-col gap-2.5 border-b border-[--rule] p-5 font-body text-body-s sm:p-6">
+                <Line label="Trip" value={trip.name} />
+                <Line label="Dates" value={formatDateRange(trip.start_date, trip.end_date)} />
+                <Line
+                  label="Plan"
+                  value={payingInFull ? "Paid in full" : `${Math.round(DEPOSIT_PERCENTAGE * 100)}% deposit`}
+                />
+              </dl>
+            )}
+
+            <div className="p-5 sm:p-6">
+              <dl className="m-0 flex flex-col gap-2.5 font-body text-body-s">
+                {saving > 0 && listPrice !== null ? (
+                  <>
+                    <Line label="Trip price" value={formatAmount(listPrice)} />
+                    <Line label="Paying in full" value={`−${formatAmount(saving)}`} />
+                  </>
+                ) : (
+                  <Line label="Trip price" value={formatAmount(total)} />
+                )}
+                {!payingInFull && <Line label="Paid later" value={formatAmount(balance)} />}
+                <div className="mt-2 flex items-baseline justify-between gap-4 border-t border-[--rule-strong] pt-4">
+                  <dt className="font-body text-body font-medium text-[--text]">Due today</dt>
+                  <dd className="m-0 font-display text-display-s font-medium tabular-nums tracking-title text-[--text]">
+                    {formatAmount(dueToday)}
+                  </dd>
+                </div>
+              </dl>
+
+              {schedule.length > 0 && (
+                <ScheduleTable
+                  className="mt-7"
+                  caption="Your payment schedule"
+                  rows={[
+                    { key: "today", date: "Today", note: "Deposit", amount: formatAmount(depositAmount), current: true },
+                    ...schedule.map((row) => ({
+                      key: String(row.offsetDays),
+                      date: formatDay(row.date),
+                      note: `${row.offsetDays} days before the trip`,
+                      amount: formatAmount(row.amount),
+                    })),
+                  ]}
+                  total={{ label: "Trip total", amount: formatAmount(total) }}
+                />
+              )}
+
+              {/* The same disclosure the page has always carried, set as a
+                  note in the order rather than a warning box: it is a term of
+                  the purchase, not an alarm. */}
+              <p className="mt-6 border-t border-[--rule] pt-5 font-body text-body-s leading-[1.65] text-[--text-secondary]">
+                <span className="font-medium text-[--text]">The deposit is non-refundable. </span>
+                {payingInFull ? (
+                  <>
+                    Of this payment, <span className="tabular-nums">{formatAmount(depositAmount)}</span> is
+                    the deposit, and once it clears that part is not refundable, whatever the reason for
+                    canceling. The rest is refunded on a sliding scale that closes 30 days before the
+                    trip.
+                  </>
+                ) : (
+                  <>
+                    Once this payment clears, the deposit is not refundable, whatever the reason for
+                    canceling. Anything you pay above it is refunded on a sliding scale that closes 30
+                    days before the trip.
+                  </>
+                )}{" "}
+                Read the{" "}
+                <Link href="/terms#cancellation" target="_blank" rel="noreferrer" className={LINK}>
+                  cancellation terms
+                </Link>{" "}
+                before you pay.
+              </p>
+            </div>
+          </aside>
+
+          {/* -- the card ------------------------------------------------------- */}
+          <section aria-label="Card details" className="min-w-0 lg:order-1">
+            <CheckoutForm
+              clientSecret={paymentIntent.client_secret!}
+              bookingId={booking.id}
+              amountLabel={formatAmount(dueToday)}
+              submitLabel={payingInFull ? `Pay ${formatAmount(dueToday)}` : undefined}
+              acceptTerms
+              scheduledCharges={schedule.map((row) => ({
+                dateLabel: formatDay(row.date),
+                amountLabel: formatAmount(row.amount),
+              }))}
+            />
+
+            <div className="mt-10 flex flex-col gap-3 border-t border-[--rule] pt-6 sm:flex-row sm:items-center sm:justify-between">
+              <Link
+                href="/bookings"
+                className="inline-flex min-h-11 items-center font-body text-body-s text-[--text-secondary] underline underline-offset-4 hover:text-[--text]"
+              >
+                Back to your bookings
+              </Link>
+              <p className="font-body text-body-s text-[--text-secondary]">
+                Questions?{" "}
+                <a href={`mailto:${CONTACT.email}`} className={LINK}>
+                  {CONTACT.email}
+                </a>
+              </p>
+            </div>
+          </section>
         </div>
-      </section>
+      </div>
     </main>
+  );
+}
+
+const LINK = "text-[--accent] underline underline-offset-2";
+
+function Line({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4">
+      <dt className="shrink-0 text-[--text-secondary]">{label}</dt>
+      <dd className="m-0 min-w-0 text-right tabular-nums text-[--text]">{value}</dd>
+    </div>
   );
 }
 

@@ -187,8 +187,9 @@ export default function TermsPage() {
 
         <h3>Authorizing the charges</h3>
         <p>
-          Before you pay, the payment page asks you to tick a box authorizing the
-          charge being made that day. On the deposit plan the same box also
+          Before you pay, the payment page asks you to tick a box agreeing to
+          these terms and to the Assumption of Risk, and authorizing the charge
+          being made that day. On the deposit plan the same box also
           authorizes Outrider to charge each scheduled installment to the saved
           card automatically, on the dates and in the amounts shown on that page,
           without asking you again. That authorization also covers a retry of a
@@ -903,7 +904,7 @@ export default function TermsPage() {
       <LegalSection doc={TERMS} id="sms">
         <p>
           <strong>Outrider trip texts</strong> is our text-message program for
-          travelers. If you tick the text-message box when you book, we send
+          travelers. If you tick the text-message box on your trip page, we send
           automated texts about your trip to the mobile number you give us:
           logistics such as transfer and meeting times, reminders about payments
           and the things we need from you before you travel, and changes to

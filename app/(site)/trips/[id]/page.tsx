@@ -6,12 +6,15 @@ import {
   Gallery,
   Plate,
   Reveal,
+  RoomShowcase,
   SectionDivider,
   StatusBadge,
   TierTable,
   TripSchema,
+  type ShowcaseRoom,
   type TierView,
 } from "@/components/ui";
+import { getRoomMedia } from "@/lib/room-media";
 import { BOOKINGS_OPEN, COMING_SOON_NOTE, TRIP_DETAILS_OPEN } from "@/lib/booking-window";
 import { getAppUrl } from "@/lib/site-url";
 import {
@@ -90,6 +93,15 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
     inclusions: tier.inclusions,
     spotsLeft: tier.spotsLeft,
   }));
+
+  // The rooms at The Peaks behind each package. lib/room-media.ts describes
+  // that one property, so only a Telluride departure gets them.
+  const rooms: ShowcaseRoom[] = trip.destination.toLowerCase().includes("telluride")
+    ? trip.tiers.flatMap((tier) => {
+        const room = getRoomMedia(tier.name);
+        return room ? [{ id: tier.id, tierName: tier.name, price: formatPrice(tier.price), room }] : [];
+      })
+    : [];
 
   // Only a real gallery is worth a section. Three empty plates under a divider
   // is not a gallery, it is an announcement that there are no photographs.
@@ -214,7 +226,32 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
         </Reveal>
       </section>
 
-      <SectionDivider variant="rule" className="shell" />
+      {/* ---- the rooms -----------------------------------------------------
+          Right after the packages, so the room a price buys is the next thing
+          you see. Espresso, as "Where you stay" is on /telluride. */}
+      {rooms.length > 0 && (
+        <section className="scheme-espresso scheme-paint" aria-labelledby="rooms-heading">
+          <div className="shell py-16 md:py-24">
+            <Reveal>
+              <div className="flex flex-col gap-5">
+                <p className="t-rule-label text-[--text]">Where you stay</p>
+                <h2 id="rooms-heading" className="t-title max-w-[18ch] text-[--text]">
+                  The rooms at The Peaks
+                </h2>
+                <p className="t-lede max-w-measure">
+                  Every package stays at The Peaks Resort in Mountain Village, ski-in and ski-out.
+                  What changes is the room, and how many of you share it.
+                </p>
+              </div>
+            </Reveal>
+            <Reveal>
+              <RoomShowcase rooms={rooms} className="mt-12 md:mt-16" />
+            </Reveal>
+          </div>
+        </section>
+      )}
+
+      {rooms.length === 0 && <SectionDivider variant="rule" className="shell" />}
 
       {/* ---- the trip ------------------------------------------------------ */}
       {(trip.description || trip.logistics) && (

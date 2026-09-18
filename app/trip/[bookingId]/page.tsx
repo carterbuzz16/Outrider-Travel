@@ -87,7 +87,7 @@ export default async function TripPortalPage(props: {
   const { data: booking, error } = await admin
     .from("bookings")
     .select(
-      `id, status, total_amount, deposit_amount, flights_booked,
+      `id, status, total_amount, deposit_amount, flights_booked, sms_consent,
        trips(name, destination, start_date, end_date),
        tiers(name),
        payments(id, status, amount, scheduled_date),
@@ -270,6 +270,7 @@ export default async function TripPortalPage(props: {
                 bookingId={booking.id}
                 token={token}
                 submitted={detailsLabel ? { label: detailsLabel } : null}
+                smsConsented={booking.sms_consent}
               />
             ) : (
               detailsLabel && (

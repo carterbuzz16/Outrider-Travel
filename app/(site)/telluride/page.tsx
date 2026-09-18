@@ -6,9 +6,11 @@ import {
   Gallery,
   Plate,
   Reveal,
+  RoomShowcase,
   SectionDivider,
   StatusBadge,
   TierTable,
+  type ShowcaseRoom,
   WaitlistCTA,
   cellGridClass,
   cellSpanClass,
@@ -35,6 +37,7 @@ import {
   nightCount,
   type PublicTrip,
 } from "@/lib/trips";
+import { getRoomMedia } from "@/lib/room-media";
 
 /*
  * /telluride: both Telluride departures on one page, and the page that sells
@@ -157,6 +160,21 @@ function toTierViews(tiers: PublicTrip["tiers"], perDeparture: boolean): TierVie
   }));
 }
 
+/**
+ * The rooms behind the packages, for "Where you stay". Priced only when one
+ * set of packages stands for every departure; otherwise the rooms are the
+ * same and the prices are left to each departure's own table below.
+ */
+function toShowcase(trips: PublicTrip[], packages: PublicTrip["tiers"] | null): ShowcaseRoom[] {
+  const tiers = packages ?? trips[0]?.tiers ?? [];
+  return tiers.flatMap((tier) => {
+    const room = getRoomMedia(tier.name);
+    return room
+      ? [{ id: tier.id, tierName: tier.name, price: packages ? formatPrice(tier.price) : null, room }]
+      : [];
+  });
+}
+
 export default async function TelluridePage() {
   const trips = (await getPublishedTrips()).filter(isTelluride);
   const openTrips = trips.filter((trip) => trip.status !== "soldOut");
@@ -165,6 +183,7 @@ export default async function TelluridePage() {
   const firstDay = shared(trips, (trip) => weekday(trip.startDate));
   const lastDay = shared(trips, (trip) => weekday(trip.endDate));
   const packages = TRIP_DETAILS_OPEN ? samePackages(trips) : null;
+  const rooms = TRIP_DETAILS_OPEN ? toShowcase(trips, packages) : [];
 
   return (
     <main className="scheme-light scheme-paint">
@@ -377,25 +396,49 @@ export default async function TelluridePage() {
                   </p>
                 ))}
 
-                <div>
-                  <h3 className="t-subheading text-[--text]">How the rooms work</h3>
-                  <dl className="m-0 mt-5 flex flex-col">
-                    {TELLURIDE_ROOMS.map((room) => (
-                      <div
-                        key={room.label}
-                        className="grid gap-1.5 border-t border-[--rule] py-4 sm:grid-cols-[12rem_minmax(0,1fr)] sm:gap-6"
-                      >
-                        <dt className="font-body text-body font-medium text-[--text]">{room.label}</dt>
-                        <dd className="m-0 font-body text-body-s leading-[1.7] text-[--text-secondary]">
-                          {room.body}
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
-                </div>
+                {/* Without a room panel to show (no published package matches
+                    lib/room-media.ts), the rooming is still said, as a list. */}
+                {rooms.length === 0 && (
+                  <div>
+                    <h3 className="t-subheading text-[--text]">How the rooms work</h3>
+                    <dl className="m-0 mt-5 flex flex-col">
+                      {TELLURIDE_ROOMS.map((room) => (
+                        <div
+                          key={room.label}
+                          className="grid gap-1.5 border-t border-[--rule] py-4 sm:grid-cols-[12rem_minmax(0,1fr)] sm:gap-6"
+                        >
+                          <dt className="font-body text-body font-medium text-[--text]">{room.label}</dt>
+                          <dd className="m-0 font-body text-body-s leading-[1.7] text-[--text-secondary]">
+                            {room.body}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
+                )}
               </div>
             </Reveal>
           </div>
+
+          {/* The rooms, one per package, photograph first. Replaces the old
+              "How the rooms work" list: the owner wants people to see what
+              each package sleeps in, the penthouse most of all. */}
+          {rooms.length > 0 && (
+            <div className="shell pb-20 md:pb-28">
+              <Reveal>
+                <div className="grid gap-6 border-t border-[--rule-strong] pt-10 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:items-end md:gap-20 md:pt-14">
+                  <h3 className="t-heading max-w-[14ch] text-[--text]">The rooms</h3>
+                  <p className="max-w-measure font-body text-body leading-[1.75] text-[--text-secondary]">
+                    Every package stays at The Peaks. What changes is the room, and how many of you
+                    share it.
+                  </p>
+                </div>
+              </Reveal>
+              <Reveal>
+                <RoomShowcase rooms={rooms} className="mt-12 md:mt-16" />
+              </Reveal>
+            </div>
+          )}
         </section>
       )}
 
