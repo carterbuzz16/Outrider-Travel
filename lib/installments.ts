@@ -115,6 +115,9 @@ type ScheduleRow = {
   last_attempted_at: string | null;
 };
 
+/** Stripe's smallest card charge in USD. */
+const MIN_CHARGE_CENTS = 50;
+
 export async function reconcileInstallments(admin: SupabaseClient<Database>, bookingId: string) {
   // Every write below is conditional on the row being exactly as it was read.
   // A miss means the cron or another webhook moved it first, so the picture
@@ -161,13 +164,26 @@ async function reconcileOnce(admin: SupabaseClient<Database>, bookingId: string)
 
   adjustable.sort((a, b) => (a.scheduled_date ?? "").localeCompare(b.scheduled_date ?? ""));
 
-  for (const row of adjustable) {
-    if (excess <= 0) break;
+  // Stripe will not charge under 50 cents, so a row must never be left owing
+  // 1-49 cents: it could never be collected. When a reduction would leave that
+  // little, the row is cancelled instead and the cents are carried onto the
+  // next installment. balance.ts already refuses payments that would leave
+  // under 50 cents owed in total, so there is always a later row to carry to.
+  let carry = 0;
+  for (const [index, row] of adjustable.entries()) {
+    if (excess <= 0 && carry === 0) break;
 
     const cents = toCents(row.amount);
-    const covered = cents <= excess;
-    const leftOnRow = covered ? 0 : cents - excess;
-    excess = covered ? excess - cents : 0;
+    const taken = Math.min(cents, excess);
+    excess -= taken;
+    let leftOnRow = cents - taken + carry;
+    carry = 0;
+    if (leftOnRow > 0 && leftOnRow < MIN_CHARGE_CENTS && index < adjustable.length - 1) {
+      carry = leftOnRow;
+      leftOnRow = 0;
+    }
+    if (leftOnRow === cents) continue;
+    const covered = leftOnRow === 0;
 
     // A 3DS installment has a live PaymentIntent the traveler can still
     // confirm from the email link. Cancel it at Stripe first, so the link
