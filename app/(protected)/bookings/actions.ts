@@ -13,7 +13,10 @@ import {
   validateBalanceAmount,
   type PaymentPlan,
 } from "@/lib/balance";
-import { balancePaymentOpen, installmentInFlight } from "@/lib/installments";
+import type Stripe from "stripe";
+import { installmentInFlight } from "@/lib/installments";
+import { paymentKindOf } from "@/lib/payments";
+import { syncPaymentFromStripe } from "@/lib/stripe-sync";
 import { getOrCreateStripeCustomerId } from "@/lib/customers";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { resolveGroupCode } from "@/lib/group-code";
@@ -121,6 +124,22 @@ export async function createBooking(formData: FormData) {
     );
   }
 
+  /*
+   * A second submit of the same form is the same booking, not another one.
+   *
+   * The button disables itself while the first is in flight (BookingForm), but
+   * that is the browser's courtesy, and the back button, a slow network or a
+   * second tab all get past it. Two pending bookings would each hold a place
+   * in the tier and each carry a card form for the deposit. So if this
+   * traveler already has a pending booking for this tier from the last few
+   * minutes, on the same plan, with a card form still open, they are sent to
+   * that one's card form instead.
+   */
+  const openCheckout = await findOpenCheckout(admin, user.id, tierId, plan);
+  if (openCheckout) {
+    redirect(`/bookings/${openCheckout}/pay`);
+  }
+
   const { data: booking, error: bookingError } = await admin
     .from("bookings")
     .insert({
@@ -143,6 +162,21 @@ export async function createBooking(formData: FormData) {
     throw new Error(bookingError?.message ?? "Failed to create booking");
   }
 
+  /*
+   * The check above cannot see a twin submitted in the same instant, since
+   * neither booking exists when the other looks. So each one looks again now
+   * that it exists: if an earlier pending booking by this traveler, for this
+   * tier and price, was made in the last minute, this one is the duplicate. It
+   * is deleted (it has no payment or acceptance yet, so nothing is lost) and
+   * the traveler goes to the earlier one's card form. Whichever was inserted
+   * first is never the one that backs off, so at least one always survives.
+   */
+  const twin = await earlierTwin(admin, { userId: user.id, tierId, totalAmount, bookingId: booking.id });
+  if (twin) {
+    await admin.from("bookings").delete().eq("id", booking.id).eq("status", "pending");
+    redirect((await waitForCheckoutRow(admin, twin)) ? `/bookings/${twin}/pay` : "/bookings");
+  }
+
   // Before the PaymentIntent, deliberately. If this throws, the booking is
   // still `pending` and no card has been charged, which is a far better
   // failure than money taken against a booking with no record of what the
@@ -159,15 +193,25 @@ export async function createBooking(formData: FormData) {
   const stripeCustomerId = await getOrCreateStripeCustomerId(admin, { id: user.id, email: user.email! });
 
   // metadata.kind is how the webhook tells a deposit from a payment in full
-  // (see paymentKindOf in lib/payments.ts).
-  const paymentIntent = await getStripe().paymentIntents.create({
-    amount: Math.round(chargeAmount * 100),
-    currency: "usd",
-    customer: stripeCustomerId,
-    ...(plan === "deposit" ? { setup_future_usage: "off_session" as const } : {}),
-    automatic_payment_methods: { enabled: true },
-    metadata: { bookingId: booking.id, userId: user.id, kind: plan },
-  });
+  // (see paymentKindOf in lib/payments.ts). bookingStatus is the status this
+  // path saw before creating the intent, which lib/overpayment.ts relies on to
+  // tell money taken on a live booking from money taken on a cancelled one.
+  //
+  // The idempotency key is per booking, so a retried request for this booking
+  // (a network retry inside the Stripe SDK, say) gets the same intent back
+  // rather than a second one.
+  const chargeCents = Math.round(chargeAmount * 100);
+  const paymentIntent = await getStripe().paymentIntents.create(
+    {
+      amount: chargeCents,
+      currency: "usd",
+      customer: stripeCustomerId,
+      ...(plan === "deposit" ? { setup_future_usage: "off_session" as const } : {}),
+      automatic_payment_methods: { enabled: true },
+      metadata: { bookingId: booking.id, userId: user.id, kind: plan, bookingStatus: "pending" },
+    },
+    { idempotencyKey: `checkout-${booking.id}-${chargeCents}` },
+  );
 
   const { error: paymentError } = await admin.from("payments").insert({
     booking_id: booking.id,
@@ -240,20 +284,52 @@ export async function startBalancePayment(formData: FormData) {
     .eq("booking_id", booking.id);
 
   const owed = owedCents(booking.total_amount, payments ?? []);
+  const stripe = getStripe();
 
   /*
    * Only one early payment is open on a booking at a time, and none while
-   * money is already moving. Any earlier attempt the traveler walked away from
-   * is cancelled at Stripe, so its card form stops working, before this one
-   * exists; otherwise two open forms could each be paid for the full balance.
+   * money is already moving.
+   *
    * One that is processing or has succeeded without its webhook landing, or an
-   * installment the cron is charging right now, would make `owed` above out
-   * of date, so this stops rather than offer the wrong figure.
+   * installment the cron is charging right now, would make `owed` above out of
+   * date, so this stops rather than offer the wrong figure. (One that has
+   * succeeded is settled on the spot, so a refresh shows the right balance.)
+   *
+   * An open one from the last few minutes is reused rather than replaced: it
+   * is nearly always this same traveler pressing the button twice, and the
+   * second press should land on the same card form as the first, not open a
+   * second one that could be paid as well. Anything older is cancelled at
+   * Stripe, so its card form stops working, before a new one exists.
    */
-  if (
-    (await balancePaymentOpen(admin, booking.id, { cancelOpenOlderThanMs: 0 })) ||
-    (await installmentInFlight(admin, booking.id))
-  ) {
+  const { data: openRows } = await admin
+    .from("payments")
+    .select("id, stripe_payment_intent_id")
+    .eq("booking_id", booking.id)
+    .eq("status", "pending")
+    .is("scheduled_date", null)
+    .not("stripe_payment_intent_id", "is", null);
+
+  const live: { rowId: string; intent: Stripe.PaymentIntent }[] = [];
+  let moving = false;
+  for (const row of openRows ?? []) {
+    let intent: Stripe.PaymentIntent;
+    try {
+      intent = await stripe.paymentIntents.retrieve(row.stripe_payment_intent_id!);
+    } catch {
+      moving = true;
+      break;
+    }
+    if (intent.status === "succeeded" || intent.status === "processing") {
+      if (intent.status === "succeeded") await syncPaymentFromStripe(intent);
+      moving = true;
+    } else if (intent.status === "canceled") {
+      await admin.from("payments").update({ status: "canceled" }).eq("id", row.id).eq("status", "pending");
+    } else {
+      live.push({ rowId: row.id, intent });
+    }
+  }
+
+  if (moving || (await installmentInFlight(admin, booking.id))) {
     fail("A payment on this booking is going through right now. Give it a few minutes, then refresh.");
   }
 
@@ -273,19 +349,63 @@ export async function startBalancePayment(formData: FormData) {
     fail(valid.message);
   }
 
-  const stripe = getStripe();
+  // Newest first: the one to reuse, if any, is the latest.
+  live.sort((a, b) => b.intent.created - a.intent.created);
+  let reuse: (typeof live)[number] | undefined = live.find(
+    (l) => Date.now() - l.intent.created * 1000 < BALANCE_REUSE_WINDOW_MS,
+  );
+
+  if (reuse && reuse.intent.amount !== cents) {
+    // A different figure this time. Stripe lets an unpaid intent's amount be
+    // changed, and the card form reads it fresh when the page loads. If it
+    // will not take the change (the traveler is mid-way through their bank's
+    // check on it, say), the intent is replaced like any older one.
+    try {
+      await stripe.paymentIntents.update(reuse.intent.id, { amount: cents });
+      await admin
+        .from("payments")
+        .update({ amount: fromCents(cents) })
+        .eq("id", reuse.rowId)
+        .eq("status", "pending");
+    } catch {
+      reuse = undefined;
+    }
+  }
+
+  for (const l of live) {
+    if (l === reuse) continue;
+    if (!(await cancelOpenIntent(l.intent.id))) {
+      fail("A payment on this booking is going through right now. Give it a few minutes, then refresh.");
+    }
+    await admin.from("payments").update({ status: "canceled" }).eq("id", l.rowId).eq("status", "pending");
+  }
+
+  if (reuse) {
+    redirect(`/bookings/${booking.id}/balance/${reuse.rowId}`);
+  }
+
   const stripeCustomerId = await getOrCreateStripeCustomerId(admin, { id: user.id, email: user.email! });
 
   // No setup_future_usage: the installments that remain keep coming off the
   // card saved with the deposit, and this page says so. metadata.kind is what
-  // routes the webhook to settleBalancePayment.
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: cents,
-    currency: "usd",
-    customer: stripeCustomerId,
-    automatic_payment_methods: { enabled: true },
-    metadata: { bookingId: booking.id, userId: user.id, kind: "balance" },
-  });
+  // routes the webhook to settleBalancePayment, and bookingStatus is read by
+  // lib/overpayment.ts (see createBooking).
+  //
+  // The idempotency key catches two submits that both got past the reuse
+  // check above because neither had written its row yet: for the same
+  // booking and amount within the same couple of minutes, Stripe hands both
+  // the one intent. Two submits either side of a bucket boundary still get two
+  // intents; the check after the insert below handles those.
+  const paymentIntent = await stripe.paymentIntents.create(
+    {
+      amount: cents,
+      currency: "usd",
+      customer: stripeCustomerId,
+      automatic_payment_methods: { enabled: true },
+      metadata: { bookingId: booking.id, userId: user.id, kind: "balance", bookingStatus: booking.status },
+    },
+    { idempotencyKey: `balance-${booking.id}-${cents}-${Math.floor(Date.now() / BALANCE_IDEMPOTENCY_BUCKET_MS)}` },
+  );
 
   const { data: row, error } = await admin
     .from("payments")
@@ -299,12 +419,196 @@ export async function startBalancePayment(formData: FormData) {
     .single();
 
   if (error || !row) {
+    // Usually the twin of this submit got the same intent from Stripe and
+    // wrote the row first (the column is unique). Its card form is this one's.
+    const { data: existing } = await admin
+      .from("payments")
+      .select("id, status")
+      .eq("stripe_payment_intent_id", paymentIntent.id)
+      .maybeSingle();
+    if (existing?.status === "pending") {
+      redirect(`/bookings/${booking.id}/balance/${existing.id}`);
+    }
     // No row means no page to pay it on, so the intent must not stay payable.
+    // Unless the row exists in some other state, in which case the intent is
+    // an older one Stripe replayed for this key and is already dealt with.
+    if (!existing) await stripe.paymentIntents.cancel(paymentIntent.id).catch(() => undefined);
+    fail("That did not start. Please try again in a couple of minutes.");
+  }
+
+  /*
+   * Checked again now that the row exists, for the races the checks above
+   * cannot see because they ran before it did:
+   *
+   *   - The cron may have claimed an installment in between. It writes its
+   *     claim and then looks for open early payments; this writes its row and
+   *     then looks for claims. Whichever goes second sees the other, so the
+   *     two can never both go ahead. If this one sees a claim, it stands down.
+   *   - The booking may have been cancelled in between.
+   *   - A near-simultaneous submit with a different amount may have opened its
+   *     own form. The earlier of the two wins, and the later stands down and
+   *     sends the traveler to the earlier one's form.
+   */
+  const [inFlight, { data: current }, earlier] = await Promise.all([
+    installmentInFlight(admin, booking.id),
+    admin.from("bookings").select("status").eq("id", booking.id).single(),
+    earlierOpenBalancePayment(admin, booking.id, { rowId: row.id, intent: paymentIntent }),
+  ]);
+
+  if (inFlight || current?.status !== "deposit_paid" || earlier) {
     await stripe.paymentIntents.cancel(paymentIntent.id).catch(() => undefined);
-    fail("That did not start. Please try again.");
+    await admin.from("payments").update({ status: "canceled" }).eq("id", row.id).eq("status", "pending");
+    if (earlier) redirect(`/bookings/${booking.id}/balance/${earlier}`);
+    fail(
+      current?.status !== "deposit_paid"
+        ? "That booking has no balance to pay online."
+        : "A payment on this booking is going through right now. Give it a few minutes, then refresh.",
+    );
   }
 
   redirect(`/bookings/${booking.id}/balance/${row.id}`);
+}
+
+// Stripe states in which an intent can still take a card.
+const OPEN_INTENT_STATUSES: readonly string[] = ["requires_payment_method", "requires_confirmation", "requires_action"];
+
+// A second press within this long lands on the first press's card form.
+const BALANCE_REUSE_WINDOW_MS = 10 * 60 * 1000;
+
+// The time bucket in the balance idempotency key. Short, so a traveler who
+// comes back later for the same amount after that intent was cancelled is not
+// handed the cancelled one again.
+const BALANCE_IDEMPOTENCY_BUCKET_MS = 2 * 60 * 1000;
+
+// How recent a pending booking has to be to count as a duplicate submit.
+const DUPLICATE_BOOKING_WINDOW_MS = 10 * 60 * 1000;
+const TWIN_BOOKING_WINDOW_MS = 60 * 1000;
+
+/** True once the intent can no longer take money: cancelled now, or already. */
+async function cancelOpenIntent(paymentIntentId: string): Promise<boolean> {
+  const stripe = getStripe();
+  try {
+    const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    if (intent.status === "canceled") return true;
+    if (!OPEN_INTENT_STATUSES.includes(intent.status)) return false;
+    await stripe.paymentIntents.cancel(paymentIntentId);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Another open early payment on this booking that was started before this one
+ * (by Stripe's clock, ties broken by id so both sides agree), if there is one.
+ * Returns its row id.
+ */
+async function earlierOpenBalancePayment(
+  admin: ReturnType<typeof createAdminClient>,
+  bookingId: string,
+  mine: { rowId: string; intent: Stripe.PaymentIntent },
+): Promise<string | null> {
+  const { data: others } = await admin
+    .from("payments")
+    .select("id, stripe_payment_intent_id")
+    .eq("booking_id", bookingId)
+    .eq("status", "pending")
+    .is("scheduled_date", null)
+    .neq("id", mine.rowId)
+    .not("stripe_payment_intent_id", "is", null);
+
+  for (const other of others ?? []) {
+    if (other.stripe_payment_intent_id === mine.intent.id) continue;
+    try {
+      const intent = await getStripe().paymentIntents.retrieve(other.stripe_payment_intent_id!);
+      if (!OPEN_INTENT_STATUSES.includes(intent.status)) continue;
+      const before =
+        intent.created < mine.intent.created || (intent.created === mine.intent.created && intent.id < mine.intent.id);
+      if (before) return other.id;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+/**
+ * A pending booking by this traveler for this tier, from the last few
+ * minutes, whose card form is still open and on the same plan. Returns its id.
+ */
+async function findOpenCheckout(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  tierId: string,
+  plan: PaymentPlan,
+): Promise<string | null> {
+  const { data: recent } = await admin
+    .from("bookings")
+    .select("id, payments(status, scheduled_date, stripe_payment_intent_id)")
+    .eq("user_id", userId)
+    .eq("tier_id", tierId)
+    .eq("status", "pending")
+    .gte("created_at", new Date(Date.now() - DUPLICATE_BOOKING_WINDOW_MS).toISOString())
+    .order("created_at", { ascending: false })
+    .limit(3);
+
+  for (const booking of recent ?? []) {
+    const row = booking.payments.find(
+      (p) => p.scheduled_date === null && p.status === "pending" && p.stripe_payment_intent_id,
+    );
+    if (!row) continue;
+    try {
+      const intent = await getStripe().paymentIntents.retrieve(row.stripe_payment_intent_id!);
+      if (OPEN_INTENT_STATUSES.includes(intent.status) && paymentKindOf(intent) === plan) return booking.id;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+/**
+ * The earliest pending booking by this traveler for this tier and price from
+ * the last minute, if it is not this one. Ordered by created_at then id, so
+ * two twins looking at the same moment agree on which is first.
+ */
+async function earlierTwin(
+  admin: ReturnType<typeof createAdminClient>,
+  { userId, tierId, totalAmount, bookingId }: { userId: string; tierId: string; totalAmount: number; bookingId: string },
+): Promise<string | null> {
+  const { data: twins } = await admin
+    .from("bookings")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("tier_id", tierId)
+    .eq("status", "pending")
+    .eq("total_amount", totalAmount)
+    .gte("created_at", new Date(Date.now() - TWIN_BOOKING_WINDOW_MS).toISOString())
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
+    .limit(1);
+
+  const first = twins?.[0]?.id;
+  return first && first !== bookingId ? first : null;
+}
+
+/**
+ * The twin that survives may not have written its payment row yet, and its
+ * pay page has nothing to show until it has. Waits a few seconds for it.
+ */
+async function waitForCheckoutRow(admin: ReturnType<typeof createAdminClient>, bookingId: string): Promise<boolean> {
+  for (let i = 0; i < 10; i++) {
+    const { data } = await admin
+      .from("payments")
+      .select("id")
+      .eq("booking_id", bookingId)
+      .is("scheduled_date", null)
+      .not("stripe_payment_intent_id", "is", null)
+      .limit(1);
+    if (data && data.length > 0) return true;
+    await new Promise((resolve) => setTimeout(resolve, 400));
+  }
+  return false;
 }
 
 // Back to the bookings page with the reason on show. A plain function, not a
@@ -356,6 +660,37 @@ export async function cancelBooking(formData: FormData) {
   if (paymentsError) {
     throw new Error(paymentsError.message);
   }
+
+  /*
+   * Stop every card form still open on the booking as well: the deposit form
+   * of a pending booking, an early payment the traveler started, a scheduled
+   * payment waiting on their bank's check. Each is cancelled at Stripe so its
+   * form stops taking money. Otherwise a form left open in another tab could
+   * still be paid after the booking is gone, which leaves a person to sort
+   * out the refund. One Stripe will not cancel is already moving money; its
+   * row is left as it is for the webhook to settle, and lib/overpayment.ts
+   * logs it for review.
+   */
+  const { data: open } = await admin
+    .from("payments")
+    .select("id, stripe_payment_intent_id")
+    .eq("booking_id", bookingId)
+    .in("status", ["pending", "requires_action"])
+    .not("stripe_payment_intent_id", "is", null);
+
+  await Promise.all(
+    (open ?? []).map(async (row) => {
+      if (await cancelOpenIntent(row.stripe_payment_intent_id!)) {
+        await admin
+          .from("payments")
+          .update({ status: "canceled" })
+          .eq("id", row.id)
+          .in("status", ["pending", "requires_action"]);
+      } else {
+        console.error(`cancelBooking: could not stop ${row.stripe_payment_intent_id} on cancelled booking ${bookingId}`);
+      }
+    }),
+  );
 
   redirect("/bookings");
 }

@@ -5,6 +5,7 @@ import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { INSTALLMENT_RETRY_AFTER_DAYS, MAX_INSTALLMENT_ATTEMPTS } from "@/lib/payments";
 import { BALANCE_PAYMENT_HOLD_HOURS, balancePaymentOpen, reconcileInstallments } from "@/lib/installments";
+import { syncPaymentFromStripe, syncStalePayments } from "@/lib/stripe-sync";
 
 // Plain !== leaks timing information proportional to how many leading
 // characters match, which could help an attacker guess CRON_SECRET one
@@ -45,9 +46,14 @@ export async function GET(request: Request) {
   const admin = createAdminClient();
   const today = new Date().toISOString().slice(0, 10);
 
+  // First, settle anything Stripe took whose webhook never arrived (see
+  // lib/stripe-sync.ts). Before charging, not after: an installment that was
+  // in fact paid still looks due until its row says so.
+  await syncStalePayments();
+
   const { data: due, error } = await admin
     .from("payments")
-    .select("id, booking_id, amount, attempt_count, last_attempted_at")
+    .select("id, booking_id, amount, attempt_count, last_attempted_at, stripe_payment_intent_id")
     .eq("status", "scheduled")
     .lte("scheduled_date", today)
     .lt("attempt_count", MAX_INSTALLMENT_ATTEMPTS);
@@ -94,6 +100,18 @@ export async function GET(request: Request) {
       continue;
     }
 
+    // A row being retried already has an intent from the last attempt. If that
+    // one actually went through (or is still going through) and nothing told
+    // this app, charging again would take the installment twice. The
+    // idempotency key below only covers a repeat within Stripe's 24 hours, and
+    // retries are days apart. If Stripe cannot be asked, the row waits.
+    if (payment.stripe_payment_intent_id) {
+      const previous = await syncPaymentFromStripe(payment.stripe_payment_intent_id);
+      if (!previous || previous.status === "succeeded" || previous.status === "processing") {
+        continue;
+      }
+    }
+
     /*
      * A traveler can pay down the balance from the bookings page at any time,
      * so the schedule read above may already be out of date.
@@ -132,9 +150,10 @@ export async function GET(request: Request) {
      * A missed claim here means someone else changed the row first, and it is
      * left for the next run.
      */
+    const claimedAt = new Date().toISOString();
     let claim = admin
       .from("payments")
-      .update({ last_attempted_at: new Date().toISOString() })
+      .update({ last_attempted_at: claimedAt })
       .eq("id", payment.id)
       .eq("status", "scheduled")
       .lt("attempt_count", MAX_INSTALLMENT_ATTEMPTS);
@@ -144,6 +163,40 @@ export async function GET(request: Request) {
     const { data: claimed } = await claim.select("id, amount, attempt_count").maybeSingle();
 
     if (!claimed) continue;
+
+    /*
+     * Look again now that the claim is written, for what the check above
+     * could not see because it ran first:
+     *
+     *   - An early payment the traveler started in between. startBalancePayment
+     *     writes its row and then looks for claims like this one; this wrote
+     *     its claim and now looks for open early payments. Whichever goes
+     *     second sees the other, so the two never both go ahead.
+     *   - The booking was cancelled in between. The cancellation marks the
+     *     scheduled rows canceled, but not a row this run already read.
+     *
+     * Either way the claim is released (the timestamp put back as it was, so
+     * the retry gate is unchanged) and the row waits for the next run. The
+     * status read here also goes into the intent's metadata: lib/overpayment.ts
+     * uses it to tell a charge made on a live booking from one that was not.
+     */
+    const [{ data: current }, openNow] = await Promise.all([
+      admin.from("bookings").select("status").eq("id", payment.booking_id).single(),
+      balancePaymentOpen(admin, payment.booking_id, {
+        cancelOpenOlderThanMs: BALANCE_PAYMENT_HOLD_HOURS * 60 * 60 * 1000,
+      }),
+    ]);
+    if (openNow || current?.status !== "deposit_paid") {
+      await admin
+        .from("payments")
+        .update({ last_attempted_at: payment.last_attempted_at })
+        .eq("id", payment.id)
+        .eq("last_attempted_at", claimedAt);
+      console.error(
+        `charge-installments: booking ${payment.booking_id} changed while payment ${payment.id} was being claimed; left for the next run`
+      );
+      continue;
+    }
 
     attempted++;
     try {
@@ -172,7 +225,12 @@ export async function GET(request: Request) {
           payment_method: saved.paymentMethodId,
           off_session: true,
           confirm: true,
-          metadata: { bookingId: payment.booking_id, paymentId: payment.id, kind: "installment" },
+          metadata: {
+            bookingId: payment.booking_id,
+            paymentId: payment.id,
+            kind: "installment",
+            bookingStatus: current.status,
+          },
         },
         { idempotencyKey: `installment-${payment.id}-attempt-${claimed.attempt_count}-${cents}` },
       );

@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { Alert, Button, SectionDivider } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe";
+import { syncPaymentFromStripe } from "@/lib/stripe-sync";
 import { formatDateRange, formatPrice } from "@/lib/trips";
 import CompleteAuthenticationForm from "@/components/CompleteAuthenticationForm";
 
@@ -49,6 +50,20 @@ export default async function InstallmentAuthenticationPage(
   }
 
   const paymentIntent = await getStripe().paymentIntents.retrieve(payment.stripe_payment_intent_id);
+
+  // The row can lag Stripe in both directions. An early payment may have
+  // covered this installment, in which case reconcileInstallments cancels the
+  // intent at Stripe before it touches the row, so a cancelled intent here
+  // means there is nothing left to verify. Or the traveler verified it a
+  // moment ago and the webhook has not landed, in which case it is settled
+  // through the webhook's own handler. Either way there is no form to show.
+  if (paymentIntent.status === "canceled") {
+    redirect("/bookings");
+  }
+  if (paymentIntent.status === "succeeded" || paymentIntent.status === "processing") {
+    if (paymentIntent.status === "succeeded") await syncPaymentFromStripe(paymentIntent);
+    redirect("/bookings");
+  }
 
   const trip = payment.bookings?.trips;
   const amount = formatPrice(Number(payment.amount));

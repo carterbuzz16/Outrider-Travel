@@ -1,8 +1,8 @@
 import type Stripe from "stripe";
-import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { reconcileInstallments, scheduleInstallments } from "@/lib/installments";
 import { owedCents, type PaymentKind } from "@/lib/balance";
+import { refundOverpayment } from "@/lib/overpayment";
 import {
   sendBookingConfirmationEmail,
   sendInstallmentChargedEmail,
@@ -63,34 +63,12 @@ export function paymentKindOf(paymentIntent: Stripe.PaymentIntent): PaymentKind 
   return "deposit";
 }
 
-// Source of truth for "did the checkout payment succeed" is always Stripe
-// itself, never a client-supplied value. Called from the confirmation page
-// so a traveler who lands there before the webhook does still sees their
-// booking confirmed.
-//
-// On success it runs the webhook's own handler rather than a lighter copy of
-// it. It used to flip the payment and the booking itself, and when the page
-// won that race the webhook's pending -> deposit_paid guard then found
-// nothing to do: the installments were never scheduled and the confirmation
-// email never sent. Going through the same guarded transition means whichever
-// of the two arrives first does all of it, and the other is a no-op.
-export async function reconcileDepositPayment(paymentIntentId: string) {
-  const paymentIntent = await getStripe().paymentIntents.retrieve(paymentIntentId);
-  const kind = paymentKindOf(paymentIntent);
-
-  if (paymentIntent.status === "succeeded" && (kind === "deposit" || kind === "full")) {
-    await handlePaymentIntentSucceeded(paymentIntent);
-  } else if (paymentIntent.last_payment_error) {
-    const admin = createAdminClient();
-    await admin
-      .from("payments")
-      .update({ status: "failed" })
-      .eq("stripe_payment_intent_id", paymentIntentId)
-      .eq("status", "pending");
-  }
-
-  return paymentIntent.status;
-}
+// A row in either of these states records money that moved. The succeeded
+// handlers below never write over one: a redelivered event, or the page-load
+// sync in lib/stripe-sync.ts arriving after the webhook, must not undo an
+// automatic refund lib/overpayment.ts has recorded by putting the row back to
+// the full amount or back to `succeeded`.
+const SETTLED_STATUSES = '("succeeded","refunded")';
 
 /*
  * Every PaymentIntent carries { bookingId } in metadata, and a kind (see
@@ -101,9 +79,18 @@ export async function reconcileDepositPayment(paymentIntentId: string) {
  *   balance     startBalancePayment, an early payment from the bookings page
  *   installment the cron, off-session, with { paymentId } of the row it pays
  *
- * Every branch is safe to run more than once for the same intent, because
- * Stripe delivers at least once and the confirmation page runs the checkout
- * branch as well.
+ * Every branch is safe to run more than once for the same intent, and at the
+ * same moment as another run of itself, because Stripe delivers at least once
+ * and syncPaymentFromStripe (lib/stripe-sync.ts) runs this same handler from
+ * the confirmation, balance and bookings pages and from the cron, for the
+ * times the webhook is late or never comes. Each branch guards its receipt
+ * email and any scheduling on a conditional transition only one caller can
+ * win.
+ *
+ * Every branch also ends in refundOverpayment, which returns anything the
+ * booking has now been paid beyond its price (see lib/overpayment.ts). It can
+ * throw RefundContentionError; the webhook route lets that become a 500 so
+ * Stripe delivers again, which is safe for the reasons above.
  */
 export async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
   const bookingId = paymentIntent.metadata.bookingId;
@@ -148,13 +135,17 @@ async function settleInstallment(
       paid_at: new Date().toISOString(),
     })
     .eq("id", paymentId)
-    .neq("status", "succeeded")
+    .not("status", "in", SETTLED_STATUSES)
     .select("id")
     .maybeSingle();
 
   // Moves the booking to paid_in_full once nothing is owed, and trims any
   // installment an early payment has made redundant.
   await reconcileInstallments(admin, bookingId);
+
+  // Before the receipt, so the balance the receipt quotes is the one after any
+  // refund. Runs on every delivery: an earlier one may have died before here.
+  await refundOverpayment(admin, bookingId, paymentIntent);
 
   if (!settled) return;
 
@@ -191,7 +182,7 @@ async function settleBalancePayment(
     .from("payments")
     .update({ status: "succeeded", amount, paid_at: paidAt })
     .eq("stripe_payment_intent_id", paymentIntent.id)
-    .neq("status", "succeeded")
+    .not("status", "in", SETTLED_STATUSES)
     .select("id");
 
   let transitioned = Boolean(moved && moved.length > 0);
@@ -221,14 +212,16 @@ async function settleBalancePayment(
   // finishes the job. It is idempotent (see lib/installments.ts).
   await reconcileInstallments(admin, bookingId);
 
+  // Returns anything this took the booking past its price, and decides what
+  // happens to money that landed on a cancelled booking (lib/overpayment.ts
+  // logs the cases a person has to look at).
+  await refundOverpayment(admin, bookingId, paymentIntent);
+
   const context = await getBookingContext(admin, bookingId);
 
-  if (context?.status === "cancelled") {
-    console.error(
-      `payment_intent.succeeded ${paymentIntent.id}: $${amount.toFixed(2)} balance payment on cancelled booking ${bookingId}. Refund by hand.`
-    );
-    return;
-  }
+  // No "payment received" receipt on a cancelled booking: the payment was
+  // either refunded just above, with its own email, or is waiting on a person.
+  if (context?.status === "cancelled") return;
 
   // One receipt per payment. A redelivery after the email already went out
   // finds the row succeeded and stops here.
@@ -270,20 +263,33 @@ async function settleCheckoutPayment(
     await admin.from("users").update({ stripe_default_payment_method_id: paymentMethodId }).eq("id", userId);
   }
 
-  // Upserts on stripe_payment_intent_id (unique in the schema) rather than
-  // assuming the pending row from booking creation is still there: Stripe
-  // redelivers webhooks at least once, so a retried delivery must be a
-  // no-op rather than fail on a duplicate insert.
-  await admin.from("payments").upsert(
-    {
-      booking_id: bookingId,
-      stripe_payment_intent_id: paymentIntent.id,
-      amount: paymentIntent.amount / 100,
-      status: "succeeded",
-      paid_at: new Date().toISOString(),
-    },
-    { onConflict: "stripe_payment_intent_id" },
-  );
+  // Records the payment on its row from booking creation, whatever that row
+  // said before (pending, failed after an earlier decline, or canceled by a
+  // cancellation that crossed with the payment): money moved. A row already
+  // settled is left alone, which makes a redelivery a no-op and keeps an
+  // automatic refund recorded; this used to be an unconditional upsert, which
+  // would have put a refunded row back to the full amount. If the row is
+  // missing altogether the insert restores it, and ignoreDuplicates makes that
+  // a no-op when it is not.
+  const paidAt = new Date().toISOString();
+  const { data: moved } = await admin
+    .from("payments")
+    .update({ status: "succeeded", amount: paymentIntent.amount / 100, paid_at: paidAt })
+    .eq("stripe_payment_intent_id", paymentIntent.id)
+    .not("status", "in", SETTLED_STATUSES)
+    .select("id");
+  if (!moved || moved.length === 0) {
+    await admin.from("payments").upsert(
+      {
+        booking_id: bookingId,
+        stripe_payment_intent_id: paymentIntent.id,
+        amount: paymentIntent.amount / 100,
+        status: "succeeded",
+        paid_at: paidAt,
+      },
+      { onConflict: "stripe_payment_intent_id", ignoreDuplicates: true },
+    );
+  }
 
   // Guard on the transition out of pending so a redelivered webhook can't
   // schedule a second set of installments or send a second confirmation. A
@@ -295,6 +301,11 @@ async function settleCheckoutPayment(
     .eq("status", "pending")
     .select("id, trip_id, total_amount, deposit_amount")
     .maybeSingle();
+
+  // A checkout charge is a booking's first, so this only does anything in the
+  // unusual cases: the booking was cancelled while its card form was still
+  // open, or it had somehow been paid already.
+  await refundOverpayment(admin, bookingId, paymentIntent);
 
   if (!booking) return;
 
@@ -357,16 +368,27 @@ export async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentInt
 
   if (kind !== "installment") {
     // Deposit or pay-in-full failure — no pre-existing row to key off besides
-    // the intent id.
-    await admin.from("payments").upsert(
-      {
-        booking_id: bookingId,
-        stripe_payment_intent_id: paymentIntent.id,
-        amount: paymentIntent.amount / 100,
-        status: "failed",
-      },
-      { onConflict: "stripe_payment_intent_id" },
-    );
+    // the intent id. Only a pending row becomes failed. The traveler can try
+    // another card on the same intent, and if that went through first (or the
+    // page-load sync read the decline just before it did), an unconditional
+    // write of `failed` would bury a payment that succeeded.
+    const { data: marked } = await admin
+      .from("payments")
+      .update({ status: "failed" })
+      .eq("stripe_payment_intent_id", paymentIntent.id)
+      .eq("status", "pending")
+      .select("id");
+    if (!marked || marked.length === 0) {
+      await admin.from("payments").upsert(
+        {
+          booking_id: bookingId,
+          stripe_payment_intent_id: paymentIntent.id,
+          amount: paymentIntent.amount / 100,
+          status: "failed",
+        },
+        { onConflict: "stripe_payment_intent_id", ignoreDuplicates: true },
+      );
+    }
     return;
   }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe, type Appearance } from "@stripe/stripe-js";
@@ -186,12 +186,19 @@ function PaymentForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [authorized, setAuthorized] = useState(false);
+  const inFlight = useRef(false);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     // The disabled button already stops this; checked again here because the
     // authorization is the point, and a form can be submitted other ways.
     if (!stripe || !elements || !authorized) return;
+    // `submitting` disables the button only from the next render, so a fast
+    // double press would reach here twice. Confirming one intent twice cannot
+    // charge it twice, but the second call fails and would show an error over
+    // a payment that is going through.
+    if (inFlight.current) return;
+    inFlight.current = true;
 
     setSubmitting(true);
     setError(null);
@@ -200,6 +207,7 @@ function PaymentForm({
     if (submitError) {
       setError(submitError.message ?? "Something went wrong.");
       setSubmitting(false);
+      inFlight.current = false;
       return;
     }
 
@@ -214,6 +222,7 @@ function PaymentForm({
     if (confirmError) {
       setError(confirmError.message ?? "Payment failed.");
       setSubmitting(false);
+      inFlight.current = false;
       return;
     }
 
@@ -221,6 +230,7 @@ function PaymentForm({
       router.push(returnPath);
     } else {
       setSubmitting(false);
+      inFlight.current = false;
       setError("Payment did not complete. Please try again.");
     }
   }
