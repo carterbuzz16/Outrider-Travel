@@ -26,9 +26,11 @@ const GALLERY = [
   { src: "/images/telluride/apres.jpg", alt: "A skier turning through deep snow, spray thrown up behind." },
   { src: "/images/telluride/skiing.jpg", alt: "Gondola cabins crossing above the town and the valley." },
   { src: "/images/telluride/lift.jpg", alt: "A skier in the air off the top of a snowy pitch." },
+  { src: "/images/people/friends-slopeside.jpg", alt: "Three friends on the slope in falling snow, one on his knees cheering, a chairlift behind them." },
   { src: "/images/telluride/powder.jpg", alt: "A timber hut mid-mountain with people out on the deck." },
   { src: "/images/telluride/town-christmas.jpg", alt: "Main street at night under strung lights, the mountain behind." },
   { src: "/images/telluride/winter-town.jpg", alt: "Skis racked in rows outside at the end of the day." },
+  { src: "/images/people/chairlift-dusk.jpg", alt: "Three friends riding a chairlift up a lit run at dusk, between dark pines." },
   { src: "/images/telluride/tomboy.jpg", alt: "Wine and a board of food set out by a fire." },
 ];
 
