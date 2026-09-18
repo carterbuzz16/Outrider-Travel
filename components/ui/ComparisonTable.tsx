@@ -39,7 +39,7 @@ const ROWS: Row[] = [
       "Bought individually, at the window, on the first morning, in the line.",
     usualShort: "Bought at the window on day one",
     outriderLong:
-      "Three-day tickets and rentals arranged before you land, with a valet fitting slot on the upper tiers.",
+      "Three-day tickets and rentals arranged before you land, with performance rentals on the upper tiers.",
     outriderShort: "Arranged before you land",
   },
   {    label: "Getting there",

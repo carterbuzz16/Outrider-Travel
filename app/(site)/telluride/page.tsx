@@ -412,7 +412,7 @@ export default async function TelluridePage() {
           <p className="t-rule-label text-[--text]">Departures</p>
           <div className="mt-10 grid gap-6 md:mt-14 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:items-end md:gap-20">
             <h2 id="departures-heading" className="t-title max-w-[14ch] text-[--text]">
-              {trips.length > 1 ? `${spelled(trips.length)} weeks, one trip` : "The dates"}
+              {trips.length > 1 ? `${spelled(trips.length)} departures, one trip` : "The dates"}
             </h2>
             <p className="t-lede">
               Every departure is the same trip: the same property, the same days
@@ -567,7 +567,7 @@ export default async function TelluridePage() {
       <section className="shell py-20 md:py-28" aria-labelledby="getting-there-heading">
         <div className="grid gap-12 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:gap-20">
           <Reveal>
-            <h2 id="getting-there-heading" className="t-heading text-[--accent] md:sticky md:top-32">
+            <h2 id="getting-there-heading" className="t-heading text-[--text] md:sticky md:top-32">
               Getting there
             </h2>
           </Reveal>

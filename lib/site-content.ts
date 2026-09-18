@@ -178,7 +178,7 @@ export const COMPARISON = [
   {
     label: "Lift tickets and gear",
     usual: "Bought individually, at the window, on the first morning, in the line.",
-    ours: "Three-day tickets and rentals arranged before you land, with a valet fitting slot on the upper tiers.",
+    ours: "Three-day tickets and rentals arranged before you land, with performance rentals on the upper tiers.",
   },
   {
     label: "Getting there",

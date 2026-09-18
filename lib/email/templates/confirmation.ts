@@ -149,7 +149,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
                       Name up to three people. We assign rooms in the order requests come in, so the earlier you send it the better the odds we can keep your group together.
                     </div>
                     <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; line-height:1.6; color:#6B635C; padding-top:8px;">
-                      Same-gender rooms, two per bed. Assignments lock {{rooming_lock_date}}.
+                      Same-gender rooms. Assignments lock {{rooming_lock_date}}.
                       <a href="{{rooming_url}}" style="color:#9C4F2E; text-decoration:underline; font-weight:600;">Set your roommates</a>
                     </div>
                   </td>
