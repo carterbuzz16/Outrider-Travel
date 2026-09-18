@@ -4,6 +4,7 @@ import CancelBookingButton from "@/app/(protected)/bookings/CancelBookingButton"
 import { formatDay } from "@/app/(protected)/dates";
 import { formatDateRange, formatPrice } from "@/lib/trips";
 import BalancePayment from "./BalancePayment";
+import { createPortalUrl } from "@/lib/portal-token";
 import type { Database } from "@/types/supabase";
 
 /**
@@ -150,6 +151,8 @@ function BookingCard({ booking }: { booking: BookingRow }) {
 
   const cancellable = CANCELLABLE.includes(booking.status);
   const cancelled = booking.status === "cancelled";
+  // The same signed page the emails link to; null if the portal is switched off.
+  const portalUrl = !cancelled && booking.status !== "pending" ? createPortalUrl(booking.id) : null;
 
   return (
     <article className="border border-[--rule] bg-[--surface-raised] p-6 md:p-8">
@@ -240,6 +243,11 @@ function BookingCard({ booking }: { booking: BookingRow }) {
         {booking.status !== "pending" && !cancelled && (
           <Button href={`/bookings/${booking.id}/confirmation`} variant="secondary" size="sm">
             Booking details
+          </Button>
+        )}
+        {portalUrl && (
+          <Button href={portalUrl} variant="secondary" size="sm">
+            Trip details &amp; forms
           </Button>
         )}
         {cancellable && (

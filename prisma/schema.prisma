@@ -94,11 +94,27 @@ model Booking {
   groupCode     String?       @map("group_code")
   createdAt     DateTime      @default(now()) @map("created_at")
 
+  // Post-booking tasks, shown in the /trip portal (see the
+  // add_post_booking_forms migration). The two *_submitted flags mirror the
+  // existence of a RoomingRequest / TravelerDetails row so list views and the
+  // chase email can read one table.
+  flightsBooked           Boolean   @default(false) @map("flights_booked")
+  roomingSubmitted        Boolean   @default(false) @map("rooming_submitted")
+  roomingSubmittedAt      DateTime? @map("rooming_submitted_at") @db.Timestamptz
+  detailsSubmitted        Boolean   @default(false) @map("details_submitted")
+  confirmationEmailSentAt DateTime? @map("confirmation_email_sent_at") @db.Timestamptz
+  chaseEmailSentAt        DateTime? @map("chase_email_sent_at") @db.Timestamptz
+  smsConsent              Boolean   @default(false) @map("sms_consent")
+  smsConsentAt            DateTime? @map("sms_consent_at") @db.Timestamptz
+  smsConsentTextVersion   String?   @map("sms_consent_text_version")
+
   user             User              @relation(fields: [userId], references: [id])
   trip             Trip              @relation(fields: [tripId], references: [id])
   tier             Tier              @relation(fields: [tierId], references: [id])
   payments         Payment[]
   legalAcceptances LegalAcceptance[]
+  roomingRequest   RoomingRequest?
+  travelerDetails  TravelerDetails?
 
   @@index([userId])
   @@index([tripId])
@@ -140,6 +156,53 @@ model LegalAcceptance {
   @@index([bookingId])
   @@index([userId])
   @@map("legal_acceptances")
+}
+
+/// Who a traveler wants to room with. Rooms are assigned in submittedAt order,
+/// so a BEFORE UPDATE trigger (keep_first_submitted_at) pins submittedAt to
+/// the first submission; edits only move updatedAt. CHECK constraints in the
+/// migration: at most three names, and names XOR noPreference.
+model RoomingRequest {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bookingId     String   @unique @map("booking_id") @db.Uuid
+  roommateNames String[] @default([]) @map("roommate_names")
+  noPreference  Boolean  @default(false) @map("no_preference")
+  submittedAt   DateTime @default(now()) @map("submitted_at") @db.Timestamptz
+  updatedAt     DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([submittedAt])
+  @@map("rooming_requests")
+}
+
+/// Insurance, emergency and rental details. PII: service-role only (RLS on,
+/// no policies, table privileges revoked from anon/authenticated). Never
+/// render legalName, dateOfBirth, phone or the emergency contact back to the
+/// /trip portal, whose link gets forwarded. CHECK constraints in the
+/// migration: skiOrBoard in (ski, snowboard); abilityLevel in (first_time,
+/// beginner, intermediate, advanced, expert). submittedAt is pinned to the
+/// first submission by the same trigger as RoomingRequest.
+model TravelerDetails {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bookingId             String   @unique @map("booking_id") @db.Uuid
+  legalName             String   @map("legal_name")
+  dateOfBirth           DateTime @map("date_of_birth") @db.Date
+  phone                 String
+  emergencyContactName  String   @map("emergency_contact_name")
+  emergencyContactPhone String   @map("emergency_contact_phone")
+  height                String?
+  weight                String?
+  shoeSize              String?  @map("shoe_size")
+  skiOrBoard            String   @map("ski_or_board")
+  abilityLevel          String   @map("ability_level")
+  dietaryRestrictions   String?  @map("dietary_restrictions")
+  submittedAt           DateTime @default(now()) @map("submitted_at") @db.Timestamptz
+  updatedAt             DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@map("traveler_details")
 }
 
 model Payment {
