@@ -94,8 +94,8 @@ const GALLERY = [
 ];
 
 const EVENING_IMAGE = {
-  src: "/images/telluride/dining.jpg",
-  alt: "Fire tables and red cushioned chairs under a stone arcade at dusk, a lit Christmas tree beyond.",
+  src: "/images/people/friends-fire-barrel-night.jpg",
+  alt: "Skiers still in their helmets gathered around a fire at night, breath steaming in the cold.",
 };
 
 const PROPERTY_IMAGE = {
@@ -340,7 +340,7 @@ export default async function TelluridePage() {
                     image={EVENING_IMAGE}
                     ratio="aspect-[4/3]"
                     sizes="(min-width: 768px) 40vw, 100vw"
-                    position="30% 60%"
+                    position="50% 63%"
                   />
                 </div>
               </Reveal>

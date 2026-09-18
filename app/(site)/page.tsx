@@ -47,8 +47,8 @@ export const revalidate = 300;
 
 /** One per value prop, in the order VALUE_PROPS declares them. */
 const SPREAD_IMAGES = [
-  { src: "/images/telluride/group.jpg", alt: "A lift cabin running above a skier on an open pitch." },
-  { src: "/images/telluride/winter-town.jpg", alt: "Skis racked outside a slopeside lodge in Telluride." },
+  { src: "/images/people/friends-snow-throw.jpg", alt: "Four friends on skis, arms linked, laughing as someone throws a handful of powder at them in falling snow." },
+  { src: "/images/people/friends-candlelit-dinner.jpg", alt: "A group of friends in hoodies sharing dinner at a long candlelit table in a timber dining room." },
   { src: "/images/telluride/apres.jpg", alt: "A skier turning through deep snow." },
   { src: "/images/telluride/ridge.jpg", alt: "Last light on the peaks above the canyon." },
 ];
@@ -102,7 +102,7 @@ export default async function HomePage() {
                   title={prop.title}
                   body={prop.body}
                   // Paired to the claim each one makes, in VALUE_PROPS order:
-                  // small groups, lodging, all-inclusive pricing, planning.
+                  // small groups, hosting, all-inclusive pricing, planning.
                   image={SPREAD_IMAGES[i] ?? null}
                 />
               </Reveal>

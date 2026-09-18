@@ -31,11 +31,13 @@ export default function AboutPage() {
           that should feel like the mountain rather than like a document. */}
       <div className="relative mt-12 h-[30vh] min-h-[210px] w-full overflow-hidden md:mt-24 md:h-[62vh]">
         <Image
-          src="/images/rider.jpg"
-          alt="A lone rider crossing open high country at dusk, mountains behind."
+          src="/images/people/friends-boards-mountain.jpg"
+          alt="Four friends laughing together on a snowy summit with their skis and snowboards, ski runs on the mountain behind."
           fill
           sizes="100vw"
           className="object-cover"
+          // The faces sit in the upper third; keep them in a wide, short crop.
+          style={{ objectPosition: "50% 35%" }}
           // Sits inside the first screen at 375px, so it is the LCP element.
           priority
         />
