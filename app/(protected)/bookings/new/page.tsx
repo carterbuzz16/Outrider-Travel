@@ -1,7 +1,14 @@
 import Link from "next/link";
 import { Alert, Badge, Button, SectionDivider } from "@/components/ui";
 import BookingForm from "./BookingForm";
-import { computeDepositAmount, DEPOSIT_PERCENTAGE } from "@/lib/deposit";
+import {
+  computeDepositAmount,
+  computePayInFullAmount,
+  DEPOSIT_PERCENTAGE,
+  PAY_IN_FULL_DISCOUNT,
+  payInFullSaving,
+} from "@/lib/deposit";
+import { formatAmount } from "@/lib/balance";
 import {
   formatDateRange,
   formatPrice,
@@ -42,8 +49,10 @@ export default async function NewBookingPage(
           {requested ? requested.name : "Pick your departure"}
         </h1>
         <p className="mt-6 max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
-          Choose a package and pay {Math.round(DEPOSIT_PERCENTAGE * 100)}% now. That deposit holds the room. The balance
-          is split into two scheduled payments, taken automatically before you travel.
+          Choose a package, then pay a {Math.round(DEPOSIT_PERCENTAGE * 100)}% deposit or the whole trip now. The
+          deposit holds the room, and the balance is split into two scheduled payments, taken automatically
+          before you travel.
+          {PAY_IN_FULL_DISCOUNT > 0 && ` Paying in full takes ${formatPrice(PAY_IN_FULL_DISCOUNT)} off the price.`}
         </p>
 
         {requested && (
@@ -160,6 +169,7 @@ function TripBlock({ trip, single }: { trip: PublicTrip; single: boolean }) {
 function TierCard({ trip, tier }: { trip: PublicTrip; tier: PublicTier }) {
   const soldOut = tier.spotsLeft !== null && tier.spotsLeft <= 0;
   const deposit = computeDepositAmount(tier.price);
+  const saving = payInFullSaving(tier.price);
 
   return (
     <article className="flex w-full flex-col border border-[--rule] bg-[--surface-raised] p-6 md:p-7">
@@ -202,7 +212,11 @@ function TierCard({ trip, tier }: { trip: PublicTrip; tier: PublicTier }) {
           tierId={tier.id}
           tierName={tier.name}
           soldOut={soldOut}
-          depositLabel={`${formatPrice(deposit)} deposit now`}
+          // Exact to the cent: formatPrice rounds to the dollar, and these are
+          // the figures that come off the card.
+          depositLabel={formatAmount(deposit)}
+          fullLabel={formatAmount(computePayInFullAmount(tier.price))}
+          savingLabel={saving > 0 ? formatAmount(saving) : null}
         />
       </div>
     </article>

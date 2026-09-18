@@ -4,12 +4,16 @@ import { Alert, Badge, Button, SectionDivider } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe";
 import { INSTALLMENT_OFFSETS_DAYS } from "@/lib/installments";
+import { paymentKindOf } from "@/lib/payments";
+import { formatAmount } from "@/lib/balance";
+import { PAY_IN_FULL_DISCOUNT } from "@/lib/deposit";
 import { formatDay } from "@/app/(protected)/dates";
 import { formatDateRange, formatPrice } from "@/lib/trips";
 import CheckoutForm from "@/components/CheckoutForm";
 
 /**
- * The deposit screen.
+ * The deposit screen, or the whole-trip screen when the traveler chose to pay
+ * in full at booking.
  *
  * Everything above the card field exists to answer the three questions a
  * traveler has with their wallet already out: what am I buying, what comes off
@@ -55,16 +59,25 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
   const total = Number(booking.total_amount);
   const depositAmount = Number(booking.deposit_amount);
   const balance = Math.max(0, Math.round((total - depositAmount) * 100) / 100);
-  const schedule = previewInstallments(total, depositAmount, trip?.start_date);
+
+  // Which plan was picked at booking is read off the intent itself (set by
+  // createBooking), not from anything the browser sends. A payment in full
+  // has no schedule to preview; total_amount already has the discount off.
+  const payingInFull = paymentKindOf(paymentIntent) === "full";
+  const schedule = payingInFull ? [] : previewInstallments(total, depositAmount, trip?.start_date);
+  const dueToday = payingInFull ? total : depositAmount;
 
   return (
     <main>
       <section className="shell max-w-[52rem] py-14 md:py-20">
         <p className="stamp-type text-[--text-muted]">Checkout</p>
-        <h1 className="t-title mt-5 max-w-[16ch] text-[--text]">Pay your deposit</h1>
+        <h1 className="t-title mt-5 max-w-[16ch] text-[--text]">
+          {payingInFull ? "Pay for your trip" : "Pay your deposit"}
+        </h1>
         <p className="mt-6 max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
-          One charge now holds your spot. The balance is split into two dated payments taken from
-          the same card, and nothing else comes off it today.
+          {payingInFull
+            ? "One charge now pays for the whole trip. Nothing else is taken from your card later."
+            : "One charge now holds your spot. The balance is split into two dated payments taken from the same card, and nothing else comes off it today."}
         </p>
 
         {trip && (
@@ -85,15 +98,23 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
           </div>
 
           <p className="mt-6 font-display font-medium text-display-l tabular-nums tracking-display text-[--text]">
-            {formatPrice(depositAmount)}
+            {formatAmount(dueToday)}
           </p>
 
-          <p className="mt-5 max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
-            This is the deposit, not the price of the trip. The trip is{" "}
-            <span className="tabular-nums text-[--text]">{formatPrice(total)}</span>, so{" "}
-            <span className="tabular-nums text-[--text]">{formatPrice(balance)}</span> is still owed
-            after today.
-          </p>
+          {payingInFull ? (
+            <p className="mt-5 max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
+              This is the full price of the trip
+              {PAY_IN_FULL_DISCOUNT > 0 && `, with ${formatPrice(PAY_IN_FULL_DISCOUNT)} off for paying it all now`}
+              . Nothing is owed after today.
+            </p>
+          ) : (
+            <p className="mt-5 max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
+              This is the deposit, not the price of the trip. The trip is{" "}
+              <span className="tabular-nums text-[--text]">{formatPrice(total)}</span>, so{" "}
+              <span className="tabular-nums text-[--text]">{formatPrice(balance)}</span> is still owed
+              after today.
+            </p>
+          )}
         </div>
 
         {/* -- and what comes off it later ------------------------------------ */}
@@ -132,9 +153,21 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
 
         <div className="mt-6">
           <Alert tone="warning" title="The deposit is non-refundable">
-            Once this payment clears, the deposit is not refundable, whatever the reason for
-            canceling. Anything you pay above it is refunded on a sliding scale that closes 30 days
-            before the trip. Read the{" "}
+            {payingInFull ? (
+              <>
+                Of this payment, <span className="tabular-nums">{formatAmount(depositAmount)}</span> is
+                the deposit, and once it clears that part is not refundable, whatever the reason for
+                canceling. The rest is refunded on a sliding scale that closes 30 days before the
+                trip.
+              </>
+            ) : (
+              <>
+                Once this payment clears, the deposit is not refundable, whatever the reason for
+                canceling. Anything you pay above it is refunded on a sliding scale that closes 30
+                days before the trip.
+              </>
+            )}{" "}
+            Read the{" "}
             <Link href="/terms#cancellation" className="text-[--accent] decoration-[--accent]">
               cancellation terms
             </Link>{" "}
@@ -149,17 +182,19 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
         <section className="mt-12">
           <h2 className="t-heading text-[--text]">Payment</h2>
           <p className="mt-4 max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
-            The card you use here is the card the two payments above are taken from. You can change
-            it later by getting in touch.
+            {payingInFull
+              ? "This is the only charge on the booking. The card is not kept for later payments."
+              : "The card you use here is the card the two payments above are taken from. You can change it later by getting in touch."}
           </p>
 
           <CheckoutForm
             clientSecret={paymentIntent.client_secret!}
             bookingId={booking.id}
-            amountLabel={formatPrice(depositAmount)}
+            amountLabel={formatAmount(dueToday)}
+            submitLabel={payingInFull ? `Pay ${formatAmount(dueToday)}` : undefined}
             scheduledCharges={schedule.map((row) => ({
               dateLabel: formatDay(row.date),
-              amountLabel: formatPrice(row.amount),
+              amountLabel: formatAmount(row.amount),
             }))}
           />
         </section>
