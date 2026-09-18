@@ -126,6 +126,26 @@ export async function deleteTrip(formData: FormData) {
   redirect("/admin/trips");
 }
 
+/**
+ * Turns the one-group rule (the penthouses) on or off for a tier. Changes who
+ * can book from now on; nothing about existing bookings or balances.
+ */
+export async function setTierGroupExclusive(formData: FormData) {
+  await requireAdmin();
+
+  const tripId = String(formData.get("trip_id") ?? "");
+  const tierId = String(formData.get("tier_id") ?? "");
+  const groupExclusive = String(formData.get("group_exclusive") ?? "") === "true";
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("tiers").update({ group_exclusive: groupExclusive }).eq("id", tierId);
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  redirect(`/admin/trips/${tripId}`);
+}
+
 export async function deleteTier(formData: FormData) {
   await requireAdmin();
 
@@ -238,6 +258,7 @@ export async function addTier(formData: FormData) {
     description,
     max_capacity: maxCapacity,
     inclusions,
+    group_exclusive: formData.get("group_exclusive") === "on",
   });
 
   if (error) {

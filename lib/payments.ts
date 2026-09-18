@@ -9,6 +9,7 @@ import {
   sendActionRequiredEmail,
 } from "@/lib/email/send";
 import { sendConfirmationEmailOnce } from "@/lib/email/post-booking";
+import { sendPenthouseFullEmailsFor } from "@/lib/email/penthouse";
 import { hasAcceptedAll } from "@/lib/legal-acceptance";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
@@ -361,6 +362,10 @@ async function settleCheckoutPayment(
   await sendEmailSafely(() =>
     sendConfirmationEmailOnce(admin, bookingId, { afterScheduling: Boolean(booking) })
   );
+
+  // A penthouse this payment just filled tells its whole group. A no-op for
+  // every other booking; claimed per recipient, so safe from any caller.
+  await sendEmailSafely(() => sendPenthouseFullEmailsFor(admin, bookingId));
 }
 
 export async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {

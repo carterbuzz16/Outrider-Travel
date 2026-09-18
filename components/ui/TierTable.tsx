@@ -22,6 +22,8 @@ export type TierView = {
   description: string | null;
   inclusions: string[];
   spotsLeft: number | null;
+  /** A penthouse another group holds: shown as "Booked", with no Reserve button. */
+  taken?: boolean;
 };
 
 export default function TierTable({
@@ -59,7 +61,7 @@ export default function TierTable({
       {tiers.map((tier, i) => {
         const mark = marks[i];
         const featured = Boolean(mark);
-        const soldOut = tier.spotsLeft !== null && tier.spotsLeft <= 0;
+        const soldOut = tier.taken || (tier.spotsLeft !== null && tier.spotsLeft <= 0);
 
         return (
           <section
@@ -115,12 +117,12 @@ export default function TierTable({
                   the CTAs across the row share a baseline whether or not a tier
                   is running low. */}
               <p className="t-micro min-h-[1.4em] text-[--flag-ink]">
-                {tier.spotsLeft !== null && tier.spotsLeft > 0 && tier.spotsLeft <= 6
+                {!tier.taken && tier.spotsLeft !== null && tier.spotsLeft > 0 && tier.spotsLeft <= 6
                   ? "Selling out fast"
                   : "\u00a0"}
               </p>
               {soldOut ? (
-                <p className="t-micro mt-2 text-[--text-muted]">Sold out</p>
+                <p className="t-micro mt-2 text-[--text-muted]">{tier.taken ? "Booked" : "Sold out"}</p>
               ) : bookHref ? (
                 <Button
                   // Names the package, so checkout opens with it already

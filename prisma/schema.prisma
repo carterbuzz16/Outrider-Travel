@@ -75,6 +75,10 @@ model Tier {
   description String?
   inclusions  String[]
   maxCapacity Int?     @map("max_capacity")
+  /// A whole group buys the tier out (the penthouses): once one group holds
+  /// it, only bookings carrying that group's code can join. Enforced by the
+  /// check_tier_capacity trigger (add_group_exclusive_tiers migration).
+  groupExclusive Boolean @default(false) @map("group_exclusive")
 
   trip     Trip      @relation(fields: [tripId], references: [id])
   bookings Booking[]
@@ -107,6 +111,10 @@ model Booking {
   smsConsent              Boolean   @default(false) @map("sms_consent")
   smsConsentAt            DateTime? @map("sms_consent_at") @db.Timestamptz
   smsConsentTextVersion   String?   @map("sms_consent_text_version")
+  // Penthouse emails, claimed per recipient booking (add_group_exclusive_tiers
+  // migration; lib/email/penthouse.ts).
+  penthouseFullEmailSentAt     DateTime? @map("penthouse_full_email_sent_at") @db.Timestamptz
+  penthouseReminderEmailSentAt DateTime? @map("penthouse_reminder_email_sent_at") @db.Timestamptz
 
   user             User              @relation(fields: [userId], references: [id])
   trip             Trip              @relation(fields: [tripId], references: [id])
@@ -120,6 +128,7 @@ model Booking {
   @@index([tripId])
   @@index([status])
   @@index([tripId, groupCode])
+  @@index([tierId, createdAt])
   @@map("bookings")
 }
 

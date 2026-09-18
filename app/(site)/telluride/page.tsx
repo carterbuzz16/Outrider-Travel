@@ -157,6 +157,7 @@ function toTierViews(tiers: PublicTrip["tiers"], perDeparture: boolean): TierVie
     // One table standing for several departures cannot show one departure's
     // remaining spots; availability is on each departure above instead.
     spotsLeft: perDeparture ? tier.spotsLeft : null,
+    taken: perDeparture ? tier.claimed : false,
   }));
 }
 

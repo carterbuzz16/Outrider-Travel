@@ -7,6 +7,7 @@ import {
   deleteTrip,
   deleteTier,
   addTier,
+  setTierGroupExclusive,
   uploadTripImage,
   removeTripImage,
 } from "@/app/admin/trips/actions";
@@ -29,6 +30,7 @@ import {
   type BookingStatus,
   type TripStatus,
 } from "@/app/admin/admin-ui";
+import PenthouseClaim from "@/app/admin/PenthouseClaim";
 
 /**
  * The trip editor, with no data access in it.
@@ -49,7 +51,15 @@ export type EditorTier = {
   description: string | null;
   max_capacity: number | null;
   inclusions: string[] | null;
-  bookings: { id: string; status: BookingStatus }[];
+  /** Optional so older fixtures still render; false when missing. */
+  group_exclusive?: boolean;
+  bookings: {
+    id: string;
+    status: BookingStatus;
+    group_code?: string | null;
+    created_at?: string;
+    payments?: { paid_at: string | null; scheduled_date: string | null }[];
+  }[];
 };
 
 export type EditorTrip = {
@@ -250,6 +260,37 @@ export default function TripEditor({ trip, error }: { trip: EditorTrip; error?: 
                             booked={countHeld(tier.bookings ?? [])}
                             capacity={tier.max_capacity}
                           />
+                          {tier.group_exclusive && (
+                            <span className="mt-3 block border-t border-[--rule] pt-3">
+                              <span className="t-micro block text-[--text-secondary]">Penthouse</span>
+                              <span className="mt-1 block">
+                                <PenthouseClaim
+                                  tier={{
+                                    max_capacity: tier.max_capacity,
+                                    bookings: (tier.bookings ?? []).map((b) => ({
+                                      id: b.id,
+                                      status: b.status,
+                                      group_code: b.group_code ?? null,
+                                      created_at: b.created_at ?? "",
+                                      payments: b.payments ?? [],
+                                    })),
+                                  }}
+                                />
+                              </span>
+                            </span>
+                          )}
+                          <form action={setTierGroupExclusive} className="mt-2">
+                            <input type="hidden" name="trip_id" value={trip.id} />
+                            <input type="hidden" name="tier_id" value={tier.id} />
+                            <input
+                              type="hidden"
+                              name="group_exclusive"
+                              value={tier.group_exclusive ? "false" : "true"}
+                            />
+                            <Button type="submit" variant="ghost" size="sm">
+                              {tier.group_exclusive ? "Open to everyone" : "Make one-group only"}
+                            </Button>
+                          </form>
                         </Td>
                         <Td className="max-w-[20rem] text-[--text-secondary]">
                           {tier.inclusions && tier.inclusions.length > 0 ? (
@@ -329,6 +370,14 @@ export default function TripEditor({ trip, error }: { trip: EditorTrip; error?: 
                     placeholder="Flights, Hotel, Meals"
                   />
                 </AdminField>
+
+                <label className="flex items-start gap-3 font-body text-body-s text-[--text] sm:col-span-2">
+                  <input type="checkbox" name="group_exclusive" className="mt-1" />
+                  <span>
+                    One group only (a penthouse). Once someone books it, only their group code can
+                    join.
+                  </span>
+                </label>
 
                 <AdminField label="Description" htmlFor="tier-description" className="sm:col-span-2">
                   <Textarea id="tier-description" name="description" rows={3} />
