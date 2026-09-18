@@ -11,10 +11,10 @@ import {
 import { TELLURIDE_FACTS as FACTS, UPCOMING_CATEGORIES } from "@/lib/site-content";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Destinations: Telluride, Colorado",
+  title: "Destinations: Telluride ski trips for college",
   path: "/destinations",
   description:
-    "Where Outrider goes and why. Telluride, Colorado: a box canyon town at 8,725 feet, 2,000 acres of terrain above it, and a free gondola between the two.",
+    "Where Outrider takes college groups. Telluride, Colorado: a box canyon town at 8,725 feet, 2,000 acres above it, a free gondola between. Spring break is next.",
 });
 
 /* Alt text describes the photograph, not the file it is stored in: the
@@ -38,9 +38,9 @@ export default function DestinationsPage() {
       <header className="shell pb-14 pt-32 md:pb-20 md:pt-40">
         <h1 className="t-display mt-6 max-w-[14ch] text-[--text]">Destinations</h1>
         <p className="t-lede mt-8 max-w-measure">
-          We do not run a catalogue. A place earns its way onto this page by
-          being worth the flight, and it only goes up once somebody has walked
-          it. Today that means Telluride. It will not always mean only Telluride.
+          We only go places worth the flight, and we go there ourselves before
+          we take anyone else. Right now that&rsquo;s Telluride. Somewhere warm
+          is next.
         </p>
       </header>
 
@@ -55,9 +55,9 @@ export default function DestinationsPage() {
               Telluride, Colorado
             </h2>
             <p className="t-lede mt-6 max-w-measure">
-              A box canyon in the San Juans with one road in. The town is at
-              8,725 feet and the ski area runs to 13,150, which is why the
-              skiing starts where most resorts have already finished.
+              A box canyon in the San Juans with one road in. The town sits at
+              8,725 feet and the ski area climbs to 13,150, so the skiing starts
+              about where most resorts top out.
             </p>
           </div>
         </div>
@@ -98,27 +98,27 @@ export default function DestinationsPage() {
       <section className="shell py-16 md:py-20">
         <div className="grid gap-12 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:gap-20">
           <Reveal>
-            <h2 className="t-heading text-[--accent] md:sticky md:top-32">Why here</h2>
+            <h2 className="t-heading text-[--accent] md:sticky md:top-32">Why we picked it</h2>
           </Reveal>
           <Reveal delay={80}>
             <div className="flex flex-col gap-7">
               <p className="font-body text-lede leading-[1.8] text-[--text]">
-                Telluride is hard to get to, and that is most of the point. The
-                places an hour from Denver fill up with everyone who could not
-                be bothered to go further, and you can feel it in the lift line.
+                Telluride takes a little more effort to reach, and it pays you
+                back the moment you arrive. Peaks rise on three sides, and the
+                town starts to feel like yours by the second day.
               </p>
               <p className="font-body text-body leading-[1.85] text-[--text]">
-                The town is a few streets long, walkable end to end in fifteen
-                minutes, and still a real town rather than a built resort base.
-                The gondola runs between it and Mountain Village until midnight
-                and costs nothing, which quietly solves the problem every ski
-                trip has at eleven at night.
+                The town is a few streets long, and you can walk it end to end in
+                fifteen minutes. It&rsquo;s an old mining town with brick
+                storefronts and a real main street. The free gondola runs up to
+                Mountain Village until midnight, so dinner downtown and the ride
+                home afterwards are both easy.
               </p>
               <p className="font-body text-body leading-[1.85] text-[--text]">
-                Above it there are 2,000 acres and 330 inches in an average
-                year. Forty one percent of the trails are advanced or expert, so
-                it holds up for people who can ski, and the front side is gentle
-                enough that people who cannot yet are not written off on day one.
+                Up top there are 2,000 acres and about 330 inches of snow in an
+                average year. Forty-one percent of the trails are advanced or
+                expert, so strong skiers have plenty to chase, and the front side
+                is gentle enough to give a first timer a great day one.
               </p>
             </div>
           </Reveal>
@@ -130,7 +130,7 @@ export default function DestinationsPage() {
         <div className="shell">
           <Reveal>
             <h2 className="t-heading max-w-[20ch] text-[--text]">
-              The place, not the brochure
+              A look around town
             </h2>
           </Reveal>
         </div>
@@ -159,15 +159,15 @@ export default function DestinationsPage() {
             <div className="flex flex-col gap-7">
               <p className="font-body text-body leading-[1.85] text-[--text]">
                 Fly into Montrose, about 65 miles out and roughly an hour and a
-                half of driving. Flights are booked separately and are not
-                included in the trip price, which is the one thing we deliberately
-                leave in your hands, because everyone is coming from somewhere
-                different and nobody should pay for a routing that suits someone
-                else.
+                half of driving. Flights are booked separately and aren&rsquo;t
+                in the trip price. That&rsquo;s the one thing we leave in your
+                hands, since everyone is flying in from somewhere different and
+                should get the routing that works for them.
               </p>
               <p className="font-body text-body leading-[1.85] text-[--text]">
                 Ground transport from Montrose and back is arranged and included.
-                You are met, and you do not sort out a ride at either end.
+                We meet you at the airport, drive you up the canyon, and bring
+                you back at the end.
               </p>
             </div>
           </Reveal>
@@ -177,7 +177,7 @@ export default function DestinationsPage() {
       {/* ---- what is next ---------------------------------------------------- */}
       <section className="shell py-16 md:py-20">
         <Reveal>
-          <h2 className="t-heading max-w-[20ch] text-[--text]">Where we are looking next</h2>
+          <h2 className="t-heading max-w-[20ch] text-[--text]">Where we&rsquo;re going next</h2>
         </Reveal>
         <div className={cellGridClass(UPCOMING_CATEGORIES.length, "mt-10")}>
           {UPCOMING_CATEGORIES.map((category, i) => (
@@ -200,8 +200,8 @@ export default function DestinationsPage() {
       <WaitlistCTA
         id="waitlist"
         placement="destinations"
-        heading="Know where we go next"
-        body="New destinations open to this list before they reach the site. One email when a departure is live, and nothing in between."
+        heading="Be first on the next one"
+        body="New destinations go to this list before they reach the site. One email when a trip goes live, and nothing in between."
       />
     </main>
   );

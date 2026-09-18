@@ -15,7 +15,7 @@ import { cn } from "./cn";
  */
 export default function WaitlistShare({
   heading = "You’re on the list",
-  body = "We will write when departures open, before they reach the site. A note confirming it is on its way to your inbox.",
+  body = "We'll write when trips open, before they reach the site. A note confirming it is on its way to your inbox.",
   compact = false,
   className,
   headingId,

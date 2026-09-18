@@ -8,8 +8,8 @@ export const metadata: Metadata = pageMetadata({
   title: "About",
   path: "/about",
   description:
-    "Why Outrider exists, and who runs it. An outrider is the one who rides ahead, scouts the route and clears the way before the party arrives.",
-  shareTitle: "Why Outrider · Small-group travel for college",
+    "Meet Outrider, the small-group trip company for college students. An outrider rides ahead to scout the way, and that's how we plan every trip we host.",
+  shareTitle: "Why Outrider · College group trips, hosted",
 });
 
 export default function AboutPage() {
@@ -46,7 +46,7 @@ export default function AboutPage() {
         <div className="grid gap-12 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:gap-20">
           <Reveal>
             <div className="flex items-baseline gap-5 md:sticky md:top-32">
-              <h2 className="t-heading text-[--accent]">The problem</h2>
+              <h2 className="t-heading text-[--accent]">Why we started</h2>
             </div>
           </Reveal>
           <Reveal delay={80}>
@@ -225,7 +225,7 @@ export default function AboutPage() {
       <section className="scheme-espresso scheme-paint">
         <div className="shell flex flex-col items-start gap-8 py-16 md:flex-row md:items-center md:justify-between md:py-24">
           <h2 className="t-heading max-w-[18ch] text-[--text]">
-            Two departures. Both small. Both already moving.
+            Two weeks in Telluride this winter
           </h2>
           <div className="flex flex-wrap gap-4">
             <Button href="/trips" variant="primary" size="lg">

@@ -54,27 +54,27 @@ export const CONTACT = {
 export const VALUE_PROPS = [
   {
     eyebrow: "Small groups",
-    title: "The number of people is a decision, not a ceiling",
+    title: "Small enough to know everyone",
     body:
-      "Most operators grow a trip until it stops selling. We cap it before it goes on sale and the number does not move to fit demand. Rooms are shared by four or by two, suites are booked whole for six or eight, and where there is a guide it is one per six, so the people you actually spend the days with are a handful rather than a crowd.",
+      "Every trip gets its size before it goes on sale, and it stays that size. You share a room with three friends or with one, or take a whole suite for six or eight. Where there's a guide, it's one for every six of you. By night two it feels like your crew took over the town.",
   },
   {
-    eyebrow: "High touch",
-    title: "Invited, not signed up for",
+    eyebrow: "Hosted",
+    title: "Every detail, handled",
     body:
-      "Outrider is not a party trip. We work with properties and brands that hold a standard, and everything is arranged quietly in advance, so what you turn up to feels like something you were invited to. The group is small enough that the people running it know your name, and they are there for the whole trip rather than at the end of an email.",
+      "We scout the hotels, the restaurants and the mountain long before a trip goes on sale, and we only work with places that hold a real standard. When you arrive, your room is ready and your plans are made. Our team knows your name and stays with you the whole trip, so there's always someone to text.",
   },
   {
     eyebrow: "One price",
-    title: "The number on the page is the number",
+    title: "One price, all in",
     body:
-      "Lodging, activities, ground transport, private events, a welcome package and on-trip staff are inside the price. No resort fee at check in. No separate charge for the shuttle. Each traveler books their own spot and pays for it in installments or all at once, so nobody fronts money for friends and nobody chases a group chat in March.",
+      "Lodging, activities, ground transport, private events, a welcome package and our staff are all in the price. No resort fee at check-in and no surprise shuttle charge. Everyone books and pays for their own spot, all at once or in installments, so nobody fronts the money for friends and nobody spends March chasing the group chat.",
   },
   {
-    eyebrow: "Someone goes first",
-    title: "The trip is scouted before it is sold",
+    eyebrow: "We go first",
+    title: "We've been there first",
     body:
-      "We go to the property, hold the rooms, buy the tickets and arrange the transport before a single spot is offered. Outrider staff are there for the whole trip. Whoever would normally organize it gets to be on the trip instead of running it.",
+      "Before a trip goes on sale, we've stayed at the property, held the rooms, bought the tickets and lined up the rides. Then we come along for the whole thing. The friend who usually plans everything finally gets to just be on the trip.",
   },
 ];
 
@@ -82,17 +82,19 @@ export const VALUE_PROPS = [
 export const ORIGIN = {
   title: "Why Outrider",
   lede:
-    "An outrider is the one who goes first. They ride ahead of the party, scout the route, clear what is in the way, and have the ground ready before anyone else arrives.",
+    "An outrider is the one who goes first. They ride ahead of the group, scout the route and have everything ready before anyone else arrives. That's our job on every trip.",
   /* Carter's words lead this, and they are the argument the company is built
-   * on: the destination is the product. The logistics paragraph used to open
-   * here and now follows, because how a trip is run is the consequence of that
-   * choice rather than the reason for it. */
+   * on: the destination is the product. It opens on what a college trip should
+   * feel like rather than on what is wrong with the usual one: the marketing
+   * lead asked for the earnest version first, and the side-by-side table below
+   * it already carries the contrast. The logistics paragraph follows, because
+   * how a trip is run is the consequence of choosing the place, not the reason. */
   body: [
-    "Student group travel has run on the same formula for twenty years: fill the cheapest hotel with as many people as possible and sell the party. That formula no longer matches what this generation of students actually wants.",
-    "They want the place. A mountain worth skiing, a town worth walking, a dinner nobody leaves early. So we build the trip around the destination instead of the crowd.",
-    "That one decision sets everything after it. The property is chosen first and booked whole, which is what fixes the size of the group, rather than selling spots until the rooms run out. A departure only goes on sale once somebody has walked the place, eaten the dinners and slept in the rooms.",
-    "Everything after that exists to serve it. Reservations and activities arranged before anyone lands, transport both directions, staff on the ground for the duration, one price settled up front and paid in installments. Not because logistics are the product, but because they are what usually stands between a group and the place they came for.",
-    "What is left is the part worth flying for.",
+    "A trip with your friends should be the best week of your year. A place you've wanted to see for ages, somewhere to stay you'd happily tell your parents about, and everyone you like in one town at the same time.",
+    "So we start with the place. A mountain worth skiing, a town worth walking, a dinner nobody leaves early. We build the whole trip around it.",
+    "That one decision shapes the rest. We choose the property first and book it for the whole group, which is what sets the size of every trip. And a trip only goes on sale once one of us has walked the town, eaten the dinners and slept in the rooms.",
+    "Then we take care of everything else. Reservations and activities set before anyone lands, rides both directions, our team on the ground all week, and one price paid up front or in installments. The logistics are our job, so the trip can be all yours.",
+    "What's left is the part worth flying for.",
   ],
 };
 
@@ -167,38 +169,38 @@ export const COMPARISON_IMAGE: { src: string; alt: string; width: number; height
 export const COMPARISON = [
   {
     label: "The price",
-    usual: "A headline number, then lift tickets, rentals, transfers and resort fees on top. Nobody knows the real total until it is spent.",
-    ours: "One price per person with everything in it. What you see on the trip page is what the trip costs.",
+    usual: "A low number up front, then lift tickets, rentals, transfers and resort fees on top.",
+    ours: "One price per person with everything in it. The number on the trip page is the whole trip.",
   },
   {
     label: "Where you stay",
-    usual: "Twenty people spread across four rentals on the wrong side of town, sorted by whoever booked first.",
-    ours: "One property, booked whole. Everyone is under the same roof, walking distance from the same lift.",
+    usual: "Your group split across rentals around town, sorted by whoever booked first.",
+    ours: "One property for the whole group. Everyone under the same roof, walking distance from the same lift.",
   },
   {
     label: "Lift tickets and gear",
-    usual: "Bought individually, at the window, on the first morning, in the line.",
-    ours: "Three-day tickets and rentals arranged before you land, with performance rentals on the upper tiers.",
+    usual: "Bought one at a time at the window, on the first morning, in line.",
+    ours: "Three-day lift tickets and rentals ready before you land, with performance rentals on the upper tiers.",
   },
   {
     label: "Getting there",
-    usual: "Everyone books their own ride from the airport and hopes the timing works.",
+    usual: "Everyone sorts out their own ride from the airport.",
     ours: "Ground transport both directions is arranged and included, shared or private depending on your package.",
   },
   {
     label: "Paying for it",
-    usual: "One person fronts the money and spends the next three months chasing a group chat.",
-    ours: "Each traveler books their own spot. A deposit holds it and the balance comes in scheduled payments, or it is paid in full at booking. Nobody owes a friend anything.",
+    usual: "One friend fronts the money and spends months chasing the group chat.",
+    ours: "Everyone books their own spot. A deposit holds it and the rest comes in scheduled payments, or pay in full when you book. Nobody owes a friend a thing.",
   },
   {
     label: "On the trip",
-    usual: "Whoever organized it becomes the help desk for four days and never really gets a holiday.",
-    ours: "Outrider staff are on the ground for the duration. The person who organized it gets to actually ski.",
+    usual: "Whoever planned it spends the week as the help desk.",
+    ours: "Our team is with you the whole trip, so the friend who planned it finally gets to ski.",
   },
   {
     label: "How many people",
-    usual: "As many as will pay, because volume is the business model.",
-    ours: "Capped by design. Rooms hold four or two, suites are booked as buyouts for six or eight, and guiding is one instructor per six.",
+    usual: "As many as will pay.",
+    ours: "Set before a single spot goes on sale. Rooms for four or two, suites taken whole by six or eight, and one instructor for every six.",
   },
 ];
 
@@ -211,7 +213,7 @@ export const UPCOMING_CATEGORIES = [
     name: "Spring break",
     destination: "Destination to be announced",
     window: "Spring 2027",
-    note: "Somewhere warm, with the same standard applied. Real properties, a group small enough to know, and days worth flying for rather than just surviving.",
+    note: "Somewhere warm, hosted the same way. We'll stay there first, keep the group small and plan the days, so all you have to pack is sunscreen.",
   },
 ];
 

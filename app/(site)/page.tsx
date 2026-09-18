@@ -17,7 +17,7 @@ import { formatDateRange, formatPrice, getPublishedTrips, nightCount } from "@/l
 export const metadata: Metadata = pageMetadata({
   // The layout's template appends "· Outrider"; the home page is the one place
   // that should lead with the brand instead.
-  title: "Outrider · Small-group ski trips and spring break for college",
+  title: "Outrider · College group trips: Telluride ski weeks and spring break",
   absoluteTitle: true,
   /*
    * The path is stated explicitly. The root layout sets `canonical: "./"`,
@@ -28,18 +28,16 @@ export const metadata: Metadata = pageMetadata({
    */
   path: "/",
   /*
-   * Written for the search result, not the page, and written to say how
-   * Outrider differs rather than what it does: every operator "plans trips".
-   * It names the brand (most searches that find this page are for
-   * "Outrider", and Google prefers a description containing the words
-   * searched), and every claim is one the site already backs: the group size
-   * is fixed before sale, the property is booked whole, and staff stay for the
-   * duration. It closes on the experience rather than on what it is not: the
-   * team asked for that over "not a party trip". "Private club" is a likeness, per the FAQ's "a small club rather than a tour"; it is
-   * not a membership. Under 160 characters so it is not cut off.
+   * Written for the search result, not the page. It names the brand (most
+   * searches that find this page are for "Outrider", and Google prefers a
+   * description containing the words searched) and the terms people search
+   * with: college, group trips, Telluride, ski, spring break. Every claim is
+   * one the site already backs: trips are scouted before sale, and staff stay
+   * for the duration. It leads with the experience rather than a contrast, as
+   * the marketing lead asked. Under 160 characters so it is not cut off.
    */
   description:
-    "Outrider runs college ski trips and spring break like a private club: a capped group, a property to yourselves, staff on site. An experience nobody else gets.",
+    "Outrider hosts small-group trips for college students: Telluride ski weeks and spring break. We scout it, plan it and come along. You bring your friends.",
 });
 
 // The trip list changes when the team publishes or edits a departure, not on
@@ -64,8 +62,8 @@ export default async function HomePage() {
       <Hero
         video={{ src: "/video/hero.mp4", poster: "/video/hero-poster.jpg" }}
         eyebrow="Ski weeks · Spring break"
-        headline="We ride ahead"
-        tagline="College travel, everywhere the crowd isn't."
+        headline="The week of your life"
+        tagline="Small-group trips for college. Telluride this winter, somewhere warm for spring break. Bring your friends. We'll handle the rest."
         stampText="Outrider · Scouted · Prepared"
         // While nothing can be booked, the first thing to offer is the list;
         // "View trips" leads to departures with no button on them.
@@ -79,13 +77,14 @@ export default async function HomePage() {
           <div>
             <div className="flex flex-col gap-8">
               {/* The brand book's section label: capitals over a full hairline. */}
-              <p className="t-rule-label text-[--text]">The difference</p>
+              <p className="t-rule-label text-[--text]">What we do</p>
               <h2 className="t-title max-w-[18ch] text-[--text]">
-                Group trips fail on logistics, not destinations
+                We host. You show up.
               </h2>
               <p className="t-lede max-w-measure">
-                So Outrider takes them off the table. Four things make the
-                difference, and all four sit inside the price.
+                We pick the town, stay in the hotel before we book it, plan the
+                days and the nights, and come along for the whole thing. Your
+                only job is to enjoy it with your friends.
               </p>
             </div>
           </div>
@@ -118,7 +117,7 @@ export default async function HomePage() {
             <div className="mt-8 flex flex-wrap items-end justify-between gap-6">
               <div className="flex flex-col gap-5">
                 <h2 className="t-title max-w-[16ch] text-[--text]">
-                  {featured.length > 0 ? "Next out the gate" : "The first departures"}
+                  {featured.length > 0 ? "Where we're headed" : "First trips, coming soon"}
                 </h2>
               </div>
               {featured.length > 0 && (
@@ -171,11 +170,11 @@ export default async function HomePage() {
             <Reveal>
               <div className="mt-12 flex flex-col items-start gap-6 border border-[--rule] bg-[--surface-raised] p-8 md:p-12">
                 <h3 className="t-subheading text-[--text]">
-                  The next departures are being scouted
+                  We&rsquo;re scouting the next trips
                 </h3>
                 <p className="font-body text-body leading-[1.75] text-[--text-secondary] max-w-measure">
-                  A departure goes up here once the property is held and the
-                  bookings are made, never before. Ask to hear first.
+                  A trip shows up here once we&rsquo;ve held the rooms and
+                  booked the details. Join the list to hear about it first.
                 </p>
                 {/* Was /contact, which asked for a message when the button
                     promised a list. */}
@@ -195,11 +194,12 @@ export default async function HomePage() {
           <Reveal>
             <p className="t-rule-label text-[--text]">Beyond Telluride</p>
             <h2 className="t-title mt-8 max-w-[20ch] text-[--text]">
-              Telluride is where this starts, not what it is
+              Telluride is just the start
             </h2>
             <p className="t-lede mt-6 max-w-measure">
-              The same format travels. One property, a capped group, everything
-              arranged and one price with all of it inside. These are next.
+              Everywhere we go gets the same treatment: one great property, a
+              group that stays small, every detail planned and one price for
+              all of it. Here&rsquo;s what&rsquo;s next.
             </p>
           </Reveal>
 
@@ -235,16 +235,16 @@ export default async function HomePage() {
           <div className="shell flex flex-col items-start gap-8 py-20 md:py-28">
             <Reveal>
               <h2 className="t-title max-w-[20ch] text-[--text]">
-Booked before it is sold
+                We&rsquo;ve already been
               </h2>
             </Reveal>
             <Reveal delay={90}>
               {/* Same sentence as the one Google quoted, said again, so the same
                   treatment. */}
               <p data-nosnippet className="t-lede max-w-measure text-[--text-secondary]">
-                We walk the property, eat the dinners and sleep in the rooms
-                before a departure reaches this page. If it is listed, someone
-                has already been.
+                Before a trip goes up on this site, we&rsquo;ve walked the
+                town, eaten the dinners and slept in the rooms. All that&rsquo;s
+                left is bringing your friends.
               </p>
             </Reveal>
             <Reveal delay={180}>

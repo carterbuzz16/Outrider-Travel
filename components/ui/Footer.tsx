@@ -84,8 +84,8 @@ export default function Footer({
                 Outrider
               </span>{" "}
               <span className="italic">noun.</span> One who rides ahead. Scouts the
-              route, clears what is in the way, and has the ground ready before
-              anyone else arrives.
+              route, clears the way and has everything ready before the group
+              arrives.
             </p>
 
             <div className="pt-2">
