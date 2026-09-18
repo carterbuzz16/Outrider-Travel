@@ -42,6 +42,7 @@ export type { BadgeTone, TripStatus } from "./Badge";
 export { Field, Input, InlineInput, Textarea, Select, Checkbox } from "./Field";
 
 export { default as AcceptTerms } from "./AcceptTerms";
+export { default as Dialog } from "./Dialog";
 export { default as Alert } from "./Alert";
 export type { AlertTone } from "./Alert";
 

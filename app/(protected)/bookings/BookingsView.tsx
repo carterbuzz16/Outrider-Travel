@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Alert, Badge, Button, type BadgeTone } from "@/components/ui";
-import { cancelBooking } from "@/app/(protected)/bookings/actions";
+import CancelBookingButton from "@/app/(protected)/bookings/CancelBookingButton";
 import { formatDay } from "@/app/(protected)/dates";
 import { formatDateRange, formatPrice } from "@/lib/trips";
 import type { Database } from "@/types/supabase";
@@ -14,7 +14,8 @@ import type { Database } from "@/types/supabase";
  * reads the session's own rows and hands them straight over.
  *
  * Still a Server Component: the only interactive parts are links and a form
- * posting a server action, so nothing here hydrates.
+ * posting a server action. The one island is CancelBookingButton, which puts a
+ * confirmation in front of that form.
  */
 
 type BookingStatus = Database["public"]["Enums"]["booking_status"];
@@ -221,12 +222,12 @@ function BookingCard({ booking }: { booking: BookingRow }) {
           </Button>
         )}
         {cancellable && (
-          <form action={cancelBooking} className="flex items-center">
-            <input type="hidden" name="booking_id" value={booking.id} />
-            <Button type="submit" variant="ghost" size="sm" className="text-[--text-secondary]">
-              Cancel booking
-            </Button>
-          </form>
+          <CancelBookingButton
+            bookingId={booking.id}
+            tripName={trip?.name ?? "this trip"}
+            paidLabel={paid > 0 ? formatPrice(paid) : null}
+            depositLabel={formatPrice(Number(booking.deposit_amount))}
+          />
         )}
         {cancelled && (
           <p className="font-body text-body-s text-[--text-secondary]">

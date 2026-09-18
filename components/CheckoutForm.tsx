@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe, type Appearance } from "@stripe/stripe-js";
 import { Alert, Button } from "@/components/ui";
+import AuthorizeCharge, { type ScheduledCharge } from "@/components/AuthorizeCharge";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -137,10 +138,13 @@ export default function CheckoutForm({
   bookingId,
   /** Rendered into the submit label, so the button says what it takes. */
   amountLabel,
+  /** The later automatic charges the traveler is authorizing, on the deposit plan. */
+  scheduledCharges,
 }: {
   clientSecret: string;
   bookingId: string;
   amountLabel: string;
+  scheduledCharges?: ScheduledCharge[];
 }) {
   // Computed once per mount. The result never reaches the DOM this component
   // renders, only Stripe's iframe, so the server/client difference is not a
@@ -149,21 +153,36 @@ export default function CheckoutForm({
 
   return (
     <Elements stripe={stripePromise} options={{ clientSecret, appearance, fonts: STRIPE_FONTS }}>
-      <PaymentForm bookingId={bookingId} amountLabel={amountLabel} />
+      <PaymentForm
+        bookingId={bookingId}
+        amountLabel={amountLabel}
+        scheduledCharges={scheduledCharges}
+      />
     </Elements>
   );
 }
 
-function PaymentForm({ bookingId, amountLabel }: { bookingId: string; amountLabel: string }) {
+function PaymentForm({
+  bookingId,
+  amountLabel,
+  scheduledCharges,
+}: {
+  bookingId: string;
+  amountLabel: string;
+  scheduledCharges?: ScheduledCharge[];
+}) {
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [authorized, setAuthorized] = useState(false);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!stripe || !elements) return;
+    // The disabled button already stops this; checked again here because the
+    // authorization is the point, and a form can be submitted other ways.
+    if (!stripe || !elements || !authorized) return;
 
     setSubmitting(true);
     setError(null);
@@ -218,6 +237,16 @@ function PaymentForm({ bookingId, amountLabel }: { bookingId: string; amountLabe
         </p>
       </fieldset>
 
+      <div className="mt-8">
+        <AuthorizeCharge
+          checked={authorized}
+          onChange={setAuthorized}
+          disabled={submitting}
+          amountLabel={amountLabel}
+          scheduled={scheduledCharges}
+        />
+      </div>
+
       {error && (
         <div className="mt-6">
           <Alert tone="error" title="That payment did not go through">
@@ -231,7 +260,7 @@ function PaymentForm({ bookingId, amountLabel }: { bookingId: string; amountLabe
           type="submit"
           variant="primary"
           size="lg"
-          disabled={!stripe || submitting}
+          disabled={!stripe || submitting || !authorized}
           // aria-busy rather than the label alone, so the wait is announced
           // and not only read.
           aria-busy={submitting}

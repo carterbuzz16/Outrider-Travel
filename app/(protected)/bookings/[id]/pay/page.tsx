@@ -157,6 +157,10 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
             clientSecret={paymentIntent.client_secret!}
             bookingId={booking.id}
             amountLabel={formatPrice(depositAmount)}
+            scheduledCharges={schedule.map((row) => ({
+              dateLabel: formatDay(row.date),
+              amountLabel: formatPrice(row.amount),
+            }))}
           />
         </section>
 

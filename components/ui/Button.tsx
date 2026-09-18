@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cn } from "./cn";
 
 /**
- * Button — primary, secondary, ghost.
+ * Button — primary, secondary, ghost, and danger for confirmations only.
  *
  * All three are square-cornered and set in tracked Medium capitals. They
  * read as stamped instructions rather than app chrome: no pill shapes, no drop
@@ -14,7 +14,7 @@ import { cn } from "./cn";
  * flips to club-blue-on-espresso with nothing passed in.
  */
 
-export type ButtonVariant = "primary" | "secondary" | "ghost";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 export type ButtonSize = "sm" | "md" | "lg";
 
 const BASE =
@@ -41,6 +41,15 @@ const VARIANTS: Record<ButtonVariant, string> = {
   ghost:
     "bg-transparent text-[--text] border-transparent px-0 " +
     "hover:text-[--accent]",
+
+  // Filled in the flag, for the one button in a confirmation that cannot be
+  // taken back. Never a page's main action: it only appears once somebody has
+  // already asked to do the irreversible thing. --flag-ink is the flag at text
+  // size (5.1:1 against paper), so the paper label on it clears 4.5:1 too, and
+  // hover goes to --text like the secondary's does rather than to a new shade.
+  danger:
+    "bg-[--flag-ink] text-[--surface] border-[--flag-ink] " +
+    "hover:bg-[--text] hover:border-[--text]",
 };
 
 const SIZES: Record<ButtonSize, string> = {
