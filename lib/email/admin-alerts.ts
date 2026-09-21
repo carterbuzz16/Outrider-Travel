@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
-import { getFromAddress, sendEmail } from "@/lib/email/send";
+import { getFromAddress, sendEmail, type RenderedEmail } from "@/lib/email/send";
 import { renderEmailLayout } from "@/lib/email/layout";
 import { confirmationNumber } from "@/lib/confirmation-number";
 import { formatAmount, toCents } from "@/lib/balance";
@@ -26,6 +26,17 @@ import { getAppUrl } from "@/lib/site-url";
 
 type Admin = SupabaseClient<Database>;
 
+/** The booking as the alert reads it (the select below). */
+export type NewBookingAlertBooking = {
+  id: string;
+  status: Database["public"]["Enums"]["booking_status"];
+  total_amount: number;
+  users: { name: string | null; email: string } | null;
+  trips: { name: string; start_date: string } | null;
+  tiers: { name: string } | null;
+  payments: { status: string; amount: number }[];
+};
+
 export async function sendNewBookingAlert(admin: Admin, bookingId: string): Promise<void> {
   const to = process.env.ADMIN_NOTIFY_TO?.trim();
   if (!to) return;
@@ -40,6 +51,12 @@ export async function sendNewBookingAlert(admin: Admin, bookingId: string): Prom
     return;
   }
 
+  const { subject, text, html } = renderNewBookingAlert(booking);
+  await sendEmail({ from: getFromAddress(), to, subject, text, html });
+}
+
+/** The alert's content for one booking. Pure. */
+export function renderNewBookingAlert(booking: NewBookingAlertBooking): RenderedEmail & { html: string; text: string } {
   const who = booking.users?.name?.trim() || booking.users?.email || "Someone";
   const trip = booking.trips ? `${booking.trips.name} (${booking.trips.start_date})` : "a trip";
   const tier = booking.tiers?.name ?? "no package";
@@ -54,9 +71,7 @@ export async function sendNewBookingAlert(admin: Admin, bookingId: string): Prom
 
   const line = `New booking: ${who}, ${trip}, ${tier}, ${plan} ${amount}, ${confirmation}`;
 
-  await sendEmail({
-    from: getFromAddress(),
-    to,
+  return {
     subject: `New booking: ${who}, ${tier} (${confirmation})`,
     text: `${line}\n\nTotal ${formatAmount(Number(booking.total_amount))}.\n\n${url}`,
     html: renderEmailLayout({
@@ -66,7 +81,7 @@ export async function sendNewBookingAlert(admin: Admin, bookingId: string): Prom
       footerNote: "You're receiving this because you're an Outrider admin.",
       ctaUrl: url,
     }),
-  });
+  };
 }
 
 function escapeHtml(value: string): string {

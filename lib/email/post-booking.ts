@@ -3,7 +3,14 @@ import type { Database } from "@/types/supabase";
 import confirmationTemplate from "@/lib/email/templates/confirmation";
 import chaseTemplate from "@/lib/email/templates/chase";
 import { renderTemplate, TemplateRenderError, type TemplateVariables } from "@/lib/email/render-template";
-import { getFromAddress, sendBookingConfirmationEmail, sendEmail } from "@/lib/email/send";
+import {
+  getFromAddress,
+  renderBookingConfirmationEmail,
+  sendBookingConfirmationEmail,
+  sendEmail,
+  type BookingConfirmationInput,
+  type RenderedEmail,
+} from "@/lib/email/send";
 import { PORTAL_ANCHORS, createPortalUrl } from "@/lib/portal-token";
 import { getTripLogistics } from "@/lib/trip-logistics";
 import { confirmationNumber } from "@/lib/confirmation-number";
@@ -67,9 +74,9 @@ const BOOKING_SELECT =
 const LEGACY_BOOKING_SELECT =
   "id, user_id, trip_id, status, total_amount, group_code, users(email, name), trips(name, destination, start_date, end_date, logistics), tiers(name), payments(status, amount, scheduled_date)";
 
-type PaymentLite = { status: string; amount: number; scheduled_date: string | null };
+export type PaymentLite = { status: string; amount: number; scheduled_date: string | null };
 
-type BookingForEmail = {
+export type BookingForEmail = {
   id: string;
   user_id: string;
   trip_id: string;
@@ -174,7 +181,7 @@ async function firstNameFor(admin: Admin, booking: BookingForEmail): Promise<str
 
 /* -- variables -------------------------------------------------------------- */
 
-function smsNumbers(): { display: string; raw: string } | null {
+export function smsNumbers(): { display: string; raw: string } | null {
   const display = process.env.SMS_NUMBER?.trim();
   const raw = process.env.SMS_NUMBER_RAW?.trim();
   // E.164, or the sms: links in both emails do nothing on a phone.
@@ -200,21 +207,52 @@ function preferencesUrl(): string {
   return `${getAppUrl()}/privacy#email`;
 }
 
-/**
- * Every value either template can ask for, or undefined where it is not
- * known. renderTemplate turns an undefined that the template actually uses
- * into a refusal naming it.
- */
+/** Whether a missing trip fact renders as a visible stand-in (see placeholder()). */
+function placeholdersAllowed(): boolean {
+  return process.env.VERCEL_ENV !== "production";
+}
+
 async function variablesFor(
   admin: Admin,
   booking: BookingForEmail,
 ): Promise<{ variables: TemplateVariables; portalUrl: string | null; firstName: string | null }> {
+  const portalUrl = createPortalUrl(booking.id);
+  const firstName = await firstNameFor(admin, booking);
+  const variables = buildTemplateVariables(booking, {
+    firstName,
+    portalUrl,
+    sms: smsNumbers(),
+    placeholders: placeholdersAllowed(),
+  });
+  return { variables, portalUrl, firstName };
+}
+
+/**
+ * Every value either template can ask for, or undefined where it is not
+ * known. renderTemplate turns an undefined that the template actually uses
+ * into a refusal naming it.
+ *
+ * Pure: everything that needs the database or a secret (the name, the signed
+ * portal link, the texting number) is passed in, so the admin preview page can
+ * build the same variables from sample data. `placeholders` is the
+ * off-production stand-in rule (see placeholder()); the preview forces it on
+ * to show the layout, and off to list what production would still be missing.
+ */
+export function buildTemplateVariables(
+  booking: BookingForEmail,
+  opts: {
+    firstName: string | null;
+    portalUrl: string | null;
+    sms: { display: string; raw: string } | null;
+    placeholders: boolean;
+    today?: string;
+  },
+): TemplateVariables {
+  const { firstName, portalUrl, sms } = opts;
+  const placeholder = (label: string) => (opts.placeholders ? `[${label} to be confirmed]` : null);
   const trip = booking.trips;
   const logistics = trip ? getTripLogistics(trip.start_date) : null;
-  const portalUrl = createPortalUrl(booking.id);
-  const sms = smsNumbers();
   const m = money(booking);
-  const firstName = await firstNameFor(admin, booking);
 
   let nextAmount: string | undefined;
   let nextDate: string | undefined;
@@ -260,7 +298,7 @@ async function variablesFor(
     set("trip_dates", formatDateRange(trip.start_date, trip.end_date));
     // The unit rides in the value ("1 day", "12 days"), so the template's
     // "is {{days_until_trip}} out" never reads "1 days".
-    const days = daysBetween(todayInMountain(), trip.start_date);
+    const days = daysBetween(opts.today ?? todayInMountain(), trip.start_date);
     if (days > 0) set("days_until_trip", `${days} ${days === 1 ? "day" : "days"}`);
   }
   if (logistics) {
@@ -274,21 +312,18 @@ async function variablesFor(
     );
   }
 
-  return { variables, portalUrl, firstName };
+  return variables;
 }
 
-/**
- * Stand-in for a trip fact that lib/trip-logistics.ts does not have yet.
+/*
+ * The stand-in for a trip fact that lib/trip-logistics.ts does not have yet
+ * (the `placeholder` helper inside buildTemplateVariables).
  *
  * Only off production. On the sandbox and locally, a visible "[arrival deadline
  * to be confirmed]" lets the designed emails be tested before the facts are
  * settled. On production it returns null, so the variable is missing and the
  * plain confirmation goes out instead: a traveler never gets a placeholder.
  */
-function placeholder(label: string): string | null {
-  if (process.env.VERCEL_ENV === "production") return null;
-  return `[${label} to be confirmed]`;
-}
 
 function render(template: string, variables: TemplateVariables, flags?: Record<string, boolean>) {
   const address = postalAddress();
@@ -338,6 +373,50 @@ function chaseText(v: TemplateVariables, flags: Record<string, boolean>): string
   ].join("\n");
 }
 
+/* -- pure renders ----------------------------------------------------------- */
+
+/**
+ * The designed confirmation, ready to send. Throws TemplateRenderError when
+ * anything it needs is missing, which is what sends the plain one instead.
+ */
+export function renderConfirmationEmail(
+  variables: TemplateVariables,
+  paidInFull: boolean,
+): RenderedEmail & { html: string; text: string } {
+  const html = render(confirmationTemplate, variables, {
+    paid_in_full: paidInFull,
+    has_balance: !paidInFull,
+  });
+  return {
+    // The template's own subject line (its SUBJECT comment).
+    subject: "You're in. Three things to do today.",
+    html,
+    text: confirmationText(variables),
+  };
+}
+
+export type ChaseFlags = { flights_booked: boolean; rooming_submitted: boolean; details_submitted: boolean };
+
+/** The 72-hour chase, ready to send. Throws TemplateRenderError like the above. */
+export function renderChaseEmail(
+  variables: TemplateVariables,
+  flags: ChaseFlags,
+  firstName: string | null,
+): RenderedEmail & { html: string; text: string } {
+  const html = render(chaseTemplate, variables, flags);
+  return {
+    // The template's own subject line, without the name when there is none.
+    subject: firstName ? `${firstName}, we're still missing a couple of things` : "We're still missing a couple of things",
+    html,
+    text: chaseText(variables, flags),
+  };
+}
+
+/** The plain confirmation for a booking, the fallback for the designed one. */
+export function renderPlainConfirmationFor(booking: BookingForEmail, portalUrl: string | null) {
+  return renderBookingConfirmationEmail(plainConfirmationInput(booking, money(booking), portalUrl));
+}
+
 /* -- email 1 ---------------------------------------------------------------- */
 
 export type ConfirmationOutcome = "designed" | "plain" | "not-due" | "already-sent" | "failed";
@@ -382,13 +461,10 @@ export async function sendConfirmationEmailOnce(
 
     // Worked out before the claim, so a slow render never holds it.
     const { variables, portalUrl } = await variablesFor(admin, booking);
-    let html: string | null = null;
+    let designed: ReturnType<typeof renderConfirmationEmail> | null = null;
     let missing: string[] = [];
     try {
-      html = render(confirmationTemplate, variables, {
-        paid_in_full: booking.status === "paid_in_full",
-        has_balance: booking.status !== "paid_in_full",
-      });
+      designed = renderConfirmationEmail(variables, booking.status === "paid_in_full");
     } catch (err) {
       if (!(err instanceof TemplateRenderError)) throw err;
       missing = err.missing.length > 0 ? err.missing : [err.message];
@@ -409,15 +485,14 @@ export async function sendConfirmationEmailOnce(
     if (!claimed) return "already-sent";
 
     try {
-      if (html) {
+      if (designed) {
         await sendEmail({
           from: getFromAddress(),
           replyTo: getFromAddress(),
           to: booking.users.email,
-          // The template's own subject line (its SUBJECT comment).
-          subject: "You're in. Three things to do today.",
-          html,
-          text: confirmationText(variables),
+          subject: designed.subject,
+          html: designed.html,
+          text: designed.text,
         });
         return "designed";
       }
@@ -451,8 +526,15 @@ async function sendPlainConfirmation(
   m: ReturnType<typeof money>,
   portalUrl: string | null,
 ) {
-  await sendBookingConfirmationEmail({
-    to: booking.users!.email,
+  await sendBookingConfirmationEmail({ to: booking.users!.email, ...plainConfirmationInput(booking, m, portalUrl) });
+}
+
+function plainConfirmationInput(
+  booking: Pick<BookingForEmail, "id" | "status" | "total_amount" | "group_code" | "users" | "trips" | "tiers">,
+  m: ReturnType<typeof money>,
+  portalUrl: string | null,
+): BookingConfirmationInput {
+  return {
     name: booking.users!.name,
     bookingId: booking.id,
     trip: {
@@ -469,7 +551,7 @@ async function sendPlainConfirmation(
     groupCode: booking.group_code,
     upcomingPayments: m.upcoming.map((p) => ({ amount: Number(p.amount), scheduledDate: p.scheduled_date })),
     portalUrl,
-  });
+  };
 }
 
 // Before the migration: the plain email, exactly once, from the confirming
@@ -514,7 +596,7 @@ export async function sendChaseEmailOnce(admin: Admin, bookingId: string): Promi
       return "not-due";
     }
 
-    const flags = {
+    const flags: ChaseFlags = {
       flights_booked: booking.flights_booked,
       rooming_submitted: booking.rooming_submitted,
       details_submitted: booking.details_submitted,
@@ -529,9 +611,9 @@ export async function sendChaseEmailOnce(admin: Admin, bookingId: string): Promi
     if (booking.trips.start_date.slice(0, 10) <= todayInMountain()) return "not-due";
 
     const { variables, firstName } = await variablesFor(admin, booking);
-    let html: string;
+    let email: ReturnType<typeof renderChaseEmail>;
     try {
-      html = render(chaseTemplate, variables, flags);
+      email = renderChaseEmail(variables, flags, firstName);
     } catch (err) {
       if (!(err instanceof TemplateRenderError)) throw err;
       console.warn(
@@ -559,12 +641,9 @@ export async function sendChaseEmailOnce(admin: Admin, bookingId: string): Promi
         from: getFromAddress(),
         replyTo: getFromAddress(),
         to: booking.users.email,
-        // The template's own subject line, without the name when there is none.
-        subject: firstName
-          ? `${firstName}, we're still missing a couple of things`
-          : "We're still missing a couple of things",
-        html,
-        text: chaseText(variables, flags),
+        subject: email.subject,
+        html: email.html,
+        text: email.text,
       });
       return "sent";
     } catch (err) {

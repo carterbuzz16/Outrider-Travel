@@ -46,13 +46,28 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
-export async function sendPortalLinkEmail(opts: {
-  to: string;
-  name: string | null;
-  tripName: string;
-  portalUrl: string;
-}) {
-  const { to, name, tripName, portalUrl } = opts;
+export type PortalLinkInput = { name: string | null; tripName: string; portalUrl: string };
+
+export async function sendPortalLinkEmail(opts: PortalLinkInput & { to: string }) {
+  const { subject, html, text } = renderPortalLinkEmail(opts);
+
+  // resend.emails.send() resolves with { error } on an API failure rather
+  // than throwing, so turn that into a throw the caller can catch and log.
+  const { error } = await getResend().emails.send({
+    from: getFromAddress(),
+    to: opts.to,
+    subject,
+    html,
+    text,
+  });
+  if (error) {
+    throw new Error(`Resend send failed: ${error.name}: ${error.message}`);
+  }
+}
+
+/** The fresh-link email's content. Pure; used by the sender and the admin preview. */
+export function renderPortalLinkEmail(opts: PortalLinkInput): { subject: string; html: string; text: string } {
+  const { name, tripName, portalUrl } = opts;
   const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi,";
 
   const bodyHtml = `
@@ -62,11 +77,7 @@ export async function sendPortalLinkEmail(opts: {
     <p style="font-size: 13px; color: #6B635C;">If you did not ask for this, you can ignore it. Nothing has changed on your booking.</p>
   `;
 
-  // resend.emails.send() resolves with { error } on an API failure rather
-  // than throwing, so turn that into a throw the caller can catch and log.
-  const { error } = await getResend().emails.send({
-    from: getFromAddress(),
-    to,
+  return {
     subject: `Your trip page: ${tripName}`,
     html: renderEmailLayout({
       preheader: `A fresh link to your ${tripName} trip page.`,
@@ -84,8 +95,5 @@ export async function sendPortalLinkEmail(opts: {
       "",
       "If you did not ask for this, you can ignore it.",
     ].join("\n"),
-  });
-  if (error) {
-    throw new Error(`Resend send failed: ${error.name}: ${error.message}`);
-  }
+  };
 }

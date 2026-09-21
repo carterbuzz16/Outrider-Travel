@@ -51,6 +51,23 @@ export function getFromAddress(): string {
   return process.env.EMAIL_FROM_ADDRESS;
 }
 
+/**
+ * What every email in this folder renders to before it is sent. Each email has
+ * a pure render function returning this, used by its real sender and by the
+ * admin preview page (app/admin/emails), so what the back office previews and
+ * test-sends is byte for byte what a traveler gets. Render functions never read
+ * the database and never send.
+ */
+export type RenderedEmail = {
+  subject: string;
+  /** Absent for the plain-text-only notifications to the team. */
+  html?: string;
+  /** The plain-text part, where the real send includes one. */
+  text?: string;
+  /** Extra headers the real send carries (the waitlist's List-Unsubscribe). */
+  headers?: Record<string, string>;
+};
+
 interface TripInfo {
   name: string;
   destination: string;
@@ -64,8 +81,7 @@ interface UpcomingPayment {
   scheduledDate: string | null;
 }
 
-export async function sendBookingConfirmationEmail(opts: {
-  to: string;
+export type BookingConfirmationInput = {
   name: string | null;
   bookingId: string;
   trip: TripInfo;
@@ -83,8 +99,21 @@ export async function sendBookingConfirmationEmail(opts: {
    * can be made it still carries the three things we need straight away.
    */
   portalUrl?: string | null;
-}) {
-  const { to, name, bookingId, trip, tierName, totalAmount, amountPaid, paidInFull, groupCode, upcomingPayments, portalUrl } =
+};
+
+export async function sendBookingConfirmationEmail(opts: BookingConfirmationInput & { to: string }) {
+  const { subject, html } = renderBookingConfirmationEmail(opts);
+  await sendEmail({
+    from: getFromAddress(),
+    replyTo: getFromAddress(),
+    to: opts.to,
+    subject,
+    html,
+  });
+}
+
+export function renderBookingConfirmationEmail(opts: BookingConfirmationInput): RenderedEmail & { html: string } {
+  const { name, bookingId, trip, tierName, totalAmount, amountPaid, paidInFull, groupCode, upcomingPayments, portalUrl } =
     opts;
   const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi there,";
   const remaining = Math.max(0, totalAmount - amountPaid);
@@ -146,10 +175,7 @@ export async function sendBookingConfirmationEmail(opts: {
     ${groupCodeHtml}
   `;
 
-  await sendEmail({
-    from: getFromAddress(),
-    replyTo: getFromAddress(),
-    to,
+  return {
     subject: `You're booked: ${trip.name}`,
     html: renderEmailLayout({
       preheader: paidInFull
@@ -159,11 +185,10 @@ export async function sendBookingConfirmationEmail(opts: {
       ctaLabel: "View your booking",
       ctaUrl: `${getAppUrl()}/bookings/${bookingId}/confirmation`,
     }),
-  });
+  };
 }
 
-export async function sendInstallmentChargedEmail(opts: {
-  to: string;
+export type InstallmentChargedInput = {
   name: string | null;
   bookingId: string;
   tripName: string;
@@ -175,8 +200,15 @@ export async function sendInstallmentChargedEmail(opts: {
    * scheduled ones, so the receipt says that instead of "as scheduled".
    */
   kind?: "installment" | "balance";
-}) {
-  const { to, name, bookingId, tripName, amount, remainingBalance, kind = "installment" } = opts;
+};
+
+export async function sendInstallmentChargedEmail(opts: InstallmentChargedInput & { to: string }) {
+  const { subject, html } = renderInstallmentChargedEmail(opts);
+  await sendEmail({ from: getFromAddress(), to: opts.to, subject, html });
+}
+
+export function renderInstallmentChargedEmail(opts: InstallmentChargedInput): RenderedEmail & { html: string } {
+  const { name, bookingId, tripName, amount, remainingBalance, kind = "installment" } = opts;
   const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi there,";
 
   const opening =
@@ -199,9 +231,7 @@ export async function sendInstallmentChargedEmail(opts: {
     <p>${balanceLine}</p>
   `;
 
-  await sendEmail({
-    from: getFromAddress(),
-    to,
+  return {
     subject: `Payment received: ${tripName}`,
     html: renderEmailLayout({
       // Neutral: a balance payment is one the traveler made themselves.
@@ -210,18 +240,24 @@ export async function sendInstallmentChargedEmail(opts: {
       ctaLabel: "View your booking",
       ctaUrl: `${getAppUrl()}/bookings/${bookingId}/confirmation`,
     }),
-  });
+  };
 }
 
-export async function sendPaymentFailedEmail(opts: {
-  to: string;
+export type PaymentFailedInput = {
   name: string | null;
   bookingId: string;
   tripName: string;
   amount: number;
   willRetry: boolean;
-}) {
-  const { to, name, bookingId, tripName, amount, willRetry } = opts;
+};
+
+export async function sendPaymentFailedEmail(opts: PaymentFailedInput & { to: string }) {
+  const { subject, html } = renderPaymentFailedEmail(opts);
+  await sendEmail({ from: getFromAddress(), to: opts.to, subject, html });
+}
+
+export function renderPaymentFailedEmail(opts: PaymentFailedInput): RenderedEmail & { html: string } {
+  const { name, bookingId, tripName, amount, willRetry } = opts;
   const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi there,";
 
   const bodyHtml = `
@@ -234,9 +270,7 @@ export async function sendPaymentFailedEmail(opts: {
     }</p>
   `;
 
-  await sendEmail({
-    from: getFromAddress(),
-    to,
+  return {
     subject: `Action needed: payment failed for ${tripName}`,
     html: renderEmailLayout({
       preheader: `We couldn't process your ${formatCurrency(amount)} installment.`,
@@ -244,18 +278,24 @@ export async function sendPaymentFailedEmail(opts: {
       ctaLabel: "View your booking",
       ctaUrl: `${getAppUrl()}/bookings/${bookingId}/confirmation`,
     }),
-  });
+  };
 }
 
-export async function sendActionRequiredEmail(opts: {
-  to: string;
+export type ActionRequiredInput = {
   name: string | null;
   bookingId: string;
   paymentId: string;
   tripName: string;
   amount: number;
-}) {
-  const { to, name, bookingId, paymentId, tripName, amount } = opts;
+};
+
+export async function sendActionRequiredEmail(opts: ActionRequiredInput & { to: string }) {
+  const { subject, html } = renderActionRequiredEmail(opts);
+  await sendEmail({ from: getFromAddress(), to: opts.to, subject, html });
+}
+
+export function renderActionRequiredEmail(opts: ActionRequiredInput): RenderedEmail & { html: string } {
+  const { name, bookingId, paymentId, tripName, amount } = opts;
   const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi there,";
 
   const bodyHtml = `
@@ -264,9 +304,7 @@ export async function sendActionRequiredEmail(opts: {
     <p>Nothing will be charged until you complete verification.</p>
   `;
 
-  await sendEmail({
-    from: getFromAddress(),
-    to,
+  return {
     subject: `Action needed: verify your payment for ${tripName}`,
     html: renderEmailLayout({
       preheader: `Your bank needs to verify a ${formatCurrency(amount)} payment.`,
@@ -274,7 +312,7 @@ export async function sendActionRequiredEmail(opts: {
       ctaLabel: "Verify now",
       ctaUrl: `${getAppUrl()}/bookings/${bookingId}/installments/${paymentId}`,
     }),
-  });
+  };
 }
 
 /**
@@ -283,15 +321,21 @@ export async function sendActionRequiredEmail(opts: {
  * Nobody at Outrider decided this refund, so the email is the only way the
  * traveler hears why a credit is on its way. Kept short and factual.
  */
-export async function sendOverpaymentRefundEmail(opts: {
-  to: string;
+export type OverpaymentRefundInput = {
   name: string | null;
   bookingId: string;
   tripName: string;
   amount: number;
   reason: "overpaid" | "cancelled";
-}) {
-  const { to, name, bookingId, tripName, amount, reason } = opts;
+};
+
+export async function sendOverpaymentRefundEmail(opts: OverpaymentRefundInput & { to: string }) {
+  const { subject, html } = renderOverpaymentRefundEmail(opts);
+  await sendEmail({ from: getFromAddress(), to: opts.to, subject, html });
+}
+
+export function renderOverpaymentRefundEmail(opts: OverpaymentRefundInput): RenderedEmail & { html: string } {
+  const { name, bookingId, tripName, amount, reason } = opts;
   const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi there,";
 
   const why =
@@ -306,9 +350,7 @@ export async function sendOverpaymentRefundEmail(opts: {
     <p>There is nothing you need to do. If the numbers look wrong to you, reply to this email.</p>
   `;
 
-  await sendEmail({
-    from: getFromAddress(),
-    to,
+  return {
     subject: `Refund on its way: ${tripName}`,
     html: renderEmailLayout({
       preheader: `We refunded ${formatCurrency(amount)} to your card.`,
@@ -316,7 +358,7 @@ export async function sendOverpaymentRefundEmail(opts: {
       ctaLabel: "View your booking",
       ctaUrl: `${getAppUrl()}/bookings/${bookingId}/confirmation`,
     }),
-  });
+  };
 }
 
 /**
@@ -332,6 +374,11 @@ export async function sendOverpaymentRefundEmail(opts: {
  * is what teaches inboxes otherwise.
  */
 export async function sendWaitlistWelcome(email: string, token: string) {
+  const { subject, html, text, headers } = renderWaitlistWelcome(token);
+  await sendEmail({ from: getFromAddress(), to: email, subject, headers, html, text });
+}
+
+export function renderWaitlistWelcome(token: string): RenderedEmail & { html: string; text: string } {
   const url = `${getAppUrl()}/unsubscribe?t=${encodeURIComponent(token)}`;
   // Before launch the list hears first; once booking is open there is no
   // "before it goes on sale" left to promise.
@@ -339,9 +386,7 @@ export async function sendWaitlistWelcome(email: string, token: string) {
     ? "Telluride is open for booking now, and the list hears first whenever the next trip opens."
     : "Trips open to this list before they go on sale. When Telluride goes live, you'll hear it from us before campus does.";
 
-  await sendEmail({
-    from: getFromAddress(),
-    to: email,
+  return {
     subject: "You're on the Outrider list",
     headers: {
       // RFC 8058. The POST endpoint is what Gmail's own unsubscribe button
@@ -375,25 +420,32 @@ export async function sendWaitlistWelcome(email: string, token: string) {
       "",
       `Unsubscribe: ${url}`,
     ].join("\n"),
-  });
+  };
 }
 
 // Optional heads-up to the team when someone joins the waitlist. Silent
 // no-op unless WAITLIST_NOTIFY_TO is set, so the coming-soon page works
 // without it; the caller treats any failure here as non-fatal.
-export async function sendWaitlistNotification(
-  email: string,
-  context: {
-    placement?: string;
-    source?: string;
-    medium?: string;
-    campaign?: string;
-    referrer?: string;
-  } = {},
-) {
+export type WaitlistSignupContext = {
+  placement?: string;
+  source?: string;
+  medium?: string;
+  campaign?: string;
+  referrer?: string;
+};
+
+export async function sendWaitlistNotification(email: string, context: WaitlistSignupContext = {}) {
   const to = process.env.WAITLIST_NOTIFY_TO;
   if (!to) return;
 
+  const { subject, text } = renderWaitlistNotification(email, context);
+  await sendEmail({ from: getFromAddress(), to, subject, text });
+}
+
+export function renderWaitlistNotification(
+  email: string,
+  context: WaitlistSignupContext = {},
+): RenderedEmail & { text: string } {
   // Plain text, one fact per line, so it can be skimmed from a phone lock
   // screen. Lines with nothing to say are left out rather than printed empty.
   const lines = [
@@ -405,14 +457,12 @@ export async function sendWaitlistNotification(
     context.referrer && `Referrer: ${context.referrer}`,
   ].filter(Boolean);
 
-  await sendEmail({
-    from: getFromAddress(),
-    to,
+  return {
     subject: context.source
       ? `Outrider: new waitlist signup (${context.source})`
       : "Outrider: new waitlist signup",
     text: lines.join("\n"),
-  });
+  };
 }
 
 function escapeHtml(value: string): string {

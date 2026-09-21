@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 import { formatDate, renderEmailLayout } from "@/lib/email/layout";
-import { getFromAddress, sendEmail } from "@/lib/email/send";
+import { getFromAddress, sendEmail, type RenderedEmail } from "@/lib/email/send";
 import { getAppUrl } from "@/lib/site-url";
 import { todayInMountain } from "@/lib/mountain-time";
 import { createPortalUrl } from "@/lib/portal-token";
@@ -45,7 +45,7 @@ const REMINDER_WINDOW_MS = 48 * 60 * 60 * 1000;
 const MEMBER_COLUMNS =
   "id, status, group_code, created_at, penthouse_full_email_sent_at, penthouse_reminder_email_sent_at, users(email, name), payments(paid_at, scheduled_date)";
 
-type TierContext = {
+export type PenthouseTierContext = {
   id: string;
   name: string;
   max_capacity: number | null;
@@ -105,7 +105,7 @@ export async function sendDuePenthouseEmails(
     return { full, reminder };
   }
 
-  for (const tier of (tiers ?? []) as TierContext[]) {
+  for (const tier of (tiers ?? []) as PenthouseTierContext[]) {
     if (tier.max_capacity === null) continue;
     const rows = await loadRows(admin, tier.id);
     if (!rows) continue;
@@ -134,7 +134,7 @@ function add(into: PenthouseEmailOutcome, from: PenthouseEmailOutcome) {
   into.failed += from.failed;
 }
 
-async function loadTier(admin: Admin, tierId: string): Promise<TierContext | null> {
+async function loadTier(admin: Admin, tierId: string): Promise<PenthouseTierContext | null> {
   const { data } = await admin
     .from("tiers")
     .select("id, name, max_capacity, trip_id, group_exclusive, trips(name, start_date, end_date)")
@@ -158,7 +158,7 @@ async function loadRows(admin: Admin, tierId: string): Promise<MemberRow[] | nul
 
 async function sendToMembers(
   admin: Admin,
-  tier: TierContext,
+  tier: PenthouseTierContext,
   rows: MemberRow[],
   code: string,
   fill: PenthouseFill,
@@ -230,16 +230,35 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
-function dates(tier: TierContext): string {
+function dates(tier: Pick<PenthouseTierContext, "trips">): string {
   const trip = tier.trips;
   return trip ? `${formatDate(trip.start_date)} to ${formatDate(trip.end_date)}` : "";
 }
 
-async function sendFull(member: MemberRow, tier: TierContext, fill: PenthouseFill) {
+async function sendFull(member: MemberRow, tier: PenthouseTierContext, fill: PenthouseFill) {
+  const portalUrl = createPortalUrl(member.id) ?? `${getAppUrl()}/bookings`;
+  const { subject, html, text } = renderPenthouseFullEmail({ memberName: member.users?.name ?? null, tier, fill, portalUrl });
+  await sendEmail({
+    from: getFromAddress(),
+    replyTo: getFromAddress(),
+    to: member.users!.email,
+    subject,
+    html,
+    text,
+  });
+}
+
+/** "Penthouse 702 is full", for one member. Pure: the caller supplies the portal link. */
+export function renderPenthouseFullEmail(opts: {
+  memberName: string | null;
+  tier: Pick<PenthouseTierContext, "name" | "trips">;
+  fill: Pick<PenthouseFill, "capacity">;
+  portalUrl: string;
+}): RenderedEmail & { html: string; text: string } {
+  const { memberName, tier, fill, portalUrl } = opts;
   const name = tierDisplayName(tier.name);
   const tripName = tier.trips?.name ?? "your trip";
-  const portalUrl = createPortalUrl(member.id) ?? `${getAppUrl()}/bookings`;
-  const greeting = member.users?.name ? `Hi ${escapeHtml(member.users.name)},` : "Hi there,";
+  const greeting = memberName ? `Hi ${escapeHtml(memberName)},` : "Hi there,";
   const subject = `${name} is full. All ${inWords(fill.capacity)} of you are in.`;
 
   const bodyHtml = `
@@ -249,10 +268,7 @@ async function sendFull(member: MemberRow, tier: TierContext, fill: PenthouseFil
     <p>Reply to this email if anything comes up. A person reads it.</p>
   `;
 
-  await sendEmail({
-    from: getFromAddress(),
-    replyTo: getFromAddress(),
-    to: member.users!.email,
+  return {
     subject,
     html: renderEmailLayout({
       preheader: `All ${fill.capacity} places in ${name} are booked.`,
@@ -261,7 +277,7 @@ async function sendFull(member: MemberRow, tier: TierContext, fill: PenthouseFil
       ctaUrl: portalUrl,
     }),
     text: [
-      member.users?.name ? `Hi ${member.users.name},` : "Hi there,",
+      memberName ? `Hi ${memberName},` : "Hi there,",
       "",
       `Every place in ${name} is booked. The penthouse is yours for ${tripName}, ${dates(tier)}.`,
       "",
@@ -270,15 +286,34 @@ async function sendFull(member: MemberRow, tier: TierContext, fill: PenthouseFil
       "",
       "Reply to this email if anything comes up. A person reads it.",
     ].join("\n"),
+  };
+}
+
+async function sendReminder(member: MemberRow, tier: PenthouseTierContext, code: string, fill: PenthouseFill) {
+  const { subject, html, text } = renderPenthouseReminderEmail({ memberName: member.users?.name ?? null, tier, code, fill });
+  await sendEmail({
+    from: getFromAddress(),
+    replyTo: getFromAddress(),
+    to: member.users!.email,
+    subject,
+    html,
+    text,
   });
 }
 
-async function sendReminder(member: MemberRow, tier: TierContext, code: string, fill: PenthouseFill) {
+/** "Two days left to fill Penthouse 702", for one member. Pure. */
+export function renderPenthouseReminderEmail(opts: {
+  memberName: string | null;
+  tier: Pick<PenthouseTierContext, "id" | "name" | "trip_id">;
+  code: string;
+  fill: Pick<PenthouseFill, "capacity" | "filled">;
+}): RenderedEmail & { html: string; text: string } {
+  const { memberName, tier, code, fill } = opts;
   const name = tierDisplayName(tier.name);
   const open = Math.max(0, fill.capacity - fill.filled);
   const places = `${open} ${open === 1 ? "place" : "places"} open`;
   const shareUrl = `${getAppUrl()}${penthouseInvitePath(tier.trip_id, tier.id, code)}`;
-  const greeting = member.users?.name ? `Hi ${escapeHtml(member.users.name)},` : "Hi there,";
+  const greeting = memberName ? `Hi ${escapeHtml(memberName)},` : "Hi there,";
   const subject = `Two days left to fill ${name}. ${fill.filled} of ${fill.capacity} in, ${places}.`;
 
   const bodyHtml = `
@@ -289,10 +324,7 @@ async function sendReminder(member: MemberRow, tier: TierContext, code: string, 
     <p style="font-size: 13px; color: #6B635C;">${escapeHtml(PENTHOUSE_DISCLAIMER)}</p>
   `;
 
-  await sendEmail({
-    from: getFromAddress(),
-    replyTo: getFromAddress(),
-    to: member.users!.email,
+  return {
     subject,
     html: renderEmailLayout({
       preheader: `${fill.filled} of ${fill.capacity} in, ${places}.`,
@@ -301,7 +333,7 @@ async function sendReminder(member: MemberRow, tier: TierContext, code: string, 
       ctaUrl: shareUrl,
     }),
     text: [
-      member.users?.name ? `Hi ${member.users.name},` : "Hi there,",
+      memberName ? `Hi ${memberName},` : "Hi there,",
       "",
       `${name} has ${fill.filled} of ${fill.capacity} places booked, and about two days left to fill the rest.`,
       "",
@@ -310,5 +342,5 @@ async function sendReminder(member: MemberRow, tier: TierContext, code: string, 
       "",
       PENTHOUSE_DISCLAIMER,
     ].join("\n"),
-  });
+  };
 }

@@ -1,6 +1,6 @@
 import "server-only";
 import { formatCurrency, renderEmailLayout } from "@/lib/email/layout";
-import { getFromAddress, sendEmail } from "@/lib/email/send";
+import { getFromAddress, sendEmail, type RenderedEmail } from "@/lib/email/send";
 import { getAppUrl } from "@/lib/site-url";
 
 /**
@@ -10,15 +10,22 @@ import { getAppUrl } from "@/lib/site-url";
  * this, so the email is the only way the traveler hears why. Short, and it
  * says sorry. In its own file so it lands without touching lib/email/send.ts.
  */
-export async function sendStaleCheckoutRefundEmail(opts: {
-  to: string;
+export type StaleCheckoutRefundInput = {
   name: string | null;
   tripId: string;
   tripName: string;
   amount: number;
   reason: "full" | "claimed";
-}) {
-  const { to, name, tripId, tripName, amount, reason } = opts;
+};
+
+export async function sendStaleCheckoutRefundEmail(opts: StaleCheckoutRefundInput & { to: string }) {
+  const { subject, html } = renderStaleCheckoutRefundEmail(opts);
+  await sendEmail({ from: getFromAddress(), to: opts.to, subject, html });
+}
+
+/** The apology's content. Pure. */
+export function renderStaleCheckoutRefundEmail(opts: StaleCheckoutRefundInput): RenderedEmail & { html: string } {
+  const { name, tripId, tripName, amount, reason } = opts;
   const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi,";
   const why =
     reason === "claimed"
@@ -32,9 +39,7 @@ export async function sendStaleCheckoutRefundEmail(opts: {
     <p>If other dates or packages still suit you, you can choose again below. If anything looks wrong, reply to this email.</p>
   `;
 
-  await sendEmail({
-    from: getFromAddress(),
-    to,
+  return {
     subject: `Refund on its way: ${tripName}`,
     html: renderEmailLayout({
       preheader: `We refunded ${formatCurrency(amount)} to your card.`,
@@ -43,7 +48,7 @@ export async function sendStaleCheckoutRefundEmail(opts: {
       ctaUrl: `${getAppUrl()}/bookings/new?trip=${encodeURIComponent(tripId)}`,
       footerNote: "You're receiving this because you started a booking with Outrider. Questions? Just reply to this email.",
     }),
-  });
+  };
 }
 
 function escapeHtml(value: string): string {

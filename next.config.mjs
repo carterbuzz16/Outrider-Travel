@@ -155,6 +155,9 @@ const nextConfig = {
     "/trips/\\[id\\]": ["./public/images/peaks/**/*"],
     "/bookings/new": ["./public/images/peaks/**/*"],
     "/bookings/*/pay": ["./public/images/peaks/**/*"],
+    // The admin email previews read Supabase's auth templates from disk
+    // (lib/email/catalog.ts).
+    "/admin/emails": ["./supabase/email-templates/*.html"],
   },
 
   async headers() {

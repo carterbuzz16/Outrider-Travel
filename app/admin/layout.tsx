@@ -53,4 +53,5 @@ const ADMIN_LINKS = [
   { href: "/admin/bookings", label: "Bookings" },
   { href: "/admin/trips", label: "Trips" },
   { href: "/admin/payments", label: "Flagged payments" },
+  { href: "/admin/emails", label: "Emails" },
 ];

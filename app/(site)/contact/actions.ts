@@ -4,6 +4,7 @@ import { Resend } from "resend";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { CONTACT } from "@/lib/site-content";
 import { clientIp } from "@/lib/client-ip";
+import { renderContactMessage } from "@/lib/email/contact";
 
 /**
  * Contact form delivery.
@@ -74,8 +75,7 @@ export async function sendContactMessage(input: {
       // The visitor's address goes in reply-to, never in `from`: sending as
       // them would fail SPF on a verified domain and land the lot in spam.
       replyTo: email,
-      subject: `Outrider inquiry from ${name}`,
-      text: `From: ${name} <${email}>\n\n${message}`,
+      ...renderContactMessage({ name, email, message }),
     });
 
     if (error) {
