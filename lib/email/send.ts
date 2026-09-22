@@ -5,6 +5,8 @@ import { renderEmailLayout, formatCurrency, formatDate } from "@/lib/email/layou
 // app/auth/actions.ts — see lib/site-url.ts for the resolution order.
 import { getAppUrl } from "@/lib/site-url";
 import { BOOKINGS_OPEN } from "@/lib/booking-window";
+import { CONTACT, LEGAL_NAME } from "@/lib/site-content";
+import { waitlistWelcomeHtml } from "@/lib/email/templates/waitlist-welcome";
 
 // resend.emails.send() resolves with { data, error } rather than throwing
 // on an API-level failure (e.g. an unverified domain) — it only throws on
@@ -394,30 +396,32 @@ export function renderWaitlistWelcome(token: string): RenderedEmail & { html: st
       "List-Unsubscribe": `<${getAppUrl()}/api/unsubscribe?t=${encodeURIComponent(token)}>`,
       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
     },
-    html: renderEmailLayout({
+    // The branded Ski Club version, built on the owner's email shell. See
+    // lib/email/templates/waitlist-welcome.ts.
+    html: waitlistWelcomeHtml({
+      origin: getAppUrl().replace(/\/+$/, ""),
+      unsubscribeUrl: escapeHtml(url),
+      bookingsOpen: BOOKINGS_OPEN,
+      addressLine: escapeHtml([LEGAL_NAME, ...(CONTACT.postalAddress ?? [])].join(" · ")),
       preheader: BOOKINGS_OPEN
-        ? "You're on the list. We'll tell you when new trips open."
+        ? "You're on the list. Telluride is open, and the next trip comes to you first."
         : "First dibs on Telluride. The list hears before anyone else.",
-      bodyHtml: `
-        <p style="margin:0 0 16px;">You're on the list.</p>
-        <p style="margin:0 0 16px;">
-          ${escapeHtml(waitlistOpening)}
-        </p>
-        <p style="margin:0 0 16px;">
-          We only email when a trip opens. No newsletter, nothing weekly.
-        </p>
-        <p style="margin:24px 0 0;font-size:12px;color:#6B6B6B;">
-          <a href="${url}" style="color:#6B6B6B;">Unsubscribe</a>
-        </p>`,
-      footerNote: "You're getting this because you joined the Outrider list.",
     }),
     text: [
       "You're on the list.",
       "",
       waitlistOpening,
       "",
-      "We only email when a trip opens. No newsletter, nothing weekly.",
+      "Telluride: December 14-18, 2026 or January 4-8, 2027",
+      "The Peaks, Mountain Village. Four to a room, two to a room, or a whole penthouse for your eight.",
+      "Included: lift tickets and ski or snowboard rentals, rides from Montrose, a BBQ at Gorrono Ranch, and our team on the ground all week.",
       "",
+      `See the trip: ${getAppUrl().replace(/\/+$/, "")}/telluride`,
+      "",
+      "Send this to the friends you'd go with. Book with the same group code and you're placed together.",
+      "",
+      "Questions: bookings@outrider.travel. We reply within a day.",
+      "We only email when a trip opens.",
       `Unsubscribe: ${url}`,
     ].join("\n"),
   };
