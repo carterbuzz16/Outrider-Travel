@@ -42,6 +42,8 @@ export function renderStaleCheckoutRefundEmail(opts: StaleCheckoutRefundInput): 
   return {
     subject: `Refund on its way: ${tripName}`,
     html: renderEmailLayout({
+      eyebrow: tripName,
+      headline: "Refund on its way",
       preheader: `We refunded ${formatCurrency(amount)} to your card.`,
       bodyHtml,
       ctaLabel: "Choose again",

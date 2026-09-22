@@ -271,6 +271,8 @@ export function renderPenthouseFullEmail(opts: {
   return {
     subject,
     html: renderEmailLayout({
+      eyebrow: name,
+      headline: `All ${inWords(fill.capacity)} of you are in`,
       preheader: `All ${fill.capacity} places in ${name} are booked.`,
       bodyHtml,
       ctaLabel: "Open your trip page",
@@ -327,6 +329,8 @@ export function renderPenthouseReminderEmail(opts: {
   return {
     subject,
     html: renderEmailLayout({
+      eyebrow: name,
+      headline: "Two days left to fill it",
       preheader: `${fill.filled} of ${fill.capacity} in, ${places}.`,
       bodyHtml,
       ctaLabel: "Share the penthouse link",

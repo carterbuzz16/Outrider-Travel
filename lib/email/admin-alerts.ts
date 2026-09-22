@@ -75,6 +75,8 @@ export function renderNewBookingAlert(booking: NewBookingAlertBooking): Rendered
     subject: `New booking: ${who}, ${tier} (${confirmation})`,
     text: `${line}\n\nTotal ${formatAmount(Number(booking.total_amount))}.\n\n${url}`,
     html: renderEmailLayout({
+      eyebrow: "Back office",
+      headline: "New booking",
       preheader: line,
       bodyHtml: `<p style="margin:0 0 16px;">${escapeHtml(line)}</p><p style="margin:0;">Total ${escapeHtml(formatAmount(Number(booking.total_amount)))}.</p>`,
       ctaLabel: "Open the booking",

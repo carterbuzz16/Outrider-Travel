@@ -180,6 +180,8 @@ export function renderBookingConfirmationEmail(opts: BookingConfirmationInput): 
   return {
     subject: `You're booked: ${trip.name}`,
     html: renderEmailLayout({
+      eyebrow: trip.name,
+      headline: paidInFull ? "You’re going. It’s paid." : "You’re going",
       preheader: paidInFull
         ? `Your payment for ${trip.name} is confirmed.`
         : `Your deposit for ${trip.name} is confirmed.`,
@@ -236,6 +238,8 @@ export function renderInstallmentChargedEmail(opts: InstallmentChargedInput): Re
   return {
     subject: `Payment received: ${tripName}`,
     html: renderEmailLayout({
+      eyebrow: tripName,
+      headline: "Payment received",
       // Neutral: a balance payment is one the traveler made themselves.
       preheader: `Payment of ${formatCurrency(amount)} received for ${tripName}.`,
       bodyHtml,
@@ -275,6 +279,8 @@ export function renderPaymentFailedEmail(opts: PaymentFailedInput): RenderedEmai
   return {
     subject: `Action needed: payment failed for ${tripName}`,
     html: renderEmailLayout({
+      eyebrow: tripName,
+      headline: "That payment didn’t go through",
       preheader: `We couldn't process your ${formatCurrency(amount)} installment.`,
       bodyHtml,
       ctaLabel: "View your booking",
@@ -309,6 +315,8 @@ export function renderActionRequiredEmail(opts: ActionRequiredInput): RenderedEm
   return {
     subject: `Action needed: verify your payment for ${tripName}`,
     html: renderEmailLayout({
+      eyebrow: tripName,
+      headline: "Your bank needs a yes",
       preheader: `Your bank needs to verify a ${formatCurrency(amount)} payment.`,
       bodyHtml,
       ctaLabel: "Verify now",
@@ -355,6 +363,8 @@ export function renderOverpaymentRefundEmail(opts: OverpaymentRefundInput): Rend
   return {
     subject: `Refund on its way: ${tripName}`,
     html: renderEmailLayout({
+      eyebrow: tripName,
+      headline: "Refund on its way",
       preheader: `We refunded ${formatCurrency(amount)} to your card.`,
       bodyHtml,
       ctaLabel: "View your booking",

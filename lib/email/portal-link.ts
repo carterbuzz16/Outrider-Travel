@@ -80,6 +80,8 @@ export function renderPortalLinkEmail(opts: PortalLinkInput): { subject: string;
   return {
     subject: `Your trip page: ${tripName}`,
     html: renderEmailLayout({
+      eyebrow: tripName,
+      headline: "Your trip page",
       preheader: `A fresh link to your ${tripName} trip page.`,
       bodyHtml,
       ctaLabel: "Open your trip page",
