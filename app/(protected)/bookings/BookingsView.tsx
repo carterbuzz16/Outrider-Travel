@@ -197,7 +197,7 @@ function BookingCard({ booking }: { booking: BookingRow }) {
         </h2>
         <p className="mt-2 font-body text-body-s text-[--text]">
           {trip ? formatDateRange(trip.start_date, trip.end_date) : "Dates to be confirmed"}
-          {booking.tiers?.name && <span className="text-[--text-secondary]"> · {tierDisplayName(booking.tiers.name)}</span>}
+          {booking.tiers?.name && <span className="text-[--text-secondary]">, {tierDisplayName(booking.tiers.name)}</span>}
         </p>
         {/* The confirmation number is the same reference the email and the
             confirmation page quote, and is not shown until something is
@@ -212,7 +212,7 @@ function BookingCard({ booking }: { booking: BookingRow }) {
             {booking.group_code && (
               <span>
                 Group code <span className="tracking-label text-[--text]">{booking.group_code}</span>
-                {!booking.penthouse && " · friends who enter it when they book are placed with you"}
+                {!booking.penthouse && ", friends who enter it when they book are placed with you"}
               </span>
             )}
           </p>

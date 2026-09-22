@@ -13,7 +13,7 @@ const TASK_LABELS: { key: keyof Tasks; short: string; long: string }[] = [
 ];
 
 /**
- * Flights · rooming · details as three small squares: filled with a tick when
+ * Flights, rooming and details as three small squares: filled with a tick when
  * done, an empty hairline box when not. The letters keep them apart on a
  * scan; the accessible name says the whole thing.
  */

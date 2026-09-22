@@ -57,7 +57,7 @@ export type Penthouse = {
   name: string;
   /** One line that sells it. */
   line: string;
-  /** Short under the number on the typographic panel: "Three stories · 270° views". */
+  /** Short under the number on the typographic panel: "Three stories, 270° views". */
   panel: string;
   /** The at-a-glance numbers: "4" over "Bedrooms". */
   stats: { value: string; label: string }[];
@@ -109,7 +109,7 @@ const P702: PenthouseSource = {
   number: "702",
   name: "Penthouse 702",
   line: "Three bedrooms on one main level and a fourth upstairs, around one big open room for cooking, eating and hanging out, with Mt. Wilson and the San Sophia range filling the windows.",
-  panel: "Four bedrooms · Mt. Wilson views",
+  panel: "Four bedrooms, Mt. Wilson views",
   stats: [
     { value: "4", label: "Bedrooms" },
     { value: "4.5", label: "Baths" },
@@ -153,7 +153,7 @@ const P830: PenthouseSource = {
   number: "830",
   name: "Penthouse 830",
   line: "Three floors at the very top of The Peaks, with a view that wraps 270 degrees around the mountains.",
-  panel: "Three stories · 270° views",
+  panel: "Three stories, 270° views",
   stats: [
     { value: "4", label: "Bedrooms" },
     { value: "4", label: "Baths" },

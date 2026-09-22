@@ -59,7 +59,7 @@ export default function LiveRefresh({ renderedAt }: { renderedAt: string }) {
       {/* A small square in the accent, the same marker the badges use, so
           "live" reads as a status rather than decoration. */}
       <span aria-hidden="true" className="inline-block h-1.5 w-1.5 bg-[--accent]" />
-      <span>Live · {label}</span>
+      <span>Live, {label}</span>
       <button
         type="button"
         onClick={() => startTransition(() => router.refresh())}

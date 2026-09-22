@@ -88,9 +88,9 @@ export default function PenthouseProgress({
     const places = `${open} ${open === 1 ? "place" : "places"} left`;
     status =
       state === "full"
-        ? `${joining} · all ${capacity} in`
-        : `You're joining ${joining} · ${filled} of ${capacity} in · ${places}` +
-          (state === "filling" ? ` · ${days} to fill` : "");
+        ? `${joining}, all ${capacity} in`
+        : `You're joining ${joining}. ${filled} of ${capacity} in, ${places}` +
+          (state === "filling" ? `, ${days} to fill` : "");
   } else {
     status =
       state === "full"
@@ -99,7 +99,7 @@ export default function PenthouseProgress({
           ? `The ${PENTHOUSE_FILL_DAYS} days are up with ${filled} of ${capacity} in. Our team will be in touch about the empty places.`
           : state === "waiting"
             ? `${filled} of ${capacity} in. Your group has ${PENTHOUSE_FILL_DAYS} days to fill it once the first place is booked.`
-            : `${filled} of ${capacity} in · ${days} left to fill`;
+            : `${filled} of ${capacity} in, ${days} left to fill`;
   }
 
   const share = invitePath && (state === "waiting" || state === "filling");

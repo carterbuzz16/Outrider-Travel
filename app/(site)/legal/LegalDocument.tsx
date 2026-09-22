@@ -109,7 +109,7 @@ export default function LegalDocument({
       <section className="shell py-12 md:py-16">
         <div className="max-w-measure">
           <p className="t-micro text-[--text-muted]">
-            {doc.shortTitle} · v{doc.version} · Last updated{" "}
+            {doc.shortTitle}, v{doc.version}, last updated{" "}
             {formatLegalDate(doc.lastUpdated)}
           </p>
           <p className="mt-4 font-body text-body-s leading-[1.75] text-[--text-secondary]">

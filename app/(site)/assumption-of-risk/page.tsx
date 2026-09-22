@@ -465,7 +465,7 @@ export default function AssumptionOfRiskPage() {
         <p>
           Questions before you sign:{" "}
           <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>. Related
-          documents: <Link href="/terms">Terms of Service</Link> ·{" "}
+          documents: <Link href="/terms">Terms of Service</Link> and{" "}
           <Link href="/privacy">Privacy Policy</Link>.
         </p>
       </LegalSection>

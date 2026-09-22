@@ -72,7 +72,7 @@ export default async function TripRosterPage(props: { params: Promise<{ id: stri
       <PageHeader
         eyebrow="Roster"
         title={trip.name}
-        lede={`${trip.destination} · ${formatDateRange(trip.start_date, trip.end_date)}`}
+        lede={`${trip.destination}, ${formatDateRange(trip.start_date, trip.end_date)}`}
         back={{ href: `/admin/trips/${trip.id}`, label: "Trip editor" }}
       />
 
@@ -202,8 +202,8 @@ export default async function TripRosterPage(props: { params: Promise<{ id: stri
                     </div>
                     <p className="mt-2 font-body text-body-s text-[--text-secondary]">
                       {full ? "Claimed in full" : heldHere.length === 0 ? "Open, nobody has paid" : "Claim in progress"}
-                      {groups.length > 0 && ` · group ${groups.join(", ")}`}
-                      {countPending(onTier) > 0 && ` · ${countPending(onTier)} awaiting payment`}
+                      {groups.length > 0 && `, group ${groups.join(", ")}`}
+                      {countPending(onTier) > 0 && `, ${countPending(onTier)} awaiting payment`}
                     </p>
                     {groups.length > 1 && (
                       <p className="mt-1 font-body text-body-s text-[--flag-ink]">

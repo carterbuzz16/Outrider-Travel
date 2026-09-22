@@ -961,7 +961,7 @@ export default function TermsPage() {
           <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>.
         </p>
         <p>
-          Related documents: <Link href="/privacy">Privacy Policy</Link> ·{" "}
+          Related documents: <Link href="/privacy">Privacy Policy</Link> and{" "}
           <Link href="/assumption-of-risk">Assumption of Risk</Link>.
         </p>
       </LegalSection>

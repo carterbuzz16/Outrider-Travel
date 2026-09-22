@@ -246,7 +246,7 @@ export default function BookingForm({
             className="mt-6 !whitespace-normal text-center !leading-[1.35]"
             disabled={selected.soldOut}
           >
-            Continue to payment · {dueToday}
+            Continue to payment, {dueToday}
           </PendingSubmitButton>
 
           <ul className="m-0 mt-5 flex list-none flex-col gap-2 p-0 font-body text-body-s leading-[1.5] text-[--text-secondary]">

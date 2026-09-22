@@ -15,9 +15,9 @@ import { BOOKINGS_OPEN } from "@/lib/booking-window";
 import { formatDateRange, formatPrice, getPublishedTrips, nightCount } from "@/lib/trips";
 
 export const metadata: Metadata = pageMetadata({
-  // The layout's template appends "· Outrider"; the home page is the one place
+  // The layout's template appends "| Outrider"; the home page is the one place
   // that should lead with the brand instead.
-  title: "Outrider · College group trips: Telluride ski weeks now, spring break next",
+  title: "Outrider | College group trips: Telluride ski weeks now, spring break next",
   absoluteTitle: true,
   /*
    * The path is stated explicitly. The root layout sets `canonical: "./"`,
@@ -61,7 +61,7 @@ export default async function HomePage() {
     <>
       <Hero
         video={{ src: "/video/hero.mp4", poster: "/video/hero-poster.jpg" }}
-        eyebrow="Telluride · This winter"
+        eyebrow="Telluride, this winter"
         headline="Bring your people"
         tagline="Four nights at The Peaks. We handle everything else."
         // One button. While nothing can be booked, the first thing to offer is

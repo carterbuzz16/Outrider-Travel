@@ -41,17 +41,17 @@ export default function Stamp({
   className,
 }: StampProps) {
   const id = pathId(text);
-  const label = text.trim().replace(/\s*·\s*$/, "");
+  const label = text.trim().replace(/\s*\/\s*$/, "");
 
   // Fill the ring, always.
   //
   // Repeating by whole passes leaves a gap whenever the text does not divide
-  // the circumference: "SCOUTED · PREPARED · " is 21 characters against a ring
+  // the circumference: "SCOUTED / PREPARED / " is 21 characters against a ring
   // holding about 40, so flooring gave a single pass and left the top right of
   // the stamp visibly empty. Repeat to roughly fill, then let textLength close
   // the circle exactly. lengthAdjust="spacing" only moves glyphs apart, it
   // never distorts them.
-  const unit = `${label.toUpperCase()} · `;
+  const unit = `${label.toUpperCase()} / `;
   const ring = unit.repeat(Math.max(1, Math.round(RING_CAPACITY / unit.length)));
 
   return (

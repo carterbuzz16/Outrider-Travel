@@ -176,7 +176,7 @@ export default async function WaitlistPage() {
             <p className="t-micro text-[--text] motion-safe:animate-rise" style={rise(0)}>
               <span className="mr-3 inline-block h-px w-8 translate-y-[-0.25em] bg-[--accent] align-middle" aria-hidden="true" />
               {/* Shortened on a phone so it stays one line. */}
-              <span className="hidden sm:inline">Early access · </span>Ski weeks · Spring break
+              <span className="hidden sm:inline">Early access, </span>Ski weeks, spring break
             </p>
             <h1
               id="waitlist-headline"
@@ -331,7 +331,7 @@ export default async function WaitlistPage() {
             </p>
           </Reveal>
           <Reveal delay={120} className="justify-self-center">
-            <Stamp text="Outrider · List first · Early access" spin className="w-36 text-[--text] md:w-44" />
+            <Stamp text="Outrider / List first / Early access" spin className="w-36 text-[--text] md:w-44" />
           </Reveal>
         </div>
       </section>

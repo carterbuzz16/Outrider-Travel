@@ -412,7 +412,7 @@ export function renderWaitlistWelcome(token: string): RenderedEmail & { html: st
       origin: getAppUrl().replace(/\/+$/, ""),
       unsubscribeUrl: escapeHtml(url),
       bookingsOpen: BOOKINGS_OPEN,
-      addressLine: escapeHtml([LEGAL_NAME, ...(CONTACT.postalAddress ?? [])].join(" · ")),
+      addressLine: escapeHtml([LEGAL_NAME, ...(CONTACT.postalAddress ?? [])].join(", ")),
       preheader: BOOKINGS_OPEN
         ? "You're on the list. Telluride is open, and the next trip comes to you first."
         : "First dibs on Telluride. The list hears before anyone else.",

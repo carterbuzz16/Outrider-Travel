@@ -162,7 +162,7 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
 
           {settled && trip && (
             <Stamp
-              text={`${trip.destination} · Booked`}
+              text={`${trip.destination} / Booked`}
               className="hidden w-28 shrink-0 text-[--accent] sm:block"
             />
           )}

@@ -16,7 +16,7 @@ import type { Metadata } from "next";
  * an image stated here beats the file, and the file's URL cannot be written
  * by hand: inside a route group Next serves it under a hashed name.
  *
- * `title` is the short page name; the layout's template adds "· Outrider" to
+ * `title` is the short page name; the layout's template adds "| Outrider" to
  * the document title, and the share card gets the same full string.
  */
 export function pageMetadata({
@@ -38,7 +38,7 @@ export function pageMetadata({
   /** The route has its own opengraph-image file; leave the image to it. */
   ownImage?: boolean;
 }): Metadata {
-  const full = absoluteTitle ? title : `${title} · Outrider`;
+  const full = absoluteTitle ? title : `${title} | Outrider`;
   const card = shareTitle ?? full;
   const images = ownImage
     ? undefined

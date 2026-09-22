@@ -30,7 +30,7 @@ export const metadata: Metadata = pageMetadata({
   path: "/flights",
   description:
     "How to fly to an Outrider Telluride trip: which airport, when to land, when to fly home, and what to do if the only connection is a bad one.",
-  shareTitle: "Getting to Telluride · Outrider",
+  shareTitle: "Getting to Telluride | Outrider",
 });
 
 // Same cadence as /trips, so a new or edited departure appears without a deploy.

@@ -77,7 +77,7 @@ export default function ListSignup({
           status === "error" ? "text-[--text]" : "text-[--text-muted]",
         )}
       >
-        {status === "error" ? message : "Free · No commitment · One-click unsubscribe"}
+        {status === "error" ? message : "Free, no commitment, one-click unsubscribe"}
       </p>
     </form>
   );

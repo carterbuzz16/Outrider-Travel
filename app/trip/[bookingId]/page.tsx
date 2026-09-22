@@ -173,7 +173,7 @@ export default async function TripPortalPage(props: {
             <h1 className="t-title mt-5 text-[--text]">{trip?.name ?? "Your trip"}</h1>
             <p className="mt-4 font-body text-body text-[--text]">
               {trip ? formatDateRange(trip.start_date, trip.end_date) : "Dates to be confirmed"}
-              {booking.tiers?.name && <span className="text-[--text-secondary]"> · {tierDisplayName(booking.tiers.name)}</span>}
+              {booking.tiers?.name && <span className="text-[--text-secondary]">, {tierDisplayName(booking.tiers.name)}</span>}
             </p>
           </div>
           <Badge tone={STATUS[booking.status].tone} className="self-start">

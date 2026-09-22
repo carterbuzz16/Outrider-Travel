@@ -10,7 +10,7 @@ import UserNav from "@/components/UserNav";
  * these out of results, and it costs nothing to state both.
  */
 export const metadata: Metadata = {
-  title: { default: "Your account", template: "%s · Outrider" },
+  title: { default: "Your account", template: "%s | Outrider" },
   robots: { index: false, follow: false },
 };
 

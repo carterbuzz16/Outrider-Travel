@@ -44,7 +44,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "./" },
   title: {
     default: "Outrider",
-    template: "%s · Outrider",
+    template: "%s | Outrider",
   },
   description:
     "Small-group trips for college friends: Telluride ski weeks now, spring break next. Hosted start to finish by Outrider.",
@@ -96,7 +96,7 @@ export default function RootLayout({
           // Nobody should mistake this build for the live site. See
           // lib/booking-window.ts for what turns it on.
           <div className="pointer-events-none fixed bottom-3 right-3 z-[100] rounded-full bg-[#b3261e] px-3 py-1.5 font-body text-[12px] font-medium text-white shadow-lg">
-            Checkout sandbox · Stripe test mode
+            Checkout sandbox, Stripe test mode
           </div>
         )}
         {children}

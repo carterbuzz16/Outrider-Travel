@@ -6,7 +6,7 @@ import UserNav from "@/components/UserNav";
 /* Same reasoning as the protected layout: Disallow is a request, noindex is
  * the instruction. Admin should never appear in a result under any conditions. */
 export const metadata: Metadata = {
-  title: { default: "Admin", template: "%s · Outrider admin" },
+  title: { default: "Admin", template: "%s | Outrider admin" },
   robots: { index: false, follow: false },
 };
 

@@ -166,7 +166,8 @@ export default function BookingDetailView({
             ) : (
               "No email on the account"
             )}
-            {" · "}Booked {formatStamp(booking.created_at)}
+            {", booked "}
+            {formatStamp(booking.created_at)}
           </>
         }
         back={{ href: "/admin/bookings", label: "All bookings" }}

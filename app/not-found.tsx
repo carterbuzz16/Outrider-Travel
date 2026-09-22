@@ -38,7 +38,7 @@ export default function NotFound() {
 
         <SectionDivider variant="perforation" className="mt-16 max-w-sm" />
 
-        <Stamp text="Outrider · Off route" className="mt-10 w-24 text-[--text-muted]" />
+        <Stamp text="Outrider / Off route" className="mt-10 w-24 text-[--text-muted]" />
       </div>
     </main>
   );

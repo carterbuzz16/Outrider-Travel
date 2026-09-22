@@ -183,11 +183,9 @@ function TripHeader({ trip, showAll }: { trip: PublicTrip; showAll: boolean }) {
         <h1 className="t-heading text-[--text]">{trip.name}</h1>
         <p className="mt-2 font-body text-body text-[--text-secondary]">
           <span className="text-[--text]">{formatDateRange(trip.startDate, trip.endDate)}</span>
-          <span aria-hidden="true"> · </span>
-          <span className="sr-only">, </span>
+          {", "}
           {nights} {nights === 1 ? "night" : "nights"}
-          <span aria-hidden="true"> · </span>
-          <span className="sr-only">, </span>
+          {", "}
           {trip.destination}
         </p>
       </div>
@@ -317,7 +315,7 @@ function Departures({
                 {formatDateRange(trip.startDate, trip.endDate)}
               </span>
               <span className="font-body text-body-s text-[--text-secondary]">
-                {trip.name} · {nights} {nights === 1 ? "night" : "nights"} · {trip.destination}
+                {trip.name}, {nights} {nights === 1 ? "night" : "nights"}, {trip.destination}
               </span>
             </span>
             <span className="flex shrink-0 flex-col items-start gap-1 sm:items-end">

@@ -56,7 +56,7 @@ function Section({
         <div className="mb-10 flex flex-col gap-6">
           {/* The brand book's own section label: capitals over a hairline. */}
           <p className="t-rule-label text-[--text]">
-            {n} · {title}
+            {n}. {title}
           </p>
           <h2 className="t-heading text-[--text]">{title}</h2>
           {note && <p className="t-lede max-w-measure">{note}</p>}
@@ -87,7 +87,7 @@ function Swatch({
         <span className="t-micro text-[--text]">{name}</span>
         <span className="font-body text-body-s text-[--text-secondary]">
           {hex}
-          {pantone && ` · Pantone ${pantone}`}
+          {pantone && `, Pantone ${pantone}`}
         </span>
         <span className="font-display text-micro text-[--text-muted]">
           {token}
@@ -101,7 +101,7 @@ function Swatch({
 const TRIPS: Trip[] = [
   {
     name: "Telluride",
-    destination: "Colorado · United States",
+    destination: "Colorado, United States",
     dates: "Feb 12–17, 2027",
     price: "$4,850",
     summary:
@@ -111,7 +111,7 @@ const TRIPS: Trip[] = [
   },
   {
     name: "Niseko",
-    destination: "Hokkaidō · Japan",
+    destination: "Hokkaidō, Japan",
     dates: "Jan 8–16, 2027",
     price: "$7,200",
     summary:
@@ -121,7 +121,7 @@ const TRIPS: Trip[] = [
   },
   {
     name: "Chamonix",
-    destination: "Haute-Savoie · France",
+    destination: "Haute-Savoie, France",
     dates: "Mar 4–11, 2027",
     price: "$6,400",
     summary:
@@ -143,7 +143,7 @@ export default function StylePage() {
         <div className="shell flex min-h-[78vh] flex-col justify-end pb-16 pt-32 md:pb-24">
           <Reveal>
             <p className="t-micro mb-6 text-[--text-secondary]">
-              Outrider · Design system · v2 · Final identity
+              Outrider design system, v2, final identity
             </p>
           </Reveal>
           <Reveal delay={90}>
@@ -246,11 +246,11 @@ export default function StylePage() {
         >
           <div className="flex flex-col gap-10">
             <div className="flex flex-col gap-3 border-b border-[--rule] pb-8">
-              <span className="t-micro text-[--text-muted]">t-display · Extrabold capitals</span>
+              <span className="t-micro text-[--text-muted]">t-display, extrabold capitals</span>
               <p className="t-display text-[--text]">Rides ahead</p>
             </div>
             <div className="flex flex-col gap-3 border-b border-[--rule] pb-8">
-              <span className="t-micro text-[--text-muted]">t-title · Medium</span>
+              <span className="t-micro text-[--text-muted]">t-title, medium</span>
               <p className="t-title text-[--text]">Six days above the canyon</p>
             </div>
             <div className="flex flex-col gap-3 border-b border-[--rule] pb-8">
@@ -267,7 +267,7 @@ export default function StylePage() {
               <p className="t-rule-label mt-4 text-[--text]">Brand icon</p>
             </div>
             <div className="flex flex-col gap-4">
-              <span className="t-micro text-[--text-muted]">t-lede · Light / t-body · Book</span>
+              <span className="t-micro text-[--text-muted]">t-lede light, t-body book</span>
               <p className="t-lede">
                 Every trip is scouted before it is sold. We ski the lines, eat
                 the dinners, and sleep in the rooms, and only then does a
@@ -366,14 +366,14 @@ export default function StylePage() {
           <div className="grid gap-10 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start">
             <div className="flex items-center gap-8">
               <Stamp
-                text="Scouted · Prepared"
+                text="Scouted / Prepared"
                 className="w-32 text-[--text-secondary]"
               />
               {/* --accent, not --color-club: the ring type is 12px, and club
                   blue is only 2.2:1 on paper. This is the rule the section
                   above states, applied to the section itself. */}
               <Stamp
-                text="Members only · Est 2026"
+                text="Members only / Est 2026"
                 spin
                 className="w-32 text-[--accent]"
               />
@@ -398,7 +398,7 @@ export default function StylePage() {
 
               <div className="stub max-w-sm p-5">
                 <p className="stamp-type text-[--text-muted]">
-                  Boarding · No. 01
+                  Boarding No. 01
                 </p>
                 <p className="t-subheading mt-2 text-[--text]">Telluride</p>
                 <hr className="perforation my-4" />

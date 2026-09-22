@@ -215,7 +215,7 @@ export default async function TelluridePage() {
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 bg-[rgb(42_35_32_/_0.6)]" />
 
         <div className="shell flex flex-1 flex-col justify-end pb-10 pt-32 md:pb-14 md:pt-40">
-          <p className="t-label text-[--text]">Telluride, Colorado · 8,725 ft</p>
+          <p className="t-label text-[--text]">Telluride, Colorado at 8,725 ft</p>
           <h1 className="t-display mt-5 text-[--text]">Telluride</h1>
 
           <div className="mt-10 grid gap-10 border-t border-[--rule-strong] pt-8 md:mt-14 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] md:gap-16">
@@ -641,7 +641,7 @@ export default async function TelluridePage() {
                 <span aria-hidden="true" className="h-px bg-[--rule-strong]" />
                 <span className="font-display text-display-s font-medium tracking-title text-[--text]">Telluride</span>
                 <span className="t-micro text-[--text-secondary]">Montrose</span>
-                <span className="t-micro text-center text-[--text-secondary]">65 mi · 90 min by road</span>
+                <span className="t-micro text-center text-[--text-secondary]">65 mi, 90 min by road</span>
                 <span className="t-micro text-right text-[--text-secondary]">8,725 ft</span>
               </div>
               <p className="font-body text-body leading-[1.85] text-[--text]">
@@ -769,7 +769,7 @@ function weekPlan(nights: number, firstDay: string | null, lastDay: string | nul
   const lastIndex = nights + 1;
   return [
     {
-      when: firstDay ? `Day 1 · ${firstDay.slice(0, 3)}` : "Day 1",
+      when: firstDay ? `Day 1, ${firstDay.slice(0, 3)}` : "Day 1",
       title: "Touch down in Montrose",
       body:
         "We meet you at the airport and drive you up the canyon. Check in with your crew and find your welcome package waiting in the room.",
@@ -781,7 +781,7 @@ function weekPlan(nights: number, firstDay: string | null, lastDay: string | nul
         "Your lift ticket and ski or snowboard rentals are ready before you arrive, so the first morning starts on the snow. One afternoon the whole group takes over Gorrono Ranch, mid-mountain, for a BBQ. At night the free gondola drops you on Main Street for dinner, and runs until midnight to bring you back up.",
     },
     {
-      when: lastDay ? `Day ${lastIndex} · ${lastDay.slice(0, 3)}` : `Day ${lastIndex}`,
+      when: lastDay ? `Day ${lastIndex}, ${lastDay.slice(0, 3)}` : `Day ${lastIndex}`,
       title: "Back down to Montrose",
       body:
         "Check out and ride back to the airport together for flights home. Our team is with you until then, same as all week.",

@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const BADGE_TEXT = "COMING SOON · WINTER 2026–27 · TELLURIDE · ";
+const BADGE_TEXT = "COMING SOON / WINTER 2026–27 / TELLURIDE / ";
 
 // The original coming-soon panel, kept intact after the marketing site took
 // over "/". Still reachable at /coming-soon, so it can be put back in front —

@@ -21,9 +21,9 @@ export default function FormDemo() {
               <option value="" disabled>
                 Choose one
               </option>
-              <option>Telluride · Feb 2027</option>
-              <option>Niseko · Jan 2027</option>
-              <option>Chamonix · Mar 2027</option>
+              <option>Telluride, Feb 2027</option>
+              <option>Niseko, Jan 2027</option>
+              <option>Chamonix, Mar 2027</option>
             </Select>
           )}
         </Field>

@@ -19,7 +19,7 @@ import { Logo } from "@/components/ui";
  * matcher, so a visitor with no session is never bounced to /login.
  */
 export const metadata: Metadata = {
-  title: { default: "Your trip", template: "%s · Outrider" },
+  title: { default: "Your trip", template: "%s | Outrider" },
   robots: { index: false, follow: false, nocache: true },
   referrer: "no-referrer",
 };

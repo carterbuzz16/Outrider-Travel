@@ -188,7 +188,7 @@ function FilterForm({
           <option value="">All departures</option>
           {trips.map((trip) => (
             <option key={trip.id} value={trip.id}>
-              {trip.name} · {formatDay(trip.start_date)}
+              {trip.name}, {formatDay(trip.start_date)}
             </option>
           ))}
         </FilterSelect>
@@ -307,7 +307,7 @@ function BookingsTable({ rows }: { rows: ListRow[] }) {
             <Th>Next payment</Th>
             <Th>Group</Th>
             <Th>
-              <span title="Flights · Rooming · Details">Tasks</span>
+              <span title="Flights, rooming, details">Tasks</span>
             </Th>
             <Th>SMS</Th>
             <Th>Booked</Th>
@@ -402,10 +402,10 @@ function BookingCard({ row }: { row: ListRow }) {
         </div>
         <p className="mt-2 font-body text-body-s text-[--text-secondary]">
           <span className="font-mono text-[--text]">{row.confirmation}</span>
-          {" · "}
+          {", "}
           {booking.trips?.name ?? "No trip"}
           {booking.trips && `, ${formatDay(booking.trips.start_date)}`}
-          {" · "}
+          {", "}
           {booking.tiers?.name ?? "No package"}
         </p>
         <div className="mt-2.5 flex flex-wrap items-end justify-between gap-3 font-body text-body-s tabular-nums">

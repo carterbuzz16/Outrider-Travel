@@ -92,6 +92,14 @@ text/background pair on a page should clear 4.5:1 (3:1 for large text).
 - Marketing copy that depends on facts only the team has lives in
   `lib/site-content.ts`, marked `NEEDS REAL COPY`. Do not invent founder
   biography, testimonials, press, or legal policy text.
+- No middots. The middle dot (`·`) is banned everywhere a reader can see
+  it — body copy, labels, eyebrows, badges, buttons, page titles, emails,
+  OG images. Strung-together facts read as machine output, which is the one
+  thing this brand cannot sound like. Use a comma, a full stop, or a line
+  break instead. The two exceptions are a `|` in browser-tab title templates
+  (`%s | Outrider`) and a `/` as the repeating device on the circular stamps
+  and the coming-soon marquee, where a separator glyph is doing real
+  typographic work.
 
 ## Before you finish
 

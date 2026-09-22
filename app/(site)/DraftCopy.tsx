@@ -28,7 +28,7 @@ export default function DraftCopy({
         className,
       )}
     >
-      <p className="t-micro text-[--flag-ink]">Coming soon · {label}</p>
+      <p className="t-micro text-[--flag-ink]">Coming soon, {label}</p>
       <div className="mt-3 font-body text-body-s leading-[1.7] text-[--text-secondary]">
         {children}
       </div>

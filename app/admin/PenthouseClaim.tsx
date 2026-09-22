@@ -48,8 +48,8 @@ export default function PenthouseClaim({ tier, now }: { tier: PenthouseTierRows;
       {fill && (
         <span className="tabular-nums text-[--text-secondary]">
           {fill.filled} of {capacity} booked
-          {fill.deadline && fill.state !== "full" && <> · fill by {formatDeadline(fill.deadline)}</>}
-          {fill.state === "waiting" && " · clock starts at the first payment"}
+          {fill.deadline && fill.state !== "full" && <>, fill by {formatDeadline(fill.deadline)}</>}
+          {fill.state === "waiting" && ", clock starts at the first payment"}
         </span>
       )}
       {fill?.state === "expired" && (

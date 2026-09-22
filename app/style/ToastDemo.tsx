@@ -14,7 +14,7 @@ export default function ToastDemo() {
           toast({
             tone: "success",
             title: "Deposit received",
-            description: "Your spot on Telluride · Feb 2027 is held.",
+            description: "Your spot on Telluride, Feb 2027 is held.",
           })
         }
       >

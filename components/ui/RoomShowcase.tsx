@@ -332,7 +332,7 @@ export function RoomPanel({
     >
       {s.place ? (
         <p className="t-micro text-[--text-secondary]" aria-hidden="true">
-          The Peaks Resort · Mountain Village
+          The Peaks Resort, Mountain Village
         </p>
       ) : (
         <span aria-hidden="true" />

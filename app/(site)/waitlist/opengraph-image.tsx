@@ -99,7 +99,7 @@ export default async function WaitlistOpengraphImage() {
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 21, letterSpacing: 2.5 }}>
-            <div style={{ display: "flex" }}>TELLURIDE · WINTER 2026 / 2027</div>
+            <div style={{ display: "flex" }}>TELLURIDE, WINTER 2026 / 2027</div>
             <div style={{ display: "flex" }}>outrider.travel/waitlist</div>
           </div>
         </div>

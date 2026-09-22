@@ -9,7 +9,7 @@ export const metadata: Metadata = pageMetadata({
   path: "/about",
   description:
     "Meet Outrider, the small-group trip company for college students. An outrider rides ahead to scout the way, and that's how we plan every trip we host.",
-  shareTitle: "Why Outrider · College group trips, hosted",
+  shareTitle: "Why Outrider | College group trips, hosted",
 });
 
 export default function AboutPage() {

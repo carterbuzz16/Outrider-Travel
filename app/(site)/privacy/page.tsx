@@ -519,7 +519,7 @@ export default function PrivacyPage() {
           </p>
         ) : null}
         <p>
-          Related documents: <Link href="/terms">Terms of Service</Link> ·{" "}
+          Related documents: <Link href="/terms">Terms of Service</Link> and{" "}
           <Link href="/assumption-of-risk">Assumption of Risk</Link>.
         </p>
       </LegalSection>
