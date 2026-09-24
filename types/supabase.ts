@@ -410,25 +410,73 @@ export type Database = {
       }
       waitlist_signups: {
         Row: {
+          consent_ip: string | null
+          consent_text_version: string | null
+          consent_user_agent: string | null
           created_at: string
           email: string
+          email_consent: boolean | null
+          email_consent_at: string | null
+          first_name: string | null
           id: string
+          last_name: string | null
+          phone: string | null
+          placement: string | null
+          sms_consent: boolean | null
+          sms_consent_at: string | null
+          src: string | null
           unsubscribe_token: string
           unsubscribed_at: string | null
+          updated_at: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
         }
         Insert: {
+          consent_ip?: string | null
+          consent_text_version?: string | null
+          consent_user_agent?: string | null
           created_at?: string
           email: string
+          email_consent?: boolean | null
+          email_consent_at?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
+          phone?: string | null
+          placement?: string | null
+          sms_consent?: boolean | null
+          sms_consent_at?: string | null
+          src?: string | null
           unsubscribe_token?: string
           unsubscribed_at?: string | null
+          updated_at?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
         }
         Update: {
+          consent_ip?: string | null
+          consent_text_version?: string | null
+          consent_user_agent?: string | null
           created_at?: string
           email?: string
+          email_consent?: boolean | null
+          email_consent_at?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
+          phone?: string | null
+          placement?: string | null
+          sms_consent?: boolean | null
+          sms_consent_at?: string | null
+          src?: string | null
           unsubscribe_token?: string
           unsubscribed_at?: string | null
+          updated_at?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
         }
         Relationships: []
       }

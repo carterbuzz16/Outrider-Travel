@@ -1,7 +1,6 @@
 "use client";
 
-import { useId } from "react";
-import Button from "./Button";
+import WaitlistFields from "./WaitlistFields";
 import WaitlistShare from "./WaitlistShare";
 import { cn } from "./cn";
 import { useWaitlistSignup } from "./useWaitlistSignup";
@@ -22,7 +21,7 @@ import { useWaitlistSignup } from "./useWaitlistSignup";
  */
 export default function WaitlistCTA({
   heading = "Be first to know",
-  body = "First dibs on every trip. The list hears before anyone else.",
+  body = "First access to Telluride, and to every trip after it.",
   className,
   tone = "dark",
   /** Anchor target, so /trips#waitlist and /#waitlist land on the form. */
@@ -38,8 +37,7 @@ export default function WaitlistCTA({
   /** Which form this is, as reported with the signup. */
   placement?: string;
 }) {
-  const { email, setEmail, status, message, submit } = useWaitlistSignup(placement);
-  const inputId = useId();
+  const signup = useWaitlistSignup(placement);
 
   const dark = tone === "dark";
 
@@ -54,7 +52,7 @@ export default function WaitlistCTA({
       )}
     >
       <div className={cn(dark ? "shell py-20 md:py-28" : "p-8 md:p-10")}>
-        <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-end md:gap-16">
+        <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-start md:gap-16">
           <div>
             <h2 className="t-heading max-w-[16ch] text-[--text]">{heading}</h2>
             <p className="mt-5 max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
@@ -62,68 +60,10 @@ export default function WaitlistCTA({
             </p>
           </div>
 
-          {status === "done" ? (
+          {signup.status === "done" ? (
             <WaitlistShare compact className="motion-safe:animate-rise" />
           ) : (
-            <form onSubmit={submit} noValidate className="flex flex-col gap-3">
-              <label htmlFor={inputId} className="t-micro text-[--text-secondary]">
-                Email address
-              </label>
-
-              {/* Field-and-button share one rule from sm up, the way the
-                  coming-soon page does it: fewer boxes, and the whole thing
-                  reads as one control. Below that there is not room for both on
-                  a line, so the field keeps the rule and the button drops under
-                  it rather than squeezing the address into 180px. */}
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-4 sm:border-b sm:border-[--rule-strong] sm:pb-2">
-                <input
-                  id={inputId}
-                  type="email"
-                  name="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@college.edu"
-                  autoComplete="email"
-                  required
-                  disabled={status === "busy"}
-                  className={cn(
-                    "min-w-0 flex-1 bg-transparent p-0 pb-2 font-body text-body",
-                    "border-0 border-b border-[--rule-strong] sm:border-b-0 sm:pb-0",
-                    "text-[--text] outline-none placeholder:text-[--text-muted]",
-                    "disabled:opacity-60",
-                  )}
-                />
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="md"
-                  disabled={status === "busy"}
-                  className="self-start"
-                >
-                  {status === "busy" ? "Sending" : "Join the list"}
-                </Button>
-              </div>
-
-              {/* Reserves its line so submitting does not shift the layout. */}
-              <p
-                role="status"
-                aria-live="polite"
-                className={cn(
-                  "t-micro min-h-[1.4em]",
-                  // Clay is the flag color everywhere, but on espresso the
-                  // light clay only just reaches 4.5:1 at 11px. Paper carries
-                  // the error there instead; on paper the flag color
-                  // clears AA comfortably and stays the more legible signal.
-                  status === "error"
-                    ? dark
-                      ? "text-[--text]"
-                      : "text-[--flag-ink]"
-                    : "text-[--text-muted]",
-                )}
-              >
-                {message || " "}
-              </p>
-            </form>
+            <WaitlistFields signup={signup} tone={tone} />
           )}
         </div>
       </div>

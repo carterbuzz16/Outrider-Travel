@@ -128,10 +128,14 @@ export const PRIVACY: LegalDocumentMeta = {
   // existing recipients get.
   // 1.1.1: PATCH, wording only. The text-message box is on the trip page, not
   // the booking form; the two sentences that said where are corrected.
-  version: "1.1.1",
+  // 1.2.0: MINOR. The waitlist now takes a name, a mobile number and two
+  // opt-ins (email, and marketing texts), stored with the consent evidence
+  // and the link tag that brought the signup; names now go to Resend with the
+  // address. The waitlist and text-message sections say so. No new recipient.
+  version: "1.2.0",
   status: "in-force",
-  effectiveDate: "2026-09-18",
-  lastUpdated: "2026-09-18",
+  effectiveDate: "2026-09-24",
+  lastUpdated: "2026-09-24",
   sections: [
     { id: "scope", title: "Scope and who is responsible" },
     { id: "what-we-collect", title: "What we collect" },

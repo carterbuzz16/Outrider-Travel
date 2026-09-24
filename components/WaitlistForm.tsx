@@ -1,68 +1,33 @@
 "use client";
 
-import { useId, useState } from "react";
-import { joinWaitlist } from "@/app/waitlist-actions";
+import WaitlistFields from "@/components/ui/WaitlistFields";
+import { useWaitlistSignup } from "@/components/ui/useWaitlistSignup";
 import styles from "@/app/coming-soon/page.module.css";
 
+/**
+ * The coming-soon panel's form.
+ *
+ * It used to be a hand-built email line with its own copy of the submit logic,
+ * which is how it came to send no placement and no campaign tags. It now runs
+ * the same hook and the same fields as every other form, so a signup here is
+ * stored exactly like one from /waitlist. The panel is espresso, so the
+ * fields take the espresso scheme's tokens; `styles.form` keeps its width and
+ * its place in the entrance stagger.
+ */
 export default function WaitlistForm() {
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState("");
-  const [busy, setBusy] = useState(false);
-  const inputId = useId();
+  const signup = useWaitlistSignup("coming-soon");
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const value = email.trim();
-    if (!value || busy) return;
-
-    setBusy(true);
-    setStatus("");
-    try {
-      const result = await joinWaitlist(value);
-      if (result.ok) {
-        setEmail("");
-        setStatus("You're on the list.");
-      } else {
-        setStatus(result.message);
-      }
-    } catch {
-      // Network-level failure — the action itself returns errors rather than
-      // throwing, so this is a lost connection, not a rejected signup.
-      setStatus("Something went wrong. Try again.");
-    } finally {
-      setBusy(false);
-    }
+  if (signup.status === "done") {
+    return (
+      <p className={styles.status} role="status" aria-live="polite">
+        You&rsquo;re on the list.
+      </p>
+    );
   }
 
   return (
-    <form className={styles.form} onSubmit={onSubmit} noValidate>
-      <div className={styles.field}>
-        <label className="sr-only" htmlFor={inputId}>
-          Email address
-        </label>
-        <input
-          id={inputId}
-          className={styles.input}
-          type="email"
-          name="email"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            setStatus("");
-          }}
-          placeholder="EMAIL"
-          autoComplete="email"
-          required
-          disabled={busy}
-        />
-        <button className={styles.submit} type="submit" disabled={busy}>
-          {busy ? "Sending" : "Join the list"}
-        </button>
-      </div>
-      {/* Reserves its own line height so submitting doesn't shift the form. */}
-      <p className={styles.status} role="status" aria-live="polite">
-        {status}
-      </p>
-    </form>
+    <div className={`scheme-espresso ${styles.form}`}>
+      <WaitlistFields signup={signup} tone="dark" />
+    </div>
   );
 }

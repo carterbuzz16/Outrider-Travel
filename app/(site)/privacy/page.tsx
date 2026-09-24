@@ -125,9 +125,15 @@ export default function PrivacyPage() {
 
         <h3>Waitlist</h3>
         <p>
-          Joining the waitlist stores your email address, and the date you
-          joined, in our database and in our mailing list at Resend. Nothing
-          else.
+          Joining the waitlist stores your name, email address, mobile number
+          and the date you joined in our database. It also stores your answer
+          to each of the form&rsquo;s two boxes (email and text messages), when
+          you gave it, which version of their wording you saw, and the IP
+          address and browser the form was sent from, as the record of that
+          consent. If a link brought you to the form, we store its short tag
+          (for example, one from an event) and campaign tags, and which form on
+          the site you used. Your name and email address are also added to our
+          mailing list at Resend.
         </p>
 
         <h3>Technical information</h3>
@@ -211,6 +217,10 @@ export default function PrivacyPage() {
               trip page (see section {sectionIndex("sms")});
             </>,
             <>
+              text you about Outrider trips, if you ticked the text box when
+              you joined the waitlist (see section {sectionIndex("sms")});
+            </>,
+            <>
               answer messages you send us, and keep a record of what was agreed;
             </>,
             <>
@@ -292,6 +302,15 @@ export default function PrivacyPage() {
           <Link href="/terms#sms">the Terms of Service</Link>.
         </p>
         <p>
+          The waitlist form has its own box for texts about Outrider trips. It
+          is not ticked for you, and joining the list does not depend on it. If
+          you tick it, we record that you agreed, when, and which version of the
+          wording you saw, and we may use the mobile number you give us to send
+          you automated marketing texts about Outrider trips. Message frequency
+          varies, and message and data rates may apply. Reply HELP for help, or
+          STOP at any time to stop them.
+        </p>
+        <p>
           <strong>
             No mobile information will be shared with third parties or
             affiliates for marketing or promotional purposes.
@@ -318,7 +337,7 @@ export default function PrivacyPage() {
           The waitlist and contact forms are open to anyone, so both are rate
           limited. To do that we store a short-lived record keyed to the IP
           address the request came from, counting how many submissions it has
-          made in the past hour. It is used for nothing else, not for
+          made recently (within the past hour at most). It is used for nothing else, not for
           analytics, not for profiling, not for advertising.
         </p>
       </LegalSection>

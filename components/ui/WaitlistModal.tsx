@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Button from "./Button";
 import Logo from "./Logo";
+import WaitlistFields from "./WaitlistFields";
 import WaitlistShare from "./WaitlistShare";
 import { cn } from "./cn";
 import { useWaitlistSignup } from "./useWaitlistSignup";
@@ -13,8 +14,8 @@ import { useWaitlistSignup } from "./useWaitlistSignup";
  * The inline blocks on the marketing pages stay: they carry the argument for
  * joining, and a form in the page is what a search engine and a linked
  * /waitlist page need. This is for the other case, where somebody has already
- * decided and should not have to go looking. One click, one field, done, and
- * they are returned to exactly where they were.
+ * decided and should not have to go looking. One click, one short form, done,
+ * and they are returned to exactly where they were.
  *
  * Not a <dialog>: Safari's support for the top layer with a custom backdrop is
  * still uneven, and everything the element gives us here is a dozen lines.
@@ -29,8 +30,8 @@ export function WaitlistModal({
   placement?: string;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const { email, setEmail, status, message, submit, reset } = useWaitlistSignup(placement);
-  const inputId = useId();
+  const signup = useWaitlistSignup(placement);
+  const { status, reset } = signup;
   const titleId = useId();
 
   // Escape closes, and Tab cycles inside the panel rather than wandering into
@@ -87,7 +88,7 @@ export function WaitlistModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-5">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-5">
       {/* Scrim. A button rather than a div so a pointer-only user can dismiss
           by clicking away, without inventing a click handler on a non-control. */}
       <button
@@ -108,8 +109,11 @@ export function WaitlistModal({
         aria-modal="true"
         aria-labelledby={titleId}
         className={cn(
-          "scheme-espresso scheme-paint relative w-full max-w-[26rem] border border-[--rule]",
-          "p-8 md:p-10",
+          "scheme-espresso scheme-paint relative w-full max-w-[28rem] border border-[--rule]",
+          // Six fields do not fit a phone screen with the keyboard up, so the
+          // panel scrolls inside itself rather than running off the bottom.
+          "max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain",
+          "p-6 sm:p-8 md:p-10",
           "motion-safe:animate-rise",
         )}
       >
@@ -140,44 +144,10 @@ export function WaitlistModal({
               Join the list
             </h2>
             <p className="mt-4 font-body text-body-s leading-[1.7] text-[--text-secondary]">
-              Trips open to this list before they go on sale. First dibs on
-              Telluride, and on wherever we go next.
+              First access to Telluride, and to every trip after it.
             </p>
 
-            <form onSubmit={submit} noValidate className="mt-7 flex flex-col gap-4">
-              <label htmlFor={inputId} className="t-micro text-[--text-secondary]">
-                Email address
-              </label>
-              <input
-                id={inputId}
-                name="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@college.edu"
-                autoComplete="email"
-                required
-                disabled={status === "busy"}
-                className={cn(
-                  "w-full border-0 border-b border-[--rule-strong] bg-transparent pb-2",
-                  "font-body text-body text-[--text] outline-none",
-                  "placeholder:text-[--text-muted] disabled:opacity-60",
-                )}
-              />
-              <Button type="submit" variant="primary" size="md" disabled={status === "busy"} block>
-                {status === "busy" ? "Sending" : "Join the list"}
-              </Button>
-              <p
-                role="status"
-                aria-live="polite"
-                className={cn(
-                  "t-micro min-h-[1.4em]",
-                  status === "error" ? "text-[--flag-ink]" : "text-[--text-muted]",
-                )}
-              >
-                {message || " "}
-              </p>
-            </form>
+            <WaitlistFields signup={signup} tone="dark" className="mt-7" />
           </>
         )}
       </div>

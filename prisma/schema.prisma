@@ -235,11 +235,37 @@ model Payment {
   @@map("payments")
 }
 
+// Every column after createdAt is nullable: rows from before the form asked for
+// a name, a phone and the opt-ins keep working with them empty. Written only
+// through the service role (app/waitlist-actions.ts, lib/unsubscribe.ts).
 model WaitlistSignup {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email     String   @unique
-  createdAt DateTime @default(now()) @map("created_at")
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email              String    @unique
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  unsubscribeToken   String    @unique @default(dbgenerated("gen_random_uuid()")) @map("unsubscribe_token") @db.Uuid
+  unsubscribedAt     DateTime? @map("unsubscribed_at") @db.Timestamptz(6)
+  firstName          String?   @map("first_name")
+  lastName           String?   @map("last_name")
+  /// E.164, US only: +1XXXXXXXXXX (checked by waitlist_signups_phone_us).
+  phone              String?
+  /// null = joined before the form asked.
+  emailConsent       Boolean?  @map("email_consent")
+  emailConsentAt     DateTime? @map("email_consent_at") @db.Timestamptz(6)
+  smsConsent         Boolean?  @map("sms_consent")
+  smsConsentAt       DateTime? @map("sms_consent_at") @db.Timestamptz(6)
+  /// WAITLIST_CONSENT_VERSION in lib/waitlist-consent.ts.
+  consentTextVersion String?   @map("consent_text_version")
+  consentIp          String?   @map("consent_ip")
+  consentUserAgent   String?   @map("consent_user_agent")
+  /// The ?src= tag on a handed-out link, e.g. "launch".
+  src                String?
+  placement          String?
+  utmSource          String?   @map("utm_source")
+  utmMedium          String?   @map("utm_medium")
+  utmCampaign        String?   @map("utm_campaign")
+  updatedAt          DateTime? @map("updated_at") @db.Timestamptz(6)
 
+  @@index([src])
   @@map("waitlist_signups")
 }
 

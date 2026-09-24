@@ -441,7 +441,11 @@ export function renderWaitlistWelcome(token: string): RenderedEmail & { html: st
 // no-op unless WAITLIST_NOTIFY_TO is set, so the coming-soon page works
 // without it; the caller treats any failure here as non-fatal.
 export type WaitlistSignupContext = {
+  /** "First Last", from the form. */
+  name?: string;
   placement?: string;
+  /** The ?src= tag on a handed-out link, e.g. "launch" for an event QR code. */
+  src?: string;
   source?: string;
   medium?: string;
   campaign?: string;
@@ -463,7 +467,9 @@ export function renderWaitlistNotification(
   // Plain text, one fact per line, so it can be skimmed from a phone lock
   // screen. Lines with nothing to say are left out rather than printed empty.
   const lines = [
+    context.name,
     email,
+    context.src && `Tag: ${context.src}`,
     context.placement && `Form: ${context.placement}`,
     context.source && `Source: ${context.source}`,
     context.medium && `Medium: ${context.medium}`,
@@ -472,8 +478,8 @@ export function renderWaitlistNotification(
   ].filter(Boolean);
 
   return {
-    subject: context.source
-      ? `Outrider: new waitlist signup (${context.source})`
+    subject: context.src || context.source
+      ? `Outrider: new waitlist signup (${context.src || context.source})`
       : "Outrider: new waitlist signup",
     text: lines.join("\n"),
   };

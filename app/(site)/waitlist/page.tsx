@@ -39,7 +39,7 @@ export const revalidate = 300;
 const STEPS = [
   {
     title: "Join the list",
-    body: "Just your email. It's free, and it commits you to nothing.",
+    body: "Your name, email and mobile number. It's free, and it commits you to nothing.",
   },
   {
     title: "Hear it first",
@@ -189,9 +189,12 @@ export default async function WaitlistPage() {
               className="mt-8 max-w-[44ch] font-body text-lede leading-[1.7] text-[--text] motion-safe:animate-rise"
               style={rise(2)}
             >
-              Outrider hosts small-group ski weeks and spring break trips for
-              college students. The list hears about every trip before it
-              reaches the site: one email when it opens, and nothing in between.
+              {/* The two published Telluride departures, written out by hand
+                  for the launch QR code. If a date moves in /admin/trips,
+                  change it here too. */}
+              Join the list for first access to Telluride, December 14 to 18
+              and January 4 to 8, and to every Outrider trip after it.
+              It&rsquo;s free, and it commits you to nothing.
             </p>
             <div className="mt-10 motion-safe:animate-rise" style={rise(3)}>
               <ListSignup placement="waitlist-hero" />
