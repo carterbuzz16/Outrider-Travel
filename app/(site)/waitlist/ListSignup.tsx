@@ -10,7 +10,8 @@ import { useWaitlistSignup } from "@/components/ui/useWaitlistSignup";
  *
  * This page is the link that gets handed out (the Instagram bio, the event QR
  * code), so on a phone this form is the first thing anyone does here. It sits
- * on a photograph under an espresso wash, hence the dark tone, and takes the
+ * on a photograph under a Ski Club blue wash, with espresso type, hence the
+ * light tone, and takes the
  * large button because on this page it is the whole point.
  */
 export default function ListSignup({
@@ -29,7 +30,7 @@ export default function ListSignup({
   return (
     <WaitlistFields
       signup={signup}
-      tone="dark"
+      tone="light"
       size="lg"
       note="Free, no commitment, unsubscribe any time"
       className={cn("w-full max-w-[34rem]", className)}

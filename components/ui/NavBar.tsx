@@ -33,6 +33,9 @@ export const DEFAULT_LINKS: NavLink[] = [
   { label: "About", href: "/about" },
 ];
 
+/** Pages whose hero is washed in club blue; see `clubHero` below. */
+const CLUB_HERO_PATHS = new Set(["/waitlist"]);
+
 export default function NavBar({
   links = DEFAULT_LINKS,
   overHero = true,
@@ -81,6 +84,10 @@ export default function NavBar({
   }, [open]);
 
   const solid = scrolled || !overHero || open;
+  // Heroes washed in Ski Club blue rather than espresso. Over those the
+  // transparent bar takes the club scheme, since paper type on club blue is
+  // 2.2:1 and would vanish.
+  const clubHero = CLUB_HERO_PATHS.has(pathname);
 
   return (
     <header
@@ -94,7 +101,9 @@ export default function NavBar({
         "text-[--text]",
         solid
           ? "scheme-light border-b border-[--rule] bg-[--surface]"
-          : "scheme-espresso border-b border-transparent bg-transparent",
+          : clubHero
+            ? "scheme-club border-b border-transparent bg-transparent"
+            : "scheme-espresso border-b border-transparent bg-transparent",
       )}
     >
       <nav

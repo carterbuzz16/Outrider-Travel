@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/metadata";
 import Image from "next/image";
 import Link from "next/link";
-import { FaqSchema, Reveal, Stamp } from "@/components/ui";
+import { FaqSchema, Reveal } from "@/components/ui";
 import { BOOKINGS_OPEN } from "@/lib/booking-window";
 import { CONTACT, UPCOMING_CATEGORIES } from "@/lib/site-content";
 import { availabilityLabel, formatDateRange, getPublishedTrips, nightCount } from "@/lib/trips";
@@ -34,6 +34,13 @@ export const revalidate = 300;
  * This is the one page with more motion than a fade (see "Waitlist motion" in
  * globals.css). It has a single job, so a moving photograph and a live board
  * are not competing with anything.
+ *
+ * The team's calls for this page, 24 Sep 2026: its dark panels are Ski Club
+ * blue rather than espresso (the nav follows, see CLUB_HERO_PATHS in
+ * NavBar.tsx); no spinning stamp; and no decorative rules, so section labels
+ * are plain t-label capitals rather than t-rule-label, and there is no dash
+ * before the eyebrow or hover line on the steps. They read as machine-made.
+ * Rules that separate real rows (the departures table, the step grid) stay.
  */
 
 const STEPS = [
@@ -153,7 +160,7 @@ export default async function WaitlistPage() {
 
       {/* ---- hero ------------------------------------------------------------ */}
       <section
-        className="scheme-espresso scheme-paint relative isolate overflow-hidden"
+        className="scheme-club scheme-paint relative isolate overflow-hidden"
         aria-labelledby="waitlist-headline"
       >
         <div className="absolute inset-0 -z-10" aria-hidden="true">
@@ -165,16 +172,17 @@ export default async function WaitlistPage() {
             sizes="100vw"
             className="drift object-cover"
           />
-          {/* Weighted to the left, where the type is, and heaviest behind the
-              small print under the form. On narrow screens the text spans the
-              whole frame, so the wash goes even instead. */}
-          <div className="absolute inset-0 bg-[rgb(42_35_32_/_0.72)] lg:bg-transparent lg:bg-[linear-gradient(90deg,rgb(42_35_32_/_0.92)_0%,rgb(42_35_32_/_0.78)_45%,rgb(42_35_32_/_0.35)_100%)]" />
+          {/* Ski Club blue, not espresso: the team wants the list page in the
+              club color. Espresso type sits on it, so the wash has to stay
+              close to solid wherever there is type; weighted to the left from
+              lg up, where the type is, and even on narrow screens, where the
+              text spans the whole frame. */}
+          <div className="absolute inset-0 bg-[rgb(137_178_196_/_0.9)] lg:bg-transparent lg:bg-[linear-gradient(90deg,rgb(137_178_196_/_0.96)_0%,rgb(137_178_196_/_0.9)_50%,rgb(137_178_196_/_0.45)_100%)]" />
         </div>
 
         <div className="shell grid min-h-[100svh] items-center gap-14 pb-20 pt-32 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-20 lg:pt-36">
           <div>
             <p className="t-micro text-[--text] motion-safe:animate-rise" style={rise(0)}>
-              <span className="mr-3 inline-block h-px w-8 translate-y-[-0.25em] bg-[--accent] align-middle" aria-hidden="true" />
               {/* Shortened on a phone so it stays one line. */}
               <span className="hidden sm:inline">Early access, </span>Ski weeks, spring break
             </p>
@@ -220,7 +228,7 @@ export default async function WaitlistPage() {
       <section className="scheme-light scheme-paint">
         <div className="shell py-20 md:py-28">
           <Reveal>
-            <span className="t-rule-label text-[--text]">How the list works</span>
+            <span className="t-label block text-[--text]">How the list works</span>
             <h2 className="t-title mt-8 max-w-[18ch] text-[--text]">
               Ten seconds now, first in line later
             </h2>
@@ -238,12 +246,6 @@ export default async function WaitlistPage() {
                   <p className="mt-3 max-w-[34ch] font-body text-body leading-[1.7] text-[--text-secondary]">
                     {step.body}
                   </p>
-                  {/* A hairline that inks across on hover: the only thing
-                      the card does, and it says "this is the order". */}
-                  <span
-                    aria-hidden="true"
-                    className="absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-0 bg-[--accent] transition-transform duration-slow ease-out group-hover:scale-x-100"
-                  />
                 </div>
               </Reveal>
             ))}
@@ -253,10 +255,10 @@ export default async function WaitlistPage() {
 
       {/* ---- departures board ------------------------------------------------ */}
       {board.length > 0 && (
-        <section className="scheme-espresso scheme-paint" aria-labelledby="board-heading">
+        <section className="scheme-club scheme-paint" aria-labelledby="board-heading">
           <div className="shell py-20 md:py-28">
             <Reveal>
-              <span className="t-rule-label text-[--text]">Departures</span>
+              <span className="t-label block text-[--text]">Departures</span>
               <div className="mt-8 flex flex-wrap items-end justify-between gap-6">
                 <div>
                   <h2 id="board-heading" className="t-title max-w-[18ch] text-[--text]">
@@ -321,7 +323,7 @@ export default async function WaitlistPage() {
       {/* ---- the name ---------------------------------------------------------
           The brand origin in one line, and the reason this list exists. */}
       <section className="scheme-light scheme-paint">
-        <div className="shell grid items-center gap-12 py-20 md:grid-cols-[minmax(0,1fr)_auto] md:gap-20 md:py-28">
+        <div className="shell py-20 md:py-28">
           <Reveal>
             <p className="t-title max-w-[22ch] text-[--text]">
               An outrider is the one who goes first.{" "}
@@ -332,9 +334,6 @@ export default async function WaitlistPage() {
               ready before anyone else arrives. The list works the same way: you
               hear before the rest of campus does.
             </p>
-          </Reveal>
-          <Reveal delay={120} className="justify-self-center">
-            <Stamp text="Outrider / List first / Early access" spin className="w-36 text-[--text] md:w-44" />
           </Reveal>
         </div>
       </section>
@@ -404,14 +403,14 @@ export default async function WaitlistPage() {
       </section>
 
       {/* ---- close ----------------------------------------------------------- */}
-      <section className="scheme-espresso scheme-paint relative isolate overflow-hidden" aria-labelledby="close-heading">
+      <section className="scheme-club scheme-paint relative isolate overflow-hidden" aria-labelledby="close-heading">
         <div className="absolute inset-0 -z-10" aria-hidden="true">
           <Image src="/images/telluride/town-christmas.jpg" alt="" fill sizes="100vw" className="object-cover" />
-          <div className="absolute inset-0 bg-[rgb(42_35_32_/_0.8)]" />
+          <div className="absolute inset-0 bg-[rgb(137_178_196_/_0.9)]" />
         </div>
         <div className="shell flex flex-col items-start gap-10 py-24 md:py-32">
           <Reveal className="w-full">
-            <span className="t-rule-label text-[--text]">Before you go</span>
+            <span className="t-label block text-[--text]">Before you go</span>
             <h2 id="close-heading" className="t-title mt-8 max-w-[16ch] text-[--text]">
               The list boards first
             </h2>

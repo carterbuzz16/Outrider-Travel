@@ -109,7 +109,7 @@ export function WaitlistModal({
         aria-modal="true"
         aria-labelledby={titleId}
         className={cn(
-          "scheme-espresso scheme-paint relative w-full max-w-[28rem] border border-[--rule]",
+          "scheme-club scheme-paint relative w-full max-w-[28rem] border border-[--rule]",
           // Six fields do not fit a phone screen with the keyboard up, so the
           // panel scrolls inside itself rather than running off the bottom.
           "max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain",
@@ -147,7 +147,7 @@ export function WaitlistModal({
               First access to Telluride, and to every trip after it.
             </p>
 
-            <WaitlistFields signup={signup} tone="dark" className="mt-7" />
+            <WaitlistFields signup={signup} tone="light" className="mt-7" />
           </>
         )}
       </div>

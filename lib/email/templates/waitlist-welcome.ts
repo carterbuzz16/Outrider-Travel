@@ -1,3 +1,4 @@
+
 /**
  * The waitlist welcome, built on the owner's branded email shell
  * (outrider-email-shell.html from the email package): the Ski Club blue header
@@ -11,6 +12,14 @@
  * All interpolated values are escaped by the caller-supplied escape function
  * or are fixed strings from this file.
  */
+
+/*
+ * Images come from production's www host, never p.origin: that is localhost
+ * in dev and a short-lived URL on a preview, neither of which a mail client
+ * can load for long, and the bare domain 308s to www, which not every mail
+ * client's image loader follows. public/email is the same everywhere.
+ */
+const EMAIL_ASSET_ORIGIN = "https://www.outrider.travel";
 
 export type WaitlistWelcomeParts = {
   /** The live site origin, e.g. https://www.outrider.travel. No trailing slash. */
@@ -86,13 +95,13 @@ export function waitlistWelcomeHtml(p: WaitlistWelcomeParts): string {
 
     <tr>
       <td align="center" bgcolor="#89B2C4" style="background-color:#89B2C4; padding:36px 40px;">
-        <img src="${p.origin}/email/outrider-mark-espresso.png" width="56" height="48" alt="Outrider" style="display:block; width:56px; height:auto;" />
+        <img src="${EMAIL_ASSET_ORIGIN}/email/outrider-mark-espresso.png" width="56" height="48" alt="Outrider" style="display:block; width:56px; height:auto;" />
       </td>
     </tr>
 
     <tr>
       <td style="padding:0; font-size:0; line-height:0;">
-        <img class="hero" src="${p.origin}/email/email-hero-telluride.jpg" width="600" alt="Telluride's peaks at dusk, snow on the ridgelines" style="display:block; width:600px; max-width:100%; height:auto;" />
+        <img class="hero" src="${EMAIL_ASSET_ORIGIN}/email/email-hero-telluride.jpg" width="600" alt="Telluride's peaks at dusk, snow on the ridgelines" style="display:block; width:600px; max-width:100%; height:auto;" />
       </td>
     </tr>
 
