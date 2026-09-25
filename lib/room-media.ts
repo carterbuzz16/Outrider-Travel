@@ -100,10 +100,31 @@ const WHOLE_PENTHOUSE = "Eight of you, the whole penthouse";
 const PENTHOUSE_SHARED =
   "Each penthouse has an elevator and ski-in, ski-out access, and you have the run of the resort's pool, hot tub and exercise room.";
 
-const TWO_KING_PHOTO: RoomPhoto = {
-  src: "/images/peaks/two-king-1.jpg",
-  alt: "A Two King room at The Peaks: two white king beds with dark leather headboards, and a sliding door to a balcony at sunset.",
-};
+/**
+ * The Two King room, the same room behind Four to a Room and Two to a Room.
+ * The resort's own photographs (September 2026), hero first: it is the
+ * checkout thumbnail, so it is the one that shows both beds. Named
+ * two-king-room-* rather than reusing two-king-1.jpg: the image optimizer and
+ * browsers cache by URL, and the old photograph kept showing under its name.
+ */
+const TWO_KING_PHOTOS: RoomPhoto[] = [
+  {
+    src: "/images/peaks/two-king-room-1.jpg",
+    alt: "A Two King room at The Peaks: two white king beds against tall leather headboards, and a sliding door onto a balcony over the pines.",
+  },
+  {
+    src: "/images/peaks/two-king-room-2.jpg",
+    alt: "A king bed and a cream armchair beside the sliding door, the balcony and its chairs outside among pines and yellow aspens.",
+  },
+  {
+    src: "/images/peaks/two-king-room-3.jpg",
+    alt: "The bathroom: a long double vanity in dark wood under a wood-framed mirror, and a glass-walled walk-in shower.",
+  },
+  {
+    src: "/images/peaks/two-king-room-4.jpg",
+    alt: "The view from the balcony: aspens in fall color, tall pines, and the San Juan peaks rising behind Mountain Village.",
+  },
+];
 
 const P702: PenthouseSource = {
   number: "702",
@@ -138,13 +159,44 @@ const P702: PenthouseSource = {
       src: "/images/peaks/penthouse-702-1.jpg",
       alt: "The great room in Penthouse 702: two dining tables, leather sofas, a stone fireplace with bookshelves and a vaulted wood ceiling with skylights, and a wall of windows onto the mountains at dusk.",
     },
+    // The owner's second set (September 2026), -4 to -10, slotted in so the
+    // gallery walks through the place: living, dining, kitchen, then the
+    // bedrooms and baths, then the family room and the entry.
+    {
+      src: "/images/peaks/penthouse-702-4.jpg",
+      alt: "The living room in Penthouse 702: leather sofas and armchairs on a patterned rug, a wood-plank ceiling, and angled windows onto the mountains at dusk.",
+    },
     {
       src: "/images/peaks/penthouse-702-2.jpg",
       alt: "A long dining table in Penthouse 702 set for ten under an iron chandelier, with floor-to-ceiling windows onto the mountains at dusk.",
     },
     {
+      src: "/images/peaks/penthouse-702-5.jpg",
+      alt: "A dining table set for breakfast, the stone fireplace and bookshelves behind it, and the kitchen with a granite breakfast bar under a vaulted wood ceiling.",
+    },
+    {
       src: "/images/peaks/penthouse-702-3.jpg",
       alt: "The kitchen in Penthouse 702, with a breakfast bar and granite counters, a dining table on a red rug, and the stairs up to the fourth bedroom.",
+    },
+    {
+      src: "/images/peaks/penthouse-702-6.jpg",
+      alt: "The primary bedroom: a king bed, two plaid armchairs by a wide window, and the peaks outside at dusk.",
+    },
+    {
+      src: "/images/peaks/penthouse-702-7.jpg",
+      alt: "The primary bath: a double vanity with bronze sinks, and a soaking tub under a window onto the mountains.",
+    },
+    {
+      src: "/images/peaks/penthouse-702-8.jpg",
+      alt: "A bedroom with two twin beds on rustic wood-and-iron frames, and a window seat looking out at the mountains.",
+    },
+    {
+      src: "/images/peaks/penthouse-702-9.jpg",
+      alt: "The family room: a leather sofa, a wood coffee table and cabinetry, and a window seat looking over Mountain Village to the peaks.",
+    },
+    {
+      src: "/images/peaks/penthouse-702-10.jpg",
+      alt: "The entry hall: wide-plank floors, French doors to the family room, and a staircase with an iron railing cut in a forest and elk scene.",
     },
   ],
 };
@@ -177,9 +229,27 @@ const P830: PenthouseSource = {
       src: "/images/peaks/penthouse-830-1.jpg",
       alt: "The top-floor great room in Penthouse 830 under a peaked log-beam ceiling and an antler chandelier, with windows on every side over Mountain Village in fall, a long dining table and a kitchen island.",
     },
+    // The owner's second set (September 2026), -4 to -7, slotted in room by
+    // room: living room, the bedrooms, a bath, then the bunk room.
+    {
+      src: "/images/peaks/penthouse-830-4.jpg",
+      alt: "The living room in Penthouse 830: leather sofas around a wide wood chest, a fireplace under the TV, and windows onto snow-capped peaks and the aspens.",
+    },
     {
       src: "/images/peaks/penthouse-830-2.jpg",
       alt: "The primary bedroom in Penthouse 830: a king bed under a coffered ceiling, with windows onto Mt. Wilson and the aspens.",
+    },
+    {
+      src: "/images/peaks/penthouse-830-5.jpg",
+      alt: "A bedroom with a king bed against a tall tufted leather headboard, and a sliding door onto a balcony over the valley.",
+    },
+    {
+      src: "/images/peaks/penthouse-830-6.jpg",
+      alt: "A king bed with a red throw, a sliding door to the balcony, and the valley and cliffs outside at dusk.",
+    },
+    {
+      src: "/images/peaks/penthouse-830-7.jpg",
+      alt: "A bathroom with a double vanity in dark wood, a wood-framed mirror and a glass-walled shower.",
     },
     {
       src: "/images/peaks/penthouse-830-3.jpg",
@@ -216,7 +286,7 @@ const ROOMS: Record<string, RoomSource> = {
       { label: "Sharing", value: "Four, two to a bed" },
       PROPERTY_FACT,
     ],
-    wanted: [TWO_KING_PHOTO],
+    wanted: TWO_KING_PHOTOS,
   },
   MID: {
     key: "MID",
@@ -230,7 +300,7 @@ const ROOMS: Record<string, RoomSource> = {
       { label: "Sharing", value: "Two, a king bed each" },
       PROPERTY_FACT,
     ],
-    wanted: [TWO_KING_PHOTO],
+    wanted: TWO_KING_PHOTOS,
   },
   "PENTHOUSE 702": penthousePackage(P702, "Four bedrooms, 4.5 baths."),
   "PENTHOUSE 830": penthousePackage(P830, "Three stories, 270° views."),
