@@ -53,14 +53,27 @@ export default async function BookingsPage(props: { searchParams: Promise<{ erro
     (typeof user.user_metadata?.name === "string" ? user.user_metadata.name.trim() : "") ||
     null;
 
+  // A trip shows in the account once money is behind it (owner, September
+  // 2026). Starting checkout writes a pending booking before anything is
+  // paid, and listing it made an abandoned checkout look booked, with a
+  // cancel button, to someone who never paid. So: paid bookings, and a
+  // cancelled one only if it had taken a payment (that person needs to see
+  // what happened to their money). A checkout left unpaid is released by
+  // lib/stale-checkout.ts, and starting again from the trip reuses it.
+  const paid = (bookings ?? []).filter(
+    (b) =>
+      b.status === "deposit_paid" ||
+      b.status === "paid_in_full" ||
+      (b.status === "cancelled" && (b.payments ?? []).some((p) => p.status === "succeeded" || p.status === "refunded")),
+  );
+
   // Penthouse bookings carry their group's fill progress. The count spans other
   // travelers' rows, which this session cannot read, so it goes through the
   // service role and comes back as numbers only.
-  // Only once something is paid: an unpaid checkout is not a place in it yet.
-  const live = (bookings ?? []).filter((b) => b.status === "deposit_paid" || b.status === "paid_in_full");
+  const live = paid.filter((b) => b.status === "deposit_paid" || b.status === "paid_in_full");
   const progress = await getPenthouseProgress(createAdminClient(), live);
   const renderedAt = new Date().toISOString();
-  const rows: BookingRow[] = (bookings ?? []).map((b) => {
+  const rows: BookingRow[] = paid.map((b) => {
     const fill = progress.get(b.id);
     return { ...(b as BookingRow), penthouse: fill ? { snapshot: toSnapshot(fill), renderedAt } : null };
   });

@@ -932,7 +932,8 @@ function fail(code: AccountErrorCode): never {
   redirect(`/bookings?error=${code}`);
 }
 
-// Self-service cancellation only covers pending/deposit_paid — a
+// Self-service cancellation only covers deposit_paid. An unpaid checkout is
+// never shown to cancel (it is released on its own), and a
 // paid_in_full booking needs human judgment (how much of the trip cost is
 // recoverable this close to departure), not a button. Status-only: no
 // Stripe refund is issued automatically. If a deposit was already charged,
@@ -954,7 +955,10 @@ export async function cancelBooking(formData: FormData) {
   // signed-in user's own rows.
   const { data: booking } = await supabase.from("bookings").select("id, status").eq("id", bookingId).single();
 
-  if (!booking || !["pending", "deposit_paid"].includes(booking.status)) {
+  // Only once the deposit is paid (owner, September 2026). An unpaid checkout
+  // isn't shown in the account at all, and lib/stale-checkout.ts releases it
+  // on its own, so there is nothing for the traveler to cancel before then.
+  if (!booking || booking.status !== "deposit_paid") {
     fail("cannot_cancel");
   }
 
@@ -969,7 +973,7 @@ export async function cancelBooking(formData: FormData) {
     .from("bookings")
     .update({ status: "cancelled" })
     .eq("id", bookingId)
-    .in("status", ["pending", "deposit_paid"])
+    .eq("status", "deposit_paid")
     .select("id");
   if (bookingError) {
     throw new Error(bookingError.message);

@@ -282,6 +282,14 @@ const LINK = "text-[--accent] underline underline-offset-2";
  * A package as a selectable card, room first. The radio is native and the
  * card's selected look is `:has(:checked)`, so it is right before hydration.
  *
+ * The photograph never takes the card's height. It used to fill a narrow side
+ * column top to bottom, and a penthouse card (terms, perks) is tall, so a
+ * landscape room became a zoomed portrait strip, upscaled from an image
+ * fetched for a 17rem slot: grainy, and the owner's most important picture.
+ * Now a penthouse leads with its main photograph as a wide banner across the
+ * whole card, and the shared rooms keep a small landscape thumbnail at the
+ * top of their side column. Both are fetched at the size they are drawn.
+ *
  * The picture and the text are both <label>s for the radio, so a tap almost
  * anywhere selects it. The two things that are not (the full inclusions list
  * and the photo viewer) sit outside the labels: interactive content inside a
@@ -300,12 +308,15 @@ function PackageCard({
   const key = tier.inclusions.slice(0, KEY_INCLUSIONS);
   const more = tier.inclusions.length > KEY_INCLUSIONS;
   const photo = tier.room?.photos[0] ?? null;
+  // The penthouses are what the page sells hardest: their photograph goes
+  // across the top of the card instead of down the side.
+  const banner = tier.room?.key === "PENTHOUSE" || tier.room?.key === "TOP";
 
   return (
     <div
       className={cn(
         "grid border border-[--rule] bg-[--surface-raised] transition-[border-color,box-shadow] duration-fast ease-out",
-        "sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] md:grid-cols-[minmax(0,17rem)_minmax(0,1fr)]",
+        !banner && "sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] md:grid-cols-[minmax(0,17rem)_minmax(0,1fr)]",
         tier.soldOut
           ? "opacity-60"
           : "hover:border-[--rule-strong] has-[:checked]:border-[--accent-solid] has-[:checked]:shadow-[inset_0_0_0_1px_var(--accent-solid)]",
@@ -313,14 +324,29 @@ function PackageCard({
       )}
     >
       {tier.room && (
-        <label htmlFor={inputId} className={cn("block", tier.soldOut ? "cursor-not-allowed" : "cursor-pointer")}>
+        <label
+          htmlFor={inputId}
+          className={cn("block self-start", tier.soldOut ? "cursor-not-allowed" : "cursor-pointer")}
+        >
           {photo ? (
-            <span className="relative block aspect-[3/2] h-full w-full overflow-hidden bg-[--surface-inset] sm:aspect-auto sm:min-h-full">
+            <span
+              className={cn(
+                "relative block w-full overflow-hidden bg-[--surface-inset]",
+                // Landscape at every width. The banner is a touch wider than
+                // the photograph (3:2) so it reads as a banner; the crop
+                // loses a sliver of ceiling and floor, never the room.
+                banner ? "aspect-[3/2] sm:aspect-[2/1]" : "aspect-[3/2] sm:aspect-[4/3]",
+              )}
+            >
               <Image
                 src={photo.src}
                 alt={photo.alt}
                 fill
-                sizes="(min-width: 768px) 17rem, (min-width: 640px) 14rem, 100vw"
+                sizes={
+                  banner
+                    ? "(min-width: 1280px) 48rem, (min-width: 1024px) 60vw, 100vw"
+                    : "(min-width: 768px) 17rem, (min-width: 640px) 14rem, 100vw"
+                }
                 className="object-cover"
               />
             </span>

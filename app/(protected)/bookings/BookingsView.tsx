@@ -77,8 +77,11 @@ const PAYMENT_LABEL: Partial<Record<PaymentStatus, string>> = {
   refunded: "Refunded",
 };
 
-/** Statuses a traveler can still stand down themselves — see cancelBooking. */
-const CANCELLABLE: BookingStatus[] = ["pending", "deposit_paid"];
+/**
+ * Statuses a traveler can still stand down themselves, see cancelBooking.
+ * Paid deposits only: nothing unpaid reaches this screen (bookings/page.tsx).
+ */
+const CANCELLABLE: BookingStatus[] = ["deposit_paid"];
 
 export default function BookingsView({
   email,
