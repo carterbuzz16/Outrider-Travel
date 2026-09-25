@@ -16,7 +16,7 @@ import { INSTALLMENT_OFFSETS_DAYS } from "@/lib/installments";
 import { countPenthouses, getRoomMedia, tierDisplayName, tierGrouping } from "@/lib/room-media";
 import { CONTACT } from "@/lib/site-content";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { BOOKINGS_OPEN } from "@/lib/booking-window";
+import { bookingsOpenForViewer } from "@/lib/early-access";
 import { hasDeparted } from "@/lib/mountain-time";
 import { checkoutErrorText } from "@/lib/flash";
 import { clientIp } from "@/lib/client-ip";
@@ -51,11 +51,12 @@ export default async function NewBookingPage(props: {
 
   // Not on sale yet: nothing to choose, so no packages and no trip lookups.
   // createBooking refuses too, and sends anyone who posts anyway back here.
-  if (!BOOKINGS_OPEN) {
+  // The list is the exception during its head start (lib/early-access.ts).
+  if (!(await bookingsOpenForViewer())) {
     return (
       <main>
         <div className="shell max-w-[76rem] pb-20 pt-8 md:pb-28 md:pt-12">
-          <OpensSoon />
+          <OpensSoon badLink={searchParams.error === "early_access"} />
         </div>
       </main>
     );
@@ -370,9 +371,20 @@ function NothingOpen() {
 }
 
 /** Before bookings open: where to look meanwhile, instead of packages nobody can buy. */
-function OpensSoon() {
+/**
+ * Before launch. `badLink` is an early-access link that did not check out
+ * (mistyped, or its owner unsubscribed), said plainly so nobody thinks the
+ * site is broken.
+ */
+function OpensSoon({ badLink = false }: { badLink?: boolean }) {
   return (
     <div className="mt-10 flex flex-col items-start gap-6 border border-[--rule] bg-[--surface-raised] px-6 py-14 md:px-10 md:py-16">
+      {badLink && (
+        <p className="max-w-measure font-body text-body leading-[1.7] text-[--text]">
+          That early-access link didn&rsquo;t open booking. Use the button in your
+          email, or write to bookings@outrider.travel and we&rsquo;ll send it again.
+        </p>
+      )}
       <h1 className="t-heading max-w-[22ch] text-[--text]">Booking opens soon</h1>
       <p className="max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
         The dates, the packages and the pricing are final, and we&rsquo;ll be taking spots shortly. Join the

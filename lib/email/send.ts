@@ -7,6 +7,7 @@ import { getAppUrl } from "@/lib/site-url";
 import { BOOKINGS_OPEN } from "@/lib/booking-window";
 import { CONTACT, LEGAL_NAME } from "@/lib/site-content";
 import { waitlistWelcomeHtml } from "@/lib/email/templates/waitlist-welcome";
+import { EARLY_ACCESS_SUBJECT, earlyAccessHtml } from "@/lib/email/templates/early-access";
 
 // resend.emails.send() resolves with { data, error } rather than throwing
 // on an API-level failure (e.g. an unverified domain) — it only throws on
@@ -18,6 +19,23 @@ export async function sendEmail(params: Parameters<Resend["emails"]["send"]>[0])
   const { data, error } = await getResend().emails.send(params);
   if (error) {
     throw new Error(`Resend send failed: ${error.name} — ${error.message}`);
+  }
+  return data;
+}
+
+/**
+ * Up to 100 emails in one Resend call, for mail to the list. Same
+ * error-surfacing as sendEmail. The idempotency key makes a retried call
+ * (a double click, a timeout that actually went through) a no-op on
+ * Resend's side for 24 hours rather than a second copy in everyone's inbox.
+ */
+export async function sendEmailBatch(
+  emails: Parameters<Resend["batch"]["send"]>[0],
+  idempotencyKey: string,
+) {
+  const { data, error } = await getResend().batch.send(emails, { idempotencyKey });
+  if (error) {
+    throw new Error(`Resend batch send failed: ${error.name} — ${error.message}`);
   }
   return data;
 }
@@ -424,7 +442,7 @@ export function renderWaitlistWelcome(token: string): RenderedEmail & { html: st
       "",
       "Telluride: December 14-18, 2026 or January 4-8, 2027",
       "The Peaks, Mountain Village. Four to a room, two to a room, or a whole penthouse for your eight.",
-      "Included: lift tickets and ski or snowboard rentals, rides from Montrose, a BBQ at Gorrono Ranch, and our team on the ground all week.",
+      "Included: lift tickets and ski or snowboard rentals, rides from Montrose, an après party at Gorrono Ranch, and our team on the ground all week.",
       "",
       `See the trip: ${getAppUrl().replace(/\/+$/, "")}/telluride`,
       "",
@@ -433,6 +451,52 @@ export function renderWaitlistWelcome(token: string): RenderedEmail & { html: st
       "Questions: bookings@outrider.travel. We reply within a day.",
       "We only email when a trip opens.",
       `Unsubscribe: ${url}`,
+    ].join("\n"),
+  };
+}
+
+/**
+ * The list's head start (lib/early-access.ts): booking is open to them first.
+ * `bookingUrl` is the member's own /early-access link; `unsubscribeToken` is
+ * their unsubscribe_token, the same one the welcome carries.
+ */
+export function renderEarlyAccess(opts: {
+  bookingUrl: string;
+  unsubscribeToken: string;
+  fromPrice: string | null;
+}): RenderedEmail & { html: string; text: string } {
+  const origin = getAppUrl().replace(/\/+$/, "");
+  const unsubscribeUrl = `${origin}/unsubscribe?t=${encodeURIComponent(opts.unsubscribeToken)}`;
+
+  return {
+    subject: EARLY_ACCESS_SUBJECT,
+    headers: {
+      "List-Unsubscribe": `<${origin}/api/unsubscribe?t=${encodeURIComponent(opts.unsubscribeToken)}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    },
+    html: earlyAccessHtml({
+      origin,
+      bookingUrl: escapeHtml(opts.bookingUrl),
+      unsubscribeUrl: escapeHtml(unsubscribeUrl),
+      addressLine: escapeHtml([LEGAL_NAME, ...(CONTACT.postalAddress ?? [])].join(", ")),
+      fromPrice: opts.fromPrice ? escapeHtml(opts.fromPrice) : null,
+    }),
+    text: [
+      "You're in before anyone.",
+      "",
+      "Booking for Telluride is open, to this list and nobody else yet. First pick of the dates and the rooms, the two penthouses included.",
+      "",
+      `Book your spot: ${opts.bookingUrl}`,
+      "",
+      "Telluride: December 14-18, 2026 or January 4-8, 2027",
+      "The Peaks, Mountain Village. Four to a room, two to a room, or a whole penthouse for your eight.",
+      opts.fromPrice ? `From ${opts.fromPrice} per person, all in.` : "One price per person, all in.",
+      "10% down holds your spot. The rest comes in two installments, or pay it all at once.",
+      "",
+      "Forward this to the friends you're rooming with. The link works for them too, so you can all book before it opens to everyone.",
+      "",
+      `Questions: ${CONTACT.email}. We reply within a day.`,
+      `Unsubscribe: ${unsubscribeUrl}`,
     ].join("\n"),
   };
 }

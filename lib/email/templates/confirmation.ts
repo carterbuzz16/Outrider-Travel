@@ -15,6 +15,20 @@
  * Words only (never markup) were edited in September 2026 to match the
  * owner's decisions: travel insurance is an optional add-on, replies come
  * within a day, no month named, and no em dashes in the copy.
+ *
+ * ONE markup change since: the "In the price" block now names Faye and links
+ * to it, with the commission disclosure on the line under it. The link is an
+ * affiliate link and the disclosure is not optional, so the two move
+ * together, and the anchor copies the "Full breakdown" anchor beside it
+ * rather than introducing a style. The URL is hard-coded here (and escaped as
+ * &amp; for XHTML) because this template takes no variable it does not need;
+ * the same link in the app comes from TRAVEL_INSURANCE in lib/site-content.ts,
+ * so change both.
+ *
+ * And the image hosts: every <img> points at https://www.outrider.travel,
+ * the canonical host, not the bare domain. The bare domain answers with a 308
+ * to www, and not every mail client's image loader follows one, so the header
+ * band came through blank. Links can keep the bare domain; a browser follows.
  */
 export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
@@ -67,7 +81,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
 
     <tr>
       <td align="center" bgcolor="#89B2C4" style="background-color:#89B2C4;">
-        <a href="https://outrider.travel"><img src="https://outrider.travel/email/email-header-band.png" width="600" height="100" alt="Outrider" class="fluid" style="width:600px; height:100px; display:block;" /></a>
+        <a href="https://outrider.travel"><img src="https://www.outrider.travel/email/email-header-band.png" width="600" height="100" alt="Outrider" class="fluid" style="width:600px; height:100px; display:block;" /></a>
       </td>
     </tr>
 
@@ -85,7 +99,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
 
     <tr>
       <td bgcolor="#2A2320" style="background-color:#2A2320; font-size:0; line-height:0;">
-        <img src="https://outrider.travel/email/email-hero-telluride.jpg" width="600" height="280" alt="Last light on the San Juans above Telluride" class="fluid" style="width:600px; height:280px; display:block;" />
+        <img src="https://www.outrider.travel/email/email-hero-telluride.jpg" width="600" height="280" alt="Last light on the San Juans above Telluride" class="fluid" style="width:600px; height:280px; display:block;" />
       </td>
     </tr>
 
@@ -128,11 +142,11 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
                       Montrose Regional (MTJ), not Denver. A handful of winter flights a day, and they sell out, so do this one first.
                     </div>
                     <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:1.7; color:#3E342F; padding-top:10px;">
-                      Land by <strong style="font-weight:600;">{{arrival_deadline}}</strong><br />
-                      Fly out after <strong style="font-weight:600;">{{departure_earliest}}</strong>
+                      Fly in <strong style="font-weight:600;">{{arrival_day}}</strong><br />
+                      Fly home <strong style="font-weight:600;">{{departure_day}}</strong>
                     </div>
                     <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; line-height:1.6; color:#6B635C; padding-top:8px;">
-                      Inside that window your ground transport both ways is already paid for.
+                      Any time those days works. Your ground transport both ways is already paid for.
                       <a href="https://outrider.travel/flights" style="color:#9C4F2E; text-decoration:underline; font-weight:600;">Flight guide</a>
                     </div>
                   </td>
@@ -266,7 +280,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
     <!-- ============ PHOTO BAND ============ -->
     <tr>
       <td style="padding:40px 0 0 0; font-size:0; line-height:0;">
-        <img src="https://outrider.travel/email/email-band-gorrono.jpg" width="600" height="210" alt="Gorrono Ranch, the mid-mountain saloon at Telluride" class="fluid" style="width:600px; height:210px; display:block;" />
+        <img src="https://www.outrider.travel/email/email-band-gorrono.jpg" width="600" height="210" alt="Gorrono Ranch, the mid-mountain saloon at Telluride" class="fluid" style="width:600px; height:210px; display:block;" />
       </td>
     </tr>
     <tr>
@@ -289,7 +303,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
               Airport transport, both ways
             </td>
             <td class="stack stack-gap" width="50%" valign="top" style="padding-left:16px; font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; line-height:1.85; color:#3E342F;">
-              Welcome drink &amp; Gorrono BBQ<br />
+              Welcome drink &amp; Gorrono après party<br />
               Welcome package<br />
               Our team on the ground, the whole trip
             </td>
@@ -299,8 +313,11 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
           <tr><td style="border-top:1px solid #d7d2cb; font-size:0; line-height:0;">&nbsp;</td></tr>
         </table>
         <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; line-height:1.6; color:#6B635C; padding-top:14px;">
-          Not in it: flights, meals beyond the BBQ (and your chef night, on a penthouse), and travel insurance. We'll offer it as an optional add-on.
+          Not in it: flights, meals beyond the BBQ (and your chef night, on a penthouse), and travel insurance. You can add your own through Faye, <a href="https://www.withfaye.com/quote/offer?utm_campaign=carter.busby&amp;utm_source=outrider.travel&amp;utm_medium=bd-traveladvisors&amp;utm_term=glinda" style="color:#3E342F; text-decoration:underline;">a quote takes about a minute</a>.
           <a href="https://outrider.travel/telluride#included" style="color:#3E342F; text-decoration:underline;">Full breakdown</a>
+        </div>
+        <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:13px; line-height:1.6; color:#6B635C; padding-top:10px;">
+          Faye is a partner of ours. We earn a commission if you buy through this link, and it costs you nothing extra.
         </div>
       </td>
     </tr>
@@ -327,7 +344,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
           <tr>
             <td style="padding-bottom:22px;">
-              <a href="https://outrider.travel"><img src="https://outrider.travel/email/outrider-mark-espresso.png" width="40" height="34" alt="Outrider" style="width:40px; height:34px; display:block;" /></a>
+              <a href="https://outrider.travel"><img src="https://www.outrider.travel/email/outrider-mark-espresso.png" width="40" height="34" alt="Outrider" style="width:40px; height:34px; display:block;" /></a>
             </td>
           </tr>
           <tr><td style="border-top:1px solid #d7d2cb; font-size:0; line-height:0;">&nbsp;</td></tr>

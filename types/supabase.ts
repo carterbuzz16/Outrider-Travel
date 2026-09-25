@@ -312,7 +312,7 @@ export type Database = {
       }
       traveler_details: {
         Row: {
-          ability_level: string
+          ability_level: string | null
           booking_id: string
           date_of_birth: string
           dietary_restrictions: string | null
@@ -322,14 +322,15 @@ export type Database = {
           id: string
           legal_name: string
           phone: string
+          school: string | null
           shoe_size: string | null
-          ski_or_board: string
+          ski_or_board: string | null
           submitted_at: string
           updated_at: string
           weight: string | null
         }
         Insert: {
-          ability_level: string
+          ability_level?: string | null
           booking_id: string
           date_of_birth: string
           dietary_restrictions?: string | null
@@ -339,14 +340,15 @@ export type Database = {
           id?: string
           legal_name: string
           phone: string
+          school?: string | null
           shoe_size?: string | null
-          ski_or_board: string
+          ski_or_board?: string | null
           submitted_at?: string
           updated_at?: string
           weight?: string | null
         }
         Update: {
-          ability_level?: string
+          ability_level?: string | null
           booking_id?: string
           date_of_birth?: string
           dietary_restrictions?: string | null
@@ -356,8 +358,9 @@ export type Database = {
           id?: string
           legal_name?: string
           phone?: string
+          school?: string | null
           shoe_size?: string | null
-          ski_or_board?: string
+          ski_or_board?: string | null
           submitted_at?: string
           updated_at?: string
           weight?: string | null
@@ -414,6 +417,8 @@ export type Database = {
           consent_text_version: string | null
           consent_user_agent: string | null
           created_at: string
+          early_access_sent_at: string | null
+          early_access_token: string
           email: string
           email_consent: boolean | null
           email_consent_at: string | null
@@ -437,6 +442,8 @@ export type Database = {
           consent_text_version?: string | null
           consent_user_agent?: string | null
           created_at?: string
+          early_access_sent_at?: string | null
+          early_access_token?: string
           email: string
           email_consent?: boolean | null
           email_consent_at?: string | null
@@ -460,6 +467,8 @@ export type Database = {
           consent_text_version?: string | null
           consent_user_agent?: string | null
           created_at?: string
+          early_access_sent_at?: string | null
+          early_access_token?: string
           email?: string
           email_consent?: boolean | null
           email_consent_at?: string | null

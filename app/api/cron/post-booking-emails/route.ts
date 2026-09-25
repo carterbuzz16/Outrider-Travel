@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { CHASE_AFTER_HOURS, sendChaseEmailOnce, sendConfirmationEmailOnce } from "@/lib/email/post-booking";
 import { sendDuePenthouseEmails } from "@/lib/email/penthouse";
 import { todayInMountain } from "@/lib/mountain-time";
+import { sweepUnpaidTravelerDetails } from "@/lib/stale-checkout";
 
 /*
  * Daily, from Vercel Cron (vercel.json). The plan runs crons once a day, so
@@ -123,5 +124,11 @@ export async function GET(request: Request) {
     penthouses = { error: "failed" };
   }
 
-  return NextResponse.json({ confirmations, chases, penthouses });
+  // -- 4. details on unpaid checkouts ----------------------------------------
+  // Not an email, but the one daily job there is. Checkout asks for a name
+  // and date of birth before the card, and a checkout walked away from is
+  // otherwise never touched again; see sweepUnpaidTravelerDetails.
+  const unpaidDetailsDropped = await sweepUnpaidTravelerDetails(admin, now);
+
+  return NextResponse.json({ confirmations, chases, penthouses, unpaidDetailsDropped });
 }

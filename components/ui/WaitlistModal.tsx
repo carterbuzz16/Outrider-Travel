@@ -7,6 +7,7 @@ import WaitlistFields from "./WaitlistFields";
 import WaitlistShare from "./WaitlistShare";
 import { cn } from "./cn";
 import { useWaitlistSignup } from "./useWaitlistSignup";
+import { BOOKINGS_OPEN, TRIP_DETAILS_OPEN } from "@/lib/booking-window";
 
 /**
  * The waitlist, as a dialog.
@@ -144,7 +145,10 @@ export function WaitlistModal({
               Join the list
             </h2>
             <p className="mt-4 font-body text-body-s leading-[1.7] text-[--text-secondary]">
-              First access to Telluride, and to every trip after it.
+              {/* While paying is list-only, joining is how you book, so say so. */}
+              {!BOOKINGS_OPEN && TRIP_DETAILS_OPEN
+                ? "The list books first. Join, and we'll email you a private link to book."
+                : "First access to Telluride, and to every trip after it."}
             </p>
 
             <WaitlistFields signup={signup} tone="light" className="mt-7" />

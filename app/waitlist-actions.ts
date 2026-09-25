@@ -5,6 +5,7 @@ import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { sendWaitlistNotification, sendWaitlistWelcome } from "@/lib/email/send";
+import { sendEarlyAccessOnJoin } from "@/lib/early-access";
 import { clientIp } from "@/lib/client-ip";
 import type { Database } from "@/types/supabase";
 import { WAITLIST_CONSENT_VERSION } from "@/lib/waitlist-consent";
@@ -188,7 +189,18 @@ export async function joinWaitlist(
     // "unsubscribe link in any of those messages" the privacy policy promises
     // did not yet exist anywhere. Failure is logged, never surfaced: they are
     // on the list either way, and telling them otherwise invites a resubmit.
-    if (stored.token) {
+    // During the list's head start a new signup gets their booking link
+    // instead: the trip is public, and joining is how you book. It carries
+    // the same unsubscribe link, so it does the welcome's job too. Anything
+    // short of a sent link falls through to the ordinary welcome.
+    const linkSent =
+      stored.token && stored.earlyToken
+        ? await sendEarlyAccessOnJoin(input.email, { earlyAccess: stored.earlyToken, unsubscribe: stored.token })
+        : false;
+
+    if (linkSent) {
+      // Sent and stamped; nothing more to do for this address.
+    } else if (stored.token) {
       try {
         await sendWaitlistWelcome(input.email, stored.token);
       } catch (err) {
@@ -249,7 +261,7 @@ async function storeSignup(
   context: SignupContext,
   evidence: ConsentEvidence,
   existing: { row: ExistingRow | null; failed: boolean },
-): Promise<{ ok: boolean; isNew: boolean; token?: string }> {
+): Promise<{ ok: boolean; isNew: boolean; token?: string; earlyToken?: string }> {
   const admin = createAdminClient();
   const now = new Date().toISOString();
 
@@ -279,10 +291,14 @@ async function storeSignup(
         utm_medium: context.medium ?? null,
         utm_campaign: context.campaign ?? null,
       })
-      .select("unsubscribe_token")
+      // Both tokens: the welcome needs the unsubscribe one, and during the
+      // list's head start the booking link needs the other (lib/early-access.ts).
+      .select("unsubscribe_token, early_access_token")
       .single();
 
-    if (!error) return { ok: true, isNew: true, token: data?.unsubscribe_token };
+    if (!error) {
+      return { ok: true, isNew: true, token: data?.unsubscribe_token, earlyToken: data?.early_access_token };
+    }
 
     // The columns this writes arrived in migration
     // 20260924120000_waitlist_contact_and_consent. If this code ever runs
@@ -297,9 +313,16 @@ async function storeSignup(
       const fallback = await admin
         .from("waitlist_signups")
         .insert({ email: input.email })
-        .select("unsubscribe_token")
+        .select("unsubscribe_token, early_access_token")
         .single();
-      if (!fallback.error) return { ok: true, isNew: true, token: fallback.data?.unsubscribe_token };
+      if (!fallback.error) {
+        return {
+          ok: true,
+          isNew: true,
+          token: fallback.data?.unsubscribe_token,
+          earlyToken: fallback.data?.early_access_token,
+        };
+      }
       if (fallback.error.code === UNIQUE_VIOLATION) return { ok: true, isNew: false };
       console.error(`Waitlist fallback insert failed: ${fallback.error.code} ${fallback.error.message}`);
       return { ok: false, isNew: false };

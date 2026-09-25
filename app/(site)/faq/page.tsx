@@ -3,7 +3,7 @@ import { pageMetadata } from "@/lib/metadata";
 import Link from "next/link";
 import { FaqSchema, Reveal, SectionDivider, WaitlistCTA } from "@/components/ui";
 import { CONTACT } from "@/lib/site-content";
-import { BOOKINGS_OPEN } from "@/lib/booking-window";
+import { BOOKINGS_OPEN, TRIP_DETAILS_OPEN } from "@/lib/booking-window";
 import { PAY_IN_FULL_DISCOUNT } from "@/lib/deposit";
 import { flightTimesPublished } from "@/lib/trip-logistics";
 
@@ -34,9 +34,9 @@ const GROUPS: Group[] = [
         a: (
           <>
             Your lodging, lift tickets and ski or snowboard rentals, rides
-            from the airport and back, the BBQ at Gorrono Ranch, and our team
+            from the airport and back, the après party at Gorrono Ranch, and our team
             on the ground for the whole trip.{" "}
-            {BOOKINGS_OPEN
+            {TRIP_DETAILS_OPEN
               ? "The number on the trip page is what the trip costs: no resort fee at check-in and no separate charge for the shuttle."
               : "No resort fee at check-in and no separate charge for the shuttle."}{" "}
             You book your own flights. Travel insurance isn&rsquo;t included.
@@ -218,6 +218,15 @@ const GROUPS: Group[] = [
               trips page
             </Link>
             .
+          </>
+        ) : TRIP_DETAILS_OPEN ? (
+          // Details public, paying list-only (lib/booking-window.ts).
+          <>
+            The list books first. Dates, packages and pricing are all on the{" "}
+            <Link href="/telluride" className="text-[--accent] underline underline-offset-4">
+              Telluride page
+            </Link>
+            . Join the list below and we&rsquo;ll email you a private link to book.
           </>
         ) : (
           <>

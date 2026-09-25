@@ -133,6 +133,8 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December",
 ];
 
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
 /** "November 14" or "November 14, 2026" from "2026-11-14", with no timezone drift. */
 function longDate(iso: string, withYear: boolean): string | undefined {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
@@ -140,6 +142,21 @@ function longDate(iso: string, withYear: boolean): string | undefined {
   const [, y, m, d] = match;
   const base = `${MONTHS[Number(m) - 1]} ${Number(d)}`;
   return withYear ? `${base}, ${y}` : base;
+}
+
+/**
+ * "Monday, December 14" from "2026-12-14".
+ *
+ * The weekday is the point: a traveler booking a flight is looking at a
+ * calendar of weekdays, and the day is now the whole instruction (there is no
+ * arrival time to hit). Date.UTC, so no timezone can move it a day.
+ */
+function longDayName(iso: string): string | undefined {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!match) return undefined;
+  const [, y, m, d] = match;
+  const weekday = WEEKDAYS[new Date(Date.UTC(Number(y), Number(m) - 1, Number(d))).getUTCDay()];
+  return `${weekday}, ${MONTHS[Number(m) - 1]} ${Number(d)}`;
 }
 
 function daysBetween(fromIso: string, toIso: string): number {
@@ -296,6 +313,19 @@ export function buildTemplateVariables(
   if (trip) {
     set("trip_name", trip.name);
     set("trip_dates", formatDateRange(trip.start_date, trip.end_date));
+    /*
+     * The flight days, straight off the trip row.
+     *
+     * These used to be an arrival deadline and an earliest departure out of
+     * lib/trip-logistics.ts ("land by 2:00 pm"). The owner settled it in
+     * September 2026: there is no time to hit, the flight just has to be on
+     * the right day, both ways. So the day is the whole instruction, and it
+     * comes from start_date and end_date rather than a hand-kept fact, which
+     * means it is right for every departure without anyone maintaining it and
+     * can never contradict the dates printed elsewhere in the same email.
+     */
+    set("arrival_day", longDayName(trip.start_date));
+    set("departure_day", longDayName(trip.end_date));
     // The unit rides in the value ("1 day", "12 days"), so the template's
     // "is {{days_until_trip}} out" never reads "1 days".
     const days = daysBetween(opts.today ?? todayInMountain(), trip.start_date);
@@ -304,8 +334,7 @@ export function buildTemplateVariables(
   if (logistics) {
     set("trip_capacity", logistics.tripCapacity ?? placeholder("trip capacity"));
     set("property_name", logistics.propertyName ?? placeholder("property name"));
-    set("arrival_deadline", logistics.arrivalDeadline ?? placeholder("arrival deadline"));
-    set("departure_earliest", logistics.departureEarliest ?? placeholder("earliest departure"));
+    // No arrival_deadline / departure_earliest any more: see arrival_day above.
     set(
       "rooming_lock_date",
       logistics.roomingLockDate ? longDate(logistics.roomingLockDate, false) : placeholder("rooming lock date")
@@ -345,7 +374,7 @@ function confirmationText(v: TemplateVariables): string {
     `${v.first_name}, your spot on ${v.trip_name}, ${v.trip_dates}, is held.`,
     "",
     "Three things we need from you today, all in one place:",
-    `1. Book your flights into Montrose (MTJ). Land by ${v.arrival_deadline}, fly out after ${v.departure_earliest}. Flight guide: https://outrider.travel/flights`,
+    `1. Book your flights into Montrose (MTJ). Fly in ${v.arrival_day} and home ${v.departure_day}. Any time those days works. Flight guide: https://outrider.travel/flights`,
     `2. Tell us who you're rooming with: ${v.rooming_url}`,
     `3. Fill in your traveler details: ${v.traveler_details_url}`,
     "",

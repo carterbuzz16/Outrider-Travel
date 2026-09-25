@@ -68,7 +68,7 @@ export const VALUE_PROPS = [
     eyebrow: "All in",
     title: "One price, all in",
     body:
-      "Lodging, lift tickets and rentals, ground transport, the Gorrono Ranch BBQ, a welcome package and our team are all in the price. No resort fee at check-in and no surprise shuttle charge. Everyone books and pays for their own spot, all at once or in installments, so nobody fronts the money for friends or spends the semester chasing Venmo requests.",
+      "Lodging, lift tickets and rentals, ground transport, the private events, a welcome package and our team are all in the price. No resort fee at check-in and no surprise shuttle charge. Everyone books and pays for their own spot, all at once or in installments, so nobody fronts the money for friends or spends the semester chasing Venmo requests.",
   },
   {
     eyebrow: "We go first",
@@ -168,9 +168,140 @@ export const SHARED_INCLUSIONS = [
   "Lodging with the whole group under one roof at The Peaks",
   "Lift tickets and ski or snowboard rentals, ready before you land",
   "Ground transport between Montrose and Telluride, both directions",
-  "An afternoon BBQ at Gorrono Ranch, mid-mountain, with the whole group",
+  "Private events all week, including an après party with a DJ at Gorrono Ranch, mid-mountain",
+  "Tables held for the group at restaurants in town, and drink vouchers for spots around Mountain Village",
   "A welcome package",
   "Our team on the ground for the whole trip",
+];
+
+/* -- the private events -------------------------------------------------------
+ * What "private group events all week" in every package actually means, from
+ * Carter's list (25 September 2026). Shown on /telluride under #events and as a
+ * teaser on the home page, before launch as well: it is what the week feels
+ * like, not what it costs, so it is not held back with the packages.
+ *
+ * Careful with what each line promises. Restaurant blocks are held tables, not
+ * paid dinners (confirmed by Carter): meals are not covered, so the copy never
+ * says dinner is. Around the village it is drink vouchers, not open tabs
+ * (Carter, 25 September 2026), so never promise a tab or a set number. The
+ * line names no age on purpose; Carter asked for it without 21-and-over wording. Night two is deliberately
+ * unannounced: when it is set, fill in the title and body and remove `teaser`.
+ * ------------------------------------------------------------------------- */
+export type TripEvent = {
+  /** Small label above the title: when, or where. */
+  when: string;
+  title: string;
+  body: string;
+  image: { src: string; alt: string };
+  /** Focal point for the crop. */
+  position?: string;
+  /** Still under wraps: the card says so rather than inventing detail. */
+  teaser?: boolean;
+};
+
+export const TELLURIDE_EVENTS: TripEvent[] = [
+  {
+    when: "Mid-mountain",
+    title: "Après at Gorrono Ranch",
+    body:
+      "One afternoon the whole group takes over Gorrono Ranch, the old homestead halfway down the mountain. BBQ on the deck, a DJ, and everyone still in ski boots.",
+    image: {
+      src: "/images/telluride/gorrono-deck.jpg",
+      alt: "Gorrono Ranch's old timber barns mid-mountain, skiers in Adirondack chairs on the snow out front and the San Juans behind.",
+    },
+  },
+  {
+    when: "Night two",
+    title: "An Outrider night",
+    body:
+      "Night two is ours alone, a private event for the group and nobody else. We're keeping the details quiet for now. Travelers hear first.",
+    image: {
+      src: "/images/people/chairlift-dusk.jpg",
+      alt: "Three snowboarders riding a chairlift up a darkening run at dusk, snowy pines on either side.",
+    },
+    teaser: true,
+  },
+  {
+    when: "In town",
+    title: "Tables held for the group",
+    body:
+      "We book blocks at restaurants in town before anyone lands, so dinner is a gondola ride down to a table that's already held. You order and pay as you go, without the wait list or the calling around.",
+    image: {
+      src: "/images/people/friends-candlelit-dinner.jpg",
+      alt: "A group of friends in hoodies sharing dinner at a long candlelit table in a timber dining room.",
+    },
+  },
+  {
+    when: "Mountain Village",
+    title: "Vouchers around the village",
+    body:
+      "When the lifts close, you'll have drink vouchers and a few extras for spots around Mountain Village, so the first round after skiing is already sorted.",
+    image: {
+      src: "/images/telluride/dining.jpg",
+      alt: "A stone terrace in Mountain Village at dusk, fire tables glowing under the arches and trees wrapped in lights.",
+    },
+    position: "40% 50%",
+  },
+];
+
+/* -- trip sponsors ------------------------------------------------------------
+ * Brands supplying something to the group. Confirmed by Carter, 25 September
+ * 2026. The brand writes its name "Sap's" (sapsoriginal.com), not "SAPS". The
+ * logo is the file Carter supplied, transparent, used as is: never recolor it.
+ * Say only what they supply: no health or hangover claims on their behalf.
+ * ------------------------------------------------------------------------- */
+export const TRIP_SPONSORS = [
+  {
+    name: "Sap's",
+    url: "https://www.sapsoriginal.com/",
+    supplies: "Electrolyte drinks for the group, all week",
+    logo: { src: "/images/partners/saps.webp", width: 1125, height: 493 },
+  },
+];
+
+/* -- the town after the lifts -------------------------------------------------
+ * Checked 25 September 2026 against the sources beside each line. Only places
+ * and facts a visitor can see for themselves; none of these are Outrider
+ * events or partners, so nothing here promises a voucher or a table. Carter
+ * wants this to be the bars and restaurants, not sightseeing, so a new line
+ * should be somewhere to eat or drink.
+ * ------------------------------------------------------------------------- */
+export const TELLURIDE_TOWN = [
+  {
+    // telluride.com/discover/the-gondola: 6:30 am to midnight, free.
+    name: "The gondola",
+    body: "Free, 6:30 in the morning until midnight, from Mountain Village over the ridge and down into town.",
+  },
+  {
+    // Wikipedia, Telluride Historic District: National Historic Landmark, 1961.
+    name: "Main Street",
+    body: "A National Historic Landmark District since 1961. Brick storefronts, holiday lights up all December, and the mountain rising straight out of the end of the street.",
+  },
+  {
+    // newsheridan.com: bar open since 1895, original carved back bar.
+    name: "The New Sheridan Bar",
+    body: "Pouring since 1895, under the same carved wood back bar.",
+  },
+  {
+    // Wikipedia, Telluride: San Miguel Valley Bank, June 1889.
+    name: "Butch Cassidy's first bank",
+    body: "In June 1889 he robbed the San Miguel Valley Bank and rode out of the canyon with $24,580.",
+  },
+  {
+    // lastdollarsaloon.com: corner of Colorado Ave (Main Street) and Pine, building from 1899.
+    name: "The Last Dollar Saloon",
+    body: "The Buck, to anyone who lives here. A saloon in an 1899 building on the corner of Main and Pine.",
+  },
+  {
+    // experiencethere.com/telluride: Asian-inspired small plates and cocktails, on Pacific Ave.
+    name: "There",
+    body: "Small plates and cocktails, one street off Main. Order a lot and share it.",
+  },
+  {
+    // punchdrink.com, O'Bannon's: underground dive, live music, dance floor, arcade games.
+    name: "O'Bannon's",
+    body: "Down a flight of stairs in town: live music, a dance floor and arcade games.",
+  },
 ];
 
 /* -- Telluride, the place -----------------------------------------------------
@@ -228,3 +359,24 @@ export const TELLURIDE_ROOMS = [
 /** The one thing deliberately left out, said next to the list above. */
 export const NOT_INCLUDED_NOTE =
   "Flights aren't included. Everyone books their own, into Montrose.";
+
+/* -- travel insurance -------------------------------------------------------
+ * Not in any package, and the thing people ask about within a minute of
+ * paying. Faye is who we point at, and the URL is Outrider's affiliate link:
+ * it carries commission, so DISCLOSURE ships with it everywhere it appears
+ * (FTC endorsement guides, and the brand cannot afford to look like it is
+ * hiding a kickback). One constant, so a new link is changed once.
+ *
+ * Nothing here promises coverage. What a policy actually covers is Faye's to
+ * state on their own page, and the copy sends people there to read it.
+ * ------------------------------------------------------------------------- */
+export const TRAVEL_INSURANCE = {
+  provider: "Faye",
+  url: "https://www.withfaye.com/quote/offer?utm_campaign=carter.busby&utm_source=outrider.travel&utm_medium=bd-traveladvisors&utm_term=glinda",
+  eyebrow: "Optional add-on",
+  heading: "Cover the trip, if you want to",
+  body: "Travel insurance isn't in any package. A ski trip has more that can go sideways than most, so we point people at Faye: quotes take about a minute, and they cover the usual suspects, canceled flights, delayed bags, and getting hurt on the mountain. What a plan actually covers is on their page. Read it before you buy.",
+  cta: "Get a quote from Faye",
+  /** One line, plain, wherever the link appears. Do not soften or drop it. */
+  disclosure: "Faye is a partner of ours. We earn a commission if you buy through this link, and it costs you nothing extra.",
+} as const;

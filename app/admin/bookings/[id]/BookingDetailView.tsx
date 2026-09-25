@@ -97,8 +97,9 @@ export type TravelerPii = {
   phone: string;
   emergency_contact_name: string;
   emergency_contact_phone: string;
-  ski_or_board: string;
-  ability_level: string;
+  school: string | null;
+  ski_or_board: string | null;
+  ability_level: string | null;
   height: string | null;
   weight: string | null;
   shoe_size: string | null;
@@ -472,6 +473,7 @@ export default function BookingDetailView({
             <dl>
               <DetailRow label="Legal name">{pii.legal_name}</DetailRow>
               <DetailRow label="Date of birth">{formatDay(pii.date_of_birth)}</DetailRow>
+              <DetailRow label="School">{pii.school || <Missing>Not given</Missing>}</DetailRow>
               <DetailRow label="Phone">
                 <a href={`tel:${pii.phone}`} className={linkClass}>
                   {pii.phone}
@@ -485,8 +487,15 @@ export default function BookingDetailView({
                   </a>
                 </span>
               </DetailRow>
-              <DetailRow label="Ski or board">{labelFor(SKI_OR_BOARD, pii.ski_or_board)}</DetailRow>
-              <DetailRow label="Ability">{labelFor(ABILITY_LEVELS, pii.ability_level)}</DetailRow>
+              {/* The gear half is filled in later, on the trip page, so
+                  these five are legitimately blank on a traveler who has only
+                  done the confirmation-page half. */}
+              <DetailRow label="Ski or board">
+                {pii.ski_or_board ? labelFor(SKI_OR_BOARD, pii.ski_or_board) : <Missing>Not given</Missing>}
+              </DetailRow>
+              <DetailRow label="Ability">
+                {pii.ability_level ? labelFor(ABILITY_LEVELS, pii.ability_level) : <Missing>Not given</Missing>}
+              </DetailRow>
               <DetailRow label="Height">{pii.height || <Missing>Not given</Missing>}</DetailRow>
               <DetailRow label="Weight">{pii.weight || <Missing>Not given</Missing>}</DetailRow>
               <DetailRow label="Shoe size">{pii.shoe_size || <Missing>Not given</Missing>}</DetailRow>

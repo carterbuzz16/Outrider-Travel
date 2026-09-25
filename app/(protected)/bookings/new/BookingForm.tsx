@@ -246,13 +246,13 @@ export default function BookingForm({
             className="mt-6 !whitespace-normal text-center !leading-[1.35]"
             disabled={selected.soldOut}
           >
-            Continue to payment, {dueToday}
+            Continue, {dueToday} due today
           </PendingSubmitButton>
 
           <ul className="m-0 mt-5 flex list-none flex-col gap-2 p-0 font-body text-body-s leading-[1.5] text-[--text-secondary]">
             <li className="flex items-start gap-2.5">
               <LockGlyph />
-              <span>You add your card on the next step. Stripe handles the payment.</span>
+              <span>Next, who&rsquo;s going. Then your card, which Stripe handles.</span>
             </li>
             <li className="pl-[1.375rem]">
               Deposits aren&rsquo;t refundable. Here are the{" "}

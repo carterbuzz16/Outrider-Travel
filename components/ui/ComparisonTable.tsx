@@ -39,7 +39,7 @@ const ROWS: Row[] = [
       "Bought one at a time at the window, on the first morning, in line.",
     usualShort: "Bought at the window on day one",
     outriderLong:
-      "Three-day lift tickets and ski or snowboard rentals ready before you land, with performance rentals on Two to a Room and the penthouses.",
+      "Three-day lift tickets and ski or snowboard rentals ready before you land, with upgraded rentals on Two to a Room and the penthouses.",
     outriderShort: "Ready before you land",
   },
   {    label: "Getting there",

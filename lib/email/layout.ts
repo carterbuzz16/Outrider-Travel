@@ -27,6 +27,16 @@ const BRAND = {
   rule: "#D7D2CB",
 };
 
+/*
+ * Where email images are fetched from: always production, and the www host.
+ * Not getAppUrl(): in local dev and on previews that is localhost or a
+ * preview URL, which a mail client either cannot reach or will stop reaching
+ * once the preview is gone, and the images in public/email never change per
+ * environment (see its README). Not the bare domain either, which 308s to
+ * www, a redirect not every mail client's image loader follows.
+ */
+export const EMAIL_ASSET_ORIGIN = "https://www.outrider.travel";
+
 const FONT = "Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif";
 
 export function formatCurrency(amount: number): string {
@@ -141,7 +151,7 @@ export function renderEmailLayout(opts: {
   <table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px; background-color:${BRAND.chalk};">
     <tr>
       <td align="center" bgcolor="${BRAND.club}" style="background-color:${BRAND.club}; padding:32px 40px;">
-        <img src="${origin}/email/outrider-mark-espresso.png" width="52" alt="Outrider" style="display:block; width:52px; height:auto;" />
+        <img src="${EMAIL_ASSET_ORIGIN}/email/outrider-mark-espresso.png" width="52" alt="Outrider" style="display:block; width:52px; height:auto;" />
       </td>
     </tr>
     ${headingHtml}

@@ -10,7 +10,7 @@ import {
   cellGridClass,
 } from "@/components/ui";
 import { UPCOMING_CATEGORIES } from "@/lib/site-content";
-import { BOOKINGS_OPEN } from "@/lib/booking-window";
+import { BOOKINGS_OPEN, COMING_SOON_NOTE, TRIP_DETAILS_OPEN } from "@/lib/booking-window";
 import { formatDateRange, formatPrice, getPublishedTrips, nightCount } from "@/lib/trips";
 
 export const metadata: Metadata = pageMetadata({
@@ -60,7 +60,9 @@ export default async function TripsPage() {
                   // at the top of the card already says that, and printing it
                   // twice on one card is the duplication that got fixed once
                   // before with the destination line.
-                  price: BOOKINGS_OPEN
+                  // Prices are public with the rest of the trip detail, even
+                  // while paying is list-only (DETAILS_PUBLIC).
+                  price: TRIP_DETAILS_OPEN
                     ? `From ${formatPrice(trip.priceFrom)}`
                     : undefined,
                 summary:
@@ -113,7 +115,9 @@ export default async function TripsPage() {
         body={
           BOOKINGS_OPEN
             ? "Telluride is on sale now. Join the list to hear about the next trip first."
-            : "First dibs on Telluride. The list hears before it goes on sale."
+            : TRIP_DETAILS_OPEN
+              ? COMING_SOON_NOTE
+              : "First dibs on Telluride. The list hears before it goes on sale."
         }
       />
 

@@ -26,7 +26,7 @@ const DETAIL_SELECT =
 // Only ever selected when an admin has asked to see it (?details=show), so it
 // is not in the page, or in the RSC payload, otherwise.
 const PII_SELECT =
-  "legal_name, date_of_birth, phone, emergency_contact_name, emergency_contact_phone, ski_or_board, ability_level, height, weight, shoe_size, dietary_restrictions";
+  "legal_name, date_of_birth, phone, emergency_contact_name, emergency_contact_phone, school, ski_or_board, ability_level, height, weight, shoe_size, dietary_restrictions";
 
 /** Whether the Stripe key is a test-mode key. Only the boolean leaves this file, never the key. */
 function stripeIsTestMode(): boolean {

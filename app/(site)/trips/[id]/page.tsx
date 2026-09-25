@@ -11,11 +11,18 @@ import {
   StatusBadge,
   TierTable,
   TripSchema,
+  WaitlistButton,
   type ShowcaseRoom,
   type TierView,
 } from "@/components/ui";
 import { countPenthouses, getRoomMedia, isTaken, tierGrouping } from "@/lib/room-media";
-import { BOOKINGS_OPEN, COMING_SOON_NOTE, TRIP_DETAILS_OPEN } from "@/lib/booking-window";
+import {
+  BOOKINGS_OPEN,
+  COMING_SOON_LABEL,
+  COMING_SOON_NOTE,
+  LIST_BOOKING_CTA,
+  TRIP_DETAILS_OPEN,
+} from "@/lib/booking-window";
 import { getAppUrl } from "@/lib/site-url";
 import { pageMetadata } from "@/lib/metadata";
 import { PAY_IN_FULL_DISCOUNT, computeDepositAmount } from "@/lib/deposit";
@@ -200,7 +207,7 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
                 <div>
                   <dt className="stamp-type text-[--text-muted]">Availability</dt>
                   <dd className="mt-2 font-display font-medium text-display-s tracking-title text-[--text]">
-                    {BOOKINGS_OPEN ? availabilityLabel(trip.status) : "Coming soon"}
+                    {BOOKINGS_OPEN ? availabilityLabel(trip.status) : COMING_SOON_LABEL}
                   </dd>
                 </div>
               )}
@@ -359,9 +366,9 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
               )}
             </div>
           ) : (
-            <Button href="/contact" variant="primary" size="lg">
-              Ask about this trip
-            </Button>
+            // Paying is list-only for now: the list's emailed link is the way
+            // in, so the button is joining it.
+            <WaitlistButton label={LIST_BOOKING_CTA} variant="primary" size="lg" placement="trip-page" />
           )}
         </div>
       </section>

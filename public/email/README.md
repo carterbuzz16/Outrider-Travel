@@ -1,7 +1,10 @@
 # public/email
 
 Images requested by Outrider's transactional emails, served at
-`https://outrider.travel/email/<file>`.
+`https://www.outrider.travel/email/<file>`. Templates use the www host
+directly: the bare domain 308s to it, and not every mail client's image
+loader follows that redirect. Mail sent before September 24, 2026 asks for
+the bare-domain URLs, so those must keep resolving too.
 
 **Never rename, move, recompress or delete these files.** Every email that has
 already been delivered requests them by this exact URL for as long as it sits

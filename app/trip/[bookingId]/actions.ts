@@ -7,6 +7,7 @@ import { clientIp } from "@/lib/client-ip";
 import { createPortalUrl, isBookingId, verifyPortalToken } from "@/lib/portal-token";
 import { sendPortalLinkEmail } from "@/lib/email/portal-link";
 import { SMS_CONSENT_FIELD, SMS_CONSENT_VERSION } from "@/lib/sms-consent";
+import { MAX_LENGTHS, formText, parseIdentity } from "@/lib/traveler-details";
 import {
   ABILITY_LEVELS,
   MAX_NAME_LENGTH,
@@ -84,12 +85,6 @@ async function authorize(formData: FormData): Promise<Authorized> {
   return { ok: true, bookingId };
 }
 
-function text(formData: FormData, name: string, max: number): string {
-  return String(formData.get(name) ?? "")
-    .trim()
-    .replace(/\s+/g, " ")
-    .slice(0, max);
-}
 
 /* -- flights --------------------------------------------------------------- */
 
@@ -192,39 +187,60 @@ export async function submitRoomingRequest(
 
 /* -- traveler details ------------------------------------------------------ */
 
-// Loose on purpose: international numbers, extensions and whatever
-// punctuation people use. Seven to fifteen digits (E.164's ceiling), with an
-// optional leading +.
-function phoneDigits(raw: string): string | null {
-  if (!/^\+?[\d\s().\-]+$/.test(raw)) return null;
-  const digits = raw.replace(/\D/g, "");
-  return digits.length >= 7 && digits.length <= 15 ? digits : null;
+/*
+ * The gear half: ski or board, ability, sizes, dietary.
+ *
+ * The identity half (legal name, date of birth, school, phone, emergency
+ * contact) is asked in checkout now, before the card
+ * (app/(protected)/bookings/[id]/details/actions.ts), and only bookings paid
+ * before that step existed still give it here. Which half this
+ * form has to collect is decided HERE, from the row in the database, and
+ * never from anything the browser sends: a post claiming the identity half is
+ * already in must not be able to skip it.
+ */
+function parseGear(
+  formData: FormData,
+): { ok: true; values: GearValues } | { ok: false; fieldErrors: Record<string, string> } {
+  const height = formText(formData, "height", MAX_LENGTHS.height);
+  const weight = formText(formData, "weight", MAX_LENGTHS.weight);
+  const shoeSize = formText(formData, "shoeSize", MAX_LENGTHS.shoeSize);
+  const skiOrBoard = formText(formData, "skiOrBoard", 20);
+  const abilityLevel = formText(formData, "abilityLevel", 20);
+  // Line breaks are kept here: allergies are often a short list.
+  const dietary = String(formData.get("dietaryRestrictions") ?? "")
+    .trim()
+    .slice(0, MAX_LENGTHS.dietaryRestrictions);
+
+  const fieldErrors: Record<string, string> = {};
+  if (!height) fieldErrors.height = "The rental shop needs this to fit your gear.";
+  if (!weight) fieldErrors.weight = "The rental shop needs this to set your bindings.";
+  if (!shoeSize) fieldErrors.shoeSize = "The rental shop needs this to fit your boots.";
+  if (!SKI_OR_BOARD.some((o) => o.value === skiOrBoard)) fieldErrors.skiOrBoard = "Choose one.";
+  if (!ABILITY_LEVELS.some((o) => o.value === abilityLevel)) fieldErrors.abilityLevel = "Choose one.";
+
+  if (Object.keys(fieldErrors).length > 0) return { ok: false, fieldErrors };
+
+  return {
+    ok: true,
+    values: {
+      height,
+      weight,
+      shoe_size: shoeSize,
+      ski_or_board: skiOrBoard,
+      ability_level: abilityLevel,
+      dietary_restrictions: dietary || null,
+    },
+  };
 }
 
-// Plausible for someone on this trip: not born in the future and not in the
-// 1800s. The floor is 16 rather than 18 because the odd first-year is 17, and
-// whether a minor can travel is a policy call for the team, not a form error.
-const MIN_AGE = 16;
-const MAX_AGE = 100;
-
-function checkDateOfBirth(raw: string): string | null {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
-  if (!match) return "Enter your date of birth.";
-  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
-  const dob = new Date(Date.UTC(year, month - 1, day));
-  // Rejects 2006-02-31, which Date would roll over into March.
-  if (dob.getUTCFullYear() !== year || dob.getUTCMonth() !== month - 1 || dob.getUTCDate() !== day) {
-    return "That date doesn't exist.";
-  }
-
-  const now = new Date();
-  let age = now.getUTCFullYear() - year;
-  if (now.getUTCMonth() < month - 1 || (now.getUTCMonth() === month - 1 && now.getUTCDate() < day)) {
-    age -= 1;
-  }
-  if (age < MIN_AGE || age > MAX_AGE) return "Check the year of your date of birth.";
-  return null;
-}
+type GearValues = {
+  height: string;
+  weight: string;
+  shoe_size: string;
+  ski_or_board: string;
+  ability_level: string;
+  dietary_restrictions: string | null;
+};
 
 export async function submitTravelerDetails(
   _prev: PortalActionResult | null,
@@ -233,69 +249,63 @@ export async function submitTravelerDetails(
   const auth = await authorize(formData);
   if (!auth.ok) return auth.result;
 
-  const legalName = text(formData, "legalName", 200);
-  const dateOfBirth = text(formData, "dateOfBirth", 10);
-  const phone = text(formData, "phone", 40);
-  const emergencyName = text(formData, "emergencyContactName", 200);
-  const emergencyPhone = text(formData, "emergencyContactPhone", 40);
-  const height = text(formData, "height", 40);
-  const weight = text(formData, "weight", 40);
-  const shoeSize = text(formData, "shoeSize", 40);
-  const skiOrBoard = text(formData, "skiOrBoard", 20);
-  const abilityLevel = text(formData, "abilityLevel", 20);
-  // Line breaks are kept here: allergies are often a short list.
-  const dietary = String(formData.get("dietaryRestrictions") ?? "").trim().slice(0, 1000);
+  const admin = createAdminClient();
 
-  const fieldErrors: Record<string, string> = {};
+  /*
+   * Does the identity half already exist? Every traveler_details row carries
+   * it by construction (both writers require it), so the row existing is the
+   * answer, and asking for a timestamp keeps this page's rule intact: no
+   * legal name, date of birth or phone number is ever read back out here.
+   */
+  const { data: existing, error: lookupError } = await admin
+    .from("traveler_details")
+    .select("submitted_at")
+    .eq("booking_id", auth.bookingId)
+    .maybeSingle();
 
-  if (legalName.length < 2) fieldErrors.legalName = "Enter your name as it appears on your ID.";
-  const dobError = checkDateOfBirth(dateOfBirth);
-  if (dobError) fieldErrors.dateOfBirth = dobError;
-
-  const ownDigits = phoneDigits(phone);
-  if (!ownDigits) fieldErrors.phone = "Enter a phone number, including the area code.";
-  if (emergencyName.length < 2) fieldErrors.emergencyContactName = "Enter someone we can call.";
-  const emergencyDigits = phoneDigits(emergencyPhone);
-  if (!emergencyDigits) {
-    fieldErrors.emergencyContactPhone = "Enter their phone number, including the area code.";
-  } else if (ownDigits && emergencyDigits === ownDigits) {
-    fieldErrors.emergencyContactPhone = "Use someone other than yourself, who will not be on the trip.";
+  if (lookupError) {
+    console.error(`travelerDetails lookup(${auth.bookingId}) failed: ${lookupError.code} ${lookupError.message}`);
+    return { ok: false, message: "That didn't save. Try again." };
   }
 
-  if (!height) fieldErrors.height = "The rental shop needs this to fit your gear.";
-  if (!weight) fieldErrors.weight = "The rental shop needs this to set your bindings.";
-  if (!shoeSize) fieldErrors.shoeSize = "The rental shop needs this to fit your boots.";
-  if (!SKI_OR_BOARD.some((o) => o.value === skiOrBoard)) fieldErrors.skiOrBoard = "Choose one.";
-  if (!ABILITY_LEVELS.some((o) => o.value === abilityLevel)) fieldErrors.abilityLevel = "Choose one.";
+  const gear = parseGear(formData);
+  const identity = existing ? null : parseIdentity(formData);
 
+  const fieldErrors = {
+    ...(gear.ok ? {} : gear.fieldErrors),
+    ...(identity && !identity.ok ? identity.fieldErrors : {}),
+  };
   if (Object.keys(fieldErrors).length > 0) {
     return { ok: false, message: "A few things need another look.", fieldErrors };
   }
+  if (!gear.ok || (identity && !identity.ok)) {
+    // Unreachable: both branches above already returned. Here for the narrowing.
+    return { ok: false, message: "A few things need another look." };
+  }
 
-  const admin = createAdminClient();
+  /*
+   * Only the columns this form is responsible for are named. A traveler who
+   * gave their name in checkout and their sizes here keeps both:
+   * the identity columns are left out of the upsert entirely rather than sent
+   * as blanks. submitted_at is pinned to the first write by the table's
+   * keep_first_submitted_at trigger.
+   */
   const now = new Date().toISOString();
-  // Whole-row replace: "Replace my details" starts from an empty form, so
-  // every field is sent every time and nothing stale survives a resubmit.
-  // submitted_at is pinned to the first submission by the table's trigger.
-  const { error } = await admin.from("traveler_details").upsert(
-    {
-      booking_id: auth.bookingId,
-      legal_name: legalName,
-      date_of_birth: dateOfBirth,
-      phone,
-      emergency_contact_name: emergencyName,
-      emergency_contact_phone: emergencyPhone,
-      height,
-      weight,
-      shoe_size: shoeSize,
-      ski_or_board: skiOrBoard,
-      ability_level: abilityLevel,
-      dietary_restrictions: dietary || null,
-      submitted_at: now,
-      updated_at: now,
-    },
-    { onConflict: "booking_id" }
-  );
+  // An update, not an upsert, when the row is already there: an upsert has to
+  // carry a whole insertable row, which would mean sending the identity
+  // columns this form no longer has. Naming only the gear columns is what
+  // leaves checkout's half untouched.
+  const { error } = existing
+    ? await admin
+        .from("traveler_details")
+        .update({ ...gear.values, updated_at: now })
+        .eq("booking_id", auth.bookingId)
+    : await admin.from("traveler_details").insert({
+        booking_id: auth.bookingId,
+        ...identity!.values,
+        ...gear.values,
+        updated_at: now,
+      });
 
   if (error) {
     // Code and message only. `details` would contain the row.
@@ -303,6 +313,8 @@ export async function submitTravelerDetails(
     return { ok: false, message: "That didn't save. Try again." };
   }
 
+  // Now, and only now, is the task done: the gear half is what the rental
+  // shop was waiting on, and this flag is what stops the 72-hour chase.
   const { error: flagError } = await admin
     .from("bookings")
     .update({ details_submitted: true })

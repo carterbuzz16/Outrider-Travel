@@ -48,18 +48,29 @@ export function isTestTrip(name: string): boolean {
 }
 
 /**
- * Whether a trip's own page is public.
+ * Everything about the trips is public (itinerary, rooms, packages, prices)
+ * while booking itself is not. The owner's call, 25 September 2026: show the
+ * whole trip so a group can decide from the page, and let people pay only
+ * through the private link the list is emailed (lib/early-access.ts). Joining
+ * the list is how you get that link, so the list captures every booking.
  *
- * Tied to the same launch on purpose: before release the departures are teased
- * as a destination, dates and a "from" price, and the itinerary, the packages
- * and the tier pricing stay back. Flipping BOOKINGS_OPEN opens both at once,
- * which is the actual intent, rather than leaving two switches to forget.
+ * Set false to go back to the teaser: dates and length only, trip pages 404.
  */
-export const TRIP_DETAILS_OPEN = BOOKINGS_OPEN;
+const DETAILS_PUBLIC = true;
+
+/**
+ * Whether a trip's own page, its packages and its prices are public. Always
+ * once booking opens to everyone; before that, when DETAILS_PUBLIC says so.
+ */
+export const TRIP_DETAILS_OPEN = DETAILS_PUBLIC || BOOKINGS_OPEN;
 
 /** Shown wherever a booking control would otherwise be. */
-export const COMING_SOON_LABEL = "Coming soon";
+export const COMING_SOON_LABEL = DETAILS_PUBLIC ? "List first" : "Coming soon";
 
 /** Said once, in full, where someone is looking for the button. */
-export const COMING_SOON_NOTE =
-  "Booking opens shortly. The dates, the packages and the pricing below are final.";
+export const COMING_SOON_NOTE = DETAILS_PUBLIC
+  ? "Booking goes through the list first. Join, and we'll email you a private link to book."
+  : "Booking opens shortly. The dates, the packages and the pricing below are final.";
+
+/** The button that stands in for Reserve while booking is list-only. */
+export const LIST_BOOKING_CTA = "Get your booking link";

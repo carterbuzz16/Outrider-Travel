@@ -58,6 +58,8 @@ export type { AlertTone } from "./Alert";
 export { ToastProvider, useToast } from "./Toast";
 
 export { default as Reveal } from "./Reveal";
+export { default as Tabs } from "./Tabs";
+export type { TabItem } from "./Tabs";
 
 // Renders only when lib/consent.ts sets TRACKING_ENABLED — see the audit note
 // at the top of that file for why it is currently off.

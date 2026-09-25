@@ -6,6 +6,7 @@ import {
   renderInstallmentChargedEmail,
   renderOverpaymentRefundEmail,
   renderPaymentFailedEmail,
+  renderEarlyAccess,
   renderWaitlistNotification,
   renderWaitlistWelcome,
   type RenderedEmail,
@@ -47,6 +48,8 @@ import { getAppUrl } from "@/lib/site-url";
 // Fixed, obviously fake ids. A link in a test email that uses one opens a
 // "this link doesn't open a trip" page rather than anybody's booking.
 const SAMPLE_BOOKING_ID = "5f2c9e71-3a8d-4b6e-9c14-7d0e2a6b8f39";
+/** The head-start email's "From" line in preview; the real send reads the published trips. */
+const SAMPLE_FROM_PRICE = "$1,600";
 const SAMPLE_TRIP_ID = "b1e7d2c4-6a3f-4e58-8d21-0c9f7a5e3b16";
 const SAMPLE_PENTHOUSE_TIER_ID = "c8a41f6e-2d7b-4c93-a5e0-9b3d6f1e7a24";
 const SAMPLE_PAYMENT_ID = "e4b92d17-8c5a-4f36-b0e1-6a7d3c9f2e58";
@@ -111,8 +114,6 @@ const SAMPLE_PENTHOUSE_TIER = {
 const GAP_LABELS: Record<string, string> = {
   trip_capacity: "Trip capacity (lib/trip-logistics.ts)",
   property_name: "Property name (lib/trip-logistics.ts)",
-  arrival_deadline: "Latest arrival time at Montrose (lib/trip-logistics.ts)",
-  departure_earliest: "Earliest return flight time (lib/trip-logistics.ts)",
   rooming_lock_date: "Date rooming requests close (lib/trip-logistics.ts)",
   sms_number: "Texting number (SMS_NUMBER and SMS_NUMBER_RAW settings)",
   sms_number_raw: "Texting number (SMS_NUMBER and SMS_NUMBER_RAW settings)",
@@ -495,6 +496,24 @@ export function emailCatalog(): EmailEntry[] {
         "The real one carries a one-click unsubscribe header. The test leaves it off, and its unsubscribe link goes nowhere.",
       ],
       render: () => renderWaitlistWelcome("sample-preview-token"),
+    },
+    {
+      id: "early-access",
+      section: "The list and the contact form",
+      name: "Head start: booking open to the list",
+      trigger: "Sent from Admin, Launch, once per list member, when the list's head start begins.",
+      recipient: "Everyone on the list who hasn't unsubscribed",
+      sandbox: "Use Send a test to me on Admin, Launch. If your address is on the list, the test's button really opens booking.",
+      notes: [
+        "Each real one carries that member's own early-access link and a one-click unsubscribe header.",
+        "This preview uses a sample link, which lands on the booking page's 'link didn't work' note.",
+      ],
+      render: () =>
+        renderEarlyAccess({
+          bookingUrl: `${getAppUrl()}/early-access?t=sample`,
+          unsubscribeToken: "sample-preview-token",
+          fromPrice: SAMPLE_FROM_PRICE,
+        }),
     },
     {
       id: "waitlist-notification",

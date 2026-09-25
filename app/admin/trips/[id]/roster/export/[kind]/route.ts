@@ -5,6 +5,7 @@ import { formatAmount, fromCents } from "@/lib/balance";
 import { ABILITY_LEVELS, SKI_OR_BOARD, labelFor } from "@/app/trip/[bookingId]/fields";
 import { readLedger } from "@/app/admin/payment-ledger";
 import { toCsv } from "@/app/admin/csv";
+import { gearComplete } from "@/lib/traveler-details";
 import type { BookingStatus } from "@/app/admin/admin-ui";
 import { loadRoster, loadTravelerPii, roomingOrder, type RosterBooking, type TravelerPiiRow } from "../../roster-data";
 
@@ -86,12 +87,13 @@ function build(kind: Kind, held: RosterBooking[], pii: Map<string, TravelerPiiRo
   switch (kind) {
     case "roster":
       return toCsv(
-        ["Confirmation", "Name", "Email", "Package", "Status", "Plan", "Group code", "Paid", "Total", "Remaining", "Flights booked", "Rooming sent", "Details sent", "SMS opt-in", "Booked at (UTC)"],
+        ["Confirmation", "Name", "School", "Email", "Package", "Status", "Plan", "Group code", "Paid", "Total", "Remaining", "Flights booked", "Rooming sent", "Sizes sent", "SMS opt-in", "Booked at (UTC)"],
         held.map((b) => {
           const ledger = readLedger(b, today());
           return [
             b.confirmation,
             b.name,
+            pii.get(b.id)?.school,
             b.email,
             b.tierName,
             STATUS_LABEL[b.status],
@@ -124,46 +126,47 @@ function build(kind: Kind, held: RosterBooking[], pii: Map<string, TravelerPiiRo
 
     case "rentals":
       return toCsv(
-        ["Name", "Package", "Ski or snowboard", "Ability", "Height", "Weight", "Shoe size", "Details sent"],
+        ["Name", "School", "Package", "Ski or snowboard", "Ability", "Height", "Weight", "Shoe size", "Sizes sent"],
         held.map((b) => {
           const d = pii.get(b.id);
           return [
             nameFor(b, d),
+            d?.school,
             b.tierName,
             d ? labelFor(SKI_OR_BOARD, d.ski_or_board) : "",
             d ? labelFor(ABILITY_LEVELS, d.ability_level) : "",
             d?.height,
             d?.weight,
             d?.shoe_size,
-            Boolean(d),
+            gearComplete(d ?? null),
           ];
         }),
       );
 
     case "insurance":
       return toCsv(
-        ["Legal name", "Date of birth", "Details sent"],
+        ["Legal name", "Date of birth", "School", "Details sent"],
         held.map((b) => {
           const d = pii.get(b.id);
-          return [nameFor(b, d), d?.date_of_birth, Boolean(d)];
+          return [nameFor(b, d), d?.date_of_birth, d?.school, Boolean(d)];
         }),
       );
 
     case "dietary":
       return toCsv(
-        ["Name", "Package", "Dietary restrictions"],
+        ["Name", "School", "Package", "Dietary restrictions"],
         held
           .map((b) => ({ b, d: pii.get(b.id) }))
           .filter(({ d }) => Boolean(d?.dietary_restrictions?.trim()))
-          .map(({ b, d }) => [nameFor(b, d), b.tierName, d!.dietary_restrictions]),
+          .map(({ b, d }) => [nameFor(b, d), d?.school, b.tierName, d!.dietary_restrictions]),
       );
 
     case "emergency":
       return toCsv(
-        ["Name", "Phone", "Emergency contact", "Emergency contact phone", "Details sent"],
+        ["Name", "School", "Phone", "Emergency contact", "Emergency contact phone", "Details sent"],
         held.map((b) => {
           const d = pii.get(b.id);
-          return [nameFor(b, d), d?.phone, d?.emergency_contact_name, d?.emergency_contact_phone, Boolean(d)];
+          return [nameFor(b, d), d?.school, d?.phone, d?.emergency_contact_name, d?.emergency_contact_phone, Boolean(d)];
         }),
       );
   }

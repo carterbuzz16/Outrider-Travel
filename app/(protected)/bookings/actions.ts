@@ -31,7 +31,8 @@ import {
   releasePendingCheckout,
   staleCheckoutMessage,
 } from "@/lib/stale-checkout";
-import { BOOKINGS_OPEN, CHECKOUT_SANDBOX, isTestTrip } from "@/lib/booking-window";
+import { CHECKOUT_SANDBOX, isTestTrip } from "@/lib/booking-window";
+import { bookingsOpenForViewer } from "@/lib/early-access";
 import { hasDeparted } from "@/lib/mountain-time";
 import { OPEN_INTENT_STATUSES, POSSIBLY_OPEN_PAYMENT_FILTER, cancelOpenIntent } from "@/lib/stripe-intents";
 import type { AccountErrorCode, CheckoutErrorCode } from "@/lib/flash";
@@ -62,8 +63,9 @@ export async function createBooking(formData: FormData) {
   // Bookings are not open yet. Checked here as well as in the UI, because a
   // hidden button is presentation, not a control: this action is a POST
   // endpoint that anyone can call directly. /bookings/new shows its "opens
-  // soon" state whenever this is false, so that is where this goes.
-  if (!BOOKINGS_OPEN) {
+  // soon" state whenever this is false, so that is where this goes. During the
+  // list's head start, a list member's early-access cookie counts as open.
+  if (!(await bookingsOpenForViewer())) {
     redirect("/bookings/new?error=closed");
   }
 
@@ -110,7 +112,7 @@ export async function createBooking(formData: FormData) {
 
   // A trip that leaves today, or has left, takes no new bookings. The pages
   // show it as closed (lib/trips.ts); this is the control, for the same reason
-  // as BOOKINGS_OPEN above. Mountain Time, where the trips are, not the
+  // as the open check above. Mountain Time, where the trips are, not the
   // server's UTC. Only new bookings: an existing booking's balance and
   // installments are not touched by this.
   if (hasDeparted(tier.trips.start_date)) {
@@ -445,6 +447,21 @@ export async function acceptTermsForBooking(bookingId: string): Promise<AcceptTe
   const stale = await recheckStaleCheckout(createAdminClient(), booking.id);
   if (!stale.ok) {
     return { ok: false, message: staleCheckoutMessage(stale.reason), href: chooseAgainPath(stale.tripId) };
+  }
+
+  // The control behind the payment step's redirect to ../details: no card is
+  // confirmed on a booking nobody is named on. No href, since nothing was
+  // released; the traveler fixes it and comes back to the same form.
+  const { data: identity } = await createAdminClient()
+    .from("traveler_details")
+    .select("submitted_at")
+    .eq("booking_id", booking.id)
+    .maybeSingle();
+  if (!identity) {
+    return {
+      ok: false,
+      message: "We need your traveler details before you pay, so nothing was charged. Go back a step to add them.",
+    };
   }
 
   if (await hasAcceptedAll(booking.id)) return { ok: true };

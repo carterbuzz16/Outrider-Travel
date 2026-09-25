@@ -25,11 +25,19 @@ export type TripLogistics = {
    * Latest time to land at Montrose on the first day to make the group
    * transfer, written ready to print, e.g. "2:00 pm Mountain Time on Monday,
    * December 14".
+   *
+   * The emails no longer read this. The owner settled it in September 2026:
+   * there is no time to hit, a flight just has to be on the right day, and
+   * the confirmation and chase now say the day and nothing more, taken from
+   * the trip's own start and end dates. Only /flights still reads it, and
+   * while it is null that page shows its "coming soon" note. If the answer
+   * really is "any time that day", this field and its pair below are dead and
+   * the flight guide should say the day too.
    */
   arrivalDeadline: string | null;
   /**
    * Earliest a return flight out of Montrose should leave on the last day,
-   * written the same way as arrivalDeadline.
+   * written the same way as arrivalDeadline. Same note as above.
    */
   departureEarliest: string | null;
   /** Date rooming requests close, as an ISO date: "YYYY-MM-DD". */
@@ -53,12 +61,16 @@ const LOGISTICS: Record<string, TripLogistics> = {
     ...EMPTY,
     // Confirmed by the owner.
     tripCapacity: 100,
+    roomingLockDate: "2026-12-01",
   },
   // Telluride, January 4 to 8, 2027.
   "2027-01-04": {
     ...EMPTY,
     // Confirmed by the owner.
     tripCapacity: 50,
+    // 13 days out, the same runway the December departure gets, and before
+    // the holidays rather than inside them.
+    roomingLockDate: "2026-12-22",
   },
 };
 

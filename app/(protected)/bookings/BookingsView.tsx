@@ -85,11 +85,14 @@ export default function BookingsView({
   name,
   bookings,
   error,
+  canBook = BOOKINGS_OPEN,
 }: {
   email: string;
   name: string | null;
   bookings: BookingRow[];
   error?: string;
+  /** Open to everyone, or to this list member during the head start (lib/early-access.ts). */
+  canBook?: boolean;
 }) {
   return (
     <main>
@@ -122,7 +125,7 @@ export default function BookingsView({
         )}
 
         {bookings.length === 0 ? (
-          <EmptyState />
+          <EmptyState canBook={canBook} />
         ) : (
           <ul className="m-0 flex max-w-[56rem] list-none flex-col gap-8 p-0">
             {bookings.map((booking) => (
@@ -361,10 +364,10 @@ function BookingCard({ booking }: { booking: BookingRow }) {
 
 /* -- nothing booked -------------------------------------------------------- */
 
-function EmptyState() {
+function EmptyState({ canBook }: { canBook: boolean }) {
   // Before launch there is nothing to book, so the empty account points at
   // the trip and the list rather than promising a checkout that isn't open.
-  if (!BOOKINGS_OPEN) {
+  if (!canBook) {
     return (
       <div className="flex flex-col items-start gap-6 border border-[--rule] bg-[--surface-raised] px-6 py-14 md:items-center md:px-8 md:py-20 md:text-center">
         <p className="stamp-type text-[--text-muted]">Nothing booked yet</p>
@@ -392,7 +395,9 @@ function EmptyState() {
         Telluride is open for December and January. Put down 10% to hold your spot and pay the
         rest in two installments.
       </p>
-      <Button href="/trips" variant="primary" size="md">
+      {/* During the list's head start the public trip pages still say
+          "coming soon", so a list member goes straight to the booking page. */}
+      <Button href={BOOKINGS_OPEN ? "/trips" : "/bookings/new"} variant="primary" size="md">
         See the trips
       </Button>
     </div>

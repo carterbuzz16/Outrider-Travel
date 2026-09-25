@@ -1,19 +1,20 @@
 import { cn } from "@/components/ui";
 
 /**
- * Where the traveler is in checkout: 1 Package, 2 Payment.
+ * Where the traveler is in checkout: 1 Package, 2 Your details, 3 Payment.
  *
- * Two steps is the whole flow, and saying so is most of the reassurance: the
- * card field is one screen away, and nothing comes after it but the
- * confirmation. Not links. Going back from the payment step to the package
- * step would start a second booking, so the way back is the page's own link.
+ * Three steps is the whole flow, and saying so is most of the reassurance:
+ * nothing comes after the card but the confirmation. Your details sits before
+ * the card so no place is paid for without a named traveler on it. Not links.
+ * Going back to the package step would start a second booking, so the way
+ * back is each page's own link.
  *
  * The markers are the portal checklist's: an open square with the number to
  * come, a filled one for where you are, a tick for done.
  */
-const STEPS = ["Package", "Payment"] as const;
+const STEPS = ["Package", "Your details", "Payment"] as const;
 
-export default function CheckoutSteps({ current, className }: { current: 1 | 2; className?: string }) {
+export default function CheckoutSteps({ current, className }: { current: 1 | 2 | 3; className?: string }) {
   return (
     <nav aria-label="Checkout progress" className={className}>
       <ol className="m-0 flex list-none items-center gap-3 p-0">

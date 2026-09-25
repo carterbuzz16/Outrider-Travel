@@ -221,11 +221,20 @@ export function DetailsTask({
   bookingId,
   token,
   submitted,
+  needsIdentity,
   smsConsented,
 }: {
   bookingId: string;
   token: string;
   submitted: { label: string } | null;
+  /*
+   * Whether this form still has to ask who the traveler is. False once the
+   * checkout has taken that half (lib/traveler-details.ts), and then
+   * the form is the rental shop's questions and nothing else. It is a display
+   * decision only: submitTravelerDetails decides the same thing again from
+   * the database, so a hand-made post cannot skip the identity half.
+   */
+  needsIdentity: boolean;
   /** Already opted in to texts: the box is not offered again. */
   smsConsented: boolean;
 }) {
@@ -277,11 +286,15 @@ export function DetailsTask({
       <AuthFields bookingId={bookingId} token={token} />
 
       {submitted && (
-        <Alert tone="info" title="Replacing your details">
-          Fill in every field again. This replaces what you sent before.
+        <Alert tone="info" title={needsIdentity ? "Replacing your details" : "Replacing your sizes"}>
+          {needsIdentity
+            ? "Fill in every field again. This replaces what you sent before."
+            : "Fill in every field again. This replaces the sizes you sent before; your name and emergency contact stay as they are."}
         </Alert>
       )}
 
+      {needsIdentity && (
+        <>
       <Group title="For your records" hint="For your lift tickets and lodging records, and for travel insurance if you choose to add it.">
         <Field
           label="Legal name"
@@ -295,6 +308,10 @@ export function DetailsTask({
 
         <Field label="Date of birth" error={errors.dateOfBirth} required>
           {(props) => <Input {...props} name="dateOfBirth" type="date" required />}
+        </Field>
+
+        <Field label="School" hint="Where you go now." error={errors.school} required>
+          {(props) => <Input {...props} name="school" maxLength={120} required />}
         </Field>
       </Group>
 
@@ -328,6 +345,13 @@ export function DetailsTask({
           )}
         </Field>
       </Group>
+        </>
+      )}
+
+      {/* With the identity half already in, the opt-in loses the Contact
+          group it used to sit in, so it stands on its own here. The number
+          texts go to is the one saved with those details. */}
+      {!needsIdentity && !smsConsented && <SmsConsentBox disabled={pending} />}
 
       <Group title="Rentals" hint="So your skis or board are ready when you arrive.">
         <Field label="Ski or snowboard" error={errors.skiOrBoard} required>

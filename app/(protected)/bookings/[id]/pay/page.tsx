@@ -18,10 +18,11 @@ import { formatDateRange, formatPrice } from "@/lib/trips";
 import { tierDisplayName } from "@/lib/tier-display";
 import CheckoutForm from "@/components/CheckoutForm";
 import CheckoutSteps from "@/components/CheckoutSteps";
+import { TravelInsuranceNote } from "@/components/TravelInsurance";
 import { PENTHOUSE_DISCLAIMER } from "@/lib/penthouse";
 
 /**
- * Step 2 of checkout: the deposit, or the whole trip when the traveler chose
+ * Step 3 of checkout: the deposit, or the whole trip when the traveler chose
  * to pay in full.
  *
  * Two columns from lg up, the same shape as step 1: the card on the left, and
@@ -61,6 +62,18 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
 
   if (booking.status !== "pending") {
     redirect(`/bookings/${booking.id}/confirmation`);
+  }
+
+  // No card until someone is named on the booking (step 2, ../details). Before
+  // anything is asked of Stripe, since the traveler is leaving this page.
+  // Existence only; the admin client because the table is service-role only.
+  const { data: identity } = await createAdminClient()
+    .from("traveler_details")
+    .select("submitted_at")
+    .eq("booking_id", booking.id)
+    .maybeSingle();
+  if (!identity) {
+    redirect(`/bookings/${booking.id}/details`);
   }
 
   // The checkout row: the one with no scheduled date. Read by shape rather
@@ -130,7 +143,7 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
   return (
     <main>
       <div className="shell max-w-[76rem] pb-20 pt-8 md:pb-28 md:pt-12">
-        <CheckoutSteps current={2} />
+        <CheckoutSteps current={3} />
 
         {/* Above both columns, so on a phone the page opens on what it is for,
             then the order, then the card. */}
@@ -259,6 +272,13 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
                 </Link>{" "}
                 before you pay.
               </p>
+
+              {/* Insurance, read next to the refund rule it answers, and set
+                  as another note rather than a second thing to buy: the one
+                  action on this page is the card. The link opens a new tab
+                  (components/TravelInsurance.tsx) so a checkout in progress is
+                  never navigated away from. */}
+              <TravelInsuranceNote className="mt-5 border-t border-[--rule] pt-5" />
             </div>
           </aside>
 
@@ -284,12 +304,20 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
             />
 
             <div className="mt-10 flex flex-col gap-3 border-t border-[--rule] pt-6 sm:flex-row sm:items-center sm:justify-between">
-              <Link
-                href="/bookings"
-                className="inline-flex min-h-11 items-center font-body text-body-s text-[--text-secondary] underline underline-offset-4 hover:text-[--text]"
-              >
-                Back to your bookings
-              </Link>
+              <div className="flex flex-wrap gap-x-6">
+                <Link
+                  href={`/bookings/${booking.id}/details`}
+                  className="inline-flex min-h-11 items-center font-body text-body-s text-[--text-secondary] underline underline-offset-4 hover:text-[--text]"
+                >
+                  Change your details
+                </Link>
+                <Link
+                  href="/bookings"
+                  className="inline-flex min-h-11 items-center font-body text-body-s text-[--text-secondary] underline underline-offset-4 hover:text-[--text]"
+                >
+                  Back to your bookings
+                </Link>
+              </div>
               <p className="font-body text-body-s text-[--text-secondary]">
                 Questions?{" "}
                 <a href={`mailto:${CONTACT.email}`} className={LINK}>

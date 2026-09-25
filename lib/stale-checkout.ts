@@ -222,14 +222,88 @@ export async function cancelCheckoutIntents(admin: Admin, bookingId: string): Pr
  * payment that somehow landed is never undone.
  */
 export async function abandonPendingBooking(admin: Admin, bookingId: string) {
+  // A delete takes traveler_details with it (ON DELETE CASCADE).
   const { error } = await admin.from("bookings").delete().eq("id", bookingId).eq("status", "pending");
   if (!error) return;
-  const { error: cancelError } = await admin
+  const { data: cancelled, error: cancelError } = await admin
     .from("bookings")
     .update({ status: "cancelled" })
     .eq("id", bookingId)
-    .eq("status", "pending");
+    .eq("status", "pending")
+    .select("id")
+    .maybeSingle();
   if (cancelError) {
     console.error(`abandonPendingBooking: could not undo pending booking ${bookingId}: ${cancelError.message}`);
+    return;
   }
+  // A cancel does not cascade, so the details checkout took before the card
+  // would stay behind on a booking that was never paid for.
+  if (cancelled) await dropUnpaidTravelerDetails(admin, bookingId);
+}
+
+/*
+ * -- Details given for a place never paid for ----------------------------------
+ *
+ * Checkout asks for a legal name, a date of birth and two phone numbers
+ * before the card (app/(protected)/bookings/[id]/details). Someone who stops
+ * there leaves them on a booking nobody paid for, and there is no reason to
+ * keep them: if they come back to book, they are asked again.
+ *
+ * Called wherever an unpaid booking is let go, and swept daily by the
+ * post-booking-emails cron for checkouts simply walked away from, which
+ * nothing else ever touches.
+ */
+
+/*
+ * How long an unpaid checkout keeps its details before the sweep drops them.
+ * A week, not an hour: a pending booking can still be paid after its hold
+ * (the payment step rechecks it), and a bank payment can sit processing for
+ * days. One that does land after the sweep is not stuck, since the trip page
+ * asks for the identity half whenever the row is missing.
+ */
+export const UNPAID_DETAILS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** Drops the traveler_details row of one booking that was never paid for. */
+export async function dropUnpaidTravelerDetails(admin: Admin, bookingId: string) {
+  const { error } = await admin.from("traveler_details").delete().eq("booking_id", bookingId);
+  if (error) {
+    // Code and message only: `details` would carry the row.
+    console.error(`dropUnpaidTravelerDetails(${bookingId}) failed: ${error.code} ${error.message}`);
+  }
+}
+
+/**
+ * The daily sweep: details on bookings that are still pending past the TTL,
+ * or were cancelled without a payment ever succeeding. Returns how many rows
+ * went. Paid bookings, including ones later cancelled, keep theirs: the team
+ * may still need to know who had the place.
+ */
+export async function sweepUnpaidTravelerDetails(admin: Admin, now: number = Date.now()): Promise<number> {
+  const { data: rows, error } = await admin
+    .from("traveler_details")
+    .select("booking_id, bookings!inner(status, created_at, payments(status))")
+    .in("bookings.status", ["pending", "cancelled"])
+    .limit(500);
+  if (error) {
+    console.error(`sweepUnpaidTravelerDetails: query failed: ${error.code} ${error.message}`);
+    return 0;
+  }
+
+  const cutoff = now - UNPAID_DETAILS_TTL_MS;
+  const doomed = (rows ?? [])
+    .filter(({ bookings: b }) => {
+      if (b.payments.some((p) => p.status === "succeeded" || p.status === "refunded")) return false;
+      if (b.status === "cancelled") return true;
+      const created = parseDbTimestamp(b.created_at);
+      return created !== null && created.getTime() <= cutoff;
+    })
+    .map((r) => r.booking_id);
+  if (doomed.length === 0) return 0;
+
+  const { error: deleteError } = await admin.from("traveler_details").delete().in("booking_id", doomed);
+  if (deleteError) {
+    console.error(`sweepUnpaidTravelerDetails: delete failed: ${deleteError.code} ${deleteError.message}`);
+    return 0;
+  }
+  return doomed.length;
 }

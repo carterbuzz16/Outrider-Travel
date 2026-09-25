@@ -19,6 +19,32 @@
         "start"
       ],
       "port": 3000
+    },
+    {
+      "name": "waitlist-worktree",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        ".claude/worktrees/waitlist-launch",
+        "run",
+        "dev",
+        "--",
+        "-p",
+        "3107"
+      ],
+      "port": 3107
+    },
+    {
+      "name": "dev-list-first",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "NEXT_PUBLIC_CHECKOUT_SANDBOX=0",
+        "npm",
+        "run",
+        "dev"
+      ],
+      "port": 3000,
+      "autoPort": true
     }
   ]
 }

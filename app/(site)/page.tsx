@@ -10,8 +10,9 @@ import {
   cellGridClass,
 } from "@/components/ui";
 import { pageMetadata } from "@/lib/metadata";
-import { UPCOMING_CATEGORIES, VALUE_PROPS } from "@/lib/site-content";
-import { BOOKINGS_OPEN } from "@/lib/booking-window";
+import TripEvents from "@/components/TripEvents";
+import { TELLURIDE_EVENTS, UPCOMING_CATEGORIES, VALUE_PROPS } from "@/lib/site-content";
+import { BOOKINGS_OPEN, TRIP_DETAILS_OPEN } from "@/lib/booking-window";
 import { formatDateRange, formatPrice, getPublishedTrips, nightCount } from "@/lib/trips";
 
 export const metadata: Metadata = pageMetadata({
@@ -48,7 +49,9 @@ export const revalidate = 300;
 /** One per value prop, in the order VALUE_PROPS declares them. */
 const SPREAD_IMAGES = [
   { src: "/images/people/friends-snow-throw.jpg", alt: "Four friends on skis, arms linked, laughing as someone throws a handful of powder at them in falling snow." },
-  { src: "/images/people/friends-candlelit-dinner.jpg", alt: "A group of friends in hoodies sharing dinner at a long candlelit table in a timber dining room." },
+  // Was the candlelit dinner, which now sits in the events panel below; one
+  // photograph should not appear twice on a page.
+  { src: "/images/people/friends-slopeside.jpg", alt: "Three friends on the slope in falling snow, one on his knees cheering, a chairlift behind them." },
   { src: "/images/telluride/apres.jpg", alt: "A skier in a pink jacket turning through deep powder among snow-loaded pines." },
   { src: "/images/telluride/ridge.jpg", alt: "Last light on the peaks above the canyon." },
 ];
@@ -63,10 +66,14 @@ export default async function HomePage() {
         video={{ src: "/video/hero.mp4", poster: "/video/hero-poster.jpg" }}
         eyebrow="Telluride, this winter"
         headline="Bring your people"
-        tagline="Four nights at The Peaks. We handle everything else."
+        // The brand book's idea, said once: an outrider rides ahead of the
+        // group. The headline is the invitation; this is the promise.
+        tagline="We ride ahead, so the whole week is waiting when you land."
         // One button. While nothing can be booked, the first thing to offer is
         // the list; the trip page would have nothing on it to book.
-        cta={BOOKINGS_OPEN ? { label: "See the trip", href: "/telluride" } : { label: "Join the list", href: "/waitlist" }}
+        // Once the trip is public there is a whole page to show; before that,
+        // the list is the only thing to offer.
+        cta={TRIP_DETAILS_OPEN ? { label: "See the trip", href: "/telluride" } : { label: "Join the list", href: "/waitlist" }}
       />
 
       {/* ---- what makes Outrider different ---------------------------------- */}
@@ -107,8 +114,29 @@ export default async function HomePage() {
           </div>
         </section>
 
+        {/* ---- the private events --------------------------------------------
+            The week itself, before the dates, so "all in" has something to
+            point at. The same cards as /telluride#events, which the button
+            opens. The one espresso panel in the body of the page. */}
+        <section className="scheme-espresso scheme-paint" aria-labelledby="home-events-heading">
+          <div className="shell py-20 md:py-28">
+            <Reveal>
+              <p className="t-rule-label text-[--text]">Private events</p>
+              <div className="mt-8 flex flex-wrap items-end justify-between gap-6">
+                <h2 id="home-events-heading" className="t-title max-w-[16ch] text-[--text]">
+                  The week has a guest list
+                </h2>
+                <Button href="/telluride#events" variant="secondary">
+                  See the week
+                </Button>
+              </div>
+            </Reveal>
+            <TripEvents events={TELLURIDE_EVENTS} className="mt-12 md:mt-16" />
+          </div>
+        </section>
+
         {/* ---- upcoming departures ------------------------------------------ */}
-        <section className="shell pb-20 md:pb-28">
+        <section className="shell py-20 md:py-28">
           <Reveal>
             <p className="t-rule-label text-[--text]">Departures</p>
             <div className="mt-8 flex flex-wrap items-end justify-between gap-6">
@@ -142,7 +170,9 @@ export default async function HomePage() {
                   // at the top of the card already says that, and printing it
                   // twice on one card is the duplication that got fixed once
                   // before with the destination line.
-                  price: BOOKINGS_OPEN
+                  // Prices are public with the rest of the trip detail, even
+                  // while paying is list-only (DETAILS_PUBLIC).
+                  price: TRIP_DETAILS_OPEN
                     ? `From ${formatPrice(trip.priceFrom)}`
                     : undefined,
                   summary:

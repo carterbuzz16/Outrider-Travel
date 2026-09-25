@@ -1,6 +1,6 @@
 
 /**
- * The waitlist welcome, built on the owner's branded email shell
+ * Mail to the list, built on the owner's branded email shell
  * (outrider-email-shell.html from the email package): the Ski Club blue header
  * band with the mark, the Telluride hero photo, Figtree capitals, hairline
  * detail rows, one espresso panel and the standard footer.
@@ -11,6 +11,11 @@
  *
  * All interpolated values are escaped by the caller-supplied escape function
  * or are fixed strings from this file.
+ *
+ * listEmailHtml is the shell; waitlistWelcomeHtml here and earlyAccessHtml in
+ * ./early-access.ts fill it. Both carry the unsubscribe link in the footer,
+ * which is what makes them lawful to send to a list (CAN-SPAM), and the send
+ * adds the one-click List-Unsubscribe header.
  */
 
 /*
@@ -44,14 +49,59 @@ function row(label: string, value: string) {
           <tr><td colspan="2" style="border-top:1px solid #d7d2cb; font-size:0; line-height:0;">&nbsp;</td></tr>`;
 }
 
-export function waitlistWelcomeHtml(p: WaitlistWelcomeParts): string {
-  const promise = p.bookingsOpen
-    ? "Booking for Telluride is open now. And whenever the next trip goes up, this list hears about it before anyone else."
-    : "Four nights in Telluride this winter with your favorite people. When booking opens, this list hears it first, before it goes up anywhere else.";
-  const button = p.bookingsOpen
-    ? { label: "Reserve your spot", href: `${p.origin}/telluride` }
-    : { label: "See the trip", href: `${p.origin}/telluride` };
+/** The trip at a glance, the same four rows in every list email. HTML, fixed strings. */
+export const TELLURIDE_ROWS: [string, string][] = [
+  ["When", "December 14&ndash;18, 2026<br />January 4&ndash;8, 2027"],
+  ["Where", "The Peaks, Mountain Village. Ski-in, ski-out."],
+  ["Rooms", "Four to a room, two to a room, or a whole penthouse for your eight"],
+  ["Included", "Lift tickets and ski or snowboard rentals, rides from Montrose, an après party at Gorrono Ranch, and our team on the ground all week"],
+];
 
+export type ListEmailParts = {
+  origin: string;
+  preheader: string;
+  /** The document title, plain text. */
+  title: string;
+  /** Small capitals line above the headline. Fixed HTML. */
+  eyebrow: string;
+  /** The big capitals headline; <br /> allowed. Fixed HTML. */
+  headlineHtml: string;
+  /** The paragraph under it. Fixed or escaped HTML. */
+  leadHtml: string;
+  rows: [string, string][];
+  button: { label: string; href: string };
+  /** The espresso panel: a small club-blue label over one large line. */
+  panel: { label: string; text: string };
+  addressLine: string;
+  unsubscribeUrl: string;
+};
+
+export function waitlistWelcomeHtml(p: WaitlistWelcomeParts): string {
+  return listEmailHtml({
+    origin: p.origin,
+    preheader: p.preheader,
+    title: "You're on the Outrider list",
+    // Was "Outrider &middot; Telluride this winter": no middots anywhere a
+    // reader can see them (AGENTS.md).
+    eyebrow: "Telluride, this winter",
+    headlineHtml: "You&rsquo;re on<br />the list",
+    leadHtml: p.bookingsOpen
+      ? "Booking for Telluride is open now. And whenever the next trip goes up, this list hears about it before anyone else."
+      : "Four nights in Telluride this winter with your favorite people. When booking opens, this list hears it first, before it goes up anywhere else.",
+    rows: TELLURIDE_ROWS,
+    button: p.bookingsOpen
+      ? { label: "Reserve your spot", href: `${p.origin}/telluride` }
+      : { label: "See the trip", href: `${p.origin}/telluride` },
+    panel: {
+      label: "Bring your people",
+      text: "Send this to the friends you&rsquo;d go with. Book with the same group code and you&rsquo;re placed together.",
+    },
+    addressLine: p.addressLine,
+    unsubscribeUrl: p.unsubscribeUrl,
+  });
+}
+
+export function listEmailHtml(p: ListEmailParts): string {
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
@@ -60,7 +110,7 @@ export function waitlistWelcomeHtml(p: WaitlistWelcomeParts): string {
 <meta name="x-apple-disable-message-reformatting" />
 <meta name="color-scheme" content="light only" />
 <meta name="supported-color-schemes" content="light only" />
-<title>You're on the Outrider list</title>
+<title>${p.title}</title>
 <!--[if mso]>
 <xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml>
 <![endif]-->
@@ -107,14 +157,14 @@ export function waitlistWelcomeHtml(p: WaitlistWelcomeParts): string {
 
     <tr>
       <td class="gutter" style="padding:48px 48px 0 48px;">
-        <div style="font-family:${FONT}; font-size:11px; font-weight:600; letter-spacing:1.8px; text-transform:uppercase; color:#6B635C;">Outrider &middot; Telluride this winter</div>
-        <div class="h1" style="font-family:${FONT}; font-size:46px; line-height:1.02; font-weight:800; letter-spacing:-0.5px; color:#3E342F; text-transform:uppercase; padding-top:14px;">You&rsquo;re on<br />the list</div>
+        <div style="font-family:${FONT}; font-size:11px; font-weight:600; letter-spacing:1.8px; text-transform:uppercase; color:#6B635C;">${p.eyebrow}</div>
+        <div class="h1" style="font-family:${FONT}; font-size:46px; line-height:1.02; font-weight:800; letter-spacing:-0.5px; color:#3E342F; text-transform:uppercase; padding-top:14px;">${p.headlineHtml}</div>
       </td>
     </tr>
 
     <tr>
       <td class="gutter" style="padding:24px 48px 0 48px;">
-        <div style="font-family:${FONT}; font-size:17px; line-height:1.6; color:#3E342F;">${promise}</div>
+        <div style="font-family:${FONT}; font-size:17px; line-height:1.6; color:#3E342F;">${p.leadHtml}</div>
       </td>
     </tr>
 
@@ -122,10 +172,7 @@ export function waitlistWelcomeHtml(p: WaitlistWelcomeParts): string {
       <td class="gutter" style="padding:32px 48px 0 48px;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
           <tr><td colspan="2" style="border-top:1px solid #d7d2cb; font-size:0; line-height:0;">&nbsp;</td></tr>
-          ${row("When", "December 14&ndash;18, 2026<br />January 4&ndash;8, 2027")}
-          ${row("Where", "The Peaks, Mountain Village. Ski-in, ski-out.")}
-          ${row("Rooms", "Four to a room, two to a room, or a whole penthouse for your eight")}
-          ${row("Included", "Lift tickets and ski or snowboard rentals, rides from Montrose, a BBQ at Gorrono Ranch, and our team on the ground all week")}
+          ${p.rows.map(([label, value]) => row(label, value)).join("")}
         </table>
       </td>
     </tr>
@@ -135,7 +182,7 @@ export function waitlistWelcomeHtml(p: WaitlistWelcomeParts): string {
         <table role="presentation" cellpadding="0" cellspacing="0" border="0">
           <tr>
             <td bgcolor="#3E342F" style="background-color:#3E342F;">
-              <a href="${button.href}" style="display:inline-block; padding:16px 32px; font-family:${FONT}; font-size:12px; font-weight:600; letter-spacing:1.8px; text-transform:uppercase; color:#F2EFEA; text-decoration:none;">${button.label}</a>
+              <a href="${p.button.href}" style="display:inline-block; padding:16px 32px; font-family:${FONT}; font-size:12px; font-weight:600; letter-spacing:1.8px; text-transform:uppercase; color:#F2EFEA; text-decoration:none;">${p.button.label}</a>
             </td>
           </tr>
         </table>
@@ -147,8 +194,8 @@ export function waitlistWelcomeHtml(p: WaitlistWelcomeParts): string {
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#3E342F" style="background-color:#3E342F;">
           <tr>
             <td class="gutter" style="padding:36px 48px;">
-              <div style="font-family:${FONT}; font-size:11px; font-weight:600; letter-spacing:1.8px; text-transform:uppercase; color:#89B2C4;">Bring your people</div>
-              <div class="h2" style="font-family:${FONT}; font-size:24px; line-height:1.3; font-weight:500; color:#F2EFEA; padding-top:12px;">Send this to the friends you&rsquo;d go with. Book with the same group code and you&rsquo;re placed together.</div>
+              <div style="font-family:${FONT}; font-size:11px; font-weight:600; letter-spacing:1.8px; text-transform:uppercase; color:#89B2C4;">${p.panel.label}</div>
+              <div class="h2" style="font-family:${FONT}; font-size:24px; line-height:1.3; font-weight:500; color:#F2EFEA; padding-top:12px;">${p.panel.text}</div>
             </td>
           </tr>
         </table>
@@ -163,7 +210,8 @@ export function waitlistWelcomeHtml(p: WaitlistWelcomeParts): string {
             <td style="padding-top:28px; font-family:${FONT}; font-size:13px; line-height:1.7; color:#6B635C;">
               <strong style="color:#3E342F; font-weight:600;">Outrider</strong><br />
               Questions go to <a href="mailto:bookings@outrider.travel" style="color:#3E342F; text-decoration:underline;">bookings@outrider.travel</a>. We reply within a day.<br />
-              <a href="${p.origin}" style="color:#3E342F; text-decoration:underline;">outrider.travel</a> &middot; <a href="https://www.instagram.com/outridertravel/" style="color:#3E342F; text-decoration:underline;">@outridertravel</a>
+              <a href="${p.origin}" style="color:#3E342F; text-decoration:underline;">outrider.travel</a><br />
+              <a href="https://www.instagram.com/outridertravel/" style="color:#3E342F; text-decoration:underline;">@outridertravel</a>
             </td>
           </tr>
           <tr>

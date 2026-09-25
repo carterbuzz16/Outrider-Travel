@@ -123,8 +123,11 @@ export type TravelerPiiRow = {
   phone: string;
   emergency_contact_name: string;
   emergency_contact_phone: string;
-  ski_or_board: string;
-  ability_level: string;
+  school: string | null;
+  // Nullable since traveler details split in two: checkout's details step
+  // writes the identity half before either of these is known.
+  ski_or_board: string | null;
+  ability_level: string | null;
   height: string | null;
   weight: string | null;
   shoe_size: string | null;
@@ -141,7 +144,7 @@ export async function loadTravelerPii(bookingIds: string[]): Promise<Map<string,
   const { data, error } = await createAdminClient()
     .from("traveler_details")
     .select(
-      "booking_id, legal_name, date_of_birth, phone, emergency_contact_name, emergency_contact_phone, ski_or_board, ability_level, height, weight, shoe_size, dietary_restrictions",
+      "booking_id, legal_name, date_of_birth, phone, emergency_contact_name, emergency_contact_phone, school, ski_or_board, ability_level, height, weight, shoe_size, dietary_restrictions",
     )
     .in("booking_id", bookingIds);
   if (error) {

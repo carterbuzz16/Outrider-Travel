@@ -39,7 +39,12 @@ const CLUB_HERO_PATHS = new Set(["/waitlist"]);
 export default function NavBar({
   links = DEFAULT_LINKS,
   overHero = true,
-  cta = { label: BOOKINGS_OPEN ? "Reserve your spot" : "View trips", href: "/trips" },
+  // Once booking is open the button goes straight to the booking page, which
+  // asks for the dates and then the package. Sending "Reserve your spot" to
+  // the trip list first left people hunting for a second, smaller button.
+  cta = BOOKINGS_OPEN
+    ? { label: "Reserve your spot", href: "/bookings/new" }
+    : { label: "View trips", href: "/trips" },
   account = ACCOUNT_LINK,
 }: {
   links?: NavLink[];

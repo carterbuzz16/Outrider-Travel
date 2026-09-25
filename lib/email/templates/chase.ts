@@ -15,6 +15,9 @@
  * Words only (never markup) were edited in September 2026 to match the
  * owner's decisions: travel insurance is an optional add-on, replies come
  * within a day, no month named, and no em dashes in the copy.
+  *
+ * Image hosts are https://www.outrider.travel, not the bare domain, which
+ * 308s to www; see the note in ./confirmation.ts.
  */
 export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
@@ -81,7 +84,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
 
     <tr>
       <td align="center" bgcolor="#89B2C4" style="background-color:#89B2C4;">
-        <a href="https://outrider.travel"><img src="https://outrider.travel/email/email-header-band.png" width="600" height="100" alt="Outrider" class="fluid" style="width:600px; height:100px; display:block;" /></a>
+        <a href="https://outrider.travel"><img src="https://www.outrider.travel/email/email-header-band.png" width="600" height="100" alt="Outrider" class="fluid" style="width:600px; height:100px; display:block;" /></a>
       </td>
     </tr>
 
@@ -124,7 +127,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
                   <td valign="top">
                     <div class="h2" style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:22px; line-height:1.25; font-weight:500; color:#3E342F;">Your flights</div>
                     <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:1.6; color:#3E342F; padding-top:8px;">
-                      Montrose (MTJ) runs a handful of winter flights a day and they are going. Land by <strong style="font-weight:600;">{{arrival_deadline}}</strong>, fly out after <strong style="font-weight:600;">{{departure_earliest}}</strong>.
+                      Montrose (MTJ) runs a handful of winter flights a day and they are going. Fly in <strong style="font-weight:600;">{{arrival_day}}</strong> and home <strong style="font-weight:600;">{{departure_day}}</strong>, any time those days.
                       <a href="https://outrider.travel/flights" style="color:#9C4F2E; text-decoration:underline; font-weight:600;">Flight guide</a>
                     </div>
                   </td>
@@ -194,7 +197,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
 
     <tr>
       <td style="padding:0; font-size:0; line-height:0;">
-        <img src="https://outrider.travel/email/email-hero-telluride.jpg" width="600" height="280" alt="Last light on the San Juans above Telluride" class="fluid" style="width:600px; height:280px; display:block;" />
+        <img src="https://www.outrider.travel/email/email-hero-telluride.jpg" width="600" height="280" alt="Last light on the San Juans above Telluride" class="fluid" style="width:600px; height:280px; display:block;" />
       </td>
     </tr>
 
@@ -226,7 +229,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
           <tr>
             <td style="padding-bottom:22px;">
-              <a href="https://outrider.travel"><img src="https://outrider.travel/email/outrider-mark-espresso.png" width="40" height="34" alt="Outrider" style="width:40px; height:34px; display:block;" /></a>
+              <a href="https://outrider.travel"><img src="https://www.outrider.travel/email/outrider-mark-espresso.png" width="40" height="34" alt="Outrider" style="width:40px; height:34px; display:block;" /></a>
             </td>
           </tr>
           <tr><td style="border-top:1px solid #d7d2cb; font-size:0; line-height:0;">&nbsp;</td></tr>

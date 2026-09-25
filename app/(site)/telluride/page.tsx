@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import {
   Badge,
@@ -6,38 +7,44 @@ import {
   Gallery,
   Plate,
   Reveal,
-  RoomShowcase,
-  SectionDivider,
+  RoomPanel,
+  RoomPhotos,
   StatusBadge,
-  TierTable,
-  type ShowcaseRoom,
+  TAKEN_NOTE,
+  Tabs,
+  type TabItem,
+  WaitlistButton,
   WaitlistCTA,
-  cellGridClass,
-  cellSpanClass,
-  type TierView,
 } from "@/components/ui";
+import SectionNav, { type SectionLink } from "@/components/SectionNav";
+import TripEvents from "@/components/TripEvents";
 import { pageMetadata } from "@/lib/metadata";
 import {
   BOOKINGS_OPEN,
   COMING_SOON_LABEL,
+  COMING_SOON_NOTE,
+  LIST_BOOKING_CTA,
   TRIP_DETAILS_OPEN,
 } from "@/lib/booking-window";
 import {
   NOT_INCLUDED_NOTE,
   SHARED_INCLUSIONS,
+  TELLURIDE_EVENTS,
   TELLURIDE_FACTS,
   TELLURIDE_PROPERTY,
-  TELLURIDE_ROOMS,
+  TELLURIDE_TOWN,
+  TRIP_SPONSORS,
 } from "@/lib/site-content";
 import {
-  availabilityLabel,
   formatDateRange,
   formatPrice,
   getPublishedTrips,
   nightCount,
+  tierAvailabilityLabel,
+  type PublicTier,
   type PublicTrip,
 } from "@/lib/trips";
-import { countPenthouses, getRoomMedia, isTaken, tierGrouping } from "@/lib/room-media";
+import { getRoomMedia, isTaken, tierDisplayName, type RoomMedia } from "@/lib/room-media";
 import { PAY_IN_FULL_DISCOUNT, computeDepositAmount } from "@/lib/deposit";
 import { formatAmount } from "@/lib/balance";
 import { flightTimesPublished } from "@/lib/trip-logistics";
@@ -52,15 +59,27 @@ import { flightTimesPublished } from "@/lib/trip-logistics";
  * `included` anchor must not be renamed or removed. The anchor renders before
  * launch as well, with whatever inclusion detail is public at that point.
  *
+ * Four sections under the masthead, each one screen or close to it, with a
+ * sticky row of links to them (September 2026: the owner found the old page,
+ * eleven sections and about nineteen screens, too long to find anything in).
+ * Detail that used to stack is layered into tabs instead: the events and the
+ * town share one section, and the hotel and each room share another, each
+ * room tab carrying its own price, inclusions and dates. That also retired
+ * the separate room showcase and package table, which showed the same four
+ * packages twice.
+ *
+ *   Telluride     why the place, four figures, the photographs
+ *   The week      the days, then tabs: private events, in town
+ *   Rooms/prices  what every package includes, the dates, then tabs: the
+ *                 hotel and one per package (#included, #departures)
+ *   Good to know  getting there, and the questions, folded
+ *
  * Launch gating follows app/(site)/trips/[id]/page.tsx exactly: before
  * TRIP_DETAILS_OPEN the departures are teased as dates and length only, with no
- * price, no packages, no itinerary, no property and no link to a trip page
- * (those 404 until launch). Nothing about a departure is hard-coded: dates,
- * prices and package inclusions all come from the published trips.
- *
- * The order is the order somebody decides in: why this place, what the days
- * look like, where you sleep, which dates, what the price covers, which
- * package, how to get there, and the few questions that are left.
+ * price, no packages, no itinerary and no property. The events and the town
+ * show before launch: they are what the week feels like, not what it costs.
+ * Nothing about a departure is hard-coded: dates, prices and package
+ * inclusions all come from the published trips.
  */
 
 export const metadata: Metadata = pageMetadata({
@@ -75,6 +94,12 @@ export const metadata: Metadata = pageMetadata({
 export const revalidate = 300;
 
 const LINK = "text-[--accent] underline underline-offset-4";
+
+/**
+ * Scroll margin for anything the section links jump to: the fixed site nav
+ * (h-16, md:h-20) plus the sticky section row under it (h-14).
+ */
+const SECTION_SCROLL = "scroll-mt-[7.5rem] md:scroll-mt-[8.5rem]";
 
 /*
  * Alt text describes what is in each photograph, written by looking at them:
@@ -96,9 +121,9 @@ const GALLERY = [
   { src: "/images/telluride/winter-town.jpg", alt: "Skis and snowboards racked outside Gorrono Ranch, red chairs out on the snow and the San Juans behind." },
 ];
 
-const EVENING_IMAGE = {
-  src: "/images/people/friends-fire-barrel-night.jpg",
-  alt: "Skiers still in their helmets gathered around a fire at night, breath steaming in the cold.",
+const TOWN_IMAGE = {
+  src: "/images/telluride/town-christmas.jpg",
+  alt: "Main Street at dusk through strings of big colored holiday bulbs, the mountains behind.",
 };
 
 const PROPERTY_IMAGE = {
@@ -147,47 +172,63 @@ function shared<T>(trips: PublicTrip[], pick: (trip: PublicTrip) => T): T | null
   return trips.every((trip) => pick(trip) === first) ? first : null;
 }
 
-/**
- * The packages as one table, when every departure carries the same ones at the
- * same prices, which is how the Telluride dates are sold. Listing the same
- * three columns twice would read as six choices. When they differ in anything,
- * this returns null and each departure gets its own table instead.
- */
-function samePackages(trips: PublicTrip[]): PublicTrip["tiers"] | null {
-  if (trips.length === 0) return null;
-  const signature = (trip: PublicTrip) =>
-    JSON.stringify(trip.tiers.map((t) => [t.name, t.price, t.description, t.inclusions]));
-  return shared(trips, signature) !== null ? trips[0].tiers : null;
-}
-
-function toTierViews(tiers: PublicTrip["tiers"], perDeparture: boolean): TierView[] {
-  return tiers.map((tier) => ({
-    id: tier.id,
-    name: tier.name,
-    price: formatPrice(tier.price),
-    description: tier.description,
-    inclusions: tier.inclusions,
-    // One table standing for several departures cannot show one departure's
-    // remaining spots; availability is on each departure above instead.
-    spotsLeft: perDeparture ? tier.spotsLeft : null,
-    ...tierGrouping(tier.name, countPenthouses(tiers)),
-    taken: perDeparture && (tier.claimed || isTaken(tier.name, tier.spotsLeft)),
-  }));
-}
+/* -- the packages, across departures ------------------------------------------ */
 
 /**
- * The rooms behind the packages, for "Where you stay". Priced only when one
- * set of packages stands for every departure; otherwise the rooms are the
- * same and the prices are left to each departure's own table below.
+ * One package as the reader chooses it: a kind of room, whichever dates it is
+ * on. The departures carry the same packages, except where one lacks a room
+ * (January has no Penthouse 830), so they are merged by name, and each
+ * package lists the dates it is actually on. Prices can differ by date
+ * (January is dearer, from September 2026), so when they do, the panel leads
+ * with "From" and each date's row carries its own price.
  */
-function toShowcase(trips: PublicTrip[], packages: PublicTrip["tiers"] | null): ShowcaseRoom[] {
-  const tiers = packages ?? trips[0]?.tiers ?? [];
-  return tiers.flatMap((tier) => {
-    const room = getRoomMedia(tier.name);
-    return room
-      ? [{ id: tier.id, tierName: tier.name, price: packages ? formatPrice(tier.price) : null, room }]
-      : [];
-  });
+type PackageOption = {
+  key: string;
+  label: string;
+  room: RoomMedia | null;
+  inclusions: string[];
+  description: string | null;
+  offers: { trip: PublicTrip; tier: PublicTier }[];
+};
+
+/** "Penthouse  702 " and "PENTHOUSE 702" are the same package. */
+function packageKey(name: string): string {
+  return name.trim().replace(/\s+/g, " ").toUpperCase();
+}
+
+function packageOptions(trips: PublicTrip[]): PackageOption[] {
+  const byKey = new Map<string, PackageOption>();
+  for (const trip of trips) {
+    for (const tier of trip.tiers) {
+      const key = packageKey(tier.name);
+      const existing = byKey.get(key);
+      if (existing) {
+        existing.offers.push({ trip, tier });
+      } else {
+        byKey.set(key, {
+          key,
+          label: tierDisplayName(tier.name),
+          room: getRoomMedia(tier.name),
+          inclusions: tier.inclusions,
+          description: tier.description,
+          offers: [{ trip, tier }],
+        });
+      }
+    }
+  }
+  const lowest = (option: PackageOption) => Math.min(...option.offers.map((o) => o.tier.price));
+  return [...byKey.values()].sort((a, b) => lowest(a) - lowest(b) || a.label.localeCompare(b.label));
+}
+
+/** Whether this package costs the same on every date it is on. */
+function onePrice(option: PackageOption): boolean {
+  return new Set(option.offers.map((o) => o.tier.price)).size === 1;
+}
+
+/** One price when every date agrees; "From" the lowest when they don't. */
+function packagePrice(option: PackageOption): string {
+  const low = formatPrice(Math.min(...option.offers.map((o) => o.tier.price)));
+  return onePrice(option) ? low : `From ${low}`;
 }
 
 export default async function TelluridePage() {
@@ -197,8 +238,25 @@ export default async function TelluridePage() {
   const nights = shared(trips, (trip) => nightCount(trip.startDate, trip.endDate));
   const firstDay = shared(trips, (trip) => weekday(trip.startDate));
   const lastDay = shared(trips, (trip) => weekday(trip.endDate));
-  const packages = TRIP_DETAILS_OPEN ? samePackages(trips) : null;
-  const rooms = TRIP_DETAILS_OPEN ? toShowcase(trips, packages) : [];
+  const packages = TRIP_DETAILS_OPEN ? packageOptions(trips) : [];
+
+  const sections: SectionLink[] = [
+    { href: "#overview", label: "Telluride" },
+    { href: "#events", label: "The week" },
+    { href: "#included", label: TRIP_DETAILS_OPEN ? "Rooms and prices" : "What's included" },
+    { href: "#details", label: "Good to know" },
+  ];
+
+  const roomTabs: TabItem[] = packages.length
+    ? [
+        { id: "hotel", label: "The hotel", content: <HotelPanel /> },
+        ...packages.map((option) => ({
+          id: option.key.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+          label: option.label,
+          content: <PackagePanel option={option} tripCount={trips.length} />,
+        })),
+      ]
+    : [];
 
   return (
     <main className="scheme-light scheme-paint">
@@ -208,7 +266,7 @@ export default async function TelluridePage() {
           pixel anywhere in the middle band (the snowfields) and 6:1 in the
           lower third, where the small type sits, so the lede and the dates pass
           AA at any crop. Above the fold, so nothing here is wrapped in Reveal. */}
-      <header className="scheme-espresso scheme-paint relative isolate flex min-h-[92svh] flex-col overflow-hidden">
+      <header className="scheme-espresso scheme-paint relative isolate flex min-h-[88svh] flex-col overflow-hidden">
         <div className="absolute inset-0 -z-10">
           <Plate image={HERO_IMAGE} fill mark={false} sizes="100vw" priority position="50% 45%" />
         </div>
@@ -223,14 +281,27 @@ export default async function TelluridePage() {
               <p className="max-w-[46ch] font-body text-lede leading-[1.6] text-[--text]">
                 {nights !== null ? `${spelled(nights)} nights` : "A week"} with your
                 friends in a box canyon at the end of the road. One hotel for
-                the whole group, lift tickets and ski or snowboard rentals
-                waiting, rides from Montrose both ways, and our team there the
-                whole trip.
+                the whole group, lift tickets and rentals waiting, private
+                events every day of the week, and our team there the whole
+                trip.
               </p>
               <div className="flex flex-wrap gap-4">
-                <Button href="#departures" variant="primary" size="lg">
-                  {BOOKINGS_OPEN ? "Choose your dates" : "See the dates"}
-                </Button>
+                {/* Straight to the booking page once there is something to
+                    book: it asks for the dates, then the package. "Choose
+                    your dates" used to scroll down the page to a second,
+                    smaller Reserve button. */}
+                {BOOKINGS_OPEN && openTrips.length > 0 ? (
+                  <Button href="/bookings/new" variant="primary" size="lg">
+                    Reserve your spot
+                  </Button>
+                ) : TRIP_DETAILS_OPEN ? (
+                  // Paying is list-only: the emailed link is the way in.
+                  <WaitlistButton label={LIST_BOOKING_CTA} variant="primary" size="lg" placement="telluride-hero" />
+                ) : (
+                  <Button href="#departures" variant="primary" size="lg">
+                    See the dates
+                  </Button>
+                )}
                 <Button href="#included" variant="secondary" size="lg">
                   What&rsquo;s included
                 </Button>
@@ -239,401 +310,295 @@ export default async function TelluridePage() {
 
             {trips.length > 0 && (
               <ul className="m-0 flex list-none flex-col p-0 md:self-end">
-                {trips.map((trip) => (
-                  <li key={trip.id} className="border-b border-[--rule] last:border-0">
-                    <a
-                      href="#departures"
-                      className="group flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 py-4 no-underline"
-                    >
-                      <span className="font-display text-display-s font-medium tracking-title text-[--text] transition-colors duration-fast group-hover:text-[--accent]">
-                        {formatDateRange(trip.startDate, trip.endDate)}
-                      </span>
-                      <span className="t-micro text-[--text-secondary]">
-                        {trip.status === "soldOut"
-                          ? "Sold out"
-                          : `${weekday(trip.startDate).slice(0, 3)} to ${weekday(trip.endDate).slice(0, 3)}`}
-                      </span>
-                    </a>
-                  </li>
-                ))}
+                {trips.map((trip) => {
+                  // Each date books itself once booking is open: one click from
+                  // the top of the page to that departure's packages.
+                  const bookable = BOOKINGS_OPEN && trip.status !== "soldOut";
+                  return (
+                    <li key={trip.id} className="border-b border-[--rule] last:border-0">
+                      <a
+                        href={bookable ? `/bookings/new?trip=${trip.id}` : "#departures"}
+                        className="group flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 py-4 no-underline"
+                      >
+                        <span className="font-display text-display-s font-medium tracking-title text-[--text] transition-colors duration-fast group-hover:text-[--accent]">
+                          {formatDateRange(trip.startDate, trip.endDate)}
+                        </span>
+                        <span className="t-micro text-[--text-secondary] transition-colors duration-fast group-hover:text-[--accent]">
+                          {trip.status === "soldOut"
+                            ? "Sold out"
+                            : bookable
+                              ? "Reserve \u2192"
+                              : `${weekday(trip.startDate).slice(0, 3)} to ${weekday(trip.endDate).slice(0, 3)}`}
+                        </span>
+                      </a>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
         </div>
       </header>
 
-      {/* ---- why Telluride -------------------------------------------------- */}
-      <section className="shell pt-20 md:pt-28" aria-labelledby="why-heading">
-        <Reveal>
-          <p className="t-rule-label text-[--text]">Why Telluride</p>
-        </Reveal>
-        <div className="mt-10 grid gap-10 md:mt-14 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:gap-20">
+      <SectionNav links={sections} />
+
+      {/* ---- Telluride ------------------------------------------------------
+          The place in one paragraph and four figures, then the photographs,
+          which run off the right edge so the track reads as scrollable. */}
+      <section id="overview" className={`${SECTION_SCROLL} pb-16 pt-16 md:pb-24 md:pt-24`} aria-labelledby="why-heading">
+        <div className="shell">
           <Reveal>
-            <h2 id="why-heading" className="t-title max-w-[14ch] text-[--text]">
-              One road in, 13,000-foot walls
-            </h2>
+            <p className="t-rule-label text-[--text]">Why Telluride</p>
           </Reveal>
-          <Reveal delay={80}>
-            <div className="flex flex-col gap-6">
-              <p className="max-w-measure font-body text-lede leading-[1.7] text-[--text]">
-                A box canyon in the San Juans, closed off at the far end by
-                peaks that clear 13,000 feet. It takes a little more to get
-                here, which is why the town and the mountain feel like yours
-                for the week.
+          <div className="mt-10 grid gap-8 md:mt-12 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:items-end md:gap-20">
+            <Reveal>
+              <h2 id="why-heading" className="t-title max-w-[14ch] text-[--text]">
+                One road in, 13,000-foot walls
+              </h2>
+            </Reveal>
+            <Reveal delay={80}>
+              <p className="max-w-measure font-body text-lede leading-[1.65] text-[--text]">
+                A box canyon in the San Juans, closed off by peaks that clear
+                13,000 feet. An old mining town with a real Main Street at the
+                bottom, two thousand acres of mountain above it, and a free
+                gondola between the two.
               </p>
-              <p className="max-w-measure font-body text-body leading-[1.85] text-[--text-secondary]">
-                The town is a few streets of brick and clapboard you can walk end
-                to end in fifteen minutes, an old mining town with a real Main
-                Street. Above it are more than two thousand acres: steep enough for the
-                strong skiers in your group, and gentle enough on the front side
-                that first timers have a great day one too.
-              </p>
-            </div>
+            </Reveal>
+          </div>
+
+          {/* Four figures on one hairline, not four boxes. */}
+          <Reveal>
+            <dl className="m-0 mt-12 grid grid-cols-2 border-t border-[--rule-strong] md:mt-16 lg:grid-cols-4">
+              {TELLURIDE_FACTS.map((fact, i) => (
+                <div
+                  key={fact.label}
+                  className={[
+                    "flex flex-col gap-2 border-[--rule] py-6 pr-5 md:py-8",
+                    // Vertical hairlines between columns only, never on the
+                    // outer edge, at both the two- and four-column widths.
+                    i % 2 === 1 ? "border-l pl-5" : "",
+                    i === 2 ? "border-t lg:border-l lg:border-t-0 lg:pl-5" : "",
+                    i === 3 ? "border-t lg:border-t-0" : "",
+                  ].join(" ")}
+                >
+                  <dt className="t-micro order-2 text-[--accent]">{fact.label}</dt>
+                  <dd className="order-1 m-0 font-display text-display-s font-medium leading-none tracking-title text-[--text] sm:text-display-m">
+                    {fact.value}
+                  </dd>
+                  <dd className="order-3 m-0 font-body text-body-s leading-[1.6] text-[--text-secondary]">
+                    {fact.note}
+                  </dd>
+                </div>
+              ))}
+            </dl>
           </Reveal>
         </div>
 
-        {/* Four figures on one hairline, not four boxes. */}
-        <Reveal>
-          <dl className="mt-16 grid grid-cols-2 border-t border-[--rule-strong] md:mt-20 lg:grid-cols-4">
-            {TELLURIDE_FACTS.map((fact, i) => (
-              <div
-                key={fact.label}
-                className={[
-                  "flex flex-col gap-3 border-[--rule] py-7 pr-5 md:py-9",
-                  // Vertical hairlines between columns only, never on the
-                  // outer edge, at both the two- and four-column widths.
-                  i % 2 === 1 ? "border-l pl-5" : "",
-                  i === 2 ? "border-t lg:border-l lg:border-t-0 lg:pl-5" : "",
-                  i === 3 ? "border-t lg:border-t-0" : "",
-                ].join(" ")}
-              >
-                <dt className="t-micro order-2 text-[--accent]">{fact.label}</dt>
-                <dd className="order-1 m-0 font-display text-display-s font-medium sm:text-display-m leading-none tracking-title text-[--text]">
-                  {fact.value}
-                </dd>
-                <dd className="order-3 m-0 font-body text-body-s leading-[1.6] text-[--text-secondary]">
-                  {fact.note}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </Reveal>
-      </section>
-
-      {/* ---- photographs -----------------------------------------------------
-          Full-bleed to the right so the track runs off the screen, which is
-          what tells you there is more to scroll. Same alignment as
-          /destinations: 100% rather than 100vw, so it lines up with the shell. */}
-      <section className="pb-20 pt-16 md:pb-28 md:pt-20" aria-label="Telluride in photographs">
-        <div className="pl-[max(1.25rem,calc((100%-var(--shell))/2+var(--gutter)))] pr-gutter">
+        <div className="mt-6 pl-[max(1.25rem,calc((100%-var(--shell))/2+var(--gutter)))] pr-gutter md:mt-10">
           <Reveal>
             <Gallery images={GALLERY} label="Telluride photographs" />
           </Reveal>
         </div>
       </section>
 
-      {/* ---- the week --------------------------------------------------------
-          Itinerary is trip detail, so it stays back before launch along with
-          the packages. The days are derived from the dates rather than
-          written out, so a departure of a different length cannot contradict
-          the page. Numbered because it is a real sequence. */}
-      {TRIP_DETAILS_OPEN && nights !== null && nights >= 2 && (
-        <>
-          <SectionDivider variant="rule" className="shell" />
-          <section className="shell py-20 md:py-28" aria-labelledby="week-heading">
-            <Reveal>
-              <p className="t-rule-label text-[--text]">The week</p>
-            </Reveal>
-            <div className="mt-10 grid gap-12 md:mt-14 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:gap-20">
-              <Reveal>
-                <div className="flex flex-col gap-8 md:sticky md:top-32">
-                  <h2 id="week-heading" className="t-title max-w-[14ch] text-[--text]">
-                    {firstDay && lastDay ? `${firstDay} to ${lastDay}` : `${spelled(nights + 1)} days`}, all planned for you
-                  </h2>
-                  <Plate
-                    image={EVENING_IMAGE}
-                    ratio="aspect-[4/3]"
-                    sizes="(min-width: 768px) 40vw, 100vw"
-                    position="50% 63%"
-                  />
-                </div>
-              </Reveal>
+      {/* ---- the week ---------------------------------------------------------
+          Espresso. The days as one row of three (itinerary is trip detail, so
+          it waits for launch), then the events and the town as tabs. id="events"
+          is what the home page's "See the week" links to. */}
+      <section
+        id="events"
+        className={`scheme-espresso scheme-paint ${SECTION_SCROLL}`}
+        aria-labelledby="events-heading"
+      >
+        <div className="shell py-16 md:py-24">
+          <Reveal>
+            <p className="t-rule-label text-[--text]">The week</p>
+            <div className="mt-10 grid gap-6 md:mt-12 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:items-end md:gap-20">
+              <h2 id="events-heading" className="t-title max-w-[14ch] text-[--text]">
+                The week has a guest list
+              </h2>
+              <p className="t-lede max-w-measure text-[--text-secondary]">
+                Every package comes with the same nights out. They&rsquo;re
+                booked, hosted and closed to anyone who isn&rsquo;t on the trip.
+              </p>
+            </div>
+          </Reveal>
 
-              <ol className="m-0 flex list-none flex-col p-0">
-                {weekPlan(nights, firstDay, lastDay).map((day, i) => (
-                  <Reveal as="li" key={day.title} delay={i * 90} className="border-t border-[--rule-strong] py-8 first:pt-0 first:border-t-0 md:py-10">
-                    <div className="grid gap-4 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-8">
-                      <p className="t-label pt-1.5 text-[--accent]">{day.when}</p>
-                      <div className="flex flex-col gap-3">
-                        <h3 className="t-subheading text-[--text]">{day.title}</h3>
-                        <p className="max-w-measure font-body text-body leading-[1.8] text-[--text-secondary]">
-                          {day.body}
-                        </p>
-                      </div>
-                    </div>
-                  </Reveal>
+          {TRIP_DETAILS_OPEN && nights !== null && nights >= 2 && (
+            <Reveal>
+              <ol className="m-0 mt-12 grid list-none gap-8 border-t border-[--rule-strong] p-0 pt-8 md:mt-14 md:grid-cols-3 md:gap-10">
+                {weekPlan(nights, firstDay, lastDay).map((day) => (
+                  <li key={day.title} className="flex flex-col gap-2">
+                    <p className="t-micro text-[--accent]">{day.when}</p>
+                    <h3 className="t-subheading text-[--text]">{day.title}</h3>
+                    <p className="max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
+                      {day.body}
+                    </p>
+                  </li>
                 ))}
               </ol>
-            </div>
-          </section>
-        </>
-      )}
+            </Reveal>
+          )}
 
-      {/* ---- the property ----------------------------------------------------
-          The one espresso section in the body of the page. Held back until
-          launch with the rest of the trip detail. */}
-      {TRIP_DETAILS_OPEN && (
-        <section className="scheme-espresso scheme-paint" aria-labelledby="property-heading">
-          <div className="shell grid gap-12 py-20 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-center md:gap-20 md:py-28">
+          <Tabs
+            label="The week"
+            className="mt-14 md:mt-16"
+            tabs={[
+              { id: "events", label: "Private events", content: <TripEvents events={TELLURIDE_EVENTS} /> },
+              { id: "town", label: "In town", content: <TownPanel /> },
+            ]}
+          />
+
+          {/* Sponsors, by their own logo. Outbound and commercial, so
+              rel="sponsored". The alt is the brand name, which is what the
+              logo says. */}
+          {TRIP_SPONSORS.length > 0 && (
+            <dl className="m-0 mt-14 flex flex-col border-t border-[--rule] md:mt-16">
+              {TRIP_SPONSORS.map((sponsor) => (
+                <div
+                  key={sponsor.name}
+                  className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 border-b border-[--rule] py-5"
+                >
+                  <dt className="flex items-center gap-5">
+                    <span className="t-micro text-[--text-secondary]">On the trip</span>
+                    <a
+                      href={sponsor.url}
+                      target="_blank"
+                      rel="noopener noreferrer sponsored"
+                      // On a paper tile: the logo's red is under 3:1 on
+                      // espresso and reads as a smudge, and a logo is never
+                      // recolored to fix that.
+                      className="scheme-light scheme-paint block px-4 py-3 transition-opacity duration-fast hover:opacity-85"
+                    >
+                      <Image
+                        src={sponsor.logo.src}
+                        alt={sponsor.name}
+                        width={sponsor.logo.width}
+                        height={sponsor.logo.height}
+                        className="h-8 w-auto md:h-10"
+                      />
+                    </a>
+                  </dt>
+                  <dd className="m-0 font-body text-body text-[--text-secondary]">{sponsor.supplies}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </div>
+      </section>
+
+      {/* ---- rooms and prices -----------------------------------------------
+          id="included" is linked from the booking emails. Do not rename it,
+          and keep it rendering in every launch state.
+
+          Warm gray, the page's one stone panel: it sets the price apart from
+          the selling around it. On stone, secondary text is #564E48 (5.4:1).
+          What every package includes and the dates sit side by side; under
+          them, one tab for the hotel and one per package. */}
+      <section
+        id="included"
+        className={`scheme-stone scheme-paint ${SECTION_SCROLL}`}
+        aria-labelledby="included-heading"
+      >
+        <div className="shell py-16 md:py-24">
+          <Reveal>
+            <p className="t-rule-label text-[--text]">
+              {TRIP_DETAILS_OPEN ? "Rooms and prices" : "Included"}
+            </p>
+            <h2 id="included-heading" className="t-title mt-10 max-w-[16ch] text-[--text] md:mt-12">
+              What&rsquo;s waiting for you
+            </h2>
+          </Reveal>
+
+          <div className="mt-10 grid gap-12 md:mt-12 md:grid-cols-2 md:gap-20">
             <Reveal>
-              <Plate
-                image={PROPERTY_IMAGE}
-                // The photograph is wide (16:9), so a wide frame keeps the
-                // building, the pool and the peaks all in it.
-                ratio="aspect-[4/3]"
-                sizes="(min-width: 768px) 45vw, 100vw"
-                position="55% 55%"
-              />
+              <h3 className="t-micro text-[--text-secondary]">In every package</h3>
+              <ul className="m-0 mt-4 flex list-none flex-col border-t border-[--rule-strong] p-0">
+                {SHARED_INCLUSIONS.map((item) => (
+                  <li
+                    key={item}
+                    className="flex gap-4 border-b border-[--rule] py-3.5 font-body text-body leading-[1.5] text-[--text]"
+                  >
+                    {/* The same square TierTable uses for a line item. */}
+                    <span aria-hidden="true" className="mt-[0.6em] h-1.5 w-1.5 shrink-0 bg-[--text]" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-5 font-body text-body-s leading-[1.7] text-[--text-secondary]">
+                {NOT_INCLUDED_NOTE}{" "}
+                <Link href="/flights" className={LINK}>
+                  Read the flight guide
+                </Link>
+                .
+              </p>
             </Reveal>
 
             <Reveal delay={80}>
-              <div className="flex flex-col gap-8">
-                <div className="flex flex-col gap-5">
-                  <p className="t-rule-label text-[--text]">Where you stay</p>
-                  <h2 id="property-heading" className="t-title text-[--text]">
-                    {TELLURIDE_PROPERTY.name}
-                  </h2>
-                  <p className="t-micro text-[--accent]">{TELLURIDE_PROPERTY.where}</p>
-                </div>
-                {TELLURIDE_PROPERTY.body.map((paragraph) => (
-                  <p
-                    key={paragraph.slice(0, 32)}
-                    className="max-w-measure font-body text-body leading-[1.8] text-[--text-secondary]"
-                  >
-                    {paragraph}
+              <div id="departures" className={SECTION_SCROLL}>
+                <h3 className="t-micro text-[--text-secondary]">The dates</h3>
+                {trips.length > 0 ? (
+                  <ul className="m-0 mt-4 flex list-none flex-col border-t border-[--rule-strong] p-0">
+                    {trips.map((trip) => (
+                      <DateRow key={trip.id} trip={trip} />
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-4 max-w-measure border-t border-[--rule-strong] pt-5 font-body text-body leading-[1.75] text-[--text-secondary]">
+                    The Telluride dates aren&rsquo;t on the site right now. Write to{" "}
+                    <Link href="/contact" className={LINK}>
+                      us
+                    </Link>{" "}
+                    with any questions in the meantime.
                   </p>
-                ))}
-
-                {/* Without a room panel to show (no published package matches
-                    lib/room-media.ts), the rooming is still said, as a list. */}
-                {rooms.length === 0 && (
-                  <div>
-                    <h3 className="t-subheading text-[--text]">How the rooms work</h3>
-                    <dl className="m-0 mt-5 flex flex-col">
-                      {TELLURIDE_ROOMS.map((room) => (
-                        <div
-                          key={room.label}
-                          className="grid gap-1.5 border-t border-[--rule] py-4 sm:grid-cols-[12rem_minmax(0,1fr)] sm:gap-6"
-                        >
-                          <dt className="font-body text-body font-medium text-[--text]">{room.label}</dt>
-                          <dd className="m-0 font-body text-body-s leading-[1.7] text-[--text-secondary]">
-                            {room.body}
-                          </dd>
-                        </div>
-                      ))}
-                    </dl>
+                )}
+                <p className="t-micro mt-5 text-[--text-secondary]">
+                  {BOOKINGS_OPEN
+                    ? "Same trip, same hotel, same days on the mountain. Pick the week that works for your crew."
+                    : TRIP_DETAILS_OPEN
+                      ? COMING_SOON_NOTE
+                      : "Booking opens shortly. These dates are final."}
+                </p>
+                {!BOOKINGS_OPEN && TRIP_DETAILS_OPEN && (
+                  <div className="mt-6">
+                    <WaitlistButton label={LIST_BOOKING_CTA} variant="primary" size="md" placement="telluride-dates" />
                   </div>
                 )}
               </div>
             </Reveal>
           </div>
 
-          {/* The rooms, one per package, photograph first. Replaces the old
-              "How the rooms work" list: the owner wants people to see what
-              each package sleeps in, the penthouse most of all. */}
-          {rooms.length > 0 && (
-            <div className="shell pb-20 md:pb-28">
-              <Reveal>
-                <div className="grid gap-6 border-t border-[--rule-strong] pt-10 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:items-end md:gap-20 md:pt-14">
-                  <h3 className="t-heading max-w-[14ch] text-[--text]">The rooms</h3>
-                  <p className="max-w-measure font-body text-body leading-[1.75] text-[--text-secondary]">
-                    Every package stays at The Peaks. What changes is the room, and how many of you
-                    share it.
-                  </p>
-                </div>
-              </Reveal>
-              <Reveal>
-                <RoomShowcase rooms={rooms} className="mt-12 md:mt-16" />
-              </Reveal>
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* ---- departures ------------------------------------------------------ */}
-      {/* Before launch nothing espresso sits between the photographs and the
-          dates, so a hairline marks the change of subject instead. */}
-      {!TRIP_DETAILS_OPEN && <SectionDivider variant="rule" className="shell" />}
-      <section
-        id="departures"
-        className="shell scroll-mt-24 py-20 md:scroll-mt-28 md:py-28"
-        aria-labelledby="departures-heading"
-      >
-        <Reveal>
-          <p className="t-rule-label text-[--text]">Departures</p>
-          <div className="mt-10 grid gap-6 md:mt-14 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:items-end md:gap-20">
-            <h2 id="departures-heading" className="t-title max-w-[14ch] text-[--text]">
-              {trips.length > 1 ? `${spelled(trips.length)} departures, one trip` : "The dates"}
-            </h2>
-            <p className="t-lede">
-              Every departure is the same trip, with the same property and the
-              same days on the mountain. Pick the week that works for your crew.
-            </p>
-          </div>
-        </Reveal>
-
-        {trips.length > 0 ? (
-          <div className={cellGridClass(trips.length, "mt-12 md:mt-16")}>
-            {trips.map((trip, i) => (
-              <Departure key={trip.id} trip={trip} className={cellSpanClass(i, trips.length)} />
-            ))}
-          </div>
-        ) : (
-          <Reveal>
-            <div className="mt-12 border border-[--rule] bg-[--surface-raised] p-8 md:p-12">
-              <h3 className="t-subheading text-[--text]">Nothing open right now</h3>
-              <p className="mt-4 max-w-measure font-body text-body leading-[1.75] text-[--text-secondary]">
-                The Telluride dates aren&rsquo;t on the site right now. Write to{" "}
-                <Link href="/contact" className={LINK}>
-                  us
-                </Link>{" "}
-                with any questions in the meantime.
+          {roomTabs.length > 0 ? (
+            <Reveal>
+              <div className="mt-16 md:mt-20">
+                <h3 className="t-heading text-[--text]">Where you stay</h3>
+                <Tabs label="Where you stay" tabs={roomTabs} className="mt-8" />
+              </div>
+            </Reveal>
+          ) : (
+            !TRIP_DETAILS_OPEN && (
+              <p className="mt-12 max-w-measure font-body text-body leading-[1.75] text-[--text-secondary]">
+                The rooms, the packages and what each one adds go up with the
+                pricing when booking opens.
               </p>
-            </div>
-          </Reveal>
-        )}
-
-        {!BOOKINGS_OPEN && trips.length > 0 && (
-          // Not COMING_SOON_NOTE: that promises packages and pricing "below",
-          // and before launch this page does not show them.
-          <p className="t-micro mt-6 text-[--text-muted]">
-            Booking opens shortly. These dates are final.
-          </p>
-        )}
-      </section>
-
-      {/* ---- what's included, and the packages ---------------------------------
-          id="included" is linked from the booking emails. Do not rename it,
-          and keep it rendering in every launch state. scroll-mt clears the
-          fixed nav when the page opens on the anchor.
-
-          Warm gray, the page's one stone panel: it sets the price apart from
-          the selling around it. TierTable's columns sit on --surface-raised,
-          which is paper here, so every pair inside it is the same as on the
-          trip page. On stone itself secondary text is #564E48 (5.4:1). */}
-      <section
-        id="included"
-        className="scheme-stone scheme-paint scroll-mt-16 md:scroll-mt-20"
-        aria-labelledby="included-heading"
-      >
-        <div className="shell py-20 md:py-28">
-          <div className="grid gap-12 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:gap-20">
-            <Reveal>
-              <div className="flex flex-col gap-6 md:sticky md:top-32">
-                <p className="t-rule-label text-[--text]">Included</p>
-                <h2 id="included-heading" className="t-title max-w-[12ch] text-[--text]">
-                  What&rsquo;s waiting for you
-                </h2>
-                <p className="max-w-measure-tight font-body text-body leading-[1.75] text-[--text-secondary]">
-                  One price per person, and here&rsquo;s everything inside it.
-                  No resort fee at check-in, no separate charge for the shuttle.
-                </p>
-              </div>
-            </Reveal>
-
-            <Reveal delay={80}>
-              <div>
-                <h3 className="sr-only">In every package</h3>
-                <ul className="m-0 flex list-none flex-col border-t border-[--rule-strong] p-0">
-                  {SHARED_INCLUSIONS.map((item) => (
-                    <li
-                      key={item}
-                      className="flex gap-5 border-b border-[--rule] py-5 font-body text-lede font-light leading-[1.45] text-[--text]"
-                    >
-                      {/* The same square TierTable uses for a line item. */}
-                      <span aria-hidden="true" className="mt-[0.62em] h-1.5 w-1.5 shrink-0 bg-[--text]" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-                <p className="mt-6 font-body text-body-s leading-[1.7] text-[--text-secondary]">
-                  {NOT_INCLUDED_NOTE}{" "}
-                  <Link href="/flights" className={LINK}>
-                    Read the flight guide
-                  </Link>
-                  .
-                </p>
-              </div>
-            </Reveal>
-          </div>
-
-          {/* ---- the packages compared ---- */}
-          <div className="mt-20 md:mt-28">
-            <Reveal>
-              <div className="grid gap-6 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:items-end md:gap-20">
-                <h2 className="t-heading max-w-[16ch] text-[--text]">
-                  {packages
-                    ? packages.length === 1
-                      ? "The package"
-                      : `${spelled(packages.length)} ways to take the same trip`
-                    : "The packages"}
-                </h2>
-                <p className="max-w-measure font-body text-body leading-[1.75] text-[--text-secondary]">
-                  {TRIP_DETAILS_OPEN
-                    ? "Everyone gets the same days on the mountain and the same nights out. What changes is where you sleep."
-                    : "The packages, and what each one adds, go up with the pricing when booking opens."}
-                </p>
-              </div>
-            </Reveal>
-
-            {TRIP_DETAILS_OPEN &&
-              (packages ? (
-                <Reveal>
-                  <TierTable
-                    tiers={toTierViews(packages, false)}
-                    // One table for every date, so Reserve goes to the booking
-                    // page, which lists the open departures side by side.
-                    bookHref={BOOKINGS_OPEN && openTrips.length > 0 ? "/bookings/new" : null}
-                    className="mt-10 md:mt-12"
-                  />
-                  {trips.length > 1 && (
-                    <p className="t-micro mt-5 text-[--text-secondary]">
-                      Same packages and prices on every date.
-                    </p>
-                  )}
-                </Reveal>
-              ) : (
-                trips.map((trip) => (
-                  <Reveal key={trip.id} className="mt-10 md:mt-12">
-                    <p className="t-rule-label text-[--text]">
-                      {formatDateRange(trip.startDate, trip.endDate)}
-                    </p>
-                    <TierTable
-                      tiers={toTierViews(trip.tiers, true)}
-                      bookHref={
-                        BOOKINGS_OPEN && trip.status !== "soldOut"
-                          ? `/bookings/new?trip=${trip.id}`
-                          : null
-                      }
-                      className="mt-6"
-                    />
-                  </Reveal>
-                ))
-              ))}
-          </div>
+            )
+          )}
         </div>
       </section>
 
-      {/* ---- getting there --------------------------------------------------- */}
-      <section className="shell py-20 md:py-28" aria-labelledby="getting-there-heading">
-        <div className="grid gap-12 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:gap-20">
+      {/* ---- good to know -----------------------------------------------------
+          Getting there on the left, the questions folded on the right. Native
+          <details>, so they open without JavaScript. No FAQ structured data
+          here: /faq carries it, and two pages marking up the same questions
+          compete with each other. */}
+      <section id="details" className={`shell ${SECTION_SCROLL} py-16 md:py-24`} aria-label="Good to know">
+        <Reveal>
+          <p className="t-rule-label text-[--text]">Good to know</p>
+        </Reveal>
+        <div className="mt-10 grid gap-14 md:mt-12 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:gap-20">
           <Reveal>
-            <h2 id="getting-there-heading" className="t-heading text-[--text] md:sticky md:top-32">
-              Getting there
-            </h2>
-          </Reveal>
-          <Reveal delay={80}>
-            <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-7">
+              <h2 className="t-heading text-[--text]">Getting there</h2>
               {/* The route, set as type on a rule rather than drawn as a map:
                   the only facts that matter are the two ends and the gap. */}
               <div className="grid grid-cols-[auto_minmax(2rem,1fr)_auto] items-center gap-x-4 gap-y-2 sm:gap-x-6">
@@ -641,19 +606,17 @@ export default async function TelluridePage() {
                 <span aria-hidden="true" className="h-px bg-[--rule-strong]" />
                 <span className="font-display text-display-s font-medium tracking-title text-[--text]">Telluride</span>
                 <span className="t-micro text-[--text-secondary]">Montrose</span>
-                <span className="t-micro text-center text-[--text-secondary]">65 mi, 90 min by road</span>
+                <span className="t-micro text-center text-[--text-secondary]">65 mi, 90 min</span>
                 <span className="t-micro text-right text-[--text-secondary]">8,725 ft</span>
               </div>
-              <p className="font-body text-body leading-[1.85] text-[--text]">
-                Fly into Montrose, about 65 miles out and roughly an hour and a
-                half by road. Ground transport from Montrose and back is arranged
-                and included: we meet you at the airport, drive you up the
-                canyon, and bring you back at the end.
-              </p>
-              <p className="font-body text-body leading-[1.85] text-[--text-secondary]">
+              <p className="max-w-measure font-body text-body leading-[1.8] text-[--text-secondary]">
+                Fly into Montrose. We meet you at the airport, drive you up the
+                canyon and bring you back at the end. Flights are the one thing
+                you book yourself, and the flight guide covers which airport to
+                pick
                 {flightTimesPublished()
-                  ? "Flights are the one thing you book yourself. The flight guide covers which airport to pick, the arrival and departure windows for each set of dates, and what to do if the only routing you can find is a bad one."
-                  : "Flights are the one thing you book yourself. The flight guide covers which airport to pick and what to do if the only routing you can find is a bad one, and we'll post the arrival and departure windows for each set of dates there."}
+                  ? " and the arrival and departure windows for each set of dates."
+                  : ". We'll post the arrival and departure windows for each set of dates there."}
               </p>
               <div>
                 <Button href="/flights" variant="secondary">
@@ -662,37 +625,35 @@ export default async function TelluridePage() {
               </div>
             </div>
           </Reveal>
+
+          <Reveal delay={80}>
+            <div>
+              <div className="flex flex-wrap items-end justify-between gap-6">
+                <h2 className="t-heading text-[--text]">Quick questions</h2>
+                <Button href="/faq" variant="ghost">
+                  All questions
+                </Button>
+              </div>
+              <div className="mt-6 border-b border-[--rule]">
+                {ANSWERS.map((qa) => (
+                  <details key={qa.q} className="group border-t border-[--rule]">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-5 font-body text-body font-medium text-[--text] [&::-webkit-details-marker]:hidden">
+                      {qa.q}
+                      {/* A hairline plus that loses its upright when open. */}
+                      <span aria-hidden="true" className="relative h-3 w-3 shrink-0 text-[--text-secondary]">
+                        <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-current" />
+                        <span className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-current transition-transform duration-fast group-open:scale-y-0" />
+                      </span>
+                    </summary>
+                    <div className="max-w-measure pb-6 font-body text-body leading-[1.75] text-[--text-secondary]">
+                      {qa.a}
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </div>
+          </Reveal>
         </div>
-      </section>
-
-      <SectionDivider variant="rule" className="shell" />
-
-      {/* ---- short answers ---------------------------------------------------
-          The questions people ask about this trip in particular, answered in
-          a sentence or two, with the long versions a click away on /faq. No
-          FAQ structured data here: /faq carries it, and two pages marking up
-          the same questions compete with each other. */}
-      <section className="shell py-20 md:py-28" aria-labelledby="answers-heading">
-        <Reveal>
-          <div className="flex flex-wrap items-end justify-between gap-6">
-            <h2 id="answers-heading" className="t-heading text-[--text]">
-              Quick questions
-            </h2>
-            <Button href="/faq" variant="ghost">
-              All questions
-            </Button>
-          </div>
-        </Reveal>
-        <dl className="m-0 mt-10 grid gap-x-16 md:mt-12 md:grid-cols-2">
-          {ANSWERS.map((qa, i) => (
-            <Reveal key={qa.q} delay={(i % 2) * 80} className="border-t border-[--rule-strong] py-7">
-              <dt className="t-subheading text-[--text]">{qa.q}</dt>
-              <dd className="m-0 mt-3 max-w-measure font-body text-body leading-[1.75] text-[--text-secondary]">
-                {qa.a}
-              </dd>
-            </Reveal>
-          ))}
-        </dl>
       </section>
 
       {/* ---- close ------------------------------------------------------------
@@ -746,8 +707,12 @@ export default async function TelluridePage() {
         <WaitlistCTA
           id="waitlist"
           placement="telluride"
-          heading="First dibs on Telluride"
-          body="Booking opens to the list before anyone else. Join and you'll hear first."
+          heading={TRIP_DETAILS_OPEN ? LIST_BOOKING_CTA : "First dibs on Telluride"}
+          body={
+            TRIP_DETAILS_OPEN
+              ? COMING_SOON_NOTE
+              : "Booking opens to the list before anyone else. Join and you'll hear first."
+          }
         />
       )}
     </main>
@@ -758,12 +723,6 @@ export default async function TelluridePage() {
 
 type Day = { when: string; title: string; body: string };
 
-/**
- * Arrival day, the days on the mountain, and the day home. Only what every
- * package shares is said here (transfers, lift tickets, rentals, the private
- * events, the welcome package, staff), so nothing on this list can be true of
- * one package and not another.
- */
 function weekPlan(nights: number, firstDay: string | null, lastDay: string | null): Day[] {
   const skiDays = nights - 1;
   const lastIndex = nights + 1;
@@ -771,22 +730,212 @@ function weekPlan(nights: number, firstDay: string | null, lastDay: string | nul
     {
       when: firstDay ? `Day 1, ${firstDay.slice(0, 3)}` : "Day 1",
       title: "Touch down in Montrose",
-      body:
-        "We meet you at the airport and drive you up the canyon. Check in with your crew and find your welcome package waiting in the room.",
+      body: "We meet you at the airport and drive you up the canyon. Your welcome package is waiting in the room.",
     },
     {
       when: skiDays === 1 ? "Day 2" : `Days 2–${skiDays + 1}`,
       title: `${spelled(skiDays)} ${skiDays === 1 ? "day" : "days"} on the mountain`,
-      body:
-        "Your lift ticket and ski or snowboard rentals are ready before you arrive, so the first morning starts on the snow. One afternoon the whole group takes over Gorrono Ranch, mid-mountain, for a BBQ. At night the free gondola drops you on Main Street for dinner, and runs until midnight to bring you back up.",
+      body: "Lift tickets and rentals ready before you land, private events every day, and the free gondola down to Main Street every night.",
     },
     {
       when: lastDay ? `Day ${lastIndex}, ${lastDay.slice(0, 3)}` : `Day ${lastIndex}`,
       title: "Back down to Montrose",
-      body:
-        "Check out and ride back to the airport together for flights home. Our team is with you until then, same as all week.",
+      body: "We ride back to the airport together for flights home. Our team is with you until then.",
     },
   ];
+}
+
+/** The town after the lifts: the "In town" tab. Public facts only, see TELLURIDE_TOWN. */
+function TownPanel() {
+  return (
+    <div className="grid gap-10 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] md:gap-16">
+      <div className="flex flex-col gap-6">
+        <h3 className="t-heading max-w-[14ch] text-[--text]">One gondola ride to Main Street</h3>
+        <Plate image={TOWN_IMAGE} ratio="aspect-[4/3]" sizes="(min-width: 768px) 35vw, 100vw" />
+      </div>
+      <dl className="m-0 grid gap-x-10 sm:grid-cols-2">
+        {TELLURIDE_TOWN.map((place) => (
+          <div key={place.name} className="flex flex-col gap-1.5 border-t border-[--rule] py-5">
+            <dt className="font-body text-body font-medium text-[--text]">{place.name}</dt>
+            <dd className="m-0 font-body text-body-s leading-[1.65] text-[--text-secondary]">{place.body}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+/* -- rooms and prices ------------------------------------------------------------ */
+
+/** The first tab under "Where you stay": the property every package shares. */
+function HotelPanel() {
+  return (
+    <div className="grid gap-10 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] md:items-center md:gap-16">
+      <Plate
+        image={PROPERTY_IMAGE}
+        // The photograph is wide (16:9), so a wide frame keeps the building,
+        // the pool and the peaks all in it.
+        ratio="aspect-[3/2]"
+        sizes="(min-width: 768px) 50vw, 100vw"
+        position="55% 55%"
+      />
+      <div className="flex flex-col gap-5">
+        <p className="t-micro text-[--text-secondary]">{TELLURIDE_PROPERTY.where}</p>
+        <h4 className="t-heading text-[--text]">{TELLURIDE_PROPERTY.name}</h4>
+        {TELLURIDE_PROPERTY.body.map((paragraph) => (
+          <p key={paragraph.slice(0, 32)} className="max-w-measure font-body text-body leading-[1.8] text-[--text-secondary]">
+            {paragraph}
+          </p>
+        ))}
+        <p className="max-w-measure font-body text-body leading-[1.8] text-[--text]">
+          Every package stays here. What changes is the room, and how many of
+          you share it: each tab is one.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * One package: the room's photographs on the left; on the right its price,
+ * what the room is, what the package includes, and every date it is on with
+ * that date's availability and a Reserve that arrives with the package
+ * already chosen.
+ */
+function PackagePanel({ option, tripCount }: { option: PackageOption; tripCount: number }) {
+  const { room } = option;
+  const missing = option.offers.length < tripCount;
+  const anyTaken = option.offers.some(({ tier }) => tier.claimed || isTaken(tier.name, tier.spotsLeft));
+
+  return (
+    <div className="grid gap-10 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] md:gap-16">
+      {/* Pinned under the two navs while a long penthouse list scrolls past,
+          so the column is never empty. */}
+      <div className="md:sticky md:top-40 md:self-start">
+        {room && room.photos.length > 0 ? (
+          <RoomPhotos photos={room.photos} title={room.title} sizes="(min-width: 768px) 50vw, 100vw" />
+        ) : room ? (
+          <RoomPanel room={room} />
+        ) : null}
+      </div>
+
+      <div className="flex flex-col gap-7">
+        <div className="flex flex-col gap-3">
+          <h4 className="t-micro text-[--text-secondary]">{option.label}</h4>
+          {TRIP_DETAILS_OPEN && (
+            <p className="m-0 flex items-baseline gap-3">
+              <span className="font-display text-display-m font-medium leading-none tracking-title text-[--text]">
+                {packagePrice(option)}
+              </span>
+              <span className="font-body text-body-s text-[--text-secondary]">per person</span>
+            </p>
+          )}
+          {(room?.upgrade ?? option.description) && (
+            <p className="max-w-measure font-body text-body leading-[1.75] text-[--text-secondary]">
+              {room?.upgrade ?? option.description}
+            </p>
+          )}
+        </div>
+
+        {option.inclusions.length > 0 && (
+          <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+            {option.inclusions.map((item) => (
+              <li key={item} className="flex gap-3.5 font-body text-body-s leading-[1.55] text-[--text]">
+                <span aria-hidden="true" className="mt-[0.55em] h-1 w-1 shrink-0 bg-[--text]" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div>
+          <ul className="m-0 flex list-none flex-col border-t border-[--rule-strong] p-0">
+            {option.offers.map(({ trip, tier }) => (
+              <OfferRow key={tier.id} trip={trip} tier={tier} showPrice={TRIP_DETAILS_OPEN && !onePrice(option)} />
+            ))}
+          </ul>
+          {missing && (
+            <p className="t-micro mt-4 text-[--text-secondary]">
+              Only on the {option.offers.length === 1 ? "date" : "dates"} above.
+            </p>
+          )}
+          {anyTaken && (
+            <p className="mt-4 max-w-measure font-body text-body-s leading-[1.6] text-[--text-secondary]">
+              {TAKEN_NOTE}
+            </p>
+          )}
+          {!BOOKINGS_OPEN && (
+            // No Reserve while paying is list-only; this is the way in.
+            <div className="mt-6">
+              <WaitlistButton label={LIST_BOOKING_CTA} variant="primary" size="md" placement="telluride-rooms" />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** One date a package is on: the dates, its price when dates differ, how it stands, and Reserve. */
+function OfferRow({ trip, tier, showPrice }: { trip: PublicTrip; tier: PublicTier; showPrice: boolean }) {
+  const taken = tier.claimed || isTaken(tier.name, tier.spotsLeft);
+  const full = taken || (tier.spotsLeft !== null && tier.spotsLeft <= 0) || trip.status === "soldOut";
+  const status = tierAvailabilityLabel(tier.spotsLeft, taken) ?? (full ? "Sold out" : null);
+  // Tier id rather than name: the booking page matches either, and the id
+  // cannot be mistyped or renamed out from under the link.
+  const href = `/bookings/new?trip=${trip.id}&package=${tier.id}`;
+
+  return (
+    <li className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-[--rule] py-3.5">
+      <span className="flex flex-col">
+        <span className="font-body text-body text-[--text]">{formatDateRange(trip.startDate, trip.endDate)}</span>
+        {showPrice && (
+          <span className="font-body text-body-s tabular-nums text-[--text-secondary]">
+            {formatPrice(tier.price)} per person
+          </span>
+        )}
+      </span>
+      <span className="flex items-center gap-4">
+        {status && <span className="t-micro text-[--text-secondary]">{status}</span>}
+        {BOOKINGS_OPEN && !full && (
+          <Button href={href} variant="primary" size="md">
+            Reserve
+          </Button>
+        )}
+      </span>
+    </li>
+  );
+}
+
+/** One departure in "The dates": set large, with its status and Reserve. */
+function DateRow({ trip }: { trip: PublicTrip }) {
+  const nights = nightCount(trip.startDate, trip.endDate);
+  const soldOut = trip.status === "soldOut";
+
+  return (
+    <li className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 border-b border-[--rule] py-5">
+      <div className="flex flex-col gap-1.5">
+        <span className="font-display text-display-s font-medium tracking-title text-[--text]">
+          {formatDateRange(trip.startDate, trip.endDate)}
+        </span>
+        <span className="t-micro text-[--text-secondary]">
+          {weekday(trip.startDate)} to {weekday(trip.endDate)}, {nights} {nights === 1 ? "night" : "nights"}
+          {TRIP_DETAILS_OPEN && `, from ${formatPrice(trip.priceFrom)}`}
+        </span>
+      </div>
+      <div className="flex items-center gap-4">
+        {/* Same rule as TripCard: before launch the badge says so, once. */}
+        {BOOKINGS_OPEN ? <StatusBadge status={trip.status} /> : <Badge tone="neutral">{COMING_SOON_LABEL}</Badge>}
+        {BOOKINGS_OPEN && !soldOut && (
+          // Same deep link the trip page builds, so a signed-out visitor
+          // comes back from /login to this departure.
+          <Button href={`/bookings/new?trip=${trip.id}`} variant="primary" size="md">
+            Reserve these dates
+          </Button>
+        )}
+      </div>
+    </li>
+  );
 }
 
 /* -- short answers ------------------------------------------------------------- */
@@ -835,87 +984,3 @@ const ANSWERS: { q: string; a: React.ReactNode }[] = [
     a: "Yes. Our team is with you from pickup to drop-off, an email away and on the ground all week.",
   },
 ];
-
-/* -- one departure ----------------------------------------------------------- */
-
-/**
- * One departure: the dates set large, the facts in a row, and the controls the
- * trip page would show, below a perforation, the way a ticket separates the
- * part you keep from the part you hand over.
- */
-function Departure({ trip, className }: { trip: PublicTrip; className?: string }) {
-  const nights = nightCount(trip.startDate, trip.endDate);
-  const soldOut = trip.status === "soldOut";
-  const dates = formatDateRange(trip.startDate, trip.endDate);
-  // Same deep link the trip page builds, so a signed-out visitor comes back
-  // from /login to this departure rather than to a generic booking start.
-  const bookingHref = `/bookings/new?trip=${trip.id}`;
-
-  return (
-    <Reveal className={className}>
-      <article className="flex h-full flex-col gap-8 bg-[--surface-raised] p-6 sm:p-8 md:p-10">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <p className="t-micro text-[--text-secondary]">{trip.name}</p>
-          {/* Same rule as TripCard: before launch the badge says so, once. */}
-          {BOOKINGS_OPEN ? (
-            <StatusBadge status={trip.status} />
-          ) : (
-            <Badge tone="neutral">{COMING_SOON_LABEL}</Badge>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <h3 className="t-heading text-[--text]">{dates}</h3>
-          <p className="font-body text-body text-[--text-secondary]">
-            {weekday(trip.startDate)} to {weekday(trip.endDate)}
-          </p>
-        </div>
-
-        <dl className="m-0 grid grid-cols-2 gap-x-6 gap-y-6 border-t border-[--rule] pt-6">
-          <div>
-            <dt className="stamp-type text-[--text-muted]">Length</dt>
-            <dd className="m-0 mt-2 font-body text-body text-[--text]">
-              {nights} {nights === 1 ? "night" : "nights"}
-            </dd>
-          </div>
-          <div>
-            <dt className="stamp-type text-[--text-muted]">Fly into</dt>
-            <dd className="m-0 mt-2 font-body text-body text-[--text]">Montrose (MTJ)</dd>
-          </div>
-          {/* No price while nothing can be bought, matching /trips. */}
-          {BOOKINGS_OPEN && (
-            <div>
-              <dt className="stamp-type text-[--text-muted]">From</dt>
-              <dd className="m-0 mt-2 font-body text-body text-[--text]">
-                {formatPrice(trip.priceFrom)} <span className="text-[--text-secondary]">per person</span>
-              </dd>
-            </div>
-          )}
-          {BOOKINGS_OPEN && !soldOut && (
-            <div>
-              <dt className="stamp-type text-[--text-muted]">Availability</dt>
-              <dd className="m-0 mt-2 font-body text-body text-[--text]">{availabilityLabel(trip.status)}</dd>
-            </div>
-          )}
-        </dl>
-
-        {/* The trip page 404s before launch, so it is only linked once it exists. */}
-        {TRIP_DETAILS_OPEN && (
-          <div className="mt-auto flex flex-col gap-6">
-            <hr className="perforation" />
-            <div className="flex flex-wrap items-center gap-4">
-              {BOOKINGS_OPEN && !soldOut && (
-                <Button href={bookingHref} variant="primary">
-                  Reserve your spot
-                </Button>
-              )}
-              <Button href={`/trips/${trip.id}`} variant="secondary">
-                Trip details
-              </Button>
-            </div>
-          </div>
-        )}
-      </article>
-    </Reveal>
-  );
-}

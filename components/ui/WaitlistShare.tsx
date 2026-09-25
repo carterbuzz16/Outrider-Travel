@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { track } from "@vercel/analytics";
 import { cn } from "./cn";
-import { BOOKINGS_OPEN } from "@/lib/booking-window";
+import { BOOKINGS_OPEN, TRIP_DETAILS_OPEN } from "@/lib/booking-window";
 
 /**
  * What somebody sees the moment they are on the list.
@@ -18,7 +18,11 @@ export default function WaitlistShare({
   heading = "You’re on the list",
   body = BOOKINGS_OPEN
     ? "We'll write when the next trip opens, before it reaches the site. A note confirming it is on its way to your inbox."
-    : "We'll write when trips open, before they reach the site. A note confirming it is on its way to your inbox.",
+    : TRIP_DETAILS_OPEN
+      ? // True both before the head start (the link comes when it begins)
+        // and during it (it is already on its way).
+        "Your private booking link comes by email as soon as booking opens to the list. Check your inbox."
+      : "We'll write when trips open, before they reach the site. A note confirming it is on its way to your inbox.",
   compact = false,
   className,
   headingId,

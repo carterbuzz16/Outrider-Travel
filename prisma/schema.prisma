@@ -200,11 +200,14 @@ model TravelerDetails {
   phone                 String
   emergencyContactName  String   @map("emergency_contact_name")
   emergencyContactPhone String   @map("emergency_contact_phone")
+  school                String?
   height                String?
   weight                String?
   shoeSize              String?  @map("shoe_size")
-  skiOrBoard            String   @map("ski_or_board")
-  abilityLevel          String   @map("ability_level")
+  // Nullable since the two-halves split: checkout's details step writes the
+  // identity half before either of these is known. See lib/traveler-details.ts.
+  skiOrBoard            String?  @map("ski_or_board")
+  abilityLevel          String?  @map("ability_level")
   dietaryRestrictions   String?  @map("dietary_restrictions")
   submittedAt           DateTime @default(now()) @map("submitted_at") @db.Timestamptz
   updatedAt             DateTime @default(now()) @map("updated_at") @db.Timestamptz

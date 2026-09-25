@@ -32,6 +32,9 @@ export function flashText(table: Table, code: string | string[] | undefined | nu
 export const CHECKOUT_ERRORS = {
   invalid_plan: "Choose the deposit or paying in full.",
   closed: "Booking isn't open yet. Dates and pricing are final, and we'll be taking spots shortly.",
+  // A broken early-access link (app/early-access/route.ts) that lands where
+  // booking is open anyway: the link failed, but nothing is in their way.
+  early_access: "That link didn't check out, but booking is open to you here.",
   rate_limited: "Too many booking attempts. Please try again in a bit.",
   unavailable: "That trip or package isn't available anymore.",
   departed: "Those dates aren't taking bookings anymore.",

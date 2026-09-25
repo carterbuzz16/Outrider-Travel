@@ -13,6 +13,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getPenthouseProgress } from "@/lib/tier-claims";
 import { penthouseInvitePath, toSnapshot } from "@/lib/penthouse";
 import PenthouseProgress from "@/components/PenthouseProgress";
+import { TravelInsurancePanel } from "@/components/TravelInsurance";
 
 export default async function ConfirmationPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -26,6 +27,13 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
   }
 
   // RLS ("Users can view own bookings") scopes this to the signed-in user.
+  //
+  // A fresh abort signal on every call, because this is read twice in one
+  // render: before and after syncPaymentFromStripe settles the deposit. Next
+  // memoizes identical GET fetches within a render, so without it the second
+  // read handed back the first, pre-payment response, and the page said
+  // "Deposit received" over "Paid $0" and no schedule until a reload. A
+  // request with its own signal is never memoized.
   const loadBooking = () =>
     supabase
       .from("bookings")
@@ -33,6 +41,7 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
         "id, trip_id, tier_id, status, total_amount, deposit_amount, group_code, trips(name, destination, start_date, end_date), tiers(name), payments(id, status, amount, scheduled_date, stripe_payment_intent_id)"
       )
       .eq("id", params.id)
+      .abortSignal(new AbortController().signal)
       .single();
 
   let { data: booking } = await loadBooking();
@@ -116,6 +125,31 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
   // A cancelled booking never gets here (CancelledBooking, above), so a signed
   // link to a trip the traveler is not going on is never handed out.
   const portalUrl = settled ? createPortalUrl(booking.id) : null;
+
+  /*
+   * Whether the identity half of traveler details is already in (see
+   * lib/traveler-details.ts). Checkout asks for it before the card now
+   * (../details), so this is true for every new booking; it is still asked
+   * because bookings paid before that step existed have no row, and their
+   * trip page is where they give it. Existence is the whole question, so this
+   * asks for a timestamp and nothing else: nothing typed is read back.
+   *
+   * Every traveler_details row carries the identity half by construction, so
+   * a row existing is the answer. The admin client, because the table is
+   * service-role only twice over.
+   */
+  const identitySaved = settled
+    ? Boolean(
+        (
+          await createAdminClient()
+            .from("traveler_details")
+            .select("submitted_at")
+            .eq("booking_id", booking.id)
+            .maybeSingle()
+        ).data,
+      )
+    : false;
+  const steps = nextSteps(identitySaved);
 
   const installments = booking.payments
     .filter((p) => p.scheduled_date && p.status !== "canceled")
@@ -240,9 +274,9 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
         </section>
 
         {/* -- next, today ----------------------------------------------------
-            The trip page, where the three things we need straight away are
-            done. The one dark panel on the page, because after the receipt it
-            is the only thing left to act on. */}
+            The trip page, where what is left is done. The one dark panel on
+            the page, because after the receipt it is the only thing left to
+            act on. */}
 
         {portalUrl && (
           <section
@@ -254,7 +288,7 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
               Three things for your trip page
             </h2>
             <ol className="mt-7 flex list-none flex-col border-t border-[--rule] p-0">
-              {NEXT_STEPS.map((step, i) => (
+              {steps.map((step, i) => (
                 <li key={step.title} className="flex gap-4 border-b border-[--rule] py-4">
                   <span aria-hidden="true" className="t-micro mt-1 w-5 shrink-0 tabular-nums text-[--text-muted]">
                     {i + 1}
@@ -278,6 +312,13 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
             </div>
           </section>
         )}
+
+        {/* Insurance, once the money is actually in. Never while the payment
+            is still confirming: an affiliate offer over an unresolved charge
+            reads as a shop, not a receipt. Below the trip page panel on
+            purpose, because that panel is the thing we need done today and
+            this is optional. */}
+        {settled && <TravelInsurancePanel className="mt-10" />}
 
         {penthouse && booking.group_code ? (
           <PenthouseProgress
@@ -318,15 +359,27 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
 /*
  * What the trip page asks for, and why now. The reasons are the ones this page
  * already gave in a paragraph; split out so each task is scannable.
+ *
+ * The third one shrinks once checkout has taken the identity half: what is
+ * left on the trip page is then the rental shop's questions, and promising
+ * "your traveler details" again would read as asking twice for what was just
+ * handed over.
  */
-const NEXT_STEPS = [
-  { title: "Book your flights", why: "Montrose has a handful of winter flights a day. Book before they're gone." },
-  { title: "Request your roommates", why: "Rooms are assigned in the order requests arrive." },
-  {
-    title: "Add your traveler details",
-    why: "Your name and date of birth go on your lift tickets and lodging records, and your sizes get your ski or snowboard rentals fitted before you land.",
-  },
-];
+function nextSteps(identitySaved: boolean) {
+  return [
+    { title: "Book your flights", why: "Montrose has a handful of winter flights a day. Book before they're gone." },
+    { title: "Request your roommates", why: "Rooms are assigned in the order requests arrive." },
+    identitySaved
+      ? {
+          title: "Add your rental sizes",
+          why: "Your height, weight and shoe size get your ski or snowboard fitted before you land, so you skip the rental line on day one.",
+        }
+      : {
+          title: "Add your traveler details",
+          why: "Your name and date of birth go on your lift tickets and lodging records, and your sizes get your ski or snowboard rentals fitted before you land.",
+        },
+  ];
+}
 
 type ConfirmationBooking = {
   id: string;

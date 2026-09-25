@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Alert, Badge, Button, Facts, ScheduleTable, cn, type BadgeTone } from "@/components/ui";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PORTAL_ANCHORS, verifyPortalToken } from "@/lib/portal-token";
+import { gearComplete } from "@/lib/traveler-details";
 import { formatDay } from "@/app/(protected)/dates";
 import { formatDateRange } from "@/lib/trips";
 import { formatAmount } from "@/lib/balance";
@@ -154,8 +155,18 @@ export default async function TripPortalPage(props: {
   // holds a place.
   const penthouse = open ? (await getPenthouseProgress(admin, [booking])).get(booking.id) : undefined;
 
+  /*
+   * Traveler details come in two halves now (lib/traveler-details.ts). The
+   * identity half is asked in checkout, before the card, so a row can be here
+   * with every gear column still null (and a booking paid before that step
+   * existed can have no row at all). What this page asks for, and when it
+   * calls the task done, follows the gear half.
+   */
+  const identityDone = Boolean(details);
+  const detailsDone = gearComplete(details);
+
   let detailsLabel: string | null = null;
-  if (details) {
+  if (detailsDone && details) {
     detailsLabel = `Submitted on ${formatSubmitted(details.submitted_at)}.`;
     // The trigger bumps updated_at on every replace; a minute's grace keeps
     // the first save from reading as an edit.
@@ -284,14 +295,19 @@ export default async function TripPortalPage(props: {
             )}
           </Task>
 
-          <Task id={PORTAL_ANCHORS.details} number={3} title="Traveler details" done={Boolean(details)}>
+          <Task
+            id={PORTAL_ANCHORS.details}
+            number={3}
+            title={identityDone ? "Your rental sizes" : "Traveler details"}
+            done={detailsDone}
+          >
             <p className="max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
-              Your legal name and date of birth, for your lift tickets and lodging records and for
-              travel insurance if you choose to add it. A number to reach you and someone at home,
-              and your sizes so your ski or snowboard rentals are ready when you arrive.
+              {identityDone
+                ? "We have your name and your emergency contact already. This is the last piece: what you ride and what size, so your rentals are fitted before you arrive."
+                : "Your legal name and date of birth, for your lift tickets and lodging records and for travel insurance if you choose to add it. A number to reach you and someone at home, and your sizes so your ski or snowboard rentals are ready when you arrive."}
             </p>
 
-            {details && (
+            {detailsDone && details && (
               <Facts
                 className="mt-6"
                 columns={3}
@@ -311,6 +327,7 @@ export default async function TripPortalPage(props: {
                 bookingId={booking.id}
                 token={token}
                 submitted={detailsLabel ? { label: detailsLabel } : null}
+                needsIdentity={!identityDone}
                 smsConsented={booking.sms_consent}
               />
             ) : (
