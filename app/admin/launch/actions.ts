@@ -9,6 +9,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { earlyAccessFromPrice, earlyAccessUrl } from "@/lib/early-access";
 import { getFromAddress, renderEarlyAccess, sendEmail, sendEmailBatch } from "@/lib/email/send";
 import { getAppUrl } from "@/lib/site-url";
+import { isDeliverableEmail } from "@/lib/waitlist-signup";
 import { launchReadiness } from "./readiness";
 
 export type LaunchResult = { ok: boolean; message: string };
@@ -112,12 +113,25 @@ export async function sendEarlyAccessToList(
     return { ok: true, message: "Everyone on the list already has it. Nothing to send." };
   }
 
+  // Addresses that cannot be delivered stay out of the batch: one bad "to"
+  // can fail a whole Resend batch, and a bounce counts against the domain.
+  // They are left unstamped and named in the result, so the team can fix
+  // the address or send the link another way.
+  const skipped = pending.filter((row) => !isDeliverableEmail(row.email));
+  const deliverable = pending.filter((row) => isDeliverableEmail(row.email));
+  const skippedNote = skipped.length
+    ? ` Skipped ${skipped.length} address${skipped.length === 1 ? "" : "es"} that can't receive mail: ${skipped.map((r) => r.email).join(", ")}.`
+    : "";
+  if (deliverable.length === 0) {
+    return { ok: false, message: `Nothing sent.${skippedNote}` };
+  }
+
   const from = getFromAddress();
   const fromPrice = await earlyAccessFromPrice();
   let sent = 0;
 
-  for (let i = 0; i < pending.length; i += BATCH_SIZE) {
-    const chunk = pending.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < deliverable.length; i += BATCH_SIZE) {
+    const chunk = deliverable.slice(i, i + BATCH_SIZE);
     const emails = chunk.map((row) => {
       const email = renderEarlyAccess({
         bookingUrl: earlyAccessUrl(row.early_access_token),
@@ -137,7 +151,7 @@ export async function sendEarlyAccessToList(
       revalidatePath("/admin/launch");
       return {
         ok: false,
-        message: `Sent to ${sent} of ${pending.length}, then a batch failed. Press send again to reach the rest; nobody gets it twice.`,
+        message: `Sent to ${sent} of ${deliverable.length}, then a batch failed. Press send again to reach the rest; nobody gets it twice.${skippedNote}`,
       };
     }
 
@@ -159,5 +173,8 @@ export async function sendEarlyAccessToList(
   }
 
   revalidatePath("/admin/launch");
-  return { ok: true, message: `Sent to ${sent} ${sent === 1 ? "person" : "people"} on the list. The head start has begun.` };
+  return {
+    ok: true,
+    message: `Sent to ${sent} ${sent === 1 ? "person" : "people"} on the list. The head start has begun.${skippedNote}`,
+  };
 }

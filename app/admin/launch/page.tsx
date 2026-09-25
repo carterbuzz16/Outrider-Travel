@@ -7,6 +7,7 @@ import { PageHeader, Panel } from "../admin-ui";
 import LaunchControls from "./LaunchControls";
 import { launchReadiness } from "./readiness";
 import { earlyAccessFromPrice } from "@/lib/early-access";
+import { isDeliverableEmail } from "@/lib/waitlist-signup";
 
 export const metadata: Metadata = { title: "Launch" };
 
@@ -38,12 +39,16 @@ export default async function LaunchPage() {
       .is("unsubscribed_at", null)
       .not("early_access_sent_at", "is", null),
   ]);
-  const { count: pending } = await admin
+  // The rows themselves, not a count: the button should say how many the
+  // send will actually reach, and name any address it will skip.
+  const { data: unsent } = await admin
     .from("waitlist_signups")
-    .select("id", { count: "exact", head: true })
+    .select("email")
     .is("unsubscribed_at", null)
     .is("early_access_sent_at", null)
     .or("email_consent.is.null,email_consent.eq.true");
+  const pending = (unsent ?? []).filter((row) => isDeliverableEmail(row.email)).length;
+  const undeliverable = (unsent ?? []).filter((row) => !isDeliverableEmail(row.email)).map((row) => row.email);
 
   const preview = renderEarlyAccess({
     bookingUrl: `${getAppUrl()}/early-access?t=sample`,
@@ -85,9 +90,16 @@ export default async function LaunchPage() {
 
           <Panel
             title="The list"
-            description={`${onList ?? 0} on the list. ${sent ?? 0} already have the head start, ${pending ?? 0} still to send.`}
+            description={`${onList ?? 0} on the list. ${sent ?? 0} already have the head start, ${pending} still to send.`}
           >
-            <LaunchControls pending={pending ?? 0} ready={ready} />
+            <LaunchControls pending={pending} ready={ready} />
+            {undeliverable.length > 0 && (
+              <p className="mt-6 border-t border-[--rule] pt-5 font-body text-body-s leading-[1.6] text-[--text-secondary]">
+                Skipped, because mail can&rsquo;t reach {undeliverable.length === 1 ? "this address" : "these addresses"}:{" "}
+                <span className="text-[--text]">{undeliverable.join(", ")}</span>. Fix it in the database, or send the
+                link another way.
+              </p>
+            )}
           </Panel>
 
           <Panel title="When the head start is over">

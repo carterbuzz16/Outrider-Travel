@@ -41,7 +41,18 @@ export const EMPTY_WAITLIST_INPUT: WaitlistInput = {
   smsConsent: false,
 };
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/**
+ * An address mail can actually be delivered to: the characters an unquoted
+ * local part may use, then a dotted domain. The old check (anything, @,
+ * anything, dot, anything) let "rrb47)9@gmail.com" onto the list, and an
+ * address like that bounces, which counts against the sending domain.
+ */
+const EMAIL_PATTERN = /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9-]+(\.[a-z0-9-]+)+$/i;
+
+/** For senders that read addresses already stored (app/admin/launch). */
+export function isDeliverableEmail(email: string): boolean {
+  return email.length <= 254 && EMAIL_PATTERN.test(email.trim());
+}
 // Letters in any script, plus the marks, spaces, hyphens, apostrophes (both
 // kinds) and full stops that real names carry. No digits or symbols, which
 // keeps markup and spreadsheet formulas out of a column that ends up in an
