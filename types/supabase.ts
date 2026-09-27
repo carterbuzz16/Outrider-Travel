@@ -142,6 +142,75 @@ export type Database = {
           },
         ]
       }
+      discount_codes: {
+        Row: {
+          active: boolean
+          amount: number
+          code: string
+          created_at: string
+          expires_at: string | null
+          max_uses: number
+          note: string | null
+        }
+        Insert: {
+          active?: boolean
+          amount: number
+          code: string
+          created_at?: string
+          expires_at?: string | null
+          max_uses?: number
+          note?: string | null
+        }
+        Update: {
+          active?: boolean
+          amount?: number
+          code?: string
+          created_at?: string
+          expires_at?: string | null
+          max_uses?: number
+          note?: string | null
+        }
+        Relationships: []
+      }
+      discount_redemptions: {
+        Row: {
+          amount: number
+          booking_id: string
+          code: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          amount: number
+          booking_id: string
+          code: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string
+          code?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_redemptions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discount_redemptions_code_fkey"
+            columns: ["code"]
+            isOneToOne: false
+            referencedRelation: "discount_codes"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       legal_acceptances: {
         Row: {
           accepted_at: string
@@ -534,6 +603,27 @@ export type Database = {
           p_window_seconds: number
         }
         Returns: boolean
+      }
+      claim_discount_code: {
+        Args: {
+          p_booking: string
+          p_code: string
+        }
+        Returns: number
+      }
+      discount_code_amount: {
+        Args: {
+          p_code: string
+          p_user?: string
+        }
+        Returns: number | null
+      }
+      discount_code_uses: {
+        Args: {
+          p_code: string
+          p_user?: string
+        }
+        Returns: number
       }
     }
     Enums: {

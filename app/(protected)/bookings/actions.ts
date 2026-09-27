@@ -4,7 +4,14 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe } from "@/lib/stripe";
-import { computeDepositAmount, computePayInFullAmount } from "@/lib/deposit";
+import { applyDiscount, computeDepositAmount, computePayInFullAmount } from "@/lib/deposit";
+import {
+  claimDiscountCode,
+  discountCodeAmount,
+  dropDiscountCode,
+  normalizeDiscountCode,
+  releaseOwnCodeHolds,
+} from "@/lib/discount-codes";
 import {
   fromCents,
   isPaymentPlan,
@@ -41,9 +48,15 @@ export async function createBooking(formData: FormData) {
   const tripId = String(formData.get("tripId") ?? "");
   const tierId = String(formData.get("tierId") ?? "");
   const requestedGroupCode = String(formData.get("group_code") ?? "").trim() || null;
-  // Where a failure sends the traveler back to: the same trip, package and
-  // group code, so they land where they were rather than on a blank start.
-  const back = { tripId, tierId, groupCode: requestedGroupCode };
+  // A giveaway code (lib/discount-codes.ts). Only the code is taken from the
+  // form; what it takes off is looked up below, like every other figure.
+  const discountCode = normalizeDiscountCode(formData.get("discount_code"));
+  // Where a failure sends the traveler back to: the same trip, package, group
+  // code and discount code, so they land where they were rather than on a
+  // blank start. A failure about the code itself leaves the code out (noCode),
+  // or the page would repeat the same complaint beside the error.
+  const back = { tripId, tierId, groupCode: requestedGroupCode, discountCode };
+  const noCode = { tripId, tierId, groupCode: requestedGroupCode };
   // Neither the terms nor the text-message opt-in is asked for here any more.
   // The terms are agreed to in the one box on the payment step, recorded by
   // acceptTermsForBooking before the card is confirmed; texts are opted into
@@ -126,8 +139,34 @@ export async function createBooking(formData: FormData) {
    * in. deposit_amount is still recorded for a pay-in-full booking, as the
    * share of what they paid that the Terms treat as the non-refundable
    * deposit. Nothing is scheduled against it.
+   *
+   * A discount code comes off after that, so the two stack, and the deposit
+   * is the deposit percentage of what is left. The code is claimed on the
+   * booking further down, once the booking exists; this read only prices it.
    */
-  const totalAmount = plan === "full" ? computePayInFullAmount(tier.price) : tier.price;
+  // Booking/payment writes use the service role: RLS intentionally has no
+  // INSERT policy for these tables (see the booking_checkout_rls_policies
+  // migration), since payment-relevant rows should never be writable
+  // directly by an authenticated client.
+  const admin = createAdminClient();
+
+  let discount = 0;
+  if (discountCode) {
+    // The traveler's own abandoned checkout on another package, still holding
+    // this code, is let go first, so it can never be the reason they are told
+    // the code is used. Same-package checkouts are handled below as ever.
+    if (!(await releaseOwnCodeHolds(admin, user.id, discountCode, tierId))) {
+      checkoutError("payment_moving", back);
+    }
+    const amount = await discountCodeAmount(admin, discountCode, user.id);
+    if (amount === null) {
+      checkoutError("discount_code_invalid", noCode);
+    }
+    discount = amount;
+  }
+
+  const listTotal = plan === "full" ? computePayInFullAmount(tier.price) : tier.price;
+  const totalAmount = applyDiscount(listTotal, discount);
   const depositAmount = computeDepositAmount(totalAmount);
   const chargeAmount = plan === "full" ? totalAmount : depositAmount;
   const chargeCents = Math.round(chargeAmount * 100);
@@ -138,12 +177,6 @@ export async function createBooking(formData: FormData) {
   if (chargeCents < 50) {
     checkoutError("not_payable_online", back);
   }
-
-  // Booking/payment writes use the service role: RLS intentionally has no
-  // INSERT policy for these tables (see the booking_checkout_rls_policies
-  // migration), since payment-relevant rows should never be writable
-  // directly by an authenticated client.
-  const admin = createAdminClient();
 
   /*
    * One live checkout per traveler per package.
@@ -316,6 +349,27 @@ export async function createBooking(formData: FormData) {
   }
 
   /*
+   * The discount code, claimed now that the booking exists. The claim locks
+   * the code, so if someone else took its last use since the read above, this
+   * is where it shows, before any card form exists: the booking is undone and
+   * the traveler goes back with the code taken out. The amount must also be
+   * the one the total was worked out with (a code edited in between is sent
+   * round again rather than charged at a figure nobody saw).
+   *
+   * A carried booking re-priced without a code has any earlier one dropped,
+   * which frees it.
+   */
+  if (discountCode) {
+    const claim = await claimDiscountCode(admin, discountCode, bookingId);
+    if (!claim.ok || claim.amount !== discount) {
+      await abandonPendingBooking(admin, bookingId);
+      checkoutError(claim.ok || claim.reason === "invalid" ? "discount_code_invalid" : "discount_code_used", noCode);
+    }
+  } else if (carried) {
+    await dropDiscountCode(admin, bookingId);
+  }
+
+  /*
    * Everything from here to the redirect either all happens or is undone, so
    * a failure part-way never leaves a pending booking holding a place in the
    * tier with no card form behind it. The undo is abandonPendingBooking.
@@ -350,7 +404,15 @@ export async function createBooking(formData: FormData) {
         customer: stripeCustomerId,
         ...(plan === "deposit" ? { setup_future_usage: "off_session" as const } : {}),
         automatic_payment_methods: { enabled: true },
-        metadata: { bookingId, userId: user.id, kind: plan, bookingStatus: "pending" },
+        // discountCode is for anyone reading the payment in the Stripe
+        // dashboard; nothing in the app reads it back.
+        metadata: {
+          bookingId,
+          userId: user.id,
+          kind: plan,
+          bookingStatus: "pending",
+          ...(discountCode ? { discountCode } : {}),
+        },
       },
       { idempotencyKey: `checkout-${bookingId}-${chargeCents}${attempt > 0 ? `-${attempt}` : ""}` },
     );
@@ -735,12 +797,13 @@ const BALANCE_IDEMPOTENCY_BUCKET_MS = 2 * 60 * 1000;
  */
 function checkoutError(
   code: CheckoutErrorCode,
-  where: { tripId?: string; tierId?: string; groupCode?: string | null } = {},
+  where: { tripId?: string; tierId?: string; groupCode?: string | null; discountCode?: string | null } = {},
 ): never {
   const params = new URLSearchParams();
   if (where.tripId) params.set("trip", where.tripId);
   if (where.tierId) params.set("package", where.tierId);
   if (where.groupCode) params.set("group", where.groupCode);
+  if (where.discountCode) params.set("code", where.discountCode);
   params.set("error", code);
   redirect(`/bookings/new?${params.toString()}`);
 }

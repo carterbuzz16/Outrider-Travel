@@ -123,6 +123,7 @@ model Booking {
   legalAcceptances LegalAcceptance[]
   roomingRequest   RoomingRequest?
   travelerDetails  TravelerDetails?
+  discountRedemption DiscountRedemption?
 
   @@index([userId])
   @@index([tripId])
@@ -215,6 +216,41 @@ model TravelerDetails {
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@map("traveler_details")
+}
+
+/// A fixed amount off one booking, for giveaway prizes (discount_codes
+/// migration, lib/discount-codes.ts). Single use unless maxUses says
+/// otherwise. Added by the team in SQL; RLS on with no policies, so only the
+/// service role reads or writes it. CHECK: code is ^[A-Z0-9]{3,32}$.
+model DiscountCode {
+  code      String    @id
+  amount    Decimal   @db.Decimal(10, 2)
+  maxUses   Int       @default(1) @map("max_uses")
+  note      String?
+  active    Boolean   @default(true)
+  expiresAt DateTime? @map("expires_at") @db.Timestamptz
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  redemptions DiscountRedemption[]
+
+  @@map("discount_codes")
+}
+
+/// Which code took what off which booking. One per booking; deleted with an
+/// abandoned pending booking, which frees the code. Claimed only through the
+/// claim_discount_code function, which locks the code row.
+model DiscountRedemption {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code      String
+  bookingId String   @unique @map("booking_id") @db.Uuid
+  amount    Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  discountCode DiscountCode @relation(fields: [code], references: [code])
+  booking      Booking      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([code])
+  @@map("discount_redemptions")
 }
 
 model Payment {

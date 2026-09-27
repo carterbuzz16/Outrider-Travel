@@ -135,10 +135,23 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
   // The tier's list price, for showing the pay-in-full saving as a line. Only
   // when it is really the difference; the booking row is what is charged.
   const listPrice = booking.tiers ? Number(booking.tiers.price) : null;
+  // A discount code on the booking (lib/discount-codes.ts), shown as its own
+  // line. What it took off is on the redemption row, so it is always right.
+  // The admin client because the table is service-role only; the booking was
+  // read above through the traveler's own session, so it is theirs.
+  const { data: redemption } = await createAdminClient()
+    .from("discount_redemptions")
+    .select("code, amount")
+    .eq("booking_id", booking.id)
+    .maybeSingle();
+  const codeOff = redemption ? Number(redemption.amount) : 0;
   // A tier repriced since booking would make the difference something else,
   // so it only shows when it is exactly what the discount can account for.
-  const difference = listPrice !== null ? Math.round((listPrice - total) * 100) / 100 : 0;
+  const difference = listPrice !== null ? Math.round((listPrice - codeOff - total) * 100) / 100 : 0;
   const saving = payingInFull && difference > 0 && difference <= PAY_IN_FULL_DISCOUNT ? difference : 0;
+  // The breakdown from the list price shows only when it adds up exactly.
+  const itemized =
+    listPrice !== null && (saving > 0 || codeOff > 0) && Math.round((listPrice - saving - codeOff) * 100) === Math.round(total * 100);
 
   return (
     <main>
@@ -213,10 +226,13 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
 
             <div className="p-5 sm:p-6">
               <dl className="m-0 flex flex-col gap-2.5 font-body text-body-s">
-                {saving > 0 && listPrice !== null ? (
+                {itemized && listPrice !== null ? (
                   <>
                     <Line label="Trip price" value={formatAmount(listPrice)} />
-                    <Line label="Paying in full" value={`−${formatAmount(saving)}`} />
+                    {redemption && codeOff > 0 && (
+                      <Line label={`Code ${redemption.code}`} value={`−${formatAmount(codeOff)}`} />
+                    )}
+                    {saving > 0 && <Line label="Paying in full" value={`−${formatAmount(saving)}`} />}
                   </>
                 ) : (
                   <Line label="Trip price" value={formatAmount(total)} />

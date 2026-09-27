@@ -6,11 +6,15 @@ import JoinGroup, { type JoinGroupResult } from "./JoinGroup";
 import PenthouseProgress from "@/components/PenthouseProgress";
 import { PENTHOUSE_DISCLAIMER } from "@/lib/penthouse";
 import {
+  applyDiscount,
   computeDepositAmount,
   computePayInFullAmount,
   DEPOSIT_PERCENTAGE,
   payInFullSaving,
 } from "@/lib/deposit";
+import { discountCodeAmount, normalizeDiscountCode } from "@/lib/discount-codes";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { formatAmount } from "@/lib/balance";
 import { INSTALLMENT_OFFSETS_DAYS } from "@/lib/installments";
 import { countPenthouses, getRoomMedia, tierDisplayName, tierGrouping } from "@/lib/room-media";
@@ -45,7 +49,7 @@ import {
  * asked for and is not open says so, then offers the rest.
  */
 export default async function NewBookingPage(props: {
-  searchParams: Promise<{ error?: string; trip?: string; package?: string; group?: string }>;
+  searchParams: Promise<{ error?: string; trip?: string; package?: string; group?: string; code?: string }>;
 }) {
   const searchParams = await props.searchParams;
 
@@ -87,6 +91,24 @@ export default async function NewBookingPage(props: {
       : group.knownOnTrip
         ? { state: "not-penthouse" }
         : { state: "unknown" };
+
+  // ?code=, a giveaway discount code (lib/discount-codes.ts), from the link we
+  // text a winner or from the Apply button beside the code box. Checked here so
+  // the prices on the page already have it off; createBooking checks again and
+  // claims it. Capped per IP like the group check, so the page cannot be used
+  // to guess codes. Over the cap, or unknown, it simply shows as not working.
+  const discountCode = trip ? normalizeDiscountCode(searchParams.code) : null;
+  let discount: Discount | null = null;
+  let discountRejected = false;
+  if (discountCode) {
+    const allowed = await checkRateLimit(`discount-check:${await clientIp()}`, 30, 60 * 60);
+    const {
+      data: { user },
+    } = await (await createClient()).auth.getUser();
+    const amount = allowed && user ? await discountCodeAmount(createAdminClient(), discountCode, user.id) : null;
+    if (amount === null) discountRejected = true;
+    else discount = { code: discountCode, amount };
+  }
 
   // ?error= is a code (lib/flash.ts), never text to show as it stands. A
   // penthouse held by another group is named from the package in the link,
@@ -146,6 +168,8 @@ export default async function NewBookingPage(props: {
                 requestedPackage={searchParams.package}
                 unlocked={group?.unlocks ?? []}
                 groupCode={group?.knownOnTrip ? (group.code ?? undefined) : undefined}
+                discount={discount}
+                rejectedCode={discountRejected ? discountCode : null}
               />
             </div>
             {hasPenthouse && (
@@ -204,11 +228,16 @@ function TripHeader({ trip, showAll }: { trip: PublicTrip; showAll: boolean }) {
 
 /* -- the packages ------------------------------------------------------------ */
 
+/** A discount code that checked out, and what it takes off. */
+type Discount = { code: string; amount: number };
+
 function Packages({
   trip,
   requestedPackage,
   unlocked,
   groupCode,
+  discount,
+  rejectedCode,
 }: {
   trip: PublicTrip;
   requestedPackage?: string;
@@ -216,15 +245,23 @@ function Packages({
   unlocked: string[];
   /** A code known on this trip, to prefill the order's group code field. */
   groupCode?: string;
+  /** A ?code= that checked out: every figure below has it off. */
+  discount: Discount | null;
+  /** A ?code= that did not, to show in the box with a line saying so. */
+  rejectedCode: string | null;
 }) {
+  const off = discount?.amount ?? 0;
   const tiers: CheckoutTier[] = trip.tiers.map((tier) => {
     // A penthouse another group holds is taken, unless the code in the link is
     // that group's. Then it is theirs to join, capacity permitting.
     const taken = tier.claimed && !unlocked.includes(tier.id);
     const soldOut = taken || (tier.spotsLeft !== null && tier.spotsLeft <= 0);
     const room = getRoomMedia(tier.name);
-    const full = computePayInFullAmount(tier.price);
-    const deposit = computeDepositAmount(tier.price);
+    // The code comes off after the pay-in-full saving, as in createBooking, so
+    // these are exactly the figures the card will be charged.
+    const price = applyDiscount(tier.price, off);
+    const full = applyDiscount(computePayInFullAmount(tier.price), off);
+    const deposit = computeDepositAmount(price);
     const saving = payInFullSaving(tier.price);
     return {
       id: tier.id,
@@ -242,7 +279,7 @@ function Packages({
       priceLabel: formatAmount(tier.price),
       depositLabel: formatAmount(deposit),
       fullLabel: formatAmount(full),
-      balanceLabel: formatAmount(Math.round((tier.price - deposit) * 100) / 100),
+      balanceLabel: formatAmount(Math.round((price - deposit) * 100) / 100),
       savingLabel: saving > 0 ? formatAmount(saving) : null,
     };
   });
@@ -286,6 +323,8 @@ function Packages({
       installmentCount={INSTALLMENT_OFFSETS_DAYS.length}
       contactEmail={CONTACT.email}
       initialGroupCode={groupCode}
+      discount={discount ? { code: discount.code, label: formatAmount(discount.amount) } : null}
+      rejectedCode={rejectedCode}
     />
   );
 }

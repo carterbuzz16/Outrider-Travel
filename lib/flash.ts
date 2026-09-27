@@ -51,6 +51,12 @@ export const CHECKOUT_ERRORS = {
     "You've started several checkouts today without finishing one. Try again tomorrow, or get in touch and we'll help.",
   payment_moving:
     "A payment on your earlier checkout for this package is going through right now. Give it a few minutes, then check your bookings.",
+  // lib/discount-codes.ts. Nothing was charged in either case: the code is
+  // checked before any card form exists.
+  discount_code_invalid:
+    "That discount code didn't work. Check it and try again, or get in touch and we'll sort it out. Nothing was charged.",
+  discount_code_used:
+    "That discount code has already been used. Nothing was charged. If it was yours, get in touch and we'll sort it out.",
 } as const;
 
 export type CheckoutErrorCode = keyof typeof CHECKOUT_ERRORS | "tier_claimed";

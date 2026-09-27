@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { Field, Input, RadioControl, RoomPanel, RoomPhotosButton, cn, type RoomView } from "@/components/ui";
 import { PendingSubmitButton, SubmitOnceForm } from "@/components/SubmitOnce";
@@ -26,8 +27,14 @@ import { tierDisplayName } from "@/lib/tier-display";
  * and the server works everything out again from what was posted anyway.
  *
  * The field names are the contract with createBooking and must not change:
- * tripId, tierId, payment_plan, group_code. The figures here are display only;
- * createBooking re-derives every amount from the tier row.
+ * tripId, tierId, payment_plan, group_code, discount_code. The figures here are
+ * display only; createBooking re-derives every amount from the tier row.
+ *
+ * A discount code (lib/discount-codes.ts) is applied by reloading the page with
+ * ?code=, so the server checks it and every figure on the page, the plans and
+ * the button included, already has it off. Without script the code simply
+ * posts with the form and createBooking applies it just the same; the prices
+ * here then show it only from the payment step on.
  *
  * The form sends once per press and the button says so until the server
  * answers (components/SubmitOnce.tsx). A second press would otherwise create a
@@ -77,6 +84,8 @@ export default function BookingForm({
   installmentCount,
   contactEmail,
   initialGroupCode,
+  discount = null,
+  rejectedCode = null,
 }: {
   tripId: string;
   tiers: CheckoutTier[];
@@ -88,8 +97,14 @@ export default function BookingForm({
   contactEmail: string;
   /** From a friend's invite link (?group=), already checked by the page. Opens the code box, filled in. */
   initialGroupCode?: string;
+  /** A discount code the page checked (?code=). The tier figures already have it off. */
+  discount?: { code: string; label: string } | null;
+  /** A ?code= that did not check out: shown in its box with a line saying so. */
+  rejectedCode?: string | null;
 }) {
+  const router = useRouter();
   const [tierId, setTierId] = useState(initialTierId);
+  const [codeInput, setCodeInput] = useState(discount?.code ?? rejectedCode ?? "");
   const [plan, setPlan] = useState<Plan>("deposit");
   const selected = tiers.find((t) => t.id === tierId) ?? tiers[0];
   const packagesLegend = useId();
@@ -97,6 +112,15 @@ export default function BookingForm({
   const dueToday = plan === "full" ? selected.fullLabel : selected.depositLabel;
   const installments = installmentCount === 2 ? "two" : String(installmentCount);
   const groups = [...new Set(tiers.map((t) => t.group).filter((g): g is string => Boolean(g)))];
+
+  // Reloads the page with the code (or without one, to take it off), keeping
+  // the package picked and any group code from the link.
+  function goWithCode(code: string) {
+    const params = new URLSearchParams({ trip: tripId, package: tierId });
+    if (initialGroupCode) params.set("group", initialGroupCode);
+    if (code.trim()) params.set("code", code.trim());
+    router.push(`/bookings/new?${params.toString()}`, { scroll: false });
+  }
 
   return (
     <SubmitOnceForm
@@ -221,9 +245,60 @@ export default function BookingForm({
           </div>
         </details>
 
+        <details
+          className="group border-b border-[--rule] px-5 sm:px-6"
+          open={Boolean(discount || rejectedCode)}
+        >
+          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 font-body text-body-s text-[--text] [&::-webkit-details-marker]:hidden">
+            Have a discount code?
+            <Chevron />
+          </summary>
+          <div className="pb-5">
+            <Field
+              label="Discount code"
+              hint={discount ? `${discount.code} takes ${discount.label} off. It's in the prices above.` : undefined}
+              error={rejectedCode ? "That code didn't work. It may be mistyped or already used." : undefined}
+            >
+              {(field) => (
+                <div className="flex gap-2">
+                  <Input
+                    {...field}
+                    name="discount_code"
+                    type="text"
+                    maxLength={32}
+                    value={codeInput}
+                    onChange={(e) => setCodeInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      // Enter in this box applies the code; it must not submit
+                      // the booking with a code the prices have not caught up to.
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        goWithCode(codeInput);
+                      }
+                    }}
+                    placeholder="TELLURIDE500"
+                    autoComplete="off"
+                    autoCapitalize="characters"
+                    spellCheck={false}
+                    className="min-w-0 flex-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => goWithCode(discount && codeInput.trim().toUpperCase() === discount.code ? "" : codeInput)}
+                    className="min-h-11 shrink-0 border border-[--rule-strong] px-4 font-body text-body-s text-[--text] transition-colors duration-fast hover:border-[--accent-solid]"
+                  >
+                    {discount && codeInput.trim().toUpperCase() === discount.code ? "Remove" : "Apply"}
+                  </button>
+                </div>
+              )}
+            </Field>
+          </div>
+        </details>
+
         <div className="p-5 sm:p-6">
           <dl className="m-0 flex flex-col gap-2.5 font-body text-body-s">
             <Line label="Trip price" value={selected.priceLabel} />
+            {discount && <Line label={`Code ${discount.code}`} value={`−${discount.label}`} />}
             {plan === "full" && selected.savingLabel && (
               <Line label="Paying in full" value={`−${selected.savingLabel}`} />
             )}
