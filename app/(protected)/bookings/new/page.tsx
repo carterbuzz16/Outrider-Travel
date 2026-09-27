@@ -190,7 +190,12 @@ export default async function NewBookingPage(props: {
               </p>
             </header>
             {alerts}
-            <Departures trips={trips} requestedPackage={searchParams.package} group={searchParams.group} />
+            <Departures
+              trips={trips}
+              requestedPackage={searchParams.package}
+              group={searchParams.group}
+              code={normalizeDiscountCode(searchParams.code) ?? undefined}
+            />
           </>
         )}
       </div>
@@ -335,14 +340,18 @@ function Departures({
   trips,
   requestedPackage,
   group,
+  code,
 }: {
   trips: PublicTrip[];
   requestedPackage?: string;
   group?: string;
+  /** A ?code= from a winner's link, carried on so choosing the dates keeps it. */
+  code?: string;
 }) {
   const packageParam =
     (requestedPackage ? `&package=${encodeURIComponent(requestedPackage)}` : "") +
-    (group ? `&group=${encodeURIComponent(group)}` : "");
+    (group ? `&group=${encodeURIComponent(group)}` : "") +
+    (code ? `&code=${encodeURIComponent(code)}` : "");
   return (
     <ul className="m-0 mt-8 flex list-none flex-col gap-3 p-0">
       {trips.map((trip) => {
