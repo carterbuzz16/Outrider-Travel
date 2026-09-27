@@ -313,7 +313,7 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
           <tr><td style="border-top:1px solid #d7d2cb; font-size:0; line-height:0;">&nbsp;</td></tr>
         </table>
         <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; line-height:1.6; color:#6B635C; padding-top:14px;">
-          Not in it: flights, meals beyond the BBQ (and your chef night, on a penthouse), and travel insurance. You can add your own through Faye, <a href="https://www.withfaye.com/quote/offer?utm_campaign=carter.busby&amp;utm_source=outrider.travel&amp;utm_medium=bd-traveladvisors&amp;utm_term=glinda" style="color:#3E342F; text-decoration:underline;">a quote takes about a minute</a>.
+          Not in it: flights, meals beyond the Gorrono après party (and your chef night, on a penthouse), and travel insurance. You can add your own through Faye, <a href="https://www.withfaye.com/quote/offer?utm_campaign=carter.busby&amp;utm_source=outrider.travel&amp;utm_medium=bd-traveladvisors&amp;utm_term=glinda" style="color:#3E342F; text-decoration:underline;">a quote takes about a minute</a>.
           <a href="https://outrider.travel/telluride#included" style="color:#3E342F; text-decoration:underline;">Full breakdown</a>
         </div>
         <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:13px; line-height:1.6; color:#6B635C; padding-top:10px;">
