@@ -20,7 +20,10 @@ type Admin = SupabaseClient<Database>;
  * Codes are made by the team in SQL, for example:
  *
  *   insert into discount_codes (code, amount, note)
- *   values ('TELLURIDE500', 500, 'Giveaway winner, Sep 2026');
+ *   values ('WIN500' || <five random letters and digits>, 500, 'Giveaway winner, Sep 2026');
+ *
+ * Always with a random part: a code someone could guess from the giveaway
+ * itself (the trip plus the amount) is used by whoever guesses it first.
  *
  * The discounted figure becomes bookings.total_amount (createBooking), the same
  * way the pay-in-full discount does, so nothing downstream needs to know.
@@ -28,7 +31,7 @@ type Admin = SupabaseClient<Database>;
 
 /**
  * The code as the database stores it: upper case, letters and digits only, so
- * "telluride-500 " and "TELLURIDE500" are the same code. Null when nothing
+ * "win500-ab12c " and "WIN500AB12C" are the same code. Null when nothing
  * usable was given. Anything too short or long simply fails the lookup.
  */
 export function normalizeDiscountCode(raw: unknown): string | null {

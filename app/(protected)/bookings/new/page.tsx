@@ -53,10 +53,30 @@ export default async function NewBookingPage(props: {
 }) {
   const searchParams = await props.searchParams;
 
+  // ?code=, a giveaway discount code (lib/discount-codes.ts), from the link we
+  // text a winner or from the Apply button beside the code box. Checked once,
+  // here: a live code opens booking during the head start (a winner is as good
+  // as invited, lib/early-access.ts) and the prices below already have it off.
+  // createBooking checks again and claims it. Capped per IP like the group
+  // check, so the page cannot be used to guess codes; over the cap, or unknown,
+  // it simply shows as not working.
+  const discountCode = normalizeDiscountCode(searchParams.code);
+  let discount: Discount | null = null;
+  if (discountCode && (await checkRateLimit(`discount-check:${await clientIp()}`, 30, 60 * 60))) {
+    const {
+      data: { user },
+    } = await (await createClient()).auth.getUser();
+    const amount = user ? await discountCodeAmount(createAdminClient(), discountCode, user.id) : null;
+    if (amount !== null) discount = { code: discountCode, amount };
+  }
+  const discountRejected = Boolean(discountCode) && discount === null;
+
   // Not on sale yet: nothing to choose, so no packages and no trip lookups.
   // createBooking refuses too, and sends anyone who posts anyway back here.
-  // The list is the exception during its head start (lib/early-access.ts).
-  if (!(await bookingsOpenForViewer())) {
+  // The list is the exception during its head start, and so is anyone holding
+  // a live discount code (lib/early-access.ts). The code was checked above, so
+  // it is not looked up a second time here.
+  if (!discount && !(await bookingsOpenForViewer())) {
     return (
       <main>
         <div className="shell max-w-[76rem] pb-20 pt-8 md:pb-28 md:pt-12">
@@ -91,24 +111,6 @@ export default async function NewBookingPage(props: {
       : group.knownOnTrip
         ? { state: "not-penthouse" }
         : { state: "unknown" };
-
-  // ?code=, a giveaway discount code (lib/discount-codes.ts), from the link we
-  // text a winner or from the Apply button beside the code box. Checked here so
-  // the prices on the page already have it off; createBooking checks again and
-  // claims it. Capped per IP like the group check, so the page cannot be used
-  // to guess codes. Over the cap, or unknown, it simply shows as not working.
-  const discountCode = trip ? normalizeDiscountCode(searchParams.code) : null;
-  let discount: Discount | null = null;
-  let discountRejected = false;
-  if (discountCode) {
-    const allowed = await checkRateLimit(`discount-check:${await clientIp()}`, 30, 60 * 60);
-    const {
-      data: { user },
-    } = await (await createClient()).auth.getUser();
-    const amount = allowed && user ? await discountCodeAmount(createAdminClient(), discountCode, user.id) : null;
-    if (amount === null) discountRejected = true;
-    else discount = { code: discountCode, amount };
-  }
 
   // ?error= is a code (lib/flash.ts), never text to show as it stands. A
   // penthouse held by another group is named from the package in the link,
@@ -176,6 +178,7 @@ export default async function NewBookingPage(props: {
               <JoinGroup
                 tripId={trip.id}
                 requestedPackage={searchParams.package}
+                discountCode={discount?.code}
                 code={group?.code ?? undefined}
                 result={joinResult}
               />

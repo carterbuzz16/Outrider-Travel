@@ -276,7 +276,6 @@ export default function BookingForm({
                         goWithCode(codeInput);
                       }
                     }}
-                    placeholder="TELLURIDE500"
                     autoComplete="off"
                     autoCapitalize="characters"
                     spellCheck={false}

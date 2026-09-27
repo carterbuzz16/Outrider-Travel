@@ -24,11 +24,17 @@ export type JoinGroupResult =
 export default function JoinGroup({
   tripId,
   requestedPackage,
+  discountCode,
   code,
   result,
 }: {
   tripId: string;
   requestedPackage?: string;
+  /**
+   * A live discount code from the link. Carried on, because for a giveaway
+   * winner during the head start it is what opens the page at all.
+   */
+  discountCode?: string;
   /** What was typed, to put back in the box. */
   code?: string;
   result: JoinGroupResult;
@@ -49,6 +55,7 @@ export default function JoinGroup({
       <form method="get" action="/bookings/new" className="mt-4 flex flex-wrap items-end gap-3">
         <input type="hidden" name="trip" value={tripId} />
         {requestedPackage && <input type="hidden" name="package" value={requestedPackage} />}
+        {discountCode && <input type="hidden" name="code" value={discountCode} />}
         <label className="flex min-w-0 flex-col gap-1.5">
           <span className="t-micro text-[--text-secondary]">Group code</span>
           <Input

@@ -73,15 +73,6 @@ export async function createBooking(formData: FormData) {
   }
   const plan: PaymentPlan = requestedPlan;
 
-  // Bookings are not open yet. Checked here as well as in the UI, because a
-  // hidden button is presentation, not a control: this action is a POST
-  // endpoint that anyone can call directly. /bookings/new shows its "opens
-  // soon" state whenever this is false, so that is where this goes. During the
-  // list's head start, a list member's early-access cookie counts as open.
-  if (!(await bookingsOpenForViewer())) {
-    redirect("/bookings/new?error=closed");
-  }
-
   const supabase = await createClient();
   const {
     data: { user },
@@ -93,10 +84,21 @@ export async function createBooking(formData: FormData) {
 
   // A legitimate customer books a handful of trips a year at most — this
   // is generous headroom for real usage while still blocking a scripted
-  // loop hammering tier capacity / creating Stripe PaymentIntents.
+  // loop hammering tier capacity / creating Stripe PaymentIntents. Ahead of
+  // the open check below, since that one can look up a discount code.
   const allowed = await checkRateLimit(`booking:${user.id}`, 10, 60 * 60);
   if (!allowed) {
     checkoutError("rate_limited", back);
+  }
+
+  // Bookings are not open yet. Checked here as well as in the UI, because a
+  // hidden button is presentation, not a control: this action is a POST
+  // endpoint that anyone can call directly. /bookings/new shows its "opens
+  // soon" state whenever this is false, so that is where this goes. During the
+  // list's head start, a list member's early-access cookie counts as open, and
+  // so does a live discount code (a giveaway winner, lib/early-access.ts).
+  if (!(await bookingsOpenForViewer(discountCode, user.id))) {
+    redirect("/bookings/new?error=closed");
   }
 
   // Re-fetch the tier server-side rather than trusting a client-supplied

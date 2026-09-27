@@ -2,6 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { BOOKINGS_OPEN } from "@/lib/booking-window";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { discountCodeAmount } from "@/lib/discount-codes";
 import { getAppUrl } from "@/lib/site-url";
 import { getFromAddress, renderEarlyAccess, sendEmail } from "@/lib/email/send";
 import { formatPrice, getPublishedTrips } from "@/lib/trips";
@@ -81,9 +82,19 @@ export async function hasEarlyAccess(): Promise<boolean> {
  * Whether this visitor can book right now: everyone once LAUNCHED is set,
  * and before that, only the list. Skips the cookie and the query entirely
  * once booking is open to all.
+ *
+ * A live discount code opens it too (lib/discount-codes.ts). The codes are
+ * giveaway prizes, so whoever holds one is as good as invited, and making a
+ * winner join the list and find an email first put a wall in front of the
+ * one person we most want to book. Only a code that would actually work
+ * counts: made up, used up, switched off or expired, and the page stays
+ * "Booking opens soon". Callers that take the code from the visitor rate-limit
+ * the check, as they do for the code itself.
  */
-export async function bookingsOpenForViewer(): Promise<boolean> {
-  return BOOKINGS_OPEN || (await hasEarlyAccess());
+export async function bookingsOpenForViewer(discountCode?: string | null, userId?: string): Promise<boolean> {
+  if (BOOKINGS_OPEN || (await hasEarlyAccess())) return true;
+  if (!discountCode) return false;
+  return (await discountCodeAmount(createAdminClient(), discountCode, userId)) !== null;
 }
 
 /** The personal link in the head-start email. */
