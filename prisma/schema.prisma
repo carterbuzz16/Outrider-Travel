@@ -218,10 +218,12 @@ model TravelerDetails {
   @@map("traveler_details")
 }
 
-/// A fixed amount off one booking, for giveaway prizes (discount_codes
-/// migration, lib/discount-codes.ts). Single use unless maxUses says
-/// otherwise. Added by the team in SQL; RLS on with no policies, so only the
-/// service role reads or writes it. CHECK: code is ^[A-Z0-9]{3,32}$.
+/// A fixed amount off one booking, for giveaway prizes and shared group codes
+/// (discount_codes migration, lib/discount-codes.ts). Single use unless
+/// maxUses says otherwise. Added by the team in SQL; RLS on with no policies,
+/// so only the service role reads or writes it. CHECK: code is
+/// ^[A-Z0-9]{8,32}$, or ^[A-Z0-9]{3,32}$ when maxUses > 1
+/// (shared_discount_codes migration).
 model DiscountCode {
   code      String    @id
   amount    Decimal   @db.Decimal(10, 2)

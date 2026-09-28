@@ -22,7 +22,17 @@ type Admin = SupabaseClient<Database>;
  *   values ('WIN500' || <five random letters and digits>, 500, 'Giveaway winner, Sep 2026');
  *
  * Always with a random part: a code someone could guess from the giveaway
- * itself (the trip plus the amount) is used by whoever guesses it first.
+ * itself (the trip plus the amount) is used by whoever guesses it first. The
+ * database holds single-use codes to 8+ characters for that reason.
+ *
+ * A shared code (max_uses above 1, meant to be passed round a group) is the
+ * exception: it can be a plain word as short as 3 characters, because it is
+ * handed out by design and its length protects nothing
+ * (shared_discount_codes migration). Give it an expires_at, for example:
+ *
+ *   insert into discount_codes (code, amount, max_uses, note, expires_at)
+ *   values ('PHIDELT', 100, 1000, 'Phi Delt chapter code',
+ *           timestamptz '2026-10-04 00:00 America/Chicago');
  *
  * The discounted figure becomes bookings.total_amount (createBooking), the same
  * way the pay-in-full discount does, so nothing downstream needs to know.
