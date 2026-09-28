@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, FAIL_CLOSED } from "@/lib/rate-limit";
 import { checkPasswordPair } from "@/lib/password";
 import { getAppUrl } from "@/lib/site-url";
 import { safePath } from "@/lib/safe-path";
@@ -22,22 +22,60 @@ import { clientIp } from "@/lib/client-ip";
 // Supabase call. Whether the address exists is never revealed either way.
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// No deliverable address is longer (RFC 5321 caps the path at 254). Checked
+// before the pattern, so the regex never backtracks over an arbitrarily long
+// string, and before any rate-limit key is built from the address, so junk
+// never becomes a row.
+const MAX_EMAIL_LENGTH = 254;
+
+function isEmail(email: string): boolean {
+  return email.length <= MAX_EMAIL_LENGTH && EMAIL_PATTERN.test(email);
+}
+
 export async function login(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
   const next = safePath(formData.get("next"), "/bookings");
 
-  // Two buckets. Per email: guesses against one account, however many
-  // addresses they come from; trimmed and lowercased so "A@x.com " is not a
-  // fresh bucket. Per IP: one source spraying a common password across many
-  // accounts, which the email bucket alone never sees. The IP cap is loose
-  // (a campus or a phone carrier puts many people behind one address) and it
-  // is the only thing between one machine and the whole user list.
-  const [emailAllowed, ipAllowed] = await Promise.all([
-    checkRateLimit(`login:${email}`, 5, 15 * 60),
-    checkRateLimit(`login-ip:${await clientIp()}`, 30, 15 * 60),
-  ]);
-  if (!emailAllowed || !ipAllowed) {
+  // Nothing that fails this could sign in anyway, and every distinct string
+  // posted here would otherwise mint fresh email-keyed buckets below.
+  if (!isEmail(email)) {
+    redirect(`/login?error=invalid_email&next=${encodeURIComponent(next)}`);
+  }
+
+  /*
+   * Three buckets, all on the trimmed, lowercased address so "A@x.com " is not
+   * a fresh one. They run one after another, never together: check_rate_limit
+   * counts every call, including the ones it refuses, so a bucket checked
+   * alongside a tripped one would keep filling for nothing.
+   *
+   * Per IP, 30 in 15 minutes, first: one source spraying a common password
+   * across many accounts, which no email-keyed bucket ever sees. Loose, since a
+   * campus or a phone carrier puts many people behind one address. A source
+   * that has tripped it stops here and cannot go on writing a new row for
+   * every address it cycles through.
+   *
+   * Per IP and email, 5 in 15 minutes: the strict one. It used to be per email
+   * alone, which let a stranger lock a customer out of their own account by
+   * failing five times against the address from anywhere. Now those five
+   * failures shut out only the stranger's network. IP first in the key because
+   * checkRateLimit cuts keys at 200 characters, and a long address must cost
+   * its own tail, not the IP that makes this bucket per-source.
+   *
+   * Per email, 30 in 15 minutes, last: still caps a guess against one account
+   * spread across many IPs, where the strict bucket never fills. Only attempts
+   * the strict bucket let through reach it, so one source adds at most five a
+   * window and cannot fill it alone.
+   *
+   * All fail closed: a flood that knocks the database over must not be the
+   * moment password guessing goes unlimited.
+   */
+  const ip = await clientIp();
+  const allowed =
+    (await checkRateLimit(`login-ip:${ip}`, 30, 15 * 60, FAIL_CLOSED)) &&
+    (await checkRateLimit(`login:${ip}:${email}`, 5, 15 * 60, FAIL_CLOSED)) &&
+    (await checkRateLimit(`login-email:${email}`, 30, 15 * 60, FAIL_CLOSED));
+  if (!allowed) {
     redirect(`/login?error=rate_limited&next=${encodeURIComponent(next)}`);
   }
 
@@ -64,7 +102,9 @@ export async function signup(formData: FormData) {
   // migration): handle_new_user copies this into public.users, and an over-long
   // name would fail that insert and with it the whole signup.
   const name = String(formData.get("name") ?? "").trim().slice(0, 120);
-  const email = String(formData.get("email") ?? "");
+  // Normalised the way login is, so the address stored is the one login will
+  // look up.
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
   const confirmation = String(formData.get("confirm_password") ?? "");
   // Signup is the other half of the same round trip as login: a visitor sent
@@ -73,6 +113,13 @@ export async function signup(formData: FormData) {
   // sanitised by the same guard login uses.
   const next = safePath(formData.get("next"), "/bookings");
   const nextQuery = `next=${encodeURIComponent(next)}`;
+
+  // Caught here rather than left to Supabase, whose complaint would arrive
+  // only after the throttle below had spent one of this network's three
+  // signups an hour on a typo.
+  if (!isEmail(email)) {
+    redirect(`/signup?error=invalid_email&${nextQuery}`);
+  }
 
   // The form sets minLength and marks both boxes required, but a form field
   // is a suggestion, not a constraint — a server action is a public endpoint
@@ -84,8 +131,9 @@ export async function signup(formData: FormData) {
 
   // Keyed by IP, not email: repeat signups to the same email just get
   // Supabase's "already registered" error regardless, so what's worth
-  // throttling here is scripted mass account creation from one source.
-  const allowed = await checkRateLimit(`signup:${(await clientIp())}`, 3, 60 * 60);
+  // throttling here is scripted mass account creation from one source. Fails
+  // closed, since every signup that gets past it sends a confirmation email.
+  const allowed = await checkRateLimit(`signup:${(await clientIp())}`, 3, 60 * 60, FAIL_CLOSED);
   if (!allowed) {
     redirect(`/signup?error=rate_limited&${nextQuery}`);
   }
@@ -183,31 +231,40 @@ export async function resendConfirmation(formData: FormData) {
   const next = safePath(formData.get("next"), "/bookings");
   const nextQuery = `next=${encodeURIComponent(next)}`;
 
-  if (!EMAIL_PATTERN.test(email)) {
+  if (!isEmail(email)) {
     redirect(`/login?error=invalid_email&${nextQuery}`);
   }
 
-  const allowed = await checkRateLimit(`resend:${(await clientIp())}`, 3, 15 * 60);
+  const allowed = await checkRateLimit(`resend:${(await clientIp())}`, 3, 15 * 60, FAIL_CLOSED);
   if (!allowed) {
     redirect(`/login?error=too_many_requests&${nextQuery}`);
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase.auth.resend({
-    type: "signup",
-    email,
-    options: {
-      // Same destination the original signup used, or the link in the resent
-      // mail lands somewhere else entirely.
-      emailRedirectTo: `${getAppUrl()}/auth/callback?type=signup&next=${encodeURIComponent(
-        `/auth/confirmed?next=${encodeURIComponent(next)}`
-      )}`,
-    },
-  });
+  // Per address too, checked only once the IP bucket has passed so a refused
+  // source cannot keep minting rows. The reasoning is the same as the reset
+  // flow's (requestPasswordReset, below): it stops one inbox being flooded
+  // from many networks, and a tripped bucket skips the send but lands on the
+  // same page a real send does, so it says nothing about the address.
+  const addressAllowed = await checkRateLimit(`resend-email:${email}`, 3, 60 * 60, FAIL_CLOSED);
 
-  if (error) {
-    // Logged, never surfaced: the text would say whether the address exists.
-    console.error("Resend confirmation failed:", error.message);
+  if (addressAllowed) {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: {
+        // Same destination the original signup used, or the link in the
+        // resent mail lands somewhere else entirely.
+        emailRedirectTo: `${getAppUrl()}/auth/callback?type=signup&next=${encodeURIComponent(
+          `/auth/confirmed?next=${encodeURIComponent(next)}`
+        )}`,
+      },
+    });
+
+    if (error) {
+      // Logged, never surfaced: the text would say whether the address exists.
+      console.error("Resend confirmation failed:", error.message);
+    }
   }
 
   redirect(`/login?message=confirmation_resent&${nextQuery}`);
@@ -223,18 +280,31 @@ export async function resendConfirmation(formData: FormData) {
  * always redirected to the same confirmation.
  */
 export async function requestPasswordReset(formData: FormData) {
-  const email = String(formData.get("email") ?? "").trim();
+  // Lowercased like every other action here, so "A@x.com" and "a@x.com" are
+  // one bucket below, not two.
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
 
-  // Keyed by IP rather than by email, unlike login: keying on the address
-  // would let an attacker probe one account and watch the limit trip, which
-  // is the enumeration signal this whole action exists to avoid. Sending
-  // mail also costs us money per attempt, and the abuse is per-source.
-  const allowed = await checkRateLimit(`password-reset:${(await clientIp())}`, 5, 60 * 60);
+  // Per IP first: one source working down a list of addresses. Fails closed,
+  // since every request past it can send an email.
+  const allowed = await checkRateLimit(`password-reset:${(await clientIp())}`, 5, 60 * 60, FAIL_CLOSED);
   if (!allowed) {
     redirect("/forgot-password?error=rate_limited");
   }
 
-  if (EMAIL_PATTERN.test(email)) {
+  /*
+   * Then per address, 3 an hour, which the IP bucket never sees: one victim's
+   * inbox flooded with reset mail from many networks. It also guards the auth
+   * email quota, which Supabase meters for the whole project across signup,
+   * resend and reset, so a flood aimed at one address during launch would
+   * otherwise hold up every real customer's confirmation mail too.
+   *
+   * Keying on the address was once ruled out as an enumeration leak. It is
+   * not one: the bucket counts every well-formed address, account or not, and
+   * a tripped bucket skips the send but still lands on exactly the page a real
+   * send does. Nothing the caller sees depends on membership. The cost is that
+   * the real owner, once someone has spent the three, waits out the hour.
+   */
+  if (isEmail(email) && (await checkRateLimit(`reset-email:${email}`, 3, 60 * 60, FAIL_CLOSED))) {
     const supabase = await createClient();
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {

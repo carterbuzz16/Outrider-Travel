@@ -1,7 +1,9 @@
 "use server";
 
 import { Resend } from "resend";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, FAIL_CLOSED } from "@/lib/rate-limit";
+import { honeypotTripped } from "@/lib/honeypot";
+import { isDeliverableEmail } from "@/lib/waitlist-signup";
 import { CONTACT } from "@/lib/site-content";
 import { clientIp } from "@/lib/client-ip";
 import { renderContactMessage } from "@/lib/email/contact";
@@ -16,7 +18,6 @@ import { renderContactMessage } from "@/lib/email/contact";
  * received.
  */
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_MESSAGE = 5000;
 const MAX_NAME = 200;
 
@@ -38,18 +39,36 @@ export async function sendContactMessage(input: {
   name: string;
   email: string;
   message: string;
+  /** The form's hidden trap field (lib/honeypot.ts). Empty from a person. */
+  website?: string;
 }): Promise<ContactResult> {
   const name = String(input.name ?? "").trim().slice(0, MAX_NAME);
   const email = String(input.email ?? "").trim().toLowerCase();
   const message = String(input.message ?? "").trim().slice(0, MAX_MESSAGE);
 
   if (!name) return { ok: false, message: "Tell us your name." };
-  if (!EMAIL_PATTERN.test(email)) return { ok: false, message: "Enter a valid email." };
+  // The waitlist's check (lib/waitlist-signup.ts), not the loose "anything @
+  // anything . anything" this used to use: the address goes into reply-to on
+  // mail from our own domain, so it has to be one mail can go to, and no
+  // longer than an address can be (254). Refused when too long, never cut
+  // down, since a truncated address is a different, wrong one.
+  if (!isDeliverableEmail(email)) return { ok: false, message: "Enter a valid email." };
   if (message.length < 2) return { ok: false, message: "Add a message." };
 
-  // A public, unauthenticated endpoint like the waitlist one — throttled on IP
-  // for the same reason.
-  const allowed = await checkRateLimit(`contact:${(await clientIp())}`, 5, 60 * 60);
+  // A filled trap is thanked like a real message and nothing is sent, so the
+  // script cannot tell which field gave it away. After validation, so bad
+  // input is refused the same way either way; before the limit, so a trapped
+  // script does not use up the allowance of a real visitor on the same
+  // network.
+  if (honeypotTripped(input.website)) {
+    return { ok: true };
+  }
+
+  // A public, unauthenticated endpoint like the waitlist one, throttled on IP
+  // for the same reason. Fails closed because every pass sends an email: a
+  // limiter that switches off when its database is struggling would let a
+  // flood straight through to the inbox.
+  const allowed = await checkRateLimit(`contact:${(await clientIp())}`, 5, 60 * 60, FAIL_CLOSED);
   if (!allowed) {
     return { ok: false, message: "Too many messages. Try again later." };
   }

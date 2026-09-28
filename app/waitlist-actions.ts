@@ -3,7 +3,8 @@
 import { headers } from "next/headers";
 import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, FAIL_CLOSED } from "@/lib/rate-limit";
+import { honeypotTripped } from "@/lib/honeypot";
 import { sendWaitlistNotification, sendWaitlistWelcome } from "@/lib/email/send";
 import { sendEarlyAccessOnJoin } from "@/lib/early-access";
 import { clientIp } from "@/lib/client-ip";
@@ -101,6 +102,8 @@ type ConsentEvidence = { ip: string | null; userAgent: string | null };
 export async function joinWaitlist(
   rawInput: WaitlistInput,
   rawContext?: SignupContext,
+  /** The form's hidden trap field (lib/honeypot.ts). Empty from a person. */
+  honeypot?: unknown,
 ): Promise<JoinResult> {
   const context = cleanContext(rawContext);
 
@@ -112,18 +115,59 @@ export async function joinWaitlist(
   }
   const input = checked.data;
 
+  // A filled trap gets exactly what a real signup gets, and nothing happens:
+  // no row, no contact, no welcome to whatever address it typed, no note to
+  // the team. Answering with an error would tell the script which field gave
+  // it away. After validation, so bad input is refused the same way whether
+  // or not the trap was touched; before the limits, so a trapped script does
+  // not spend the site-wide daily allowance that real signups share.
+  if (honeypotTripped(honeypot)) {
+    return { ok: true };
+  }
+
   // Server actions are public endpoints like any other, and this one is
   // pre-auth, so there's no user id to throttle on: fall back to IP, the same
   // way the booking flow's anonymous steps do.
   //
+  // Every signup can send two emails (a welcome or booking link to the address
+  // typed, and a note to the team), so these limits are what stop the form
+  // being used to mail strangers. All three fail closed: if the limiter's
+  // database is down, a flood must not get through because of it, and a real
+  // visitor is only asked to try again.
+  //
+  // Checked in order and stopped at the first refusal, so a single noisy
+  // address is turned away on its own counters before it can draw on the
+  // site-wide one.
+  const ip = await clientIp();
+
   // 40 per ten minutes, not the 5 an hour it used to be. The list gets handed
   // out as a QR code at events, where a room full of phones is behind one
   // venue Wi-Fi address or one carrier's shared address, and the sixth person
-  // in an hour was being told to try later. This still stops a script.
-  const ip = await clientIp();
-  const allowed = await checkRateLimit(`waitlist:${ip}`, 40, 10 * 60);
-  if (!allowed) {
+  // in an hour was being told to try later. This still stops a burst.
+  if (!(await checkRateLimit(`waitlist:${ip}`, 40, 10 * 60, FAIL_CLOSED))) {
     return { ok: false, message: "Too many attempts. Try again in a few minutes." };
+  }
+
+  // The ten-minute window alone still let one address sign up about 5,700
+  // strangers a day by pacing itself. 60 a day covers a campus event where the
+  // whole room is on one Wi-Fi network (the honeypot and the site-wide cap below
+  // do the rest of the work against bots); past that, mobile data is a
+  // different address.
+  if (!(await checkRateLimit(`waitlist-ip-day:${ip}`, 60, 24 * 60 * 60, FAIL_CLOSED))) {
+    return {
+      ok: false,
+      message: "Too many signups from this network today. Try again on mobile data, or tomorrow.",
+    };
+  }
+
+  // A ceiling on how much mail the form can be made to send in a day, however
+  // many addresses a script rotates through. Well above a real launch day. If
+  // it trips, signups stop until the window rolls over, so say so loudly.
+  if (!(await checkRateLimit("waitlist:global", 500, 24 * 60 * 60, FAIL_CLOSED))) {
+    console.error(
+      "WAITLIST DAILY CAP: 500 signups in 24 hours (or the rate limiter failed closed). New signups are refused until the window rolls over.",
+    );
+    return { ok: false, message: "We cannot take more signups right now. Try again later." };
   }
 
   const h = await headers();

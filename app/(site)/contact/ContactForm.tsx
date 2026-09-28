@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button, Field, Input, Textarea, useToast } from "@/components/ui";
+import { HONEYPOT_FIELD, HONEYPOT_STYLE, honeypotValue } from "@/lib/honeypot";
 import { sendContactMessage } from "./actions";
 
 export default function ContactForm({ contactEmail }: { contactEmail: string }) {
@@ -16,11 +17,14 @@ export default function ContactForm({ contactEmail }: { contactEmail: string }) 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy) return;
+    // Read before the await: React clears currentTarget once the handler
+    // yields. The trap is not held in state because nothing shows it.
+    const website = honeypotValue(event.currentTarget);
 
     setBusy(true);
     setErrors({});
     try {
-      const result = await sendContactMessage({ name, email, message });
+      const result = await sendContactMessage({ name, email, message, website });
       if (result.ok) {
         setSent(true);
         setName("");
@@ -90,6 +94,7 @@ export default function ContactForm({ contactEmail }: { contactEmail: string }) 
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             autoComplete="email"
+            maxLength={254}
             disabled={busy}
             required
           />
@@ -114,6 +119,19 @@ export default function ContactForm({ contactEmail }: { contactEmail: string }) 
           />
         )}
       </Field>
+
+      {/* The bot trap (lib/honeypot.ts). Uncontrolled, and read off the form
+          at submit. After the fields rather than first, so nothing that
+          focuses "the first input" can land in it. */}
+      <input
+        type="text"
+        name={HONEYPOT_FIELD}
+        defaultValue=""
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        style={HONEYPOT_STYLE}
+      />
 
       {/* Reserves nothing when empty; announced when it appears. */}
       {errors.form && (

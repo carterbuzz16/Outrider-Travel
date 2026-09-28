@@ -47,6 +47,10 @@ export const CHECKOUT_ERRORS = {
     "Your checkout was open for more than 30 minutes, and in that time another group booked this penthouse. Nothing was charged. Choose again to carry on.",
   stale_full:
     "Your checkout was open for more than 30 minutes, and in that time the last spot in this package was taken. Nothing was charged. Choose again to carry on.",
+  // lib/stale-checkout.ts: a single-use discount code that went to another
+  // checkout while this one sat open past its 30 minutes.
+  stale_code:
+    "Your checkout was open for more than 30 minutes, and in that time its discount code was used on another booking. Nothing was charged. If the code was yours, get in touch and we'll sort it out.",
   daily_limit:
     "You've started several checkouts today without finishing one. Try again tomorrow, or get in touch and we'll help.",
   payment_moving:

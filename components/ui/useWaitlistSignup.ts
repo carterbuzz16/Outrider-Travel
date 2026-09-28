@@ -10,6 +10,7 @@ import {
   type WaitlistFieldErrors,
   type WaitlistInput,
 } from "@/lib/waitlist-signup";
+import { honeypotValue } from "@/lib/honeypot";
 
 /**
  * The waitlist submit path, once.
@@ -90,6 +91,10 @@ export function useWaitlistSignup(placement: string) {
     async (event?: React.FormEvent<HTMLFormElement>) => {
       event?.preventDefault();
       if (status === "busy") return;
+      // Read now, while the event still has its form: React clears
+      // currentTarget once the handler yields to the await below. The trap
+      // is not held in state because nothing on screen ever shows it.
+      const honeypot = honeypotValue(event?.currentTarget);
 
       // The same rules the server applies, answered without a round trip.
       const checked = validateWaitlist(values);
@@ -106,7 +111,7 @@ export function useWaitlistSignup(placement: string) {
       setMessage("");
       setFieldErrors({});
       try {
-        const result = await joinWaitlist(values, { placement, ...firstTouch });
+        const result = await joinWaitlist(values, { placement, ...firstTouch }, honeypot);
         if (result.ok) {
           setValues(EMPTY_WAITLIST_INPUT);
           setStatus("done");

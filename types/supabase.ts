@@ -621,9 +621,16 @@ export type Database = {
       discount_code_uses: {
         Args: {
           p_code: string
+          p_exclude?: string
           p_user?: string
         }
         Returns: number
+      }
+      discount_hold_lost: {
+        Args: {
+          p_booking: string
+        }
+        Returns: boolean
       }
     }
     Enums: {

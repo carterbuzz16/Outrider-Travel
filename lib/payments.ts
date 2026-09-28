@@ -14,7 +14,8 @@ import { sendPenthouseFullEmailsFor } from "@/lib/email/penthouse";
 import { sendNewBookingAlert } from "@/lib/email/admin-alerts";
 import { hasAcceptedAll } from "@/lib/legal-acceptance";
 import { getStripe } from "@/lib/stripe";
-import { isStalePending, staleConflict } from "@/lib/stale-checkout";
+import { isStalePending, releasePendingCheckout, staleConflict } from "@/lib/stale-checkout";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { sendStaleCheckoutRefundEmail } from "@/lib/email/stale-checkout";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
@@ -674,6 +675,30 @@ export async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentInt
         },
         { onConflict: "stripe_payment_intent_id", ignoreDuplicates: true },
       );
+    }
+
+    /*
+     * Card testing. A declined checkout intent stays open and takes another
+     * card, which is what a traveler who mistyped needs, and also what a bot
+     * working through stolen cards needs: nothing else in the app stops it
+     * from confirming the same intent over and over with the page's client
+     * secret. So declines are counted per checkout here, and past a handful
+     * the card form is cancelled and the checkout let go. A real traveler who
+     * gets there simply starts again (their account's own daily cap still
+     * applies); a bot has to open a new checkout, which is capped per account
+     * and per network in createBooking. Security review, 27 September 2026.
+     *
+     * Fails open (the default): a database hiccup must not cancel a real
+     * traveler's checkout over a single decline.
+     */
+    if (!(await checkRateLimit(`checkout-declines:${bookingId}`, 5, 24 * 60 * 60))) {
+      const { data: booking } = await admin.from("bookings").select("status").eq("id", bookingId).maybeSingle();
+      if (booking?.status === "pending" && (await releasePendingCheckout(admin, bookingId))) {
+        console.error(
+          `CHECKOUT CLOSED AFTER REPEATED DECLINES: booking ${bookingId}, intent ${paymentIntent.id}. ` +
+            `Possible card testing; check the customer in Stripe.`,
+        );
+      }
     }
     return;
   }

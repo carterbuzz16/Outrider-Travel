@@ -1,7 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
-import { releasePendingCheckout } from "@/lib/stale-checkout";
 
 type Admin = SupabaseClient<Database>;
 
@@ -74,25 +73,4 @@ export async function claimDiscountCode(admin: Admin, code: string, bookingId: s
 export async function dropDiscountCode(admin: Admin, bookingId: string) {
   const { error } = await admin.from("discount_redemptions").delete().eq("booking_id", bookingId);
   if (error) console.error(`dropDiscountCode(${bookingId}) failed: ${error.code} ${error.message}`);
-}
-
-/**
- * Lets go of the traveler's own unpaid checkouts, on other packages, that are
- * holding this code: someone who opened checkout with it, walked away and came
- * back to book a different package. The same package is left alone, because
- * createBooking already carries on or releases those itself. False if one of
- * them has a payment moving and could not be released.
- */
-export async function releaseOwnCodeHolds(admin: Admin, userId: string, code: string, tierId: string): Promise<boolean> {
-  const { data: holds } = await admin
-    .from("discount_redemptions")
-    .select("booking_id, bookings!inner(user_id, status, tier_id)")
-    .eq("code", code)
-    .eq("bookings.user_id", userId)
-    .eq("bookings.status", "pending")
-    .neq("bookings.tier_id", tierId);
-  for (const hold of holds ?? []) {
-    if (!(await releasePendingCheckout(admin, hold.booking_id))) return false;
-  }
-  return true;
 }

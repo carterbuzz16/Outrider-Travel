@@ -12,6 +12,7 @@ import {
   SMS_CONSENT_LABEL,
   SMS_DISCLOSURE_PARTS,
 } from "@/lib/waitlist-consent";
+import { HONEYPOT_FIELD, HONEYPOT_STYLE } from "@/lib/honeypot";
 
 /**
  * The waitlist form itself: name, email, mobile, and the two opt-ins.
@@ -196,6 +197,20 @@ export default function WaitlistFields({
           {SMS_DISCLOSURE_PARTS.tail}
         </p>
       </div>
+
+      {/* The bot trap (lib/honeypot.ts). Uncontrolled, and read off the form
+          at submit. Kept between the fields and the button, never first or
+          last: the dialog's focus trap and its focus-on-open both pick inputs
+          by position, and this one must never be the one they land on. */}
+      <input
+        type="text"
+        name={HONEYPOT_FIELD}
+        defaultValue=""
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        style={HONEYPOT_STYLE}
+      />
 
       <div className="flex flex-col gap-3">
         <Button

@@ -10,7 +10,6 @@ import {
   discountCodeAmount,
   dropDiscountCode,
   normalizeDiscountCode,
-  releaseOwnCodeHolds,
 } from "@/lib/discount-codes";
 import {
   fromCents,
@@ -25,7 +24,8 @@ import { installmentInFlight } from "@/lib/installments";
 import { paymentKindOf } from "@/lib/payments";
 import { syncPaymentFromStripe } from "@/lib/stripe-sync";
 import { getOrCreateStripeCustomerId } from "@/lib/customers";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, FAIL_CLOSED } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/client-ip";
 import { resolveGroupCode } from "@/lib/group-code";
 import { claimMatches, getTierClaims, normalizeGroupCode } from "@/lib/tier-claims";
 import { hasAcceptedAll, recordAcceptance } from "@/lib/legal-acceptance";
@@ -82,11 +82,22 @@ export async function createBooking(formData: FormData) {
     redirect("/login");
   }
 
+  // Only an account with a confirmed email books. Supabase's "Confirm email"
+  // setting already means an unconfirmed account never gets a session, but that
+  // is a dashboard switch; this is the control in code, so a setting changed
+  // later (or anonymous sign-ins turned on) can never let a throwaway address
+  // hold a bed. Security review, 27 September 2026.
+  if (!user.email_confirmed_at || user.is_anonymous) {
+    redirect(`/login?error=email_not_confirmed&next=${encodeURIComponent("/bookings/new")}`);
+  }
+
   // A legitimate customer books a handful of trips a year at most — this
   // is generous headroom for real usage while still blocking a scripted
   // loop hammering tier capacity / creating Stripe PaymentIntents. Ahead of
-  // the open check below, since that one can look up a discount code.
-  const allowed = await checkRateLimit(`booking:${user.id}`, 10, 60 * 60);
+  // the open check below, since that one can look up a discount code. This
+  // and the other checkout limits fail closed (lib/rate-limit.ts): a flood
+  // that knocks the database over must not also switch them off.
+  const allowed = await checkRateLimit(`booking:${user.id}`, 10, 60 * 60, FAIL_CLOSED);
   if (!allowed) {
     checkoutError("rate_limited", back);
   }
@@ -152,13 +163,24 @@ export async function createBooking(formData: FormData) {
   // directly by an authenticated client.
   const admin = createAdminClient();
 
+  /*
+   * One live checkout per traveler. An unpaid checkout holds a bed (or, on a
+   * penthouse, the whole claim) for 30 minutes, and each account used to be
+   * able to hold one on every package at once. Starting a checkout now lets go
+   * of this traveler's unpaid ones on other packages first; the same package
+   * is carried on or released below as ever. Someone booking a friend's place
+   * does it from the friend's account, so nobody needs two at once.
+   */
+  if (!(await releaseOwnPendingElsewhere(admin, user.id, tierId))) {
+    checkoutError("payment_moving", back);
+  }
+
   let discount = 0;
   if (discountCode) {
-    // The traveler's own abandoned checkout on another package, still holding
-    // this code, is let go first, so it can never be the reason they are told
-    // the code is used. Same-package checkouts are handled below as ever.
-    if (!(await releaseOwnCodeHolds(admin, user.id, discountCode, tierId))) {
-      checkoutError("payment_moving", back);
+    // Codes are checked per IP on the booking page; this caps guessing through
+    // the action itself, where each account would otherwise get its own tries.
+    if (!(await checkRateLimit(`discount-claim-ip:${await clientIp()}`, 20, 60 * 60, FAIL_CLOSED))) {
+      checkoutError("rate_limited", noCode);
     }
     const amount = await discountCodeAmount(admin, discountCode, user.id);
     if (amount === null) {
@@ -262,7 +284,15 @@ export async function createBooking(formData: FormData) {
     // for 30 minutes, so without this one account could hold a place all day
     // by starting a fresh checkout every half hour. Six is several honest
     // false starts; counted only when a new booking is about to be made.
-    if (!(await checkRateLimit(`pending-booking:${user.id}`, 6, 24 * 60 * 60))) {
+    if (!(await checkRateLimit(`pending-booking:${user.id}`, 6, 24 * 60 * 60, FAIL_CLOSED))) {
+      checkoutError("daily_limit", back);
+    }
+    // And per network, because the per-account cap alone is beaten by making
+    // more accounts: a handful of throwaway accounts could otherwise keep a
+    // penthouse "claimed" all day without ever paying. Generous, because a
+    // whole dorm or campus can share one address and a group of friends books
+    // from the same wifi.
+    if (!(await checkRateLimit(`pending-booking-ip:${await clientIp()}`, 20, 24 * 60 * 60, FAIL_CLOSED))) {
       checkoutError("daily_limit", back);
     }
   }
@@ -484,7 +514,7 @@ export async function acceptTermsForBooking(bookingId: string): Promise<AcceptTe
     return { ok: false, message: "Your session has ended. Log in again to finish paying." };
   }
 
-  if (!(await checkRateLimit(`accept:${user.id}`, 30, 60 * 60))) {
+  if (!(await checkRateLimit(`accept:${user.id}`, 30, 60 * 60, FAIL_CLOSED))) {
     return { ok: false, message: "Too many attempts. Please try again in a bit." };
   }
 
@@ -574,7 +604,7 @@ export async function startBalancePayment(formData: FormData) {
 
   // Each submission creates a PaymentIntent, so this is capped the same way
   // createBooking is.
-  const allowed = await checkRateLimit(`balance:${user.id}`, 10, 60 * 60);
+  const allowed = await checkRateLimit(`balance:${user.id}`, 10, 60 * 60, FAIL_CLOSED);
   if (!allowed) {
     fail("rate_limited");
   }
@@ -854,6 +884,29 @@ type OwnPending = {
   group_code: string | null;
   payments: { id: string; status: string; scheduled_date: string | null; stripe_payment_intent_id: string | null }[];
 };
+
+/**
+ * Lets go of this traveler's unpaid checkouts on every package but this one
+ * (see "One live checkout per traveler" in createBooking). False, with the
+ * rest left alone, if one has a payment already moving and cannot be released.
+ */
+async function releaseOwnPendingElsewhere(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  tierId: string,
+): Promise<boolean> {
+  const { data } = await admin
+    .from("bookings")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("status", "pending")
+    .neq("tier_id", tierId)
+    .limit(20);
+  for (const row of data ?? []) {
+    if (!(await releasePendingCheckout(admin, row.id))) return false;
+  }
+  return true;
+}
 
 /** This traveler's pending bookings on this tier, oldest first. */
 async function ownPendingCheckouts(

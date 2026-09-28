@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Alert, Button, Field, Input, Logo } from "@/components/ui";
 import { login, resendConfirmation } from "@/app/auth/actions";
 import { LOGIN_ERRORS, LOGIN_MESSAGES, flashText } from "@/lib/flash";
+import { safePath } from "@/lib/safe-path";
 
 /*
  * Client component, and only for one reason: `Field` takes its control as a
@@ -29,13 +30,16 @@ const RESERVED = new Set(["next", "error", "message"]);
  * outside `next`, and would be dropped on the way back. Folding every
  * unreserved param onto `next` is what makes the trip survive the round trip.
  *
- * Only a same-site relative path is ever accepted; app/auth/actions.ts checks
- * the same thing again server-side, since this value reaches it through a form
- * field the user can edit.
+ * Only a same-site relative path is ever accepted, through the same guard
+ * app/auth/actions.ts runs again server-side, since this value reaches it
+ * through a form field the user can edit. The hand-rolled
+ * `startsWith("/") && !startsWith("//")` that used to sit here let `/\evil.com`
+ * through (lib/safe-path.ts explains why), and this value is printed into the
+ * hidden fields and the signup link below. The params folded on afterwards
+ * only ever follow the sanitised path, so they cannot move it off the site.
  */
 function destination(searchParams: Record<string, string | string[] | undefined>): string {
-  const raw = typeof searchParams.next === "string" ? searchParams.next : "";
-  const safe = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/bookings";
+  const safe = safePath(searchParams.next, "/bookings");
 
   const [path, query] = safe.split("?");
   const params = new URLSearchParams(query);

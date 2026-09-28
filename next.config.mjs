@@ -115,6 +115,15 @@ const securityHeaders = [
     value: contentSecurityPolicy,
   },
   {
+    // The few directives that cannot touch the Stripe Payment Element, enforced
+    // now rather than waiting for the full policy above to run clean: no
+    // framing by anyone (backing up X-Frame-Options), no plugins, and no <base>
+    // tag that could repoint every relative URL on a page. Security review,
+    // 27 September 2026.
+    key: "Content-Security-Policy",
+    value: "frame-ancestors 'none'; object-src 'none'; base-uri 'self'",
+  },
+  {
     // Vercel sets this at the edge too. Harmless to state, and it means a
     // deployment anywhere else still gets it.
     key: "Strict-Transport-Security",

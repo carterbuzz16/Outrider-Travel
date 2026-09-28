@@ -54,7 +54,15 @@ type Admin = SupabaseClient<Database>;
 
 export type StaleCheckoutResult =
   | { ok: true }
-  | { ok: false; reason: "full" | "claimed"; tripId: string; tierId: string };
+  | { ok: false; reason: StaleReason; tripId: string; tierId: string };
+
+/**
+ * Why a stale checkout was let go. "code" is a discount code (lib/discount-codes.ts)
+ * that stopped counting as this checkout's once its hold ran out, and has since
+ * gone to someone else. Only the pre-payment recheck asks about codes; the
+ * settlement path (lib/payments.ts) still only knows "full" and "claimed".
+ */
+export type StaleReason = "full" | "claimed" | "code";
 
 type PendingBooking = {
   id: string;
@@ -119,6 +127,22 @@ export async function staleConflict(admin: Admin, booking: ConflictBooking): Pro
 }
 
 /**
+ * Whether a stale checkout's discount code has gone to someone else. A pending
+ * booking stops counting as a use once its hold runs out (discount_code_hardening
+ * migration), so its single-use code can be claimed by another checkout in the
+ * meantime; paying the stale one then would spend the code twice. A read error
+ * answers false, like staleConflict: a courtesy check should not cancel anyone.
+ */
+async function discountHoldLost(admin: Admin, bookingId: string): Promise<boolean> {
+  const { data, error } = await admin.rpc("discount_hold_lost", { p_booking: bookingId });
+  if (error) {
+    console.error(`discountHoldLost(${bookingId}): ${error.code} ${error.message}`);
+    return false;
+  }
+  return data === true;
+}
+
+/**
  * Whether a stale pending booking may still be paid, releasing it if not.
  * A booking that is not stale (or not pending) is always ok here. On a read
  * error it answers ok: the trigger was the control before, and a failed read
@@ -132,7 +156,7 @@ export async function recheckStaleCheckout(admin: Admin, bookingId: string): Pro
     .maybeSingle();
   if (!booking || !isStalePending(booking)) return { ok: true };
 
-  const reason = await staleConflict(admin, booking);
+  const reason = (await staleConflict(admin, booking)) ?? ((await discountHoldLost(admin, booking.id)) ? "code" : null);
   if (!reason) return { ok: true };
 
   // The form must stop working before the booking stops holding anything. If
@@ -163,13 +187,13 @@ export async function releasePendingCheckout(admin: Admin, bookingId: string): P
 }
 
 /** What the traveler reads when their stale checkout was released. */
-export function staleCheckoutMessage(reason: "full" | "claimed"): string {
+export function staleCheckoutMessage(reason: StaleReason): string {
   return CHECKOUT_ERRORS[staleCheckoutCode(reason)];
 }
 
 /** The ?error= code for a released checkout (see lib/flash.ts). */
-export function staleCheckoutCode(reason: "full" | "claimed"): "stale_claimed" | "stale_full" {
-  return reason === "claimed" ? "stale_claimed" : "stale_full";
+export function staleCheckoutCode(reason: StaleReason): "stale_claimed" | "stale_full" | "stale_code" {
+  return reason === "claimed" ? "stale_claimed" : reason === "code" ? "stale_code" : "stale_full";
 }
 
 /** Where "choose again" goes: the booking page for the same trip, with an error code if given. */
