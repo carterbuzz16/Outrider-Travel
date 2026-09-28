@@ -8,6 +8,7 @@ import { BOOKINGS_OPEN } from "@/lib/booking-window";
 import { CONTACT, LEGAL_NAME } from "@/lib/site-content";
 import { waitlistWelcomeHtml } from "@/lib/email/templates/waitlist-welcome";
 import { EARLY_ACCESS_SUBJECT, earlyAccessHtml } from "@/lib/email/templates/early-access";
+import { BOOKING_OPEN_SUBJECT, bookingOpenHtml } from "@/lib/email/templates/booking-open";
 
 // resend.emails.send() resolves with { data, error } rather than throwing
 // on an API-level failure (e.g. an unverified domain) — it only throws on
@@ -494,6 +495,51 @@ export function renderEarlyAccess(opts: {
       "10% down holds your spot. The rest comes in two installments, or pay it all at once.",
       "",
       "Forward this to the friends you're rooming with. The link works for them too, so you can all book before it opens to everyone.",
+      "",
+      `Questions: ${CONTACT.email}. We reply within a day.`,
+      `Unsubscribe: ${unsubscribeUrl}`,
+    ].join("\n"),
+  };
+}
+
+/**
+ * The "booking is open to everyone" reminder, for list members who have not
+ * booked (templates/booking-open.ts). No private link this time: booking is
+ * open, so the button goes to the public dates. One-click unsubscribe, as on
+ * every list email.
+ */
+export function renderBookingOpenReminder(opts: {
+  unsubscribeToken: string;
+  fromPrice: string | null;
+}): RenderedEmail & { html: string; text: string } {
+  const origin = getAppUrl().replace(/\/+$/, "");
+  const unsubscribeUrl = `${origin}/unsubscribe?t=${encodeURIComponent(opts.unsubscribeToken)}`;
+
+  return {
+    subject: BOOKING_OPEN_SUBJECT,
+    headers: {
+      "List-Unsubscribe": `<${origin}/api/unsubscribe?t=${encodeURIComponent(opts.unsubscribeToken)}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    },
+    html: bookingOpenHtml({
+      origin,
+      unsubscribeUrl: escapeHtml(unsubscribeUrl),
+      addressLine: escapeHtml([LEGAL_NAME, ...(CONTACT.postalAddress ?? [])].join(", ")),
+      fromPrice: opts.fromPrice ? escapeHtml(opts.fromPrice) : null,
+    }),
+    text: [
+      "Open to everyone now.",
+      "",
+      "Booking for Telluride is open to everyone, not just this list. Each package has a set number of spots and they go in the order people book, so if you're going with friends, this is the week to do it together.",
+      "",
+      `Pick your dates: ${origin}/telluride#departures`,
+      "",
+      "Telluride: December 14-18, 2026 or January 4-8, 2027",
+      "The Peaks, Mountain Village. Ski-in, ski-out. Four to a room, two to a room, or a whole penthouse for your eight.",
+      opts.fromPrice ? `From ${opts.fromPrice} per person, all in.` : "One price per person, all in.",
+      "10% down holds your spot. The rest comes in two installments, or pay it all at once.",
+      "",
+      "Going with friends? Each of you books your own spot, then tells us who you're rooming with. The earlier those come in, the better the odds we keep your group together.",
       "",
       `Questions: ${CONTACT.email}. We reply within a day.`,
       `Unsubscribe: ${unsubscribeUrl}`,

@@ -1,5 +1,5 @@
 import "server-only";
-import { BOOKINGS_OPEN } from "@/lib/booking-window";
+import { BOOKINGS_OPEN, CHECKOUT_SANDBOX } from "@/lib/booking-window";
 import { getAppUrl } from "@/lib/site-url";
 
 /*
@@ -21,10 +21,6 @@ import { getAppUrl } from "@/lib/site-url";
 export type ReadinessCheck = { id: string; label: string; ok: boolean; fix: string };
 
 export function launchReadiness(): ReadinessCheck[] {
-  const publishable = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
-  const secret = process.env.STRIPE_SECRET_KEY ?? "";
-  const appUrl = getAppUrl();
-
   return [
     {
       id: "not-public",
@@ -32,6 +28,35 @@ export function launchReadiness(): ReadinessCheck[] {
       ok: !BOOKINGS_OPEN,
       fix: "LAUNCHED is already true in lib/booking-window.ts, so there's no head start left to give.",
     },
+    ...sendingReadiness(),
+  ];
+}
+
+/*
+ * The same checks for the "booking is open to everyone" reminder, with the
+ * first one turned round: that email says booking is open, so it must be,
+ * to everyone. The checkout sandbox opens booking too, but only on the test
+ * site, so it does not count.
+ */
+export function bookingOpenReadiness(): ReadinessCheck[] {
+  return [
+    {
+      id: "public",
+      label: "Booking is open to everyone",
+      ok: BOOKINGS_OPEN && !CHECKOUT_SANDBOX,
+      fix: "Set LAUNCHED to true in lib/booking-window.ts and deploy, then send from the live site.",
+    },
+    ...sendingReadiness(),
+  ];
+}
+
+/** What any send to the list needs: live payments, live links, a sender. */
+function sendingReadiness(): ReadinessCheck[] {
+  const publishable = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
+  const secret = process.env.STRIPE_SECRET_KEY ?? "";
+  const appUrl = getAppUrl();
+
+  return [
     {
       id: "stripe-live",
       label: "Stripe is on live keys",

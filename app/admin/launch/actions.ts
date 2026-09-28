@@ -7,10 +7,11 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { earlyAccessFromPrice, earlyAccessUrl } from "@/lib/early-access";
-import { getFromAddress, renderEarlyAccess, sendEmail, sendEmailBatch } from "@/lib/email/send";
+import { getFromAddress, renderBookingOpenReminder, renderEarlyAccess, sendEmail, sendEmailBatch } from "@/lib/email/send";
 import { getAppUrl } from "@/lib/site-url";
 import { isDeliverableEmail } from "@/lib/waitlist-signup";
-import { launchReadiness } from "./readiness";
+import { bookingOpenReadiness, launchReadiness } from "./readiness";
+import { bookingOpenRecipients } from "./booking-open";
 
 export type LaunchResult = { ok: boolean; message: string };
 
@@ -177,4 +178,124 @@ export async function sendEarlyAccessToList(
     ok: true,
     message: `Sent to ${sent} ${sent === 1 ? "person" : "people"} on the list. The head start has begun.${skippedNote}`,
   };
+}
+
+/* -- "booking is open to everyone" ------------------------------------------- */
+
+/**
+ * The reminder, to the signed-in admin only, with [TEST] in the subject. If
+ * the admin's address is on the list it carries their real unsubscribe token;
+ * otherwise a sample one. Like the head-start test, no readiness checks.
+ */
+export async function sendBookingOpenTest(): Promise<LaunchResult | null> {
+  const userId = await requireAdmin();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const to = user?.id === userId ? user.email : null;
+  if (!to) return { ok: false, message: "Your account has no email address to send to." };
+
+  if (!(await checkRateLimit(`admin:booking-open-test:${userId}`, 10, 60 * 60))) {
+    return { ok: false, message: "That's 10 tests this hour. Try again later." };
+  }
+
+  const { data: own } = await createAdminClient()
+    .from("waitlist_signups")
+    .select("unsubscribe_token")
+    .eq("email", to.toLowerCase())
+    .is("unsubscribed_at", null)
+    .maybeSingle();
+
+  const email = renderBookingOpenReminder({
+    unsubscribeToken: own?.unsubscribe_token ?? "sample-preview-token",
+    fromPrice: await earlyAccessFromPrice(),
+  });
+
+  try {
+    await sendEmail({ from: getFromAddress(), to, subject: `[TEST] ${email.subject}`, html: email.html, text: email.text });
+  } catch (err) {
+    console.error(`booking-open test failed: ${err instanceof Error ? err.message : err}`);
+    return { ok: false, message: "It didn't send. The server log has the reason." };
+  }
+  return { ok: true, message: `Sent to ${to}.` };
+}
+
+/**
+ * The real send: everyone bookingOpenRecipients names, once each. Stamped
+ * with booking_open_sent_at batch by batch, exactly as the head start is, so
+ * pressing it again only reaches whoever was missed or has joined since.
+ */
+export async function sendBookingOpenToList(
+  _prev: LaunchResult | null,
+  formData: FormData,
+): Promise<LaunchResult> {
+  const userId = await requireAdmin();
+
+  if (formData.get("confirm") !== "send") {
+    return { ok: false, message: "Confirm the send first." };
+  }
+
+  const failing = bookingOpenReadiness().filter((check) => !check.ok);
+  if (failing.length > 0) {
+    return { ok: false, message: `Not sent. ${failing.map((c) => c.label).join("; ")}: not yet.` };
+  }
+
+  if (!(await checkRateLimit(`admin:booking-open-send:${userId}`, 5, 60 * 60))) {
+    return { ok: false, message: "That's 5 sends this hour. Try again later." };
+  }
+
+  const admin = createAdminClient();
+  const recipients = await bookingOpenRecipients(admin);
+  if (!recipients) {
+    return { ok: false, message: "Couldn't read the list or the bookings. Nothing was sent." };
+  }
+  const { deliverable, undeliverable } = recipients;
+  const skippedNote = undeliverable.length
+    ? ` Skipped ${undeliverable.length} address${undeliverable.length === 1 ? "" : "es"} that can't receive mail: ${undeliverable.join(", ")}.`
+    : "";
+  if (deliverable.length === 0) {
+    return { ok: true, message: `Nobody left to send it to.${skippedNote}` };
+  }
+
+  const from = getFromAddress();
+  const fromPrice = await earlyAccessFromPrice();
+  let sent = 0;
+
+  for (let i = 0; i < deliverable.length; i += BATCH_SIZE) {
+    const chunk = deliverable.slice(i, i + BATCH_SIZE);
+    const emails = chunk.map((row) => {
+      const email = renderBookingOpenReminder({ unsubscribeToken: row.unsubscribe_token, fromPrice });
+      return { from, to: row.email, subject: email.subject, html: email.html, text: email.text, headers: email.headers };
+    });
+    const key = `booking-open-${createHash("sha256").update(chunk.map((r) => r.id).join(",")).digest("hex").slice(0, 40)}`;
+
+    try {
+      await sendEmailBatch(emails, key);
+    } catch (err) {
+      console.error(`booking-open batch failed: ${err instanceof Error ? err.message : err}`);
+      revalidatePath("/admin/launch");
+      return {
+        ok: false,
+        message: `Sent to ${sent} of ${deliverable.length}, then a batch failed. Press send again to reach the rest; nobody gets it twice.${skippedNote}`,
+      };
+    }
+
+    const { error: stampError } = await admin
+      .from("waitlist_signups")
+      .update({ booking_open_sent_at: new Date().toISOString() })
+      .in("id", chunk.map((r) => r.id));
+    if (stampError) {
+      console.error(`booking-open stamp failed: ${stampError.code} ${stampError.message}`);
+      revalidatePath("/admin/launch");
+      return {
+        ok: false,
+        message: `Sent to ${sent + chunk.length}, but couldn't record it. Don't press send again; check the server log.`,
+      };
+    }
+    sent += chunk.length;
+  }
+
+  revalidatePath("/admin/launch");
+  return { ok: true, message: `Sent to ${sent} ${sent === 1 ? "person" : "people"} on the list.${skippedNote}` };
 }

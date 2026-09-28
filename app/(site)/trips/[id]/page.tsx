@@ -35,6 +35,7 @@ import {
   nightCount,
 } from "@/lib/trips";
 import WhatYouGet from "./WhatYouGet";
+import MobileReserveBar from "./MobileReserveBar";
 
 /*
  * Rendered per request rather than statically cached.
@@ -123,7 +124,9 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
               {
                 id: tier.id,
                 tierName: tier.name,
-                price: formatPrice(tier.price),
+                // No price on the room cards: the rooms come before the
+                // packages so people see what they get first, and the price
+                // is the packages' to show (the owner's call, September 2026).
                 taken: tier.claimed || isTaken(tier.name, tier.spotsLeft),
                 room,
               },
@@ -255,7 +258,9 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
           After the rooms. Warm gray, the page's one stone panel, as the prices
           are on /telluride: it sets the price apart from the paper on either
           side, with no rule needed between them. */}
-      <section className="scheme-stone scheme-paint">
+      {/* data-reserve-bar-hide: the packages have their own Reserve buttons,
+          so the phone bar steps aside while they are on screen. */}
+      <section className="scheme-stone scheme-paint" data-reserve-bar-hide="">
         <div className="shell py-16 md:py-24">
           <Reveal>
             <div className="flex flex-col gap-5">
@@ -345,7 +350,7 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
       )}
 
       {/* ---- close ---------------------------------------------------------- */}
-      <section className="scheme-espresso scheme-paint">
+      <section className="scheme-espresso scheme-paint" data-reserve-bar-hide="">
         <div className="shell flex flex-col items-start gap-7 py-16 md:flex-row md:items-center md:justify-between md:py-20">
           <div>
             <div className="flex flex-col gap-3">
@@ -385,6 +390,15 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
           )}
         </div>
       </section>
+
+      {/* Phones only, and only while this departure can be booked. */}
+      {BOOKINGS_OPEN && !soldOut && (
+        <MobileReserveBar
+          href={bookingHref}
+          place={trip.destination.split(",")[0]}
+          dates={formatDateRange(trip.startDate, trip.endDate)}
+        />
+      )}
     </main>
   );
 }

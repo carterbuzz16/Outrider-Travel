@@ -6,6 +6,7 @@ import {
   renderInstallmentChargedEmail,
   renderOverpaymentRefundEmail,
   renderPaymentFailedEmail,
+  renderBookingOpenReminder,
   renderEarlyAccess,
   renderWaitlistNotification,
   renderWaitlistWelcome,
@@ -507,6 +508,23 @@ export function emailCatalog(): EmailEntry[] {
       render: () =>
         renderEarlyAccess({
           bookingUrl: `${getAppUrl()}/early-access?t=sample`,
+          unsubscribeToken: "sample-preview-token",
+          fromPrice: SAMPLE_FROM_PRICE,
+        }),
+    },
+    {
+      id: "booking-open",
+      section: "The list and the contact form",
+      name: "Reminder: booking open to everyone",
+      trigger: "Sent from Admin, Launch, once per list member, after booking opened to everyone.",
+      recipient: "Everyone on the list who hasn't unsubscribed and hasn't booked (a paid booking under the same address)",
+      sandbox: "Use Send a test to me under the reminder on Admin, Launch.",
+      notes: [
+        "No private link: booking is open, so the button goes to the dates on /telluride.",
+        "Each real one carries a one-click unsubscribe header. The test leaves it off.",
+      ],
+      render: () =>
+        renderBookingOpenReminder({
           unsubscribeToken: "sample-preview-token",
           fromPrice: SAMPLE_FROM_PRICE,
         }),

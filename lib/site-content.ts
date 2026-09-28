@@ -204,7 +204,8 @@ export const TELLURIDE_EVENTS: TripEvent[] = [
     when: "Mid-mountain",
     title: "Après at Gorrono Ranch",
     body:
-      "One afternoon the whole group takes over Gorrono Ranch, the old homestead halfway down the mountain. BBQ on the deck, a DJ, and everyone still in ski boots.",
+      // An après party with a DJ, never a BBQ (Carter, 25 September 2026).
+      "One afternoon the whole group takes over Gorrono Ranch, the old homestead halfway down the mountain. A DJ on the deck, and everyone still in ski boots.",
     image: {
       src: "/images/telluride/gorrono-deck.jpg",
       alt: "Gorrono Ranch's old timber barns mid-mountain, skiers in Adirondack chairs on the snow out front and the San Juans behind.",

@@ -486,6 +486,7 @@ export type Database = {
           consent_text_version: string | null
           consent_user_agent: string | null
           created_at: string
+          booking_open_sent_at: string | null
           early_access_sent_at: string | null
           early_access_token: string
           email: string
@@ -511,6 +512,7 @@ export type Database = {
           consent_text_version?: string | null
           consent_user_agent?: string | null
           created_at?: string
+          booking_open_sent_at?: string | null
           early_access_sent_at?: string | null
           early_access_token?: string
           email: string
@@ -536,6 +538,7 @@ export type Database = {
           consent_text_version?: string | null
           consent_user_agent?: string | null
           created_at?: string
+          booking_open_sent_at?: string | null
           early_access_sent_at?: string | null
           early_access_token?: string
           email?: string
