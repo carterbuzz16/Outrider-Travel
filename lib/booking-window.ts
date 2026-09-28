@@ -12,8 +12,11 @@
  * Deliberately a constant rather than a date. "Open it when we are ready" is
  * the actual rule, and a date would open the flow at midnight on its own,
  * possibly before Stripe or the inbox is ready to receive anything.
+ *
+ * Opened to everyone on 27 September 2026, after the list's head start and a
+ * security pass on signup, checkout and the public forms.
  */
-const LAUNCHED = false;
+const LAUNCHED = true;
 
 /**
  * The checkout sandbox: bookings open on a preview or local build so the
