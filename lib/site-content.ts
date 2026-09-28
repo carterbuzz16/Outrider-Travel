@@ -356,6 +356,39 @@ export const TELLURIDE_ROOMS = [
   },
 ];
 
+/* -- what you get, on a departure page ----------------------------------------
+ * The "What you get" list on /trips/[id], above the rooms, so a visitor sees
+ * everything a package comes with before any price. Carter's direction, 28
+ * September 2026: a plain list of everything, ski-in, ski-out up front, no
+ * slogan, no photographs, no stat band, nothing about fees.
+ *
+ * Every line restates something already promised, so it adds no claim:
+ *   - ski-in, ski-out, said with every mention of The Peaks (Carter's rule);
+ *   - three days of lift tickets and rentals: every tier on both departures
+ *     (checked in the database, 28 September 2026); fitted before you land,
+ *     skipping the rental line: the booking confirmation email;
+ *   - the rides are for the group only (Carter, 21 September 2026);
+ *   - the four events are TELLURIDE_EVENTS: the Gorrono party is an après with
+ *     a DJ, never a BBQ, in new copy; tables are held, never paid for, so the
+ *     line says you pay as you go; vouchers, never a tab;
+ *   - Sap's is TRIP_SPONSORS; "pickup to drop-off" is the Telluride FAQ.
+ *
+ * `{nights}` in a title is filled from the trip's own dates. If a package
+ * ever drops one of these, take the line out: this is what every package gets.
+ * ------------------------------------------------------------------------- */
+export const TRIP_WHAT_YOU_GET = [
+  { title: "Ski-in, ski-out at The Peaks", body: "{nights} in Mountain Village, with the whole group under one roof." },
+  { title: "3 days of lift tickets and rentals", body: "Skis or a snowboard fitted before you land, so you skip the rental line." },
+  { title: "Private rides", body: "From the Montrose airport to your hotel and back, just for the group." },
+  { title: "Après party at Gorrono Ranch", body: "One afternoon mid-mountain, with a DJ, the whole group together." },
+  { title: "A private Outrider night", body: "Night two is ours alone, just the group." },
+  { title: "Tables held in town", body: "Restaurant blocks booked before you land. You order and pay as you go." },
+  { title: "Drink vouchers", body: "For spots around Mountain Village, so the first round after skiing is sorted." },
+  { title: "A welcome package", body: "Waiting in your room when you get there." },
+  { title: "Electrolytes from Sap's", body: "For the whole group, all week." },
+  { title: "Our team, all week", body: "On the ground with you from pickup to drop-off." },
+];
+
 /** The one thing deliberately left out, said next to the list above. */
 export const NOT_INCLUDED_NOTE =
   "Flights aren't included. Everyone books their own, into Montrose.";

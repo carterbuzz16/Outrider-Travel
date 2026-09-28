@@ -34,6 +34,7 @@ import {
   getPublishedTrip,
   nightCount,
 } from "@/lib/trips";
+import WhatYouGet from "./WhatYouGet";
 
 /*
  * Rendered per request rather than statically cached.
@@ -110,9 +111,11 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
     taken: tier.claimed || isTaken(tier.name, tier.spotsLeft),
   }));
 
-  // The rooms at The Peaks behind each package. lib/room-media.ts describes
-  // that one property, so only a Telluride departure gets them.
-  const rooms: ShowcaseRoom[] = trip.destination.toLowerCase().includes("telluride")
+  // The rooms at The Peaks behind each package, and what every package there
+  // includes. lib/room-media.ts and TRIP_WHAT_YOU_GET describe that one
+  // property, so only a Telluride departure gets them.
+  const isTelluride = trip.destination.toLowerCase().includes("telluride");
+  const rooms: ShowcaseRoom[] = isTelluride
     ? trip.tiers.flatMap((tier) => {
         const room = getRoomMedia(tier.name);
         return room
@@ -215,11 +218,17 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
         </div>
       </header>
 
+      {/* ---- what you get ---------------------------------------------------
+          Everything every package includes, first, so people know exactly
+          what they get before they see a room or a price (the owner's call,
+          September 2026). See WhatYouGet.tsx. */}
+      {isTelluride && <WhatYouGet nights={nights} />}
+
       {/* ---- the rooms -----------------------------------------------------
-          Before the packages, so the room is what people see first and the
-          price comes after it (the owner's call, September 2026: see what you
-          get before what it costs). Paper, straight under the espresso
-          masthead, so the two dark grounds never run together. */}
+          Then the rooms, and only then the packages with their prices. Paper,
+          like the section above it, which its rule label opens away from; it
+          must not go back to espresso, which would run into the masthead
+          whenever What you get is absent. */}
       {rooms.length > 0 && (
         <section aria-labelledby="rooms-heading">
           <div className="shell py-16 md:py-24">
