@@ -7,7 +7,6 @@ import {
   Plate,
   Reveal,
   RoomShowcase,
-  SectionDivider,
   StatusBadge,
   TierTable,
   TripSchema,
@@ -216,48 +215,13 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
         </div>
       </header>
 
-      {/* ---- packages ------------------------------------------------------ */}
-      <section className="shell py-16 md:py-24">
-        <Reveal>
-          <div className="flex flex-col gap-5">
-            <p className="t-rule-label text-[--text]">Packages</p>
-            <h2 className="t-title max-w-[18ch] text-[--text]">
-              {tiers.length === 1
-                ? "The package"
-                : `${tiers.length === 2 ? "Two" : tiers.length === 3 ? "Three" : String(tiers.length)} ways to take the same trip`}
-            </h2>
-            <p className="t-lede max-w-measure">
-              Everyone gets the same days on the mountain and the same nights
-              out. What changes is where you sleep.
-            </p>
-          </div>
-        </Reveal>
-
-        <Reveal>
-          <TierTable
-            tiers={tiers}
-            bookHref={soldOut || !BOOKINGS_OPEN ? null : bookingHref}
-            className="mt-12"
-          />
-        </Reveal>
-
-        <Reveal>
-          <p className="t-micro mt-6 text-[--text-muted]">
-            {!BOOKINGS_OPEN && `${COMING_SOON_NOTE} `}
-            Every package includes our team on the ground the whole trip. Flights you book yourself. The{" "}
-            <Link href="/flights" className="text-[--accent] underline underline-offset-4">
-              flight guide
-            </Link>{" "}
-            has the airport and the timing.
-          </p>
-        </Reveal>
-      </section>
-
       {/* ---- the rooms -----------------------------------------------------
-          Right after the packages, so the room a price buys is the next thing
-          you see. Espresso, as "Where you stay" is on /telluride. */}
+          Before the packages, so the room is what people see first and the
+          price comes after it (the owner's call, September 2026: see what you
+          get before what it costs). Paper, straight under the espresso
+          masthead, so the two dark grounds never run together. */}
       {rooms.length > 0 && (
-        <section className="scheme-espresso scheme-paint" aria-labelledby="rooms-heading">
+        <section aria-labelledby="rooms-heading">
           <div className="shell py-16 md:py-24">
             <Reveal>
               <div className="flex flex-col gap-5">
@@ -278,7 +242,47 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
         </section>
       )}
 
-      {rooms.length === 0 && <SectionDivider variant="rule" className="shell" />}
+      {/* ---- packages ------------------------------------------------------
+          After the rooms. Warm gray, the page's one stone panel, as the prices
+          are on /telluride: it sets the price apart from the paper on either
+          side, with no rule needed between them. */}
+      <section className="scheme-stone scheme-paint">
+        <div className="shell py-16 md:py-24">
+          <Reveal>
+            <div className="flex flex-col gap-5">
+              <p className="t-rule-label text-[--text]">Packages</p>
+              <h2 className="t-title max-w-[18ch] text-[--text]">
+                {tiers.length === 1
+                  ? "The package"
+                  : `${tiers.length === 2 ? "Two" : tiers.length === 3 ? "Three" : String(tiers.length)} ways to take the same trip`}
+              </h2>
+              <p className="t-lede max-w-measure">
+                Everyone gets the same days on the mountain and the same nights
+                out. What changes is where you sleep.
+              </p>
+            </div>
+          </Reveal>
+
+          <Reveal>
+            <TierTable
+              tiers={tiers}
+              bookHref={soldOut || !BOOKINGS_OPEN ? null : bookingHref}
+              className="mt-12"
+            />
+          </Reveal>
+
+          <Reveal>
+            <p className="t-micro mt-6 text-[--text-muted]">
+              {!BOOKINGS_OPEN && `${COMING_SOON_NOTE} `}
+              Every package includes our team on the ground the whole trip. Flights you book yourself. The{" "}
+              <Link href="/flights" className="text-[--accent] underline underline-offset-4">
+                flight guide
+              </Link>{" "}
+              has the airport and the timing.
+            </p>
+          </Reveal>
+        </div>
+      </section>
 
       {/* ---- the trip ------------------------------------------------------ */}
       {(trip.description || trip.logistics) && (
