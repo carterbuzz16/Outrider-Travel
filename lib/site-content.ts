@@ -165,7 +165,9 @@ export const UPCOMING_CATEGORIES = [
  * packages comes from the tiers in the database, not from here.
  * ------------------------------------------------------------------------- */
 export const SHARED_INCLUSIONS = [
-  "Lodging with the whole group under one roof at The Peaks",
+  // Ski-in, ski-out with every mention of The Peaks (Carter's rule), and this
+  // is now the first line people read on /telluride.
+  "Lodging at The Peaks, ski-in, ski-out, with the whole group under one roof",
   "Lift tickets and ski or snowboard rentals, ready before you land",
   "Ground transport between Montrose and Telluride, both directions",
   "Private events all week, including an après party with a DJ at Gorrono Ranch, mid-mountain",

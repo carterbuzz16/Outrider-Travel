@@ -240,10 +240,11 @@ export default async function TelluridePage() {
   const lastDay = shared(trips, (trip) => weekday(trip.endDate));
   const packages = TRIP_DETAILS_OPEN ? packageOptions(trips) : [];
 
+  // In page order: the trip first, then the week, then the place.
   const sections: SectionLink[] = [
-    { href: "#overview", label: "Telluride" },
-    { href: "#events", label: "The week" },
     { href: "#included", label: TRIP_DETAILS_OPEN ? "Rooms and prices" : "What's included" },
+    { href: "#events", label: "The week" },
+    { href: "#overview", label: "Telluride" },
     { href: "#details", label: "Good to know" },
   ];
 
@@ -342,157 +343,17 @@ export default async function TelluridePage() {
 
       <SectionNav links={sections} />
 
-      {/* ---- Telluride ------------------------------------------------------
-          The place in one paragraph and four figures, then the photographs,
-          which run off the right edge so the track reads as scrollable. */}
-      <section id="overview" className={`${SECTION_SCROLL} pb-16 pt-16 md:pb-24 md:pt-24`} aria-labelledby="why-heading">
-        <div className="shell">
-          <Reveal>
-            <p className="t-rule-label text-[--text]">Why Telluride</p>
-          </Reveal>
-          <div className="mt-10 grid gap-8 md:mt-12 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:items-end md:gap-20">
-            <Reveal>
-              <h2 id="why-heading" className="t-title max-w-[14ch] text-[--text]">
-                One road in, 13,000-foot walls
-              </h2>
-            </Reveal>
-            <Reveal delay={80}>
-              <p className="max-w-measure font-body text-lede leading-[1.65] text-[--text]">
-                A box canyon in the San Juans, closed off by peaks that clear
-                13,000 feet. An old mining town with a real Main Street at the
-                bottom, two thousand acres of mountain above it, and a free
-                gondola between the two.
-              </p>
-            </Reveal>
-          </div>
-
-          {/* Four figures on one hairline, not four boxes. */}
-          <Reveal>
-            <dl className="m-0 mt-12 grid grid-cols-2 border-t border-[--rule-strong] md:mt-16 lg:grid-cols-4">
-              {TELLURIDE_FACTS.map((fact, i) => (
-                <div
-                  key={fact.label}
-                  className={[
-                    "flex flex-col gap-2 border-[--rule] py-6 pr-5 md:py-8",
-                    // Vertical hairlines between columns only, never on the
-                    // outer edge, at both the two- and four-column widths.
-                    i % 2 === 1 ? "border-l pl-5" : "",
-                    i === 2 ? "border-t lg:border-l lg:border-t-0 lg:pl-5" : "",
-                    i === 3 ? "border-t lg:border-t-0" : "",
-                  ].join(" ")}
-                >
-                  <dt className="t-micro order-2 text-[--accent]">{fact.label}</dt>
-                  <dd className="order-1 m-0 font-display text-display-s font-medium leading-none tracking-title text-[--text] sm:text-display-m">
-                    {fact.value}
-                  </dd>
-                  <dd className="order-3 m-0 font-body text-body-s leading-[1.6] text-[--text-secondary]">
-                    {fact.note}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </Reveal>
-        </div>
-
-        <div className="mt-6 pl-[max(1.25rem,calc((100%-var(--shell))/2+var(--gutter)))] pr-gutter md:mt-10">
-          <Reveal>
-            <Gallery images={GALLERY} label="Telluride photographs" />
-          </Reveal>
-        </div>
-      </section>
-
-      {/* ---- the week ---------------------------------------------------------
-          Espresso. The days as one row of three (itinerary is trip detail, so
-          it waits for launch), then the events and the town as tabs. id="events"
-          is what the home page's "See the week" links to. */}
-      <section
-        id="events"
-        className={`scheme-espresso scheme-paint ${SECTION_SCROLL}`}
-        aria-labelledby="events-heading"
-      >
-        <div className="shell py-16 md:py-24">
-          <Reveal>
-            <p className="t-rule-label text-[--text]">The week</p>
-            <div className="mt-10 grid gap-6 md:mt-12 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:items-end md:gap-20">
-              <h2 id="events-heading" className="t-title max-w-[14ch] text-[--text]">
-                The week has a guest list
-              </h2>
-              <p className="t-lede max-w-measure text-[--text-secondary]">
-                Every package comes with the same nights out. They&rsquo;re
-                booked, hosted and closed to anyone who isn&rsquo;t on the trip.
-              </p>
-            </div>
-          </Reveal>
-
-          {TRIP_DETAILS_OPEN && nights !== null && nights >= 2 && (
-            <Reveal>
-              <ol className="m-0 mt-12 grid list-none gap-8 border-t border-[--rule-strong] p-0 pt-8 md:mt-14 md:grid-cols-3 md:gap-10">
-                {weekPlan(nights, firstDay, lastDay).map((day) => (
-                  <li key={day.title} className="flex flex-col gap-2">
-                    <p className="t-micro text-[--accent]">{day.when}</p>
-                    <h3 className="t-subheading text-[--text]">{day.title}</h3>
-                    <p className="max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
-                      {day.body}
-                    </p>
-                  </li>
-                ))}
-              </ol>
-            </Reveal>
-          )}
-
-          <Tabs
-            label="The week"
-            className="mt-14 md:mt-16"
-            tabs={[
-              { id: "events", label: "Private events", content: <TripEvents events={TELLURIDE_EVENTS} /> },
-              { id: "town", label: "In town", content: <TownPanel /> },
-            ]}
-          />
-
-          {/* Sponsors, by their own logo. Outbound and commercial, so
-              rel="sponsored". The alt is the brand name, which is what the
-              logo says. */}
-          {TRIP_SPONSORS.length > 0 && (
-            <dl className="m-0 mt-14 flex flex-col border-t border-[--rule] md:mt-16">
-              {TRIP_SPONSORS.map((sponsor) => (
-                <div
-                  key={sponsor.name}
-                  className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 border-b border-[--rule] py-5"
-                >
-                  <dt className="flex items-center gap-5">
-                    <span className="t-micro text-[--text-secondary]">On the trip</span>
-                    <a
-                      href={sponsor.url}
-                      target="_blank"
-                      rel="noopener noreferrer sponsored"
-                      // On a paper tile: the logo's red is under 3:1 on
-                      // espresso and reads as a smudge, and a logo is never
-                      // recolored to fix that.
-                      className="scheme-light scheme-paint block px-4 py-3 transition-opacity duration-fast hover:opacity-85"
-                    >
-                      <Image
-                        src={sponsor.logo.src}
-                        alt={sponsor.name}
-                        width={sponsor.logo.width}
-                        height={sponsor.logo.height}
-                        className="h-8 w-auto md:h-10"
-                      />
-                    </a>
-                  </dt>
-                  <dd className="m-0 font-body text-body text-[--text-secondary]">{sponsor.supplies}</dd>
-                </div>
-              ))}
-            </dl>
-          )}
-        </div>
-      </section>
-
       {/* ---- rooms and prices -----------------------------------------------
-          id="included" is linked from the booking emails. Do not rename it,
-          and keep it rendering in every launch state.
+          First after the masthead: people who click through to Telluride want
+          what is on the trip, then the week, and only then the place (the
+          owner's call, 28 September 2026). "Why Telluride" comes after both.
+
+          id="included" is linked from the booking emails and the masthead's
+          "What's included". Do not rename it, and keep it rendering in every
+          launch state.
 
           Warm gray, the page's one stone panel: it sets the price apart from
-          the selling around it. On stone, secondary text is #564E48 (5.4:1).
+          the espresso masthead above it and the espresso week below. On stone, secondary text is #564E48 (5.4:1).
           What every package includes and the dates sit side by side; under
           them, one tab for the hotel and one per package. */}
       <section
@@ -583,6 +444,153 @@ export default async function TelluridePage() {
               </p>
             )
           )}
+        </div>
+      </section>
+
+      {/* ---- the week ---------------------------------------------------------
+          Espresso. The days as one row of three (itinerary is trip detail, so
+          it waits for launch), then the events and the town as tabs. id="events"
+          is what the home page's "See the week" links to. */}
+      <section
+        id="events"
+        className={`scheme-espresso scheme-paint ${SECTION_SCROLL}`}
+        aria-labelledby="events-heading"
+      >
+        <div className="shell py-16 md:py-24">
+          <Reveal>
+            <p className="t-rule-label text-[--text]">The week</p>
+            <div className="mt-10 grid gap-6 md:mt-12 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:items-end md:gap-20">
+              <h2 id="events-heading" className="t-title max-w-[14ch] text-[--text]">
+                The week has a guest list
+              </h2>
+              <p className="t-lede max-w-measure text-[--text-secondary]">
+                Every package comes with the same nights out. They&rsquo;re
+                booked, hosted and closed to anyone who isn&rsquo;t on the trip.
+              </p>
+            </div>
+          </Reveal>
+
+          {TRIP_DETAILS_OPEN && nights !== null && nights >= 2 && (
+            <Reveal>
+              <ol className="m-0 mt-12 grid list-none gap-8 border-t border-[--rule-strong] p-0 pt-8 md:mt-14 md:grid-cols-3 md:gap-10">
+                {weekPlan(nights, firstDay, lastDay).map((day) => (
+                  <li key={day.title} className="flex flex-col gap-2">
+                    <p className="t-micro text-[--accent]">{day.when}</p>
+                    <h3 className="t-subheading text-[--text]">{day.title}</h3>
+                    <p className="max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
+                      {day.body}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            </Reveal>
+          )}
+
+          <Tabs
+            label="The week"
+            className="mt-14 md:mt-16"
+            tabs={[
+              { id: "events", label: "Private events", content: <TripEvents events={TELLURIDE_EVENTS} /> },
+              { id: "town", label: "In town", content: <TownPanel /> },
+            ]}
+          />
+
+          {/* Sponsors, by their own logo. Outbound and commercial, so
+              rel="sponsored". The alt is the brand name, which is what the
+              logo says. */}
+          {TRIP_SPONSORS.length > 0 && (
+            <dl className="m-0 mt-14 flex flex-col border-t border-[--rule] md:mt-16">
+              {TRIP_SPONSORS.map((sponsor) => (
+                <div
+                  key={sponsor.name}
+                  className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 border-b border-[--rule] py-5"
+                >
+                  <dt className="flex items-center gap-5">
+                    <span className="t-micro text-[--text-secondary]">On the trip</span>
+                    <a
+                      href={sponsor.url}
+                      target="_blank"
+                      rel="noopener noreferrer sponsored"
+                      // On a paper tile: the logo's red is under 3:1 on
+                      // espresso and reads as a smudge, and a logo is never
+                      // recolored to fix that.
+                      className="scheme-light scheme-paint block px-4 py-3 transition-opacity duration-fast hover:opacity-85"
+                    >
+                      <Image
+                        src={sponsor.logo.src}
+                        alt={sponsor.name}
+                        width={sponsor.logo.width}
+                        height={sponsor.logo.height}
+                        className="h-8 w-auto md:h-10"
+                      />
+                    </a>
+                  </dt>
+                  <dd className="m-0 font-body text-body text-[--text-secondary]">{sponsor.supplies}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </div>
+      </section>
+
+      {/* ---- Telluride ------------------------------------------------------
+          After the trip and the week, not before them: the place comes once
+          people know what they get. One paragraph and four figures, then the
+          photographs, which run off the right edge so the track reads as
+          scrollable. */}
+      <section id="overview" className={`${SECTION_SCROLL} pb-16 pt-16 md:pb-24 md:pt-24`} aria-labelledby="why-heading">
+        <div className="shell">
+          <Reveal>
+            <p className="t-rule-label text-[--text]">Why Telluride</p>
+          </Reveal>
+          <div className="mt-10 grid gap-8 md:mt-12 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:items-end md:gap-20">
+            <Reveal>
+              <h2 id="why-heading" className="t-title max-w-[14ch] text-[--text]">
+                One road in, 13,000-foot walls
+              </h2>
+            </Reveal>
+            <Reveal delay={80}>
+              <p className="max-w-measure font-body text-lede leading-[1.65] text-[--text]">
+                A box canyon in the San Juans, closed off by peaks that clear
+                13,000 feet. An old mining town with a real Main Street at the
+                bottom, two thousand acres of mountain above it, and a free
+                gondola between the two.
+              </p>
+            </Reveal>
+          </div>
+
+          {/* Four figures on one hairline, not four boxes. */}
+          <Reveal>
+            <dl className="m-0 mt-12 grid grid-cols-2 border-t border-[--rule-strong] md:mt-16 lg:grid-cols-4">
+              {TELLURIDE_FACTS.map((fact, i) => (
+                <div
+                  key={fact.label}
+                  className={[
+                    "flex flex-col gap-2 border-[--rule] py-6 pr-5 md:py-8",
+                    // Vertical hairlines between columns only, never on the
+                    // outer edge, at both the two- and four-column widths.
+                    i % 2 === 1 ? "border-l pl-5" : "",
+                    i === 2 ? "border-t lg:border-l lg:border-t-0 lg:pl-5" : "",
+                    i === 3 ? "border-t lg:border-t-0" : "",
+                  ].join(" ")}
+                >
+                  <dt className="t-micro order-2 text-[--accent]">{fact.label}</dt>
+                  <dd className="order-1 m-0 font-display text-display-s font-medium leading-none tracking-title text-[--text] sm:text-display-m">
+                    {fact.value}
+                  </dd>
+                  <dd className="order-3 m-0 font-body text-body-s leading-[1.6] text-[--text-secondary]">
+                    {fact.note}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </Reveal>
+        </div>
+
+        <div className="mt-6 pl-[max(1.25rem,calc((100%-var(--shell))/2+var(--gutter)))] pr-gutter md:mt-10">
+          <Reveal>
+            <Gallery images={GALLERY} label="Telluride photographs" />
+          </Reveal>
         </div>
       </section>
 
