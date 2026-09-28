@@ -49,8 +49,8 @@ import { todayInMountain } from "@/lib/mountain-time";
  * and it errs toward one email too few rather than four too many.
  *
  * FALLBACK. The designed confirmation needs facts that are not all in place
- * yet (lib/trip-logistics.ts is mostly nulls until the owner fills it in, the
- * SMS number and the portal secret are env vars). When anything it needs is
+ * yet (lib/trip-logistics.ts is mostly nulls until the owner fills it in, and
+ * the portal secret is an env var). When anything it needs is
  * missing, the traveler gets the existing plain confirmation from
  * lib/email/send.ts instead, under the same claim, and the log names what was
  * missing. Nobody goes without a confirmation. The chase has no fallback: if
@@ -198,14 +198,6 @@ async function firstNameFor(admin: Admin, booking: BookingForEmail): Promise<str
 
 /* -- variables -------------------------------------------------------------- */
 
-export function smsNumbers(): { display: string; raw: string } | null {
-  const display = process.env.SMS_NUMBER?.trim();
-  const raw = process.env.SMS_NUMBER_RAW?.trim();
-  // E.164, or the sms: links in both emails do nothing on a phone.
-  if (!display || !raw || !/^\+[1-9]\d{7,14}$/.test(raw)) return null;
-  return { display, raw };
-}
-
 function postalAddress(): { street: string; cityStateZip: string } | null {
   const lines = CONTACT.postalAddress;
   if (!lines || lines.length < 2 || !lines[0].trim() || !lines[1].trim()) return null;
@@ -238,7 +230,6 @@ async function variablesFor(
   const variables = buildTemplateVariables(booking, {
     firstName,
     portalUrl,
-    sms: smsNumbers(),
     placeholders: placeholdersAllowed(),
   });
   return { variables, portalUrl, firstName };
@@ -250,7 +241,7 @@ async function variablesFor(
  * into a refusal naming it.
  *
  * Pure: everything that needs the database or a secret (the name, the signed
- * portal link, the texting number) is passed in, so the admin preview page can
+ * portal link) is passed in, so the admin preview page can
  * build the same variables from sample data. `placeholders` is the
  * off-production stand-in rule (see placeholder()); the preview forces it on
  * to show the layout, and off to list what production would still be missing.
@@ -260,12 +251,11 @@ export function buildTemplateVariables(
   opts: {
     firstName: string | null;
     portalUrl: string | null;
-    sms: { display: string; raw: string } | null;
     placeholders: boolean;
     today?: string;
   },
 ): TemplateVariables {
-  const { firstName, portalUrl, sms } = opts;
+  const { firstName, portalUrl } = opts;
   const placeholder = (label: string) => (opts.placeholders ? `[${label} to be confirmed]` : null);
   const trip = booking.trips;
   const logistics = trip ? getTripLogistics(trip.start_date) : null;
@@ -304,11 +294,8 @@ export function buildTemplateVariables(
   set("rooming_url", portalUrl ? `${portalUrl}#${PORTAL_ANCHORS.rooming}` : null);
   set("traveler_details_url", portalUrl ? `${portalUrl}#${PORTAL_ANCHORS.details}` : null);
   set("preferences_url", preferencesUrl());
-  // No texting number yet is expected before launch: the same stand-in as a
-  // missing trip fact, so the designed emails can still be tested off
-  // production. The raw form sits in an sms: link, which then does nothing.
-  set("sms_number", sms?.display ?? placeholder("text number"));
-  set("sms_number_raw", sms?.raw ?? placeholder("text-number"));
+  // No sms_number: there is no texting number yet, so neither template asks
+  // for one (see the note in templates/confirmation.ts).
 
   if (trip) {
     set("trip_name", trip.name);
@@ -382,7 +369,7 @@ function confirmationText(v: TemplateVariables): string {
     "",
     `Confirmation ${v.confirmation_number}. ${v.tier_name}, ${v.total_price} per person. Paid today ${v.amount_paid}, remaining ${v.balance_due}.`,
     "",
-    `Text ${v.sms_number} or email bookings@outrider.travel. A person answers within a day.`,
+    "Questions? Reply to this email or write to bookings@outrider.travel. A person answers within a day.",
   ].join("\n");
 }
 
@@ -398,7 +385,7 @@ function chaseText(v: TemplateVariables, flags: Record<string, boolean>): string
     "",
     `Finish it on your trip page: ${v.portal_url}`,
     "",
-    `Or text ${v.sms_number}. A person answers within a day.`,
+    "Or reply with your roommates' names and we'll put them in for you. A person answers within a day.",
   ].join("\n");
 }
 

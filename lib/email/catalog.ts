@@ -16,7 +16,6 @@ import {
   renderChaseEmail,
   renderConfirmationEmail,
   renderPlainConfirmationFor,
-  smsNumbers,
   type BookingForEmail,
   type ChaseFlags,
 } from "@/lib/email/post-booking";
@@ -115,8 +114,6 @@ const GAP_LABELS: Record<string, string> = {
   trip_capacity: "Trip capacity (lib/trip-logistics.ts)",
   property_name: "Property name (lib/trip-logistics.ts)",
   rooming_lock_date: "Date rooming requests close (lib/trip-logistics.ts)",
-  sms_number: "Texting number (SMS_NUMBER and SMS_NUMBER_RAW settings)",
-  sms_number_raw: "Texting number (SMS_NUMBER and SMS_NUMBER_RAW settings)",
   portal_url: "Trip page links (PORTAL_TOKEN_SECRET setting)",
   rooming_url: "Trip page links (PORTAL_TOKEN_SECRET setting)",
   traveler_details_url: "Trip page links (PORTAL_TOKEN_SECRET setting)",
@@ -129,7 +126,6 @@ function designedVariables(placeholders: boolean) {
     // For the gap check, whether this environment could sign a real link; the
     // token itself is thrown away.
     portalUrl: placeholders || createPortalUrl(SAMPLE_BOOKING_ID) ? SAMPLE_PORTAL_URL : null,
-    sms: smsNumbers(),
     placeholders,
   });
 }

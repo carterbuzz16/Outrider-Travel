@@ -25,9 +25,9 @@ confirmation; the designed one is missing: ...`).
       (keyed by start date): `propertyName`, `arrivalDeadline`,
       `departureEarliest`, `roomingLockDate` (ISO date), `tripCapacity`
       (Telluride Dec 14 is set to 100; Jan 4 has nothing yet).
-- [ ] **SMS_NUMBER** (display, e.g. `(256) 929-9189`) and **SMS_NUMBER_RAW**
-      (E.164, e.g. `+12569291189`) in Vercel, Preview and Production. Redeploy
-      after setting: the Terms page reads SMS_NUMBER at build time.
+- [ ] **SMS_NUMBER** only if Outrider gets a texting number. The emails no
+      longer use it (there is no number yet); the Terms page shows it once set,
+      at build time, so redeploy after setting.
 - [ ] **PORTAL_TOKEN_SECRET** in Vercel: `openssl rand -hex 32`. At least 32
       characters. Rotating it breaks every link already sent.
 - [ ] **EMAIL_FROM_ADDRESS** = `Outrider <bookings@outrider.travel>`, a real inbox
@@ -168,7 +168,7 @@ bookings only).
 - [ ] "{trip} is {N} days out": N matches the calendar.
 - [ ] After a send, `chase_email_sent_at` is set; run the cron again and no
       second chase goes.
-- [ ] With a trip-logistics value or SMS_NUMBER missing, the chase is skipped
+- [ ] With a trip-logistics value missing, the chase is skipped
       and the log names the missing values; nothing is written.
 - [ ] Subject: "{first name}, we're still missing a couple of things" (or
       without the name when there is none).
@@ -182,8 +182,9 @@ Both emails:
 - [ ] Nav "Your trip", button, footer "Your trip": `{{portal_url}}` (the portal)
 - [ ] Nav and footer "Telluride": `https://outrider.travel/telluride`
 - [ ] Nav and footer "FAQ": `https://outrider.travel/faq`
-- [ ] Nav "Text us", the big "Text ..." line, footer number:
-      `sms:{{sms_number_raw}}`. Opens Messages on a phone.
+- [ ] Nav "Email us" and the big "Just hit reply" line:
+      `mailto:bookings@outrider.travel`. Replying to the email itself also
+      lands there (reply-to).
 - [ ] Footer "Instagram": `https://www.instagram.com/outridertravel/`, the same account the site links to
 - [ ] Footer email: `mailto:bookings@outrider.travel`, the site's watched contact address
 - [ ] Footer "Email preferences": `{{preferences_url}}` =

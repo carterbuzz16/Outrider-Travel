@@ -55,10 +55,18 @@ const EMPTY: TripLogistics = {
 };
 
 /** Keyed by trips.start_date. */
+/*
+ * The property, as the owner names it in email (September 2026). "The" leads
+ * because the emails print it mid-sentence ("Four nights at ..."), and the
+ * site already calls it The Peaks Resort. Both departures stay there.
+ */
+const PEAKS = "The Peaks Resort and Spa";
+
 const LOGISTICS: Record<string, TripLogistics> = {
   // Telluride, December 14 to 18, 2026.
   "2026-12-14": {
     ...EMPTY,
+    propertyName: PEAKS,
     // Confirmed by the owner.
     tripCapacity: 100,
     roomingLockDate: "2026-12-01",
@@ -66,6 +74,7 @@ const LOGISTICS: Record<string, TripLogistics> = {
   // Telluride, January 4 to 8, 2027.
   "2027-01-04": {
     ...EMPTY,
+    propertyName: PEAKS,
     // Confirmed by the owner.
     tripCapacity: 50,
     // 13 days out, the same runway the December departure gets, and before

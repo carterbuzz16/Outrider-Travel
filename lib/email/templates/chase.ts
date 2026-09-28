@@ -18,6 +18,12 @@
   *
  * Image hosts are https://www.outrider.travel, not the bare domain, which
  * 308s to www; see the note in ./confirmation.ts.
+ *
+ * No texting number, since September 2026: the nav, the blue panel and the
+ * footer point at a reply or bookings@ instead. See ./confirmation.ts.
+ *
+ * No middots either (AGENTS.md): nav and footer links are spaced, the postal
+ * line takes commas. Same note as ./confirmation.ts.
  */
 export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
@@ -90,13 +96,10 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
 
     <tr>
       <td class="nav" align="center" bgcolor="#3E342F" style="background-color:#3E342F; padding:14px 20px;">
-        <a href="{{portal_url}}" style="display:inline-block; padding:0 10px; font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:11px; font-weight:600; letter-spacing:1.6px; text-transform:uppercase; color:#F2EFEA; text-decoration:none;">Your trip</a>
-        <span style="color:#6B635C;">&middot;</span>
-        <a href="https://outrider.travel/telluride" style="display:inline-block; padding:0 10px; font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:11px; font-weight:600; letter-spacing:1.6px; text-transform:uppercase; color:#F2EFEA; text-decoration:none;">Telluride</a>
-        <span style="color:#6B635C;">&middot;</span>
-        <a href="https://outrider.travel/faq" style="display:inline-block; padding:0 10px; font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:11px; font-weight:600; letter-spacing:1.6px; text-transform:uppercase; color:#F2EFEA; text-decoration:none;">FAQ</a>
-        <span style="color:#6B635C;">&middot;</span>
-        <a href="sms:{{sms_number_raw}}" style="display:inline-block; padding:0 10px; font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:11px; font-weight:600; letter-spacing:1.6px; text-transform:uppercase; color:#F2EFEA; text-decoration:none;">Text us</a>
+        <a href="{{portal_url}}" style="display:inline-block; padding:0 14px; font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:11px; font-weight:600; letter-spacing:1.6px; text-transform:uppercase; color:#F2EFEA; text-decoration:none;">Your trip</a>
+        <a href="https://outrider.travel/telluride" style="display:inline-block; padding:0 14px; font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:11px; font-weight:600; letter-spacing:1.6px; text-transform:uppercase; color:#F2EFEA; text-decoration:none;">Telluride</a>
+        <a href="https://outrider.travel/faq" style="display:inline-block; padding:0 14px; font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:11px; font-weight:600; letter-spacing:1.6px; text-transform:uppercase; color:#F2EFEA; text-decoration:none;">FAQ</a>
+        <a href="mailto:bookings@outrider.travel" style="display:inline-block; padding:0 14px; font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:11px; font-weight:600; letter-spacing:1.6px; text-transform:uppercase; color:#F2EFEA; text-decoration:none;">Email us</a>
       </td>
     </tr>
 
@@ -184,10 +187,10 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
             <td class="gutter" style="padding:34px 48px;">
               <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:11px; font-weight:600; letter-spacing:1.8px; text-transform:uppercase; color:#2A2320;">Faster than a form</div>
               <div class="big" style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:34px; line-height:1.15; font-weight:800; letter-spacing:-0.3px; text-transform:uppercase; color:#2A2320; padding-top:10px;">
-                <a href="sms:{{sms_number_raw}}" style="color:#2A2320; text-decoration:none;">Text {{sms_number}}</a>
+                <a href="mailto:bookings@outrider.travel" style="color:#2A2320; text-decoration:none;">Just hit reply</a>
               </div>
               <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:1.6; color:#2A2320; padding-top:12px;">
-                Send us your roommates in a text if that's easier. We'll put them in for you. A person answers within a day.
+                Reply with your roommates' names if that's easier. We'll put them in for you. A person answers within a day.
               </div>
             </td>
           </tr>
@@ -235,16 +238,16 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
           <tr><td style="border-top:1px solid #d7d2cb; font-size:0; line-height:0;">&nbsp;</td></tr>
           <tr>
             <td style="padding-top:24px; font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:13px; line-height:1.9; color:#6B635C;">
-              <a href="{{portal_url}}" style="color:#3E342F; text-decoration:underline;">Your trip</a> &nbsp;&middot;&nbsp;
-              <a href="https://outrider.travel/telluride" style="color:#3E342F; text-decoration:underline;">Telluride</a> &nbsp;&middot;&nbsp;
-              <a href="https://outrider.travel/faq" style="color:#3E342F; text-decoration:underline;">FAQ</a> &nbsp;&middot;&nbsp;
+              <a href="{{portal_url}}" style="color:#3E342F; text-decoration:underline;">Your trip</a> &nbsp;&nbsp;&nbsp;
+              <a href="https://outrider.travel/telluride" style="color:#3E342F; text-decoration:underline;">Telluride</a> &nbsp;&nbsp;&nbsp;
+              <a href="https://outrider.travel/faq" style="color:#3E342F; text-decoration:underline;">FAQ</a> &nbsp;&nbsp;&nbsp;
               <a href="https://www.instagram.com/outridertravel/" style="color:#3E342F; text-decoration:underline;">Instagram</a><br />
-              Text <a href="sms:{{sms_number_raw}}" style="color:#3E342F; text-decoration:underline;">{{sms_number}}</a> or email <a href="mailto:bookings@outrider.travel" style="color:#3E342F; text-decoration:underline;">bookings@outrider.travel</a>.
+              Questions? Reply to this email or write to <a href="mailto:bookings@outrider.travel" style="color:#3E342F; text-decoration:underline;">bookings@outrider.travel</a>.
             </td>
           </tr>
           <tr>
             <td style="padding-top:18px; font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:11px; line-height:1.6; color:#6B635C;">
-              Outrider Travel, LLC &middot; [STREET ADDRESS] &middot; [CITY, STATE ZIP]<br />
+              Outrider Travel, LLC, [STREET ADDRESS], [CITY, STATE ZIP]<br />
               You're getting this because you booked a trip with us.
               <a href="{{preferences_url}}" style="color:#6B635C; text-decoration:underline;">Email preferences</a>
             </td>
