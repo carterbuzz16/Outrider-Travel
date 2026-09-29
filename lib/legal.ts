@@ -87,10 +87,15 @@ export const TERMS: LegalDocumentMeta = {
   // liability". It adds an obligation for penthouse bookings only (the group
   // owes for places left empty after 7 days), which every penthouse booking
   // was already shown at checkout; nothing changes for any other tier.
-  version: "2.2.0",
+  // 3.0.0: MAJOR, because it changes when a traveler pays: the two
+  // installments move from 60 and 30 days before the trip to 70 and 40
+  // (INSTALLMENT_OFFSETS_DAYS, lib/installments.ts), so they land ahead of
+  // the hotel's room deposits. No booking existed on the day it took effect,
+  // so no traveler needed notice; the rule's counsel sign-off is still owed.
+  version: "3.0.0",
   status: "in-force",
-  effectiveDate: "2026-09-18",
-  lastUpdated: "2026-09-18",
+  effectiveDate: "2026-09-29",
+  lastUpdated: "2026-09-29",
   sections: [
     { id: "about", title: "Who these terms are between" },
     { id: "eligibility", title: "Eligibility and your account" },

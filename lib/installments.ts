@@ -7,7 +7,15 @@ import { toCents } from "@/lib/balance";
 // dates relative to the trip, not the booking date — a booking made close
 // to departure will simply have installments whose dates are already in
 // the past, which the cron picks up on its very next run.
-export const INSTALLMENT_OFFSETS_DAYS = [60, 30];
+//
+// 70 and 40, moved from 60 and 30 on 29 September 2026. The Peaks bills the
+// group's room deposits 61 and 30 days before December and 61 and 31 before
+// January, so at 60/30 every traveler installment landed a day after the
+// hotel payment it was meant to fund. Ten days ahead covers one failed charge
+// and its retry (INSTALLMENT_RETRY_AFTER_DAYS in lib/payments.ts) plus
+// Stripe's payout to the bank. The Terms and the booking form read these
+// numbers; the Terms version moved to 2.3.0 with them.
+export const INSTALLMENT_OFFSETS_DAYS = [70, 40];
 
 // Called once, right after the deposit's payment_intent.succeeded webhook
 // flips the booking pending -> deposit_paid (see lib/payments.ts). Splits

@@ -17,7 +17,7 @@ import { cn } from "./cn";
 export type ScheduleRow = {
   key: string;
   date: React.ReactNode;
-  /** Under the date: "60 days before the trip", "Deposit". */
+  /** Under the date: "70 days before the trip", "Deposit". */
   note?: React.ReactNode;
   status?: React.ReactNode;
   amount: React.ReactNode;

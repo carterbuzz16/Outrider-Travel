@@ -89,7 +89,7 @@ export default function BookingForm({
   tiers,
   initialTierId,
   depositPercent,
-  installmentCount,
+  installmentOffsets,
   contactEmail,
   initialGroupCode,
   discount = null,
@@ -102,7 +102,8 @@ export default function BookingForm({
   initialTierId: string;
   depositPercent: number;
   /** How many scheduled payments the balance is split into. */
-  installmentCount: number;
+  /** INSTALLMENT_OFFSETS_DAYS, passed down: lib/installments.ts is server-only. */
+  installmentOffsets: number[];
   contactEmail: string;
   /** From a friend's invite link (?group=), already checked by the page. Opens the code box, filled in. */
   initialGroupCode?: string;
@@ -121,7 +122,12 @@ export default function BookingForm({
   const packagesLegend = useId();
   const planLegend = useId();
   const dueToday = plan === "full" ? selected.fullLabel : selected.depositLabel;
-  const installments = installmentCount === 2 ? "two" : String(installmentCount);
+  const installments = installmentOffsets.length === 2 ? "two" : String(installmentOffsets.length);
+  // "70 and 40", or "90, 60 and 30" if the schedule ever grows a third.
+  const installmentDays =
+    installmentOffsets.length > 1
+      ? `${installmentOffsets.slice(0, -1).join(", ")} and ${installmentOffsets[installmentOffsets.length - 1]}`
+      : String(installmentOffsets[0]);
   const groups = [...new Set(tiers.map((t) => t.group).filter((g): g is string => Boolean(g)))];
 
   // The account step (see the note at the top). `authed` starts from the
@@ -233,9 +239,7 @@ export default function BookingForm({
               onSelect={() => setPlan("deposit")}
               title={`${depositPercent}% deposit today`}
               amount={selected.depositLabel}
-              // The timing restates INSTALLMENT_OFFSETS_DAYS in lib/installments.ts
-              // (server-only, so not importable here). Change both together.
-              detail={`The other ${selected.balanceLabel} in ${installments} payments, charged to your card 60 and 30 days before the trip.`}
+              detail={`The other ${selected.balanceLabel} in ${installments} payments, charged to your card ${installmentDays} days before the trip.`}
             />
             <PlanOption
               value="full"

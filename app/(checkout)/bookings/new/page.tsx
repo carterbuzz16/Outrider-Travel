@@ -344,7 +344,7 @@ function Packages({
       tiers={tiers}
       initialTierId={initial.id}
       depositPercent={Math.round(DEPOSIT_PERCENTAGE * 100)}
-      installmentCount={INSTALLMENT_OFFSETS_DAYS.length}
+      installmentOffsets={INSTALLMENT_OFFSETS_DAYS}
       contactEmail={CONTACT.email}
       initialGroupCode={groupCode}
       discount={discount ? { code: discount.code, label: formatAmount(discount.amount) } : null}
