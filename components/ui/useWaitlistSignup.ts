@@ -11,6 +11,7 @@ import {
   type WaitlistInput,
 } from "@/lib/waitlist-signup";
 import { honeypotValue } from "@/lib/honeypot";
+import { pixelEvent } from "@/lib/meta-pixel";
 
 /**
  * The waitlist submit path, once.
@@ -32,7 +33,8 @@ type Status = "idle" | "busy" | "done" | "error";
  * joining, and client-side navigation drops the query string on the first
  * click. Capturing it once, the first time any page reads it, keeps it across
  * those navigations. Deliberately not written to a cookie or to storage: the
- * site sets no tracking storage, and the privacy position depends on that.
+ * only tracking storage on the site is the Meta Pixel's own cookie, which the
+ * privacy policy names, and these tags are not added to it.
  *
  * `src` is the team's own short tag (?src=launch on an event QR code), kept
  * apart from utm_source so it can be filtered on by itself.
@@ -122,6 +124,9 @@ export function useWaitlistSignup(placement: string) {
             source: firstTouch?.source ?? null,
             src: firstTouch?.src ?? null,
           });
+          // To Meta, only that a signup happened: never the name, address or
+          // number just submitted (lib/meta-pixel.ts, and the privacy policy).
+          pixelEvent("Lead");
         } else {
           setStatus("error");
           setFieldErrors(result.fieldErrors ?? {});

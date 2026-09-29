@@ -49,6 +49,9 @@ const COLUMNS: Column[] = [
         href: `/${doc.slug}`,
       })),
       { label: "Cancellation & refunds", href: "/terms#cancellation" },
+      // The opt-out from ad sharing (the Meta Pixel), findable from every
+      // page, as California expects of a site that shares for advertising.
+      { label: "Your privacy choices", href: "/privacy#ad-choices" },
     ],
   },
   {

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Figtree } from "next/font/google";
 import Telemetry from "@/components/Telemetry";
+import MetaPixel from "@/components/MetaPixel";
 import { getAppUrl } from "@/lib/site-url";
 import { CHECKOUT_SANDBOX } from "@/lib/booking-window";
 import "./globals.css";
@@ -103,13 +104,20 @@ export default function RootLayout({
         {/*
           Vercel Analytics and Speed Insights.
           Chosen over Google Analytics deliberately: both are cookieless and
-          store no identifier on the visitor's device, so they do not trigger
-          the consent requirement and the cookie banner stays switched off.
-          They also only report on a real deployment, so local runs stay clean.
-          Wrapped so access tokens in query strings are not reported; see
+          store no identifier on the visitor's device. They also only report
+          on a real deployment, so local runs stay clean. Wrapped so access
+          tokens in query strings are not reported; see
           components/Telemetry.tsx.
         */}
         <Telemetry />
+        {/*
+          The Meta Pixel, for Instagram ads to people who have visited (owner's
+          decision, 29 September 2026). Unlike the analytics above it sets a
+          cookie and shares visits with Meta, which the privacy policy now
+          says (1.3.0) along with how to opt out. Every rule the policy
+          promises is enforced in lib/meta-pixel.ts.
+        */}
+        <MetaPixel />
       </body>
     </html>
   );

@@ -41,6 +41,8 @@ const isDev = process.env.NODE_ENV !== "production";
  *   - Stripe.js and the Payment Element's frames (3-D Secure included);
  *   - Vercel Web Analytics and Speed Insights (same-origin /_vercel/ in
  *     production, va.vercel-scripts.com in development);
+ *   - the Meta Pixel on the live site (lib/meta-pixel.ts): its script from
+ *     connect.facebook.net, its events to www.facebook.com;
  *   - Supabase, for auth from the browser and Storage images;
  *   - Figtree through next/font (self-hosted, so 'self'); Google Fonts is
  *     allowed only because CheckoutForm hands its CSS URL to Stripe;
@@ -59,10 +61,11 @@ const contentSecurityPolicy = [
     "https://js.stripe.com",
     "https://*.js.stripe.com",
     "https://va.vercel-scripts.com",
+    "https://connect.facebook.net",
   ],
   ["style-src", "'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
   ["font-src", "'self'", "data:", "https://fonts.gstatic.com"],
-  ["img-src", "'self'", "data:", "blob:", "https://*.stripe.com", ...supabaseSources],
+  ["img-src", "'self'", "data:", "blob:", "https://*.stripe.com", "https://www.facebook.com", ...supabaseSources],
   ["media-src", "'self'", "blob:", ...supabaseSources],
   [
     "connect-src",
@@ -71,6 +74,8 @@ const contentSecurityPolicy = [
     "https://*.stripe.com",
     "https://va.vercel-scripts.com",
     "https://vitals.vercel-insights.com",
+    "https://www.facebook.com",
+    "https://connect.facebook.net",
     ...supabaseSources,
     ...supabaseSockets,
     ...(isDev ? ["ws:"] : []),

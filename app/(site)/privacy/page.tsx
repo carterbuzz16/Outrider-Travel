@@ -4,6 +4,7 @@ import Link from "next/link";
 import { PRIVACY } from "@/lib/legal";
 import { CONTACT, LEGAL_NAME } from "@/lib/site-content";
 import LegalDocument, { LegalList, LegalSection } from "../legal/LegalDocument";
+import AdChoices from "@/components/AdChoices";
 
 /**
  * Privacy Policy.
@@ -13,9 +14,11 @@ import LegalDocument, { LegalList, LegalSection } from "../legal/LegalDocument";
  * components/CheckoutForm.tsx and lib/stripe.ts, session cookies in
  * lib/supabase/middleware.ts, the waitlist and its Resend audience in
  * app/waitlist-actions.ts, the contact form in app/(site)/contact/actions.ts,
- * and the IP-keyed rate limiter in lib/rate-limit.ts. There is no analytics
- * package in this project, so the policy says there is none rather than
- * hedging.
+ * and the IP-keyed rate limiter in lib/rate-limit.ts. Site statistics come
+ * from Vercel Web Analytics, which is cookieless. Since 1.3.0 there is also
+ * the Meta Pixel, for Instagram ads to people who have visited: what it
+ * sends, where it never runs and how to opt out are stated below, and each
+ * of those is enforced in lib/meta-pixel.ts. Change one, change the other.
  *
  * Where the code has no answer, a retention schedule, for instance, which
  * simply does not exist yet, the page says so in a flag instead of inventing
@@ -142,6 +145,18 @@ export default function PrivacyPage() {
           version, and the page you requested, and our host records them. See
           section {sectionIndex("logs")}.
         </p>
+
+        <h3>Your visits, through the Meta Pixel</h3>
+        <p>
+          When the Meta Pixel runs (see section {sectionIndex("cookies")}), it
+          sends Meta the address of the page you are viewing and of the page
+          you came from, your IP address, your browser and device type, and the
+          identifiers in its cookies. It also tells Meta when you join the
+          waitlist, when you reach the card form for a new booking, and when you
+          make a booking&rsquo;s first payment, with the amount. It does not send
+          your name, email address, phone number, card details or anything you
+          type into a form.
+        </p>
       </LegalSection>
 
       <LegalSection doc={PRIVACY} id="payment-data">
@@ -228,6 +243,11 @@ export default function PrivacyPage() {
               otherwise asked for them;
             </>,
             <>
+              show Outrider ads on Instagram and Facebook to people who have
+              visited this site, and measure how those ads perform (see section{" "}
+              {sectionIndex("cookies")});
+            </>,
+            <>
               keep the site working and safe, preventing abuse, limiting how
               often an anonymous form can be submitted, and investigating
               problems;
@@ -236,8 +256,11 @@ export default function PrivacyPage() {
           ]}
         />
         <p>
-          We do not sell your personal information, and we do not share it for
-          cross-context behavioural advertising.
+          We do not sell your personal information. We do share information
+          about your visits with Meta, through the Meta Pixel, so that we can
+          show our ads to people who have been here. Under California law that
+          counts as sharing for cross-context behavioural advertising, and you
+          can opt out of it; see section {sectionIndex("cookies")}.
         </p>
       </LegalSection>
 
@@ -249,21 +272,55 @@ export default function PrivacyPage() {
           Without them the booking area cannot know who you are.
         </p>
         <p>
-          <strong>
-            We do not use analytics, advertising or tracking cookies, and there
-            is no third-party analytics or advertising code on this site.
-          </strong>{" "}
-          Nobody is being profiled here, and there is nothing to opt out of.
+          We also use the Meta Pixel, a piece of code from Meta Platforms that
+          runs on our pages. It sets a cookie on this site, named _fbp, that
+          identifies your browser to Meta, and when you arrive by clicking one of
+          our ads, a second, named _fbc, recording that click. It tells Meta
+          which of our pages you visit and the few actions listed in section{" "}
+          {sectionIndex("what-we-collect")}. Meta uses that to show Outrider ads
+          on Instagram and Facebook to people who have visited, and to tell us,
+          in totals, how our ads are doing. Meta also uses what it receives under
+          its own terms and{" "}
+          <a
+            href="https://www.facebook.com/privacy/policy"
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            privacy policy
+          </a>
+          , and can connect it to your Instagram or Facebook account if you have
+          one.
         </p>
+        <p>
+          <strong>
+            The pixel runs only on the live site, and never on a page whose link
+            carries a private code
+          </strong>
+          , such as your trip-page link, a penthouse invite, a discount code or
+          a sign-in link. It does not run when your device is set to a European
+          time zone, which is how we keep it off for visitors in the EEA, the UK
+          and Switzerland. Our own site statistics, from Vercel, set no cookie
+          and store nothing on your device.
+        </p>
+        <h3 id="ad-choices">Your ad choices</h3>
+        <p>
+          You can opt out of the Meta Pixel with the switch below. It applies to
+          this browser only, so if you use several browsers or devices, set it in
+          each, and clearing your browser&rsquo;s data resets it. If your browser
+          sends a Global Privacy Control signal, we treat that as an opt-out
+          without you doing anything. You can also control the ads Meta shows
+          you in the ad settings of your Instagram or Facebook account.
+        </p>
+        <AdChoices />
         <p>
           Stripe sets its own cookies on pages where you enter card details, to
           detect fraud and to make its payment form work. Those are Stripe&rsquo;s
           and are governed by its policy.
         </p>
         <p>
-          You can block or delete cookies in your browser. If you block ours, you
-          will not be able to stay signed in, and the booking pages will not
-          work.
+          You can block or delete cookies in your browser. Blocking Meta&rsquo;s
+          does not affect the site. If you block ours, you will not be able to
+          stay signed in, and the booking pages will not work.
         </p>
       </LegalSection>
 
@@ -343,7 +400,7 @@ export default function PrivacyPage() {
       </LegalSection>
 
       <LegalSection doc={PRIVACY} id="sharing">
-        <p>We share personal information with four kinds of recipient.</p>
+        <p>We share personal information with five kinds of recipient.</p>
 
         <h3>Service providers that run the platform</h3>
         <LegalList
@@ -370,6 +427,17 @@ export default function PrivacyPage() {
             </>,
           ]}
         />
+
+        <h3>Meta, for advertising</h3>
+        <p>
+          Meta Platforms receives the visit information described in section{" "}
+          {sectionIndex("what-we-collect")} through the Meta Pixel, so that we
+          can show our ads to people who have visited this site and measure
+          them. It receives no traveler details, no mobile number and no
+          text-message consent. Of a booking, it learns only that a first payment
+          was made, and the amount. You can opt out; see section{" "}
+          {sectionIndex("cookies")}.
+        </p>
 
         <h3>Trip suppliers</h3>
         <p>
@@ -433,6 +501,11 @@ export default function PrivacyPage() {
               erased;
             </>,
             <>stop sending you marketing email;</>,
+            <>
+              stop sharing your visits with Meta for advertising, which you can
+              also do yourself with the switch in section{" "}
+              {sectionIndex("cookies")};
+            </>,
             <>stop texting you, which you can also do by replying STOP;</>,
             <>
               stop using your card for future installments, though this does not
@@ -453,20 +526,25 @@ export default function PrivacyPage() {
           If you live in California, the California Consumer Privacy Act as
           amended by the CPRA gives you rights to know what personal information
           is collected about you and how it is used and shared, to obtain a copy,
-          to correct it, to delete it, and to limit the use of sensitive personal
-          information, along with a right not to be discriminated against for
-          exercising them.
+          to correct it, to delete it, to opt out of its sale or sharing, and to
+          limit the use of sensitive personal information, along with a right
+          not to be discriminated against for exercising them.
         </p>
         <p>
           The categories we collect, why, and who receives them are described
           throughout this policy, identifiers and contact details, commercial
           information about your bookings and payments, internet activity in the
-          form of server logs, and, where you give it to us for a trip, health
-          information. <strong>
-            We do not sell personal information and we do not share it for
-            cross-context behavioural advertising.
+          form of server logs and, through the Meta Pixel, the pages you visit
+          here, and, where you give it to us for a trip, health information.{" "}
+          <strong>
+            We do not sell personal information. We do share it, as the CPRA
+            uses the word, in one way: the Meta Pixel sends Meta information
+            about your visits here so that we can show you our ads.
           </strong>{" "}
-          To make a request, use the contact route in section{" "}
+          You can opt out with the switch in section {sectionIndex("cookies")},
+          reached from the &ldquo;Your privacy choices&rdquo; link at the foot of
+          every page, and we honor Global Privacy Control signals as an opt-out.
+          To make any other request, use the contact route in section{" "}
           {sectionIndex("rights")}.
         </p>
       </LegalSection>
@@ -479,7 +557,9 @@ export default function PrivacyPage() {
           handling of your information, we rely on these legal bases: performance
           of a contract for booking and running your trip; legitimate interests
           for keeping the site secure and defending claims; consent for marketing
-          email; and legal obligation for tax and accounting records. You also
+          email; and legal obligation for tax and accounting records. We do not
+          run the Meta Pixel for visitors whose device is set to a European time
+          zone (section {sectionIndex("cookies")}). You also
           have rights of access, rectification, erasure, restriction, portability
           and objection, and a right to complain to your data protection
           authority.

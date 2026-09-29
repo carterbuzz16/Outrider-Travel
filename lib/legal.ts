@@ -120,7 +120,7 @@ export const PRIVACY: LegalDocumentMeta = {
   title: "Privacy Policy",
   shortTitle: "Privacy Policy",
   description:
-    "What Outrider collects when you join the waitlist or book a trip, where card details actually go, who your information is shared with, how trip texts work, and how to have it deleted.",
+    "What Outrider collects when you join the waitlist or book a trip, where card details actually go, who your information is shared with, the Meta Pixel and how to opt out of it, how trip texts work, and how to have it deleted.",
   // 1.1.0: MINOR. New: the trip page and the traveler details it collects
   // (and the insurer and rental shop they go to), and a text-message section
   // stating that mobile numbers and SMS consent are not shared for marketing,
@@ -132,16 +132,23 @@ export const PRIVACY: LegalDocumentMeta = {
   // opt-ins (email, and marketing texts), stored with the consent evidence
   // and the link tag that brought the signup; names now go to Resend with the
   // address. The waitlist and text-message sections say so. No new recipient.
-  version: "1.2.0",
+  // 1.3.0: MINOR. The Meta Pixel (lib/meta-pixel.ts): a new recipient (Meta,
+  // for advertising), a new cookie, and an opt-out, in the cookies section
+  // (retitled), the uses, sharing, rights and California sections. The two
+  // statements that there was no advertising code and no sharing for
+  // cross-context behavioural advertising are withdrawn. It changes what is
+  // collected from future visits only, not how information already held is
+  // handled, so the notice-by-email promise in "changes" is not triggered.
+  version: "1.3.0",
   status: "in-force",
-  effectiveDate: "2026-09-24",
-  lastUpdated: "2026-09-24",
+  effectiveDate: "2026-09-29",
+  lastUpdated: "2026-09-29",
   sections: [
     { id: "scope", title: "Scope and who is responsible" },
     { id: "what-we-collect", title: "What we collect" },
     { id: "payment-data", title: "Payment information and Stripe" },
     { id: "how-we-use", title: "How we use your information" },
-    { id: "cookies", title: "Cookies and session storage" },
+    { id: "cookies", title: "Cookies, the Meta Pixel and your ad choices" },
     { id: "email", title: "Email, the waitlist and marketing" },
     { id: "sms", title: "Text messages" },
     { id: "logs", title: "Server logs, security and rate limiting" },

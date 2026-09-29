@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
@@ -8,6 +8,7 @@ import { loadStripe, type Appearance } from "@stripe/stripe-js";
 import { Alert, Button } from "@/components/ui";
 import AuthorizeCharge, { type ScheduledCharge } from "@/components/AuthorizeCharge";
 import { acceptTermsForBooking } from "@/app/(protected)/bookings/actions";
+import { pixelEvent } from "@/lib/meta-pixel";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -210,6 +211,12 @@ function PaymentForm({
   const [authorized, setAuthorized] = useState(false);
   const inFlight = useRef(false);
 
+  // Reaching the card form of a new booking, for the ad audience. Once per
+  // mount; balance payments are not checkouts in that sense.
+  useEffect(() => {
+    if (acceptTerms) pixelEvent("InitiateCheckout");
+  }, [acceptTerms]);
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     // The disabled button already stops this; checked again here because the
@@ -272,6 +279,13 @@ function PaymentForm({
     }
 
     if (paymentIntent?.status === "succeeded") {
+      // A new booking's first payment, for the ad audience: the amount and
+      // nothing else. Balance installments are not new bookings. A payment
+      // that finishes on a bank's 3-D Secure page returns by redirect and is
+      // not counted; Stripe remains the record either way.
+      if (acceptTerms) {
+        pixelEvent("Purchase", { value: paymentIntent.amount / 100, currency: paymentIntent.currency.toUpperCase() });
+      }
       router.push(returnPath);
     } else {
       setSubmitting(false);
