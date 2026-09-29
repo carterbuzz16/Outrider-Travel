@@ -78,8 +78,13 @@ export async function createBooking(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // The form makes the account first (an emailed code, in the order panel),
+  // so this is only a form posted without script, or a session that lapsed
+  // on the way. Back to the login page, which offers the same code, and from
+  // there back to this trip rather than a blank start.
   if (!user) {
-    redirect("/login");
+    const again = `/bookings/new?trip=${encodeURIComponent(tripId)}${tierId ? `&package=${encodeURIComponent(tierId)}` : ""}`;
+    redirect(`/login?next=${encodeURIComponent(again)}`);
   }
 
   // Only an account with a confirmed email books. Supabase's "Confirm email"

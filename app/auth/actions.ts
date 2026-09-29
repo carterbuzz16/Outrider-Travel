@@ -396,3 +396,115 @@ export async function logout() {
   revalidatePath("/", "layout");
   redirect("/login");
 }
+
+/* -- sign in with an emailed code ----------------------------------------------
+ *
+ * Checkout's way in (28 September 2026). A first-time visitor used to meet a
+ * login page, a signup form with two passwords, and a confirmation link in
+ * their inbox before they saw a price. Now "Continue" on /bookings/new asks
+ * for an email, Supabase sends a 6-digit code, and typing it in both creates
+ * the account (if there is none) and signs them in with the address already
+ * confirmed, which is what createBooking requires. No password is ever set.
+ * The login page offers the same code for anyone who has no password.
+ *
+ * The code comes from Supabase's Magic Link template (and Confirm signup, for
+ * a brand-new address), which must show {{ .Token }}; see
+ * supabase/email-templates/README.md.
+ *
+ * Both actions are public endpoints, so both are rate limited per network and
+ * per address, failing closed: every send is an email, and every verify is a
+ * guess at a 6-digit number. Supabase adds its own limits on top. Neither
+ * says whether an address has an account: the answers are the same either way.
+ */
+
+export type CodeResult = { ok: true } | { ok: false; message: string };
+
+const CODE_WINDOW = 15 * 60;
+
+export async function sendSignInCode(input: { email: string; name?: string }): Promise<CodeResult> {
+  const email = String(input?.email ?? "").trim().toLowerCase();
+  // Capped to the users_name_length constraint, as in signup: handle_new_user
+  // copies it into public.users.
+  const name = String(input?.name ?? "").trim().slice(0, 120);
+  if (!isEmail(email)) return { ok: false, message: "Enter a valid email address." };
+
+  const ip = await clientIp();
+  const [byNetwork, byAddress] = await Promise.all([
+    checkRateLimit(`code-send-ip:${ip}`, 8, CODE_WINDOW, FAIL_CLOSED),
+    checkRateLimit(`code-send:${email}`, 4, CODE_WINDOW, FAIL_CLOSED),
+  ]);
+  if (!byNetwork || !byAddress) {
+    return { ok: false, message: "That's a lot of codes. Wait a few minutes, then try again." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      // A new address gets an account. The name is only used when one is
+      // created; an existing account keeps the name it has.
+      shouldCreateUser: true,
+      ...(name ? { data: { name } } : {}),
+      // Only for the button in the email, if the template still has one.
+      emailRedirectTo: `${getAppUrl()}/auth/callback?next=${encodeURIComponent("/bookings/new")}`,
+    },
+  });
+
+  if (error) {
+    // Supabase allows one code a minute per address.
+    if (error.status === 429 || /security purposes|rate limit/i.test(error.message)) {
+      return { ok: false, message: "A code is already on its way. Give it a minute before asking for another." };
+    }
+    console.error(`signInWithOtp failed: ${error.status} ${error.message}`);
+    return { ok: false, message: "That didn't send. Try again in a moment." };
+  }
+  return { ok: true };
+}
+
+export async function verifySignInCode(input: {
+  email: string;
+  code: string;
+  name?: string;
+  /** The optional "Okay to email me about Outrider trips" box. */
+  emailUpdates?: boolean;
+}): Promise<CodeResult> {
+  const email = String(input?.email ?? "").trim().toLowerCase();
+  const code = String(input?.code ?? "").replace(/\s+/g, "");
+  // Six digits by default; Supabase allows the length to be raised to ten.
+  if (!isEmail(email) || !/^\d{6,10}$/.test(code)) {
+    return { ok: false, message: "Enter the code from the email." };
+  }
+
+  const ip = await clientIp();
+  const [byNetwork, byAddress] = await Promise.all([
+    checkRateLimit(`code-verify-ip:${ip}`, 20, CODE_WINDOW, FAIL_CLOSED),
+    checkRateLimit(`code-verify:${email}`, 8, CODE_WINDOW, FAIL_CLOSED),
+  ]);
+  if (!byNetwork || !byAddress) {
+    return { ok: false, message: "Too many tries. Ask for a new code in a few minutes." };
+  }
+
+  const supabase = await createClient();
+  // "email" covers both the sign-in code and a new account's confirmation
+  // code, so one call works whether or not the address had an account.
+  const { data, error } = await supabase.auth.verifyOtp({ email, token: code, type: "email" });
+  if (error || !data.session) {
+    return {
+      ok: false,
+      message: /expired/i.test(error?.message ?? "")
+        ? "That code has expired. Ask for a new one."
+        : "That code didn't work. Check it, or ask for a new one.",
+    };
+  }
+
+  if (input?.emailUpdates === true) {
+    const metaName = data.user?.user_metadata?.name;
+    await joinListFromSignup({
+      email,
+      name: String(input.name ?? "").trim().slice(0, 120) || (typeof metaName === "string" ? metaName : ""),
+      ip: ip === "unknown" ? null : ip,
+      userAgent: (await headers()).get("user-agent")?.slice(0, 300) ?? null,
+    });
+  }
+  return { ok: true };
+}

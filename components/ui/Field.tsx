@@ -101,10 +101,13 @@ export function Field({
   );
 }
 
+// ComponentProps rather than InputHTMLAttributes so a ref passes through
+// (React 19 takes ref as an ordinary prop): the emailed-code sign-in focuses
+// its fields.
 export function Input({
   className,
   ...props
-}: React.InputHTMLAttributes<HTMLInputElement>) {
+}: React.ComponentProps<"input">) {
   return <input className={cn(CONTROL, className)} {...props} />;
 }
 

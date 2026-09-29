@@ -58,6 +58,25 @@ explicit `emailRedirectTo` built from it, which overrides the Site URL fallback.
 | `magic-link.html` | Magic link |
 | `email-change.html` | Change email address |
 
+## 4. The 6-digit code (28 September 2026)
+
+Checkout and the login page sign people in with an emailed code instead of a
+password (`sendSignInCode` / `verifySignInCode` in `app/auth/actions.ts`).
+Supabase sends that code through the **Magic link** template, and through
+**Confirm signup** when the address has no account yet, and it only sends a
+code if the template contains `{{ .Token }}`. Both files above show it, big,
+at the top, with the old button kept underneath for anyone on another device.
+
+- Paste **both** `magic-link.html` and `confirm-signup.html` again.
+- Suggested subjects: Magic link `Your Outrider code`, Confirm signup
+  `Your Outrider code`.
+- **Authentication → Providers → Email**: leave *Confirm email* on. *Email OTP
+  Expiration* is how long a code works (3600 seconds is fine); *Email OTP
+  Length* can stay at 6, and the form accepts up to 10 if it is raised.
+
+Until the templates are pasted, the email carries only the button, and the
+code box at checkout has nothing to match.
+
 Supabase substitutes `{{ .SiteURL }}` and `{{ .TokenHash }}` when it sends.
 Leave those exactly as written.
 

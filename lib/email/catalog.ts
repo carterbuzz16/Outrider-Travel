@@ -159,7 +159,10 @@ function supabaseTemplate(file: string): string {
   const raw = readFileSync(path.join(process.cwd(), "supabase", "email-templates", file), "utf8");
   return raw
     .replace(/\{\{\s*\.SiteURL\s*\}\}/g, getAppUrl())
-    .replace(/\{\{\s*\.TokenHash\s*\}\}/g, "sample-token-hash");
+    .replace(/\{\{\s*\.TokenHash\s*\}\}/g, "sample-token-hash")
+    // The 6-digit sign-in code (Magic link and Confirm signup). After
+    // TokenHash, whose name starts the same way.
+    .replace(/\{\{\s*\.Token\s*\}\}/g, "482915");
 }
 
 /* -- the catalogue ----------------------------------------------------------- */

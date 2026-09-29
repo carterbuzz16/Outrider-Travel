@@ -8,8 +8,15 @@ import { NextResponse, type NextRequest } from "next/server";
 export const PROTECTED_PREFIXES = ["/bookings"];
 export const ADMIN_PREFIX = "/admin";
 
+// Exact paths under a protected prefix that anyone may open. /bookings/new is
+// checkout's first step: the packages and prices are public, and the account
+// is made at "Continue" with an emailed code (app/(checkout)/layout.tsx).
+// Exact, not a prefix, so /bookings/new-anything stays protected.
+export const PUBLIC_EXCEPTIONS = ["/bookings/new"];
+
 /** Does this path require a signed-in user? */
 export function requiresAuth(pathname: string): boolean {
+  if (PUBLIC_EXCEPTIONS.includes(pathname.replace(/\/+$/, ""))) return false;
   return (
     PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||
     pathname.startsWith(ADMIN_PREFIX)

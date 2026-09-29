@@ -43,6 +43,9 @@ import {
  * button adds &package=<tier name> so it arrives already selected. Both survive
  * the trip through /login (middleware keeps the query string on `next`).
  *
+ * Open to everyone, signed in or not (app/(checkout)/layout.tsx): the account
+ * is made at the form's Continue button with an emailed code.
+ *
  * With one trip (asked for, or the only one open) the page is the package
  * form. With several and none asked for, it first asks which dates, as a short
  * list of links, since the packages belong to a departure. A trip that was
@@ -52,6 +55,16 @@ export default async function NewBookingPage(props: {
   searchParams: Promise<{ error?: string; trip?: string; package?: string; group?: string; code?: string }>;
 }) {
   const searchParams = await props.searchParams;
+
+  // Who is looking, if anyone. Signed in with a confirmed email means the
+  // form's Continue goes straight to createBooking; otherwise it asks for an
+  // email and a code first. An unconfirmed session (none should exist while
+  // Supabase's "Confirm email" is on) is treated as signed out, since the
+  // code confirms the address and createBooking would refuse it anyway.
+  const {
+    data: { user },
+  } = await (await createClient()).auth.getUser();
+  const signedIn = Boolean(user?.email_confirmed_at) && !user?.is_anonymous;
 
   // ?code=, a giveaway discount code (lib/discount-codes.ts), from the link we
   // text a winner or from the Apply button beside the code box. Checked once,
@@ -63,10 +76,10 @@ export default async function NewBookingPage(props: {
   const discountCode = normalizeDiscountCode(searchParams.code);
   let discount: Discount | null = null;
   if (discountCode && (await checkRateLimit(`discount-check:${await clientIp()}`, 30, 60 * 60))) {
-    const {
-      data: { user },
-    } = await (await createClient()).auth.getUser();
-    const amount = user ? await discountCodeAmount(createAdminClient(), discountCode, user.id) : null;
+    // Checked for signed-out visitors too, now that they can see prices here.
+    // The user id only matters for someone with an abandoned checkout of
+    // their own (see discount_code_uses).
+    const amount = await discountCodeAmount(createAdminClient(), discountCode, user?.id);
     if (amount !== null) discount = { code: discountCode, amount };
   }
   const discountRejected = Boolean(discountCode) && discount === null;
@@ -172,6 +185,7 @@ export default async function NewBookingPage(props: {
                 groupCode={group?.knownOnTrip ? (group.code ?? undefined) : undefined}
                 discount={discount}
                 rejectedCode={discountRejected ? discountCode : null}
+                signedIn={signedIn}
               />
             </div>
             {hasPenthouse && (
@@ -246,6 +260,7 @@ function Packages({
   groupCode,
   discount,
   rejectedCode,
+  signedIn,
 }: {
   trip: PublicTrip;
   requestedPackage?: string;
@@ -257,6 +272,7 @@ function Packages({
   discount: Discount | null;
   /** A ?code= that did not, to show in the box with a line saying so. */
   rejectedCode: string | null;
+  signedIn: boolean;
 }) {
   const off = discount?.amount ?? 0;
   const tiers: CheckoutTier[] = trip.tiers.map((tier) => {
@@ -333,6 +349,7 @@ function Packages({
       initialGroupCode={groupCode}
       discount={discount ? { code: discount.code, label: formatAmount(discount.amount) } : null}
       rejectedCode={rejectedCode}
+      signedIn={signedIn}
     />
   );
 }

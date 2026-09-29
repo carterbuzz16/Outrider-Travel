@@ -6,6 +6,7 @@ import { Alert, Button, Field, Input, Logo } from "@/components/ui";
 import { login, resendConfirmation } from "@/app/auth/actions";
 import { LOGIN_ERRORS, LOGIN_MESSAGES, flashText } from "@/lib/flash";
 import { safePath } from "@/lib/safe-path";
+import EmailCodeSignIn from "@/components/EmailCodeSignIn";
 
 /*
  * Client component, and only for one reason: `Field` takes its control as a
@@ -81,7 +82,7 @@ export default function LoginPage(
           <h1 className="t-title text-[--text]">Log in</h1>
           <p className="font-body text-body leading-[1.7] text-[--text-secondary]">
             {fromBooking
-              ? "Log in to hold your spot. We'll take you straight back to the trip you picked."
+              ? "We'll take you straight back to the trip you picked."
               : "Your trips, deposits and payment dates all sit here."}
           </p>
         </div>
@@ -101,7 +102,36 @@ export default function LoginPage(
           </div>
         )}
 
-        <form action={login} className="mt-10 flex flex-col gap-7">
+        {/* The emailed code first (28 September 2026): no password to make up
+            or forget, and the only way back in for anyone whose account was
+            made at checkout with a code, since they never set a password. The
+            password form is still here, folded, for accounts that have one;
+            it opens by itself when a login error brings someone back. */}
+        <div className="mt-10">
+          <EmailCodeSignIn
+            continueLabel="Log in"
+            busyLabel="Logging you in"
+            // A full load, so every server-rendered part of the next page (the
+            // nav, the booking) is drawn signed in.
+            onSignedIn={() => window.location.assign(next)}
+          />
+        </div>
+
+        <details className="group mt-10 border-t border-[--rule] pt-6" open={Boolean(error)}>
+          <summary
+            className={[
+              "flex cursor-pointer list-none items-center gap-3 py-2.5 -my-2.5",
+              "t-label text-[--accent] transition-colors duration-fast",
+              "hover:text-[--text] [&::-webkit-details-marker]:hidden",
+            ].join(" ")}
+          >
+            <span>Use your password instead</span>
+            <span aria-hidden="true" className="transition-transform duration-fast group-open:rotate-45">
+              +
+            </span>
+          </summary>
+
+          <form action={login} className="mt-6 flex flex-col gap-7">
           <input type="hidden" name="next" value={next} />
 
           <Field label="Email" required>
@@ -144,6 +174,7 @@ export default function LoginPage(
             Log in
           </Button>
         </form>
+        </details>
 
         {/* Confirmation mail gets filtered, delayed and deleted. Without this
             the only way back is creating another account, which cannot work,
@@ -181,12 +212,13 @@ export default function LoginPage(
 
         <div className="mt-8 border-t border-[--rule] pt-6">
           <p className="font-body text-body-s text-[--text-secondary]">
-            First trip with us?{" "}
+            First trip with us? Enter your email above, and the code sets up your account. Rather
+            have a password?{" "}
             <Link
               href={`/signup?next=${encodeURIComponent(next)}`}
               className="text-[--accent] decoration-[--accent]"
             >
-              Create an account
+              Create an account with one
             </Link>
             .
           </p>

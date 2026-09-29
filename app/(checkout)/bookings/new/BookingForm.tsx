@@ -3,9 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Field, Input, RadioControl, RoomPanel, RoomPhotosButton, cn, type RoomView } from "@/components/ui";
 import { PendingSubmitButton, SubmitOnceForm } from "@/components/SubmitOnce";
+import EmailCodeSignIn from "@/components/EmailCodeSignIn";
 import { createBooking } from "@/app/(protected)/bookings/actions";
 import { tierDisplayName } from "@/lib/tier-display";
 
@@ -35,6 +36,13 @@ import { tierDisplayName } from "@/lib/tier-display";
  * the button included, already has it off. Without script the code simply
  * posts with the form and createBooking applies it just the same; the prices
  * here then show it only from the payment step on.
+ *
+ * Signed out is fine (28 September 2026). The page is public, and the account
+ * is made at the button: pressing Continue without a session opens an email
+ * box and then a 6-digit code box in its place (components/EmailCodeSignIn),
+ * and once the code checks out the form submits itself, so the visitor goes
+ * straight on to step 2 with the package and plan they picked. createBooking
+ * still requires a confirmed account, and a verified code is one.
  *
  * The form sends once per press and the button says so until the server
  * answers (components/SubmitOnce.tsx). A second press would otherwise create a
@@ -86,6 +94,7 @@ export default function BookingForm({
   initialGroupCode,
   discount = null,
   rejectedCode = null,
+  signedIn,
 }: {
   tripId: string;
   tiers: CheckoutTier[];
@@ -101,6 +110,8 @@ export default function BookingForm({
   discount?: { code: string; label: string } | null;
   /** A ?code= that did not check out: shown in its box with a line saying so. */
   rejectedCode?: string | null;
+  /** A session with a confirmed email. Without one, Continue asks for an email and a code first. */
+  signedIn: boolean;
 }) {
   const router = useRouter();
   const [tierId, setTierId] = useState(initialTierId);
@@ -112,6 +123,18 @@ export default function BookingForm({
   const dueToday = plan === "full" ? selected.fullLabel : selected.depositLabel;
   const installments = installmentCount === 2 ? "two" : String(installmentCount);
   const groups = [...new Set(tiers.map((t) => t.group).filter((g): g is string => Boolean(g)))];
+
+  // The account step (see the note at the top). `authed` starts from the
+  // server's answer and flips when a code checks out; `submitting` then asks
+  // the effect below to submit, once the real button is back on screen to
+  // show "Holding your spot".
+  const [authed, setAuthed] = useState(signedIn);
+  const [askingEmail, setAskingEmail] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (authed && submitting) panelRef.current?.closest("form")?.requestSubmit();
+  }, [authed, submitting]);
 
   // Reloads the page with the code (or without one, to take it off), keeping
   // the package picked and any group code from the link.
@@ -125,6 +148,13 @@ export default function BookingForm({
   return (
     <SubmitOnceForm
       action={createBooking}
+      onSubmit={(event) => {
+        // No account yet: this press opens the email step instead of posting.
+        if (!authed) {
+          event.preventDefault();
+          setAskingEmail(true);
+        }
+      }}
       className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_23rem] lg:gap-12 xl:gap-16"
     >
       <input type="hidden" name="tripId" value={tripId} />
@@ -294,7 +324,7 @@ export default function BookingForm({
           </div>
         </details>
 
-        <div className="p-5 sm:p-6">
+        <div ref={panelRef} className="p-5 sm:p-6">
           <dl className="m-0 flex flex-col gap-2.5 font-body text-body-s">
             <Line label="Trip price" value={selected.priceLabel} />
             {discount && <Line label={`Code ${discount.code}`} value={`−${discount.label}`} />}
@@ -310,18 +340,38 @@ export default function BookingForm({
             </div>
           </dl>
 
-          <PendingSubmitButton
-            variant="primary"
-            size="lg"
-            block
-            pendingLabel="Holding your spot"
-            // Wraps rather than overflowing the panel at 375px; the base
-            // button is nowrap, so this needs the important modifier to win.
-            className="mt-6 !whitespace-normal text-center !leading-[1.35]"
-            disabled={selected.soldOut}
-          >
-            Continue, {dueToday} due today
-          </PendingSubmitButton>
+          {!authed && askingEmail ? (
+            <div className="mt-6 border-t border-[--rule-strong] pt-5">
+              <p className="t-micro text-[--text]">Your email</p>
+              <p className="mb-4 mt-1.5 font-body text-body-s leading-[1.55] text-[--text-secondary]">
+                Your booking, receipts and trip page link go here.
+              </p>
+              <EmailCodeSignIn
+                askName
+                offerList
+                autoFocus
+                continueLabel={`Continue, ${dueToday} due today`}
+                busyLabel="Holding your spot"
+                onSignedIn={() => {
+                  setAuthed(true);
+                  setSubmitting(true);
+                }}
+              />
+            </div>
+          ) : (
+            <PendingSubmitButton
+              variant="primary"
+              size="lg"
+              block
+              pendingLabel="Holding your spot"
+              // Wraps rather than overflowing the panel at 375px; the base
+              // button is nowrap, so this needs the important modifier to win.
+              className="mt-6 !whitespace-normal text-center !leading-[1.35]"
+              disabled={selected.soldOut}
+            >
+              Continue, {dueToday} due today
+            </PendingSubmitButton>
+          )}
 
           <ul className="m-0 mt-5 flex list-none flex-col gap-2 p-0 font-body text-body-s leading-[1.5] text-[--text-secondary]">
             <li className="flex items-start gap-2.5">
