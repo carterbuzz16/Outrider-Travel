@@ -1,7 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
-import { Resend } from "resend";
+import { addContactToAudience } from "@/lib/resend-audience";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit, FAIL_CLOSED } from "@/lib/rate-limit";
 import { honeypotTripped } from "@/lib/honeypot";
@@ -66,19 +66,6 @@ function cleanContext(raw: unknown): SignupContext {
     if (/^[a-z0-9_-]{1,40}$/.test(token)) out.src = token;
   }
   return out;
-}
-
-// Adding a contact needs audience access. RESEND_API_KEY may be scoped to
-// sending only, in which case give this one a key that can write contacts;
-// otherwise it falls back and the single key does both.
-function contactsClient(): Resend {
-  const key = process.env.RESEND_CONTACTS_API_KEY || process.env.RESEND_API_KEY;
-  // new Resend(undefined) throws rather than returning an error, so check
-  // first and let the caller turn it into an ordinary failed sync.
-  if (!key) {
-    throw new Error("Neither RESEND_CONTACTS_API_KEY nor RESEND_API_KEY is set.");
-  }
-  return new Resend(key);
 }
 
 /** The columns a repeat signup is compared against. */
@@ -467,29 +454,11 @@ async function mergeRepeat(
   return { ok: true, isNew: false };
 }
 
-async function addToAudience(input: CleanWaitlistInput, withNames: boolean): Promise<boolean> {
-  const audienceId = process.env.RESEND_AUDIENCE_ID;
-  if (!audienceId) {
-    console.error("RESEND_AUDIENCE_ID is not set: signup stored but not synced to Resend.");
-    return false;
-  }
-
-  // Resend renamed audiences to "segments"; same objects, same ids, and the
-  // SDK still takes one under `audienceId`. A repeat address is upserted
-  // onto the existing contact rather than returning an error. `unsubscribed`
-  // is left out rather than sent as false, so a repeat signup never flips a
-  // contact who unsubscribed through Resend back on; a new contact starts
-  // subscribed either way.
-  const { error } = await contactsClient().contacts.create({
-    audienceId,
+// The Resend side lives in lib/resend-audience.ts, shared with the signup
+// form's email opt-in.
+function addToAudience(input: CleanWaitlistInput, withNames: boolean): Promise<boolean> {
+  return addContactToAudience({
     email: input.email,
     ...(withNames ? { firstName: input.firstName, lastName: input.lastName } : {}),
   });
-
-  if (error) {
-    console.error(`Resend contacts.create failed: ${error.name} ${error.message}`);
-    return false;
-  }
-
-  return true;
 }

@@ -2,11 +2,12 @@
 import { use } from "react";
 
 import Link from "next/link";
-import { Alert, Button, Field, Input, Logo } from "@/components/ui";
+import { Alert, Button, CheckRow, Field, Input, Logo } from "@/components/ui";
 import { signup } from "@/app/auth/actions";
 import { MIN_PASSWORD_LENGTH, PASSWORD_RULE } from "@/lib/password";
 import { safePath } from "@/lib/safe-path";
 import { SIGNUP_ERRORS, SIGNUP_ERROR_FALLBACK, flashText } from "@/lib/flash";
+import { EMAIL_CONSENT_LABEL } from "@/lib/waitlist-consent";
 
 /*
  * Client for the same single reason as /login: `Field` hands its control down
@@ -107,6 +108,14 @@ export default function SignupPage(
               />
             )}
           </Field>
+
+          {/* Joins the email list (lib/waitlist-from-signup.ts). Optional and
+              never ticked for anyone: the privacy policy sends announcements
+              to people who asked for them. The words are the waitlist form's,
+              and the version stored with a tick is SIGNUP_EMAIL_CONSENT_VERSION. */}
+          <CheckRow boxed={false} className="min-h-11 py-1.5" name="email_updates" value="yes">
+            {EMAIL_CONSENT_LABEL}
+          </CheckRow>
 
           <Button type="submit" variant="primary" size="md" block className="mt-1">
             Create account

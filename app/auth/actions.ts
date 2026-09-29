@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit, FAIL_CLOSED } from "@/lib/rate-limit";
@@ -8,6 +9,7 @@ import { checkPasswordPair } from "@/lib/password";
 import { getAppUrl } from "@/lib/site-url";
 import { safePath } from "@/lib/safe-path";
 import { clientIp } from "@/lib/client-ip";
+import { joinListFromSignup } from "@/lib/waitlist-from-signup";
 
 // Vercel sets x-forwarded-for reliably; this is a best-effort identifier
 // for anonymous requests (pre-auth), not a security boundary on its own.
@@ -204,6 +206,21 @@ export async function signup(formData: FormData) {
      * above (3 an hour) is what keeps this from being a bulk membership oracle.
      */
     redirect(`/signup?error=account_exists&${nextQuery}`);
+  }
+
+  // The email opt-in under the password boxes, unticked unless they tick it
+  // (lib/waitlist-consent.ts). Here, after the check above, so it only ever
+  // runs for an account that was actually created: an address that already
+  // had one is not necessarily the person typing it. Awaited, because a
+  // serverless function can stop at the redirect, but it never throws.
+  if (formData.get("email_updates") === "yes") {
+    const ip = await clientIp();
+    await joinListFromSignup({
+      email,
+      name,
+      ip: ip === "unknown" ? null : ip,
+      userAgent: (await headers()).get("user-agent")?.slice(0, 300) ?? null,
+    });
   }
 
   // No session yet means the project requires email confirmation before

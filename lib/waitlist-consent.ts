@@ -20,9 +20,28 @@ import { LEGAL_NAME } from "@/lib/site-content";
  * History:
  *   waitlist-optin-2026-09-24  first version: the two boxes and the text
  *                              disclosure below, naming LEGAL_NAME.
+ *
+ * The account signup form has its own record, SIGNUP_EMAIL_CONSENT_VERSION,
+ * because the context differs even though the words are EMAIL_CONSENT_LABEL.
  */
 
 export const WAITLIST_CONSENT_VERSION = "waitlist-optin-2026-09-24";
+
+/**
+ * Stored on a list row that came from the account signup form (/signup), not
+ * the waitlist form. Same rule: a new wording or context is a new version.
+ *
+ * History:
+ *   signup-email-optin-2026-09-28  one box, EMAIL_CONSENT_LABEL, optional and
+ *                                  unticked by default, under the password
+ *                                  fields. No text opt-in on that form.
+ *
+ * Unticked on purpose (the owner's call, 28 September 2026): the privacy
+ * policy sends trip announcements to people who "joined the waitlist or
+ * otherwise asked for them", and names consent as the basis for marketing
+ * email. A box someone ticks is asking; one ticked for them is not.
+ */
+export const SIGNUP_EMAIL_CONSENT_VERSION = "signup-email-optin-2026-09-28";
 
 /** Required. Unticked, the form will not submit. */
 export const EMAIL_CONSENT_LABEL = "Okay to email me about Outrider trips";
