@@ -175,14 +175,16 @@ const nextConfig = {
   },
 
   // Short addresses for the trips, for ads and anything shared (owner, 29
-  // September 2026: the address bar should not show a trip's id). Rewrites,
-  // not redirects, so the short address is what stays in the bar. The ids
-  // are the published departures' (/admin/trips); recreate a departure and
-  // these have to follow it.
-  async rewrites() {
+  // September 2026). They used to show each departure's own page; since every
+  // Telluride link now goes to the one /telluride page (lib/trips.ts,
+  // tripPath), they go there too. Redirects pass the query string through,
+  // so an ad's utm_* tags and fbclid arrive with the visitor. Temporary, so
+  // either address can be pointed somewhere else later without browsers
+  // holding on to this.
+  async redirects() {
     return [
-      { source: "/telluride/december", destination: "/trips/ffaa5511-b15e-45d2-b858-e41d269435c4" },
-      { source: "/telluride/january", destination: "/trips/dd317800-3568-4031-a770-37acbf1c3c3a" },
+      { source: "/telluride/december", destination: "/telluride", permanent: false },
+      { source: "/telluride/january", destination: "/telluride", permanent: false },
     ];
   },
 

@@ -84,7 +84,10 @@ export async function generateMetadata(
   });
 }
 
-export default async function TripDetailPage(props: { params: Promise<{ id: string }> }) {
+export default async function TripDetailPage(props: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const params = await props.params;
   // Trip pages are not public before launch. A 404 rather than a redirect: the
   // page genuinely does not exist yet, and guessing the URL should reveal
@@ -98,7 +101,17 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
   // goes to /telluride (lib/trips.ts, tripPath), and so does an old one to
   // here, shared in a group chat or saved before the change. Permanent, so
   // search engines move the page's standing over to /telluride as well.
-  if (tripPath(trip) !== `/trips/${trip.id}`) permanentRedirect(tripPath(trip));
+  //
+  // The query string goes along: an ad's utm_* tags and fbclid have to reach
+  // /telluride, where AttributionCapture and the Meta Pixel read them.
+  if (tripPath(trip) !== `/trips/${trip.id}`) {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(await props.searchParams)) {
+      for (const v of Array.isArray(value) ? value : value === undefined ? [] : [value]) query.append(key, v);
+    }
+    const qs = query.toString();
+    permanentRedirect(qs ? `${tripPath(trip)}?${qs}` : tripPath(trip));
+  }
 
   const nights = nightCount(trip.startDate, trip.endDate);
   const soldOut = trip.status === "soldOut";
