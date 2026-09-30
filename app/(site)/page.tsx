@@ -13,7 +13,7 @@ import { pageMetadata } from "@/lib/metadata";
 import TripEvents from "@/components/TripEvents";
 import { TELLURIDE_EVENTS, UPCOMING_CATEGORIES, VALUE_PROPS } from "@/lib/site-content";
 import { BOOKINGS_OPEN, TRIP_DETAILS_OPEN } from "@/lib/booking-window";
-import { formatDateRange, formatPrice, getPublishedTrips, nightCount } from "@/lib/trips";
+import { formatDateRange, formatPrice, getPublishedTrips, nightCount, tripPath } from "@/lib/trips";
 
 export const metadata: Metadata = pageMetadata({
   // The layout's template appends "| Outrider"; the home page is the one place
@@ -182,12 +182,8 @@ export default async function HomePage() {
                   image: trip.images[0]
                     ? { src: trip.images[0], alt: `${trip.name}, ${trip.destination}` }
                     : undefined,
-                  // A trip's own page is a teaser before launch; the Telluride
-                  // page carries the detail, so a closed card goes there.
-                  href:
-                    !BOOKINGS_OPEN && trip.destination.toLowerCase().includes("telluride")
-                      ? "/telluride"
-                      : `/trips/${trip.id}`,
+                  // Every Telluride departure is the one /telluride page.
+                  href: tripPath(trip),
                 };
                 return (
                   <Reveal key={trip.id} delay={i * 90}>

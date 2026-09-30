@@ -40,6 +40,7 @@ import {
   formatDateRange,
   formatPrice,
   getPublishedTrips,
+  isTellurideDestination,
   nightCount,
   tierAvailabilityLabel,
   type PublicTier,
@@ -147,9 +148,8 @@ function depositFrom(trips: PublicTrip[]): string {
   return Number.isFinite(cheapest) ? formatAmount(computeDepositAmount(cheapest)) : "a 10% deposit";
 }
 
-/** Case-insensitive, so "Telluride, Colorado" and "telluride" both count. */
 function isTelluride(trip: PublicTrip): boolean {
-  return trip.destination.toLowerCase().includes("telluride");
+  return isTellurideDestination(trip.destination);
 }
 
 /** "Monday", read without going through a timezone. */
@@ -275,101 +275,110 @@ export default async function TelluridePage() {
   const page = (
     <main className="scheme-light scheme-paint">
       {/* ---- masthead -------------------------------------------------------
-          The photograph, then the offer under it on paper. Only a fade at
-          the very top, behind the transparent site nav, so its white type
-          reads against the sky; the rest of the picture is untouched. Tuned by
-          sampling this photograph under every nav item at 390 and 1440 wide:
-          the brightest pixel behind any of them stays above 4.5:1. Above the
-          fold, so nothing here is wrapped in Reveal. */}
-      <header className="relative">
-        <div className="relative h-[44svh] min-h-[17rem] bg-[--surface-inset] md:h-[62svh] md:min-h-[26rem]">
+          Two layouts from one set of elements, arranged by grid areas.
+
+          On a phone, in source order: the photograph full-bleed under the
+          transparent site nav, then the headline, the trip in six lines, the
+          price and Reserve on paper. Only a fade at the very top, behind the
+          nav, so its white type reads against the sky; tuned by sampling this
+          photograph under the logo and Menu at 390 wide, where the brightest
+          pixel behind either stays above 4.5:1.
+
+          From md the photograph sits beside the headline at its own 3:2, so
+          none of it is cropped (a full-width band at desktop proportions cut
+          off the gondola and the skier, 29 September 2026), the price and
+          Reserve go under the headline, and the six lines run across the foot
+          in three columns. The nav is the solid bar there (overHero="phone"
+          in SiteNav). Above the fold, so nothing here is wrapped in Reveal. */}
+      <header
+        className={[
+          "shell grid pb-14 md:pb-20 md:pt-28 lg:pt-32",
+          "md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] md:gap-x-12 lg:gap-x-20",
+          "md:[grid-template-areas:'head_photo'_'offer_photo'_'facts_facts']",
+        ].join(" ")}
+      >
+        <div className="relative -mx-gutter h-[44svh] min-h-[17rem] bg-[--surface-inset] md:mx-0 md:aspect-[3/2] md:h-auto md:min-h-0 md:self-center md:[grid-area:photo]">
           <Image
             src={HERO_IMAGE.src}
             alt={HERO_IMAGE.alt}
             fill
             priority
-            sizes="100vw"
+            sizes="(min-width: 768px) 55vw, 100vw"
             className="object-cover"
             style={{ objectPosition: "62% 40%" }}
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[rgb(42_35_32_/_0.74)] via-[rgb(42_35_32_/_0.52)] to-transparent md:h-48"
+            className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[rgb(42_35_32_/_0.74)] via-[rgb(42_35_32_/_0.52)] to-transparent md:hidden"
           />
         </div>
 
-        <div className="shell pb-14 pt-7 md:pb-20 md:pt-12">
-          <div className="grid gap-8 md:grid-cols-2 md:gap-16 lg:gap-24">
-            <div className="flex flex-col gap-4 md:gap-6">
-              <p className="t-label text-[--text-secondary]">Telluride, Colorado</p>
-              <h1 className="max-w-[15ch] font-display text-display-l font-medium leading-[1.04] tracking-title text-[--text]">
-                {nights !== null ? `${spelled(nights)} nights in Telluride with your friends` : "A week in Telluride with your friends"}
-              </h1>
-              <p className="t-lede max-w-[38ch]">
-                We book the hotel, the lifts, the rides and the nights out. You
-                pick the week and show up.
+        <div className="flex flex-col gap-4 pt-7 md:gap-6 md:self-end md:pt-0 md:[grid-area:head]">
+          <p className="t-label text-[--text-secondary]">Telluride, Colorado</p>
+          <h1 className="max-w-[15ch] font-display text-display-l font-medium leading-[1.04] tracking-title text-[--text]">
+            {nights !== null ? `${spelled(nights)} nights in Telluride with your friends` : "A week in Telluride with your friends"}
+          </h1>
+          <p className="t-lede max-w-[38ch]">
+            We book the hotel, the lifts, the rides and the nights out. You
+            pick the week and show up.
+          </p>
+        </div>
+
+        {/* The trip in six lines, a label in ink and its value in gray, the
+            way the brand book sets its detail rows: side by side on a phone,
+            the label over its value in three columns from md. */}
+        <dl className="m-0 mt-8 grid gap-y-3 font-body text-body-s leading-[1.45] md:mt-14 md:grid-cols-3 md:gap-x-10 md:gap-y-6 md:border-t md:border-[--rule-strong] md:pt-8 md:[grid-area:facts]">
+          {[...(trips.length > 0 ? [{ label: "Dates", value: datesLine }] : []), ...TELLURIDE_AT_A_GLANCE].map((row) => (
+            <div
+              key={row.label}
+              className="grid grid-cols-[5.75rem_minmax(0,1fr)] content-start gap-x-4 sm:grid-cols-[7rem_minmax(0,1fr)] md:grid-cols-1 md:gap-y-1"
+            >
+              <dt className="font-medium text-[--text]">{row.label}</dt>
+              <dd className="m-0 text-[--text-secondary]">{row.value}</dd>
+            </div>
+          ))}
+        </dl>
+
+        <div className="flex flex-col md:mt-8 md:self-start md:[grid-area:offer]">
+          {TRIP_DETAILS_OPEN && Number.isFinite(priceFrom) && (
+            <div className="mt-7 flex items-end justify-between gap-6 border-t border-[--rule-strong] pt-5 md:mt-0">
+              <p className="m-0 flex flex-col">
+                <span className="t-micro text-[--text-secondary]">From</span>
+                <span className="mt-1 flex items-baseline gap-2">
+                  <span className="font-display text-display-m font-medium leading-none tracking-title text-[--text]">
+                    {formatPrice(priceFrom)}
+                  </span>
+                  <span className="font-body text-body-s text-[--text-secondary]">per person</span>
+                </span>
               </p>
-            </div>
-
-            <div className="flex flex-col md:pt-1">
-              {/* The trip in six lines, a label in ink and its value in gray,
-                  the way the brand book sets its detail rows. */}
-              <dl className="m-0 grid grid-cols-[5.75rem_minmax(0,1fr)] gap-x-4 gap-y-3 font-body text-body-s leading-[1.45] sm:grid-cols-[7rem_minmax(0,1fr)]">
-                {trips.length > 0 && (
-                  <>
-                    <dt className="font-medium text-[--text]">Dates</dt>
-                    <dd className="m-0 text-[--text-secondary]">{datesLine}</dd>
-                  </>
-                )}
-                {TELLURIDE_AT_A_GLANCE.map((row) => (
-                  <div key={row.label} className="contents">
-                    <dt className="font-medium text-[--text]">{row.label}</dt>
-                    <dd className="m-0 text-[--text-secondary]">{row.value}</dd>
-                  </div>
-                ))}
-              </dl>
-
-              {TRIP_DETAILS_OPEN && Number.isFinite(priceFrom) && (
-                <div className="mt-7 flex items-end justify-between gap-6 border-t border-[--rule-strong] pt-5">
-                  <p className="m-0 flex flex-col">
-                    <span className="t-micro text-[--text-secondary]">From</span>
-                    <span className="mt-1 flex items-baseline gap-2">
-                      <span className="font-display text-display-m font-medium leading-none tracking-title text-[--text]">
-                        {formatPrice(priceFrom)}
-                      </span>
-                      <span className="font-body text-body-s text-[--text-secondary]">per person</span>
-                    </span>
-                  </p>
-                  {bookable && (
-                    <p className="m-0 text-right font-body text-body-s leading-[1.45] text-[--text-secondary]">
-                      Hold your spot
-                      <br />
-                      with {depositFrom(openTrips)}
-                    </p>
-                  )}
-                </div>
+              {bookable && (
+                <p className="m-0 text-right font-body text-body-s leading-[1.45] text-[--text-secondary]">
+                  Hold your spot
+                  <br />
+                  with {depositFrom(openTrips)}
+                </p>
               )}
-
-              {/* data-reserve-bar-hide: the phone Reserve bar steps aside
-                  while this button is on screen, so there is one ask at a
-                  time. Straight to the booking page, which asks for the
-                  dates, then the package. */}
-              <div data-reserve-bar-hide className="mt-5 flex flex-col gap-4">
-                {bookable ? (
-                  <Button href="/bookings/new" variant="primary" size="lg" block>
-                    Reserve your spot
-                  </Button>
-                ) : !BOOKINGS_OPEN && TRIP_DETAILS_OPEN ? (
-                  // Paying is list-only: the emailed link is the way in.
-                  <WaitlistButton label={LIST_BOOKING_CTA} variant="primary" size="lg" placement="telluride-hero" />
-                ) : (
-                  <Button href="#departures" variant="primary" size="lg" block>
-                    See the dates
-                  </Button>
-                )}
-                {bookable && <CreditLine />}
-              </div>
             </div>
+          )}
+
+          {/* data-reserve-bar-hide: the phone Reserve bar steps aside while
+              this button is on screen, so there is one ask at a time.
+              Straight to the booking page, which asks for the dates, then
+              the package. */}
+          <div data-reserve-bar-hide className="mt-5 flex flex-col gap-4">
+            {bookable ? (
+              <Button href="/bookings/new" variant="primary" size="lg" block>
+                Reserve your spot
+              </Button>
+            ) : !BOOKINGS_OPEN && TRIP_DETAILS_OPEN ? (
+              // Paying is list-only: the emailed link is the way in.
+              <WaitlistButton label={LIST_BOOKING_CTA} variant="primary" size="lg" placement="telluride-hero" />
+            ) : (
+              <Button href="#departures" variant="primary" size="lg" block>
+                See the dates
+              </Button>
+            )}
+            {bookable && <CreditLine />}
           </div>
         </div>
       </header>

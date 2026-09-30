@@ -20,7 +20,10 @@ import { ACCOUNT_LINK, type NavLink } from "./nav-links";
  * 260ms; nothing slides or collapses.
  *
  * Pages without a hero pass `overHero={false}` and the bar is simply solid
- * from the top.
+ * from the top. `overHero="phone"` is for a page whose photograph runs under
+ * the bar on a phone only (/telluride): solid from md, transparent below it
+ * until scrolled. That split is done in CSS (.nav-phone-over-photo in
+ * globals.css), so neither size flashes the other's bar while hydrating.
  */
 
 export type { NavLink };
@@ -48,7 +51,7 @@ export default function NavBar({
   account = ACCOUNT_LINK,
 }: {
   links?: NavLink[];
-  overHero?: boolean;
+  overHero?: boolean | "phone";
   cta?: { label: string; href: string } | null;
   account?: NavLink | null;
 }) {
@@ -88,7 +91,8 @@ export default function NavBar({
     };
   }, [open]);
 
-  const solid = scrolled || !overHero || open;
+  const phoneHero = overHero === "phone";
+  const solid = scrolled || !overHero || open || phoneHero;
   // Heroes washed in Ski Club blue rather than espresso. Over those the
   // transparent bar takes the club scheme, since paper type on club blue is
   // 2.2:1 and would vanish.
@@ -105,7 +109,10 @@ export default function NavBar({
         // color here instead, and anything inside it inherits correctly.
         "text-[--text]",
         solid
-          ? "scheme-light border-b border-[--rule] bg-[--surface]"
+          ? cn(
+              "scheme-light border-b border-[--rule] bg-[--surface]",
+              phoneHero && !scrolled && !open && "nav-phone-over-photo",
+            )
           : clubHero
             ? "scheme-club border-b border-transparent bg-transparent"
             : "scheme-espresso border-b border-transparent bg-transparent",

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui";
 import { UPCOMING_CATEGORIES } from "@/lib/site-content";
 import { BOOKINGS_OPEN, COMING_SOON_NOTE, TRIP_DETAILS_OPEN } from "@/lib/booking-window";
-import { formatDateRange, formatPrice, getPublishedTrips, nightCount } from "@/lib/trips";
+import { formatDateRange, formatPrice, getPublishedTrips, nightCount, tripPath } from "@/lib/trips";
 
 export const metadata: Metadata = pageMetadata({
   title: "All trips and dates",
@@ -72,12 +72,8 @@ export default async function TripsPage() {
                 image: trip.images[0]
                   ? { src: trip.images[0], alt: `${trip.name}, ${trip.destination}` }
                   : undefined,
-                // Before launch a trip's own page is a teaser; the Telluride
-                // page is where the real detail lives, so a closed card goes there.
-                href:
-                  !BOOKINGS_OPEN && trip.destination.toLowerCase().includes("telluride")
-                    ? "/telluride"
-                    : `/trips/${trip.id}`,
+                // Every Telluride departure is the one /telluride page.
+                href: tripPath(trip),
               };
               // The first card is above the fold on most screens, so it renders
               // plainly rather than sitting at opacity 0 until hydration.

@@ -323,6 +323,24 @@ export function tierAvailabilityLabel(spotsLeft: number | null, claimed = false)
   return null;
 }
 
+/* -- where a trip lives ---------------------------------------------------- */
+
+/** Case-insensitive, so "Telluride, Colorado" and "telluride" both count. */
+export function isTellurideDestination(destination: string): boolean {
+  return destination.toLowerCase().includes("telluride");
+}
+
+/**
+ * The public page for a trip. Every Telluride departure is one page,
+ * /telluride (Carter, 29 September 2026: the trip list sent people to a
+ * different page from the home page's "See the trip"), so every link to a
+ * Telluride departure goes there and /trips/[id] redirects to it. A departure
+ * anywhere else keeps its own /trips/[id] page.
+ */
+export function tripPath(trip: { id: string; destination: string }): string {
+  return isTellurideDestination(trip.destination) ? "/telluride" : `/trips/${trip.id}`;
+}
+
 /* -- formatting ----------------------------------------------------------- */
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

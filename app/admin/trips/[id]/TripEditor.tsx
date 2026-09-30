@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Alert, Button, Input, Textarea } from "@/components/ui";
-import { formatDateRange, formatPrice, nightCount } from "@/lib/trips";
+import { formatDateRange, formatPrice, nightCount, tripPath } from "@/lib/trips";
 import {
   setTripStatus,
   updateTrip,
@@ -96,7 +96,7 @@ export default function TripEditor({ trip, error }: { trip: EditorTrip; error?: 
               Roster
             </Button>
             {isPublished && (
-              <Button href={`/trips/${trip.id}`} variant="secondary" size="sm">
+              <Button href={tripPath(trip)} variant="secondary" size="sm">
                 View public page
               </Button>
             )}
@@ -491,11 +491,8 @@ export default function TripEditor({ trip, error }: { trip: EditorTrip; error?: 
               {isPublished ? (
                 <Alert tone="info" title="Live right now">
                   Anyone can see this trip at{" "}
-                  <Link
-                    href={`/trips/${trip.id}`}
-                    className="text-[--accent] decoration-[--accent]"
-                  >
-                    /trips/{trip.id.slice(0, 8)}
+                  <Link href={tripPath(trip)} className="text-[--accent] decoration-[--accent]">
+                    {tripPath(trip) === `/trips/${trip.id}` ? `/trips/${trip.id.slice(0, 8)}` : tripPath(trip)}
                   </Link>{" "}
                   and book it. Moving it back to draft takes it down at once.
                 </Alert>

@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getAppUrl } from "@/lib/site-url";
-import { getPublishedTrips } from "@/lib/trips";
+import { getPublishedTrips, tripPath } from "@/lib/trips";
 import { TRIP_DETAILS_OPEN } from "@/lib/booking-window";
 
 /*
@@ -38,8 +38,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let tripRoutes: MetadataRoute.Sitemap = [];
   try {
     const trips = await getPublishedTrips();
-    tripRoutes = trips.map((trip) => ({
-      url: `${base}/trips/${trip.id}`,
+    // Only departures with a page of their own: a Telluride one redirects to
+    // /telluride, which is already listed above.
+    tripRoutes = trips.filter((trip) => tripPath(trip) !== "/telluride").map((trip) => ({
+      url: `${base}${tripPath(trip)}`,
       lastModified: now,
       changeFrequency: "weekly" as const,
       priority: 0.8,

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import {
   Button,
   Gallery,
@@ -33,6 +33,7 @@ import {
   formatPrice,
   getPublishedTrip,
   nightCount,
+  tripPath,
 } from "@/lib/trips";
 import WhatYouGet from "./WhatYouGet";
 import MobileReserveBar from "./MobileReserveBar";
@@ -92,6 +93,12 @@ export default async function TripDetailPage(props: { params: Promise<{ id: stri
 
   const trip = await getPublishedTrip(params.id);
   if (!trip) notFound();
+
+  // A Telluride departure has no page of its own any more: every link to one
+  // goes to /telluride (lib/trips.ts, tripPath), and so does an old one to
+  // here, shared in a group chat or saved before the change. Permanent, so
+  // search engines move the page's standing over to /telluride as well.
+  if (tripPath(trip) !== `/trips/${trip.id}`) permanentRedirect(tripPath(trip));
 
   const nights = nightCount(trip.startDate, trip.endDate);
   const soldOut = trip.status === "soldOut";

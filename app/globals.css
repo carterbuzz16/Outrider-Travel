@@ -255,6 +255,21 @@
   --focus-ring: var(--color-espresso-deep);
 }
 
+/* NavBar's overHero="phone" (/telluride): the masthead photograph runs under
+   the bar on a phone only; from md the photograph sits beside the headline and
+   the bar is the solid paper one from the top. So the bar is rendered solid
+   and, below md, made transparent here. Below md it shows only the logo and
+   the Menu button, both drawn in --text, so --text (and the focus ring) are
+   the only variables to flip. Two classes, to outrank .scheme-light. */
+@media (max-width: 767.98px) {
+  .scheme-light.nav-phone-over-photo {
+    --text: var(--color-paper);
+    --focus-ring: var(--color-club-light);
+    background-color: transparent;
+    border-color: transparent;
+  }
+}
+
 /* A scheme class only carries variables; add .scheme-paint where you also want
    it to actually paint its surface (sections do, the nav doesn't). */
 .scheme-paint {
