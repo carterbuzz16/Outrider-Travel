@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Figtree } from "next/font/google";
 import Telemetry from "@/components/Telemetry";
 import MetaPixel from "@/components/MetaPixel";
+import CleanTrackingParams from "@/components/CleanTrackingParams";
 import { getAppUrl } from "@/lib/site-url";
 import { CHECKOUT_SANDBOX } from "@/lib/booking-window";
 import "./globals.css";
@@ -118,6 +119,9 @@ export default function RootLayout({
           promises is enforced in lib/meta-pixel.ts.
         */}
         <MetaPixel />
+        {/* After the pixel, so it has read the ad's click id before the
+            campaign tags are taken out of the address bar. */}
+        <CleanTrackingParams />
       </body>
     </html>
   );
