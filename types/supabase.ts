@@ -56,6 +56,7 @@ export type Database = {
           chase_email_sent_at: string | null
           confirmation_email_sent_at: string | null
           created_at: string
+          credit_amount: number
           deposit_amount: number
           details_submitted: boolean
           flights_booked: boolean
@@ -78,6 +79,7 @@ export type Database = {
           chase_email_sent_at?: string | null
           confirmation_email_sent_at?: string | null
           created_at?: string
+          credit_amount?: number
           deposit_amount: number
           details_submitted?: boolean
           flights_booked?: boolean
@@ -100,6 +102,7 @@ export type Database = {
           chase_email_sent_at?: string | null
           confirmation_email_sent_at?: string | null
           created_at?: string
+          credit_amount?: number
           deposit_amount?: number
           details_submitted?: boolean
           flights_booked?: boolean

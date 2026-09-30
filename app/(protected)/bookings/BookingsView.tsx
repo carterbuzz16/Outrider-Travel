@@ -11,6 +11,8 @@ import { tierDisplayName } from "@/lib/tier-display";
 import { BOOKINGS_OPEN } from "@/lib/booking-window";
 import type { Database } from "@/types/supabase";
 import PenthouseProgress from "@/components/PenthouseProgress";
+import { Countdown } from "@/components/WelcomeCredit";
+import type { WelcomeCredit } from "@/lib/welcome-credit";
 import { penthouseInvitePath, type PenthouseSnapshot } from "@/lib/penthouse";
 
 /**
@@ -89,6 +91,7 @@ export default function BookingsView({
   bookings,
   error,
   canBook = BOOKINGS_OPEN,
+  credit = null,
 }: {
   email: string;
   name: string | null;
@@ -96,6 +99,8 @@ export default function BookingsView({
   error?: string;
   /** Open to everyone, or to this list member during the head start (lib/early-access.ts). */
   canBook?: boolean;
+  /** The account's new-account credit while it is live (lib/welcome-credit.ts). */
+  credit?: WelcomeCredit | null;
 }) {
   return (
     <main>
@@ -116,6 +121,29 @@ export default function BookingsView({
             Browse trips
           </Button>
         </div>
+
+        {/* The credit the /telluride pop-up puts in the account, in the one
+            club blue panel on the page, until it is used or runs out.
+            Checkout applies it on its own; this is where it can be seen. */}
+        {credit && (
+          <div className="scheme-club scheme-paint mt-8 flex flex-wrap items-center justify-between gap-x-10 gap-y-5 px-5 py-6 sm:px-7">
+            <div className="min-w-0">
+              <p className="t-micro text-[--text]">Account credit</p>
+              <p className="mt-2 font-display text-display-m font-medium leading-none tracking-title text-[--text]">
+                {formatAmount(credit.amount)}
+              </p>
+              <p className="mt-3 font-body text-body-s leading-[1.55] text-[--text-secondary]">
+                Comes off your trip at checkout, no code needed.{" "}
+                <Countdown expiresAt={credit.expiresAt} className="text-[--text]" /> left to use it.
+              </p>
+            </div>
+            {canBook && (
+              <Button href="/bookings/new" variant="primary" size="md">
+                Use it now
+              </Button>
+            )}
+          </div>
+        )}
       </header>
 
       <div className="shell pb-20 pt-10 md:pb-28">

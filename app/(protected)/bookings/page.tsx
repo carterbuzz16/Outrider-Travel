@@ -7,6 +7,7 @@ import { getPenthouseProgress } from "@/lib/tier-claims";
 import { toSnapshot } from "@/lib/penthouse";
 import { ACCOUNT_ERRORS, ACCOUNT_ERROR_FALLBACK, flashText } from "@/lib/flash";
 import { bookingsOpenForViewer } from "@/lib/early-access";
+import { welcomeCreditFor } from "@/lib/welcome-credit";
 
 /**
  * The account dashboard: a thin loader in front of BookingsView.
@@ -71,7 +72,11 @@ export default async function BookingsPage(props: { searchParams: Promise<{ erro
   // travelers' rows, which this session cannot read, so it goes through the
   // service role and comes back as numbers only.
   const live = paid.filter((b) => b.status === "deposit_paid" || b.status === "paid_in_full");
-  const progress = await getPenthouseProgress(createAdminClient(), live);
+  const admin = createAdminClient();
+  const progress = await getPenthouseProgress(admin, live);
+  // The new-account credit (lib/welcome-credit.ts), shown here while it is
+  // live so it reads as what the pop-up promised: credit in the account.
+  const credit = await welcomeCreditFor(admin, user);
   const renderedAt = new Date().toISOString();
   const rows: BookingRow[] = paid.map((b) => {
     const fill = progress.get(b.id);
@@ -84,6 +89,7 @@ export default async function BookingsPage(props: { searchParams: Promise<{ erro
       name={name}
       bookings={rows}
       canBook={await bookingsOpenForViewer()}
+      credit={credit}
       // A code, turned into words here; the query string never carries a sentence.
       error={flashText(ACCOUNT_ERRORS, searchParams.error, ACCOUNT_ERROR_FALLBACK)}
     />

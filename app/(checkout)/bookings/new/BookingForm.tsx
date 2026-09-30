@@ -7,6 +7,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Field, Input, RadioControl, RoomPanel, RoomPhotosButton, cn, type RoomView } from "@/components/ui";
 import { PendingSubmitButton, SubmitOnceForm } from "@/components/SubmitOnce";
 import EmailCodeSignIn from "@/components/EmailCodeSignIn";
+import { Countdown } from "@/components/WelcomeCredit";
 import { createBooking } from "@/app/(protected)/bookings/actions";
 import { tierDisplayName } from "@/lib/tier-display";
 
@@ -43,6 +44,14 @@ import { tierDisplayName } from "@/lib/tier-display";
  * and once the code checks out the form submits itself, so the visitor goes
  * straight on to step 2 with the package and plan they picked. createBooking
  * still requires a confirmed account, and a verified code is one.
+ *
+ * The new-account credit (lib/welcome-credit.ts) shows as its own line, with
+ * its countdown, for an account that has it; the page has already taken it off
+ * every figure. Signed out, the figures are the full price and a line says the
+ * credit comes off at the next step: a new account gets it at Continue, and an
+ * older one signing in there does not, so the price only ever goes down. The
+ * credit and a discount code do not combine: the page decides which one comes
+ * off, and `setAside` names the other, so nobody wonders where it went.
  *
  * The form sends once per press and the button says so until the server
  * answers (components/SubmitOnce.tsx). A second press would otherwise create a
@@ -95,6 +104,9 @@ export default function BookingForm({
   discount = null,
   rejectedCode = null,
   signedIn,
+  credit = null,
+  setAside = null,
+  creditOffer = null,
 }: {
   tripId: string;
   tiers: CheckoutTier[];
@@ -113,10 +125,20 @@ export default function BookingForm({
   rejectedCode?: string | null;
   /** A session with a confirmed email. Without one, Continue asks for an email and a code first. */
   signedIn: boolean;
+  /** The account's new-account credit, already off the tier figures, and when it runs out. */
+  credit?: { label: string; expiresAt: string } | null;
+  /** The credit or the code that does not come off, because the other one does. */
+  setAside?: { kind: "code"; code: string } | { kind: "credit"; label: string } | null;
+  /** Signed out: what a new account takes off, said beside the total. */
+  creditOffer?: string | null;
 }) {
   const router = useRouter();
   const [tierId, setTierId] = useState(initialTierId);
-  const [codeInput, setCodeInput] = useState(discount?.code ?? rejectedCode ?? "");
+  const [codeInput, setCodeInput] = useState(
+    discount?.code ?? (setAside?.kind === "code" ? setAside.code : null) ?? rejectedCode ?? "",
+  );
+  // The code in the box, when it is the one set aside for the credit.
+  const codeSetAside = setAside?.kind === "code" ? setAside.code : null;
   const [plan, setPlan] = useState<Plan>("deposit");
   const selected = tiers.find((t) => t.id === tierId) ?? tiers[0];
   const packagesLegend = useId();
@@ -141,6 +163,13 @@ export default function BookingForm({
   useEffect(() => {
     if (authed && submitting) panelRef.current?.closest("form")?.requestSubmit();
   }, [authed, submitting]);
+
+  // Whether the box holds the code the page already checked (applied, or set
+  // aside for the credit), so its button takes it off rather than re-applying.
+  function applied(input: string) {
+    const typed = input.trim().toUpperCase();
+    return Boolean(typed) && (typed === discount?.code || typed === codeSetAside);
+  }
 
   // Reloads the page with the code (or without one, to take it off), keeping
   // the package picked and any group code from the link.
@@ -281,7 +310,7 @@ export default function BookingForm({
 
         <details
           className="group border-b border-[--rule] px-5 sm:px-6"
-          open={Boolean(discount || rejectedCode)}
+          open={Boolean(discount || rejectedCode || codeSetAside)}
         >
           <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 font-body text-body-s text-[--text] [&::-webkit-details-marker]:hidden">
             Have a discount code?
@@ -290,7 +319,13 @@ export default function BookingForm({
           <div className="pb-5">
             <Field
               label="Discount code"
-              hint={discount ? `${discount.code} takes ${discount.label} off. It's in the prices above.` : undefined}
+              hint={
+                discount
+                  ? `${discount.code} takes ${discount.label} off. It's in the prices above.`
+                  : codeSetAside
+                    ? `${codeSetAside} doesn't combine with your account credit, and the credit is worth more, so the credit comes off instead.`
+                    : undefined
+              }
               error={rejectedCode ? "That code didn't work. It may be mistyped or already used." : undefined}
             >
               {(field) => (
@@ -317,10 +352,10 @@ export default function BookingForm({
                   />
                   <button
                     type="button"
-                    onClick={() => goWithCode(discount && codeInput.trim().toUpperCase() === discount.code ? "" : codeInput)}
+                    onClick={() => goWithCode(applied(codeInput) ? "" : codeInput)}
                     className="min-h-11 shrink-0 border border-[--rule-strong] px-4 font-body text-body-s text-[--text] transition-colors duration-fast hover:border-[--accent-solid]"
                   >
-                    {discount && codeInput.trim().toUpperCase() === discount.code ? "Remove" : "Apply"}
+                    {applied(codeInput) ? "Remove" : "Apply"}
                   </button>
                 </div>
               )}
@@ -332,6 +367,21 @@ export default function BookingForm({
           <dl className="m-0 flex flex-col gap-2.5 font-body text-body-s">
             <Line label="Trip price" value={selected.priceLabel} />
             {discount && <Line label={`Code ${discount.code}`} value={`−${discount.label}`} />}
+            {setAside?.kind === "credit" && (
+              <p className="m-0 text-body-s leading-[1.5] text-[--text-secondary]">
+                Your {setAside.label} account credit doesn&rsquo;t combine with codes, so the code comes off
+                instead.
+              </p>
+            )}
+            {credit && (
+              <div className="flex flex-col gap-0.5">
+                <Line label="Account credit" value={`−${credit.label}`} />
+                <p className="m-0 text-body-s text-[--accent]">
+                  {/* Out of time: reload, so the figures are the ones Continue will charge. */}
+                  <Countdown expiresAt={credit.expiresAt} onExpire={() => router.refresh()} /> left to use it
+                </p>
+              </div>
+            )}
             {plan === "full" && selected.savingLabel && (
               <Line label="Paying in full" value={`−${selected.savingLabel}`} />
             )}
@@ -343,6 +393,15 @@ export default function BookingForm({
               </dd>
             </div>
           </dl>
+
+          {creditOffer && !authed && (
+            // Signed out: the figures above are the full price. The credit is
+            // taken off at the next step, once the account exists.
+            <p className="m-0 mt-4 border-l-2 border-[--accent] pl-3 font-body text-body-s leading-[1.55] text-[--text]">
+              New here? {creditOffer} credit goes into your account when you make it at Continue, and comes off
+              before you pay.
+            </p>
+          )}
 
           {!authed && askingEmail ? (
             <div className="mt-6 border-t border-[--rule-strong] pt-5">

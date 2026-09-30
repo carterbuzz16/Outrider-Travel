@@ -378,18 +378,68 @@ export const TELLURIDE_ROOMS = [
  *
  * `{nights}` in a title is filled from the trip's own dates. If a package
  * ever drops one of these, take the line out: this is what every package gets.
+ *
+ * /telluride uses the same list, and there the four lines with an `image` lead
+ * as photographs (29 September 2026: Carter wanted the page an Instagram ad
+ * lands on to show what you get at a glance). The departure page ignores
+ * `image` and stays a plain list, as asked. The photographs are shown as
+ * half-width tiles on a phone and every one has the pixels for that at 3x, so
+ * none is upscaled (the blur Carter saw on an earlier version); none repeats
+ * one used elsewhere on /telluride.
  * ------------------------------------------------------------------------- */
-export const TRIP_WHAT_YOU_GET = [
-  { title: "Ski-in, ski-out at The Peaks", body: "{nights} in Mountain Village, with the whole group under one roof." },
-  { title: "3 days of lift tickets and rentals", body: "Skis or a snowboard fitted before you land, so you skip the rental line." },
+export const TRIP_WHAT_YOU_GET: { title: string; body: string; image?: { src: string; alt: string } }[] = [
+  {
+    title: "Ski-in, ski-out at The Peaks",
+    body: "{nights} in Mountain Village, with the whole group under one roof.",
+    image: {
+      src: "/images/peaks/peaks-exterior-night.jpg",
+      alt: "The Peaks Resort from above on a winter night, its windows lit and the heated outdoor pool glowing, with snowy peaks behind.",
+    },
+  },
+  {
+    title: "3 days of lift tickets and rentals",
+    body: "Skis or a snowboard fitted before you land, so you skip the rental line.",
+    image: {
+      src: "/images/people/friends-snow-throw.jpg",
+      alt: "Four friends on skis, arms linked, laughing as someone throws a handful of powder at them in falling snow.",
+    },
+  },
   { title: "Private rides", body: "From the Montrose airport to your hotel and back, just for the group." },
-  { title: "Après party at Gorrono Ranch", body: "One afternoon mid-mountain, with a DJ, the whole group together." },
+  {
+    title: "Après party at Gorrono Ranch",
+    body: "One afternoon mid-mountain, with a DJ, the whole group together.",
+    image: {
+      src: "/images/telluride/powder.jpg",
+      alt: "Skiers on the sunny deck outside the old timber saloon at Gorrono Ranch, mid-mountain.",
+    },
+  },
   { title: "A private Outrider night", body: "Night two is ours alone, just the group." },
-  { title: "Tables held in town", body: "Restaurant blocks booked before you land. You order and pay as you go." },
+  {
+    title: "Tables held in town",
+    body: "Restaurant blocks booked before you land. You order and pay as you go.",
+    image: {
+      src: "/images/telluride/groomers.jpg",
+      alt: "Telluride's brick Main Street and clock tower, a snow-covered peak rising straight up behind.",
+    },
+  },
   { title: "Drink vouchers", body: "For spots around Mountain Village, so the first round after skiing is sorted." },
   { title: "A welcome package", body: "Waiting in your room when you get there." },
   { title: "Electrolytes from Sap's", body: "For the whole group, all week." },
   { title: "Our team, all week", body: "On the ground with you from pickup to drop-off." },
+];
+
+/* -- the trip in five lines ------------------------------------------------
+ * The first thing someone arriving from an ad reads on /telluride, under the
+ * photograph and before the price (29 September 2026). Each value restates a
+ * line of TRIP_WHAT_YOU_GET, so change the two together. The dates are added
+ * by the page, from the published trips.
+ * ------------------------------------------------------------------------- */
+export const TELLURIDE_AT_A_GLANCE = [
+  { label: "Stay", value: "The Peaks, ski-in, ski-out" },
+  { label: "Ski", value: "3 days of lift tickets and rentals" },
+  { label: "Rides", value: "Private, from Montrose and back" },
+  { label: "Nights out", value: "An après party at Gorrono Ranch, and more" },
+  { label: "Hosts", value: "Our team, on the ground all week" },
 ];
 
 /** The one thing deliberately left out, said next to the list above. */

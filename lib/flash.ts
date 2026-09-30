@@ -51,6 +51,10 @@ export const CHECKOUT_ERRORS = {
   // checkout while this one sat open past its 30 minutes.
   stale_code:
     "Your checkout was open for more than 30 minutes, and in that time its discount code was used on another booking. Nothing was charged. If the code was yours, get in touch and we'll sort it out.",
+  // lib/stale-checkout.ts: the new-account credit (lib/welcome-credit.ts)
+  // ran out while this checkout sat open past its 30 minutes.
+  stale_credit:
+    "Your checkout was open for more than 30 minutes, and in that time your $100 account credit ran out. Nothing was charged. Choose again to carry on.",
   daily_limit:
     "You've started several checkouts today without finishing one. Try again tomorrow, or get in touch and we'll help.",
   payment_moving:

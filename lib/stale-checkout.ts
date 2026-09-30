@@ -6,6 +6,7 @@ import { CLAIM_PENDING_WINDOW_MS, parseDbTimestamp } from "@/lib/penthouse";
 import { activeBookingFilter, claimMatches, getTierClaims } from "@/lib/tier-claims";
 import { OPEN_INTENT_STATUSES, POSSIBLY_OPEN_PAYMENT_FILTER } from "@/lib/stripe-intents";
 import { CHECKOUT_ERRORS } from "@/lib/flash";
+import { bookingCredit, welcomeCreditFor } from "@/lib/welcome-credit";
 
 type Admin = SupabaseClient<Database>;
 
@@ -59,10 +60,12 @@ export type StaleCheckoutResult =
 /**
  * Why a stale checkout was let go. "code" is a discount code (lib/discount-codes.ts)
  * that stopped counting as this checkout's once its hold ran out, and has since
- * gone to someone else. Only the pre-payment recheck asks about codes; the
- * settlement path (lib/payments.ts) still only knows "full" and "claimed".
+ * gone to someone else. "credit" is the new-account credit (lib/welcome-credit.ts),
+ * which the checkout was priced with and which has run out since. Only the
+ * pre-payment recheck asks about either; the settlement path (lib/payments.ts)
+ * still only knows "full" and "claimed".
  */
-export type StaleReason = "full" | "claimed" | "code";
+export type StaleReason = "full" | "claimed" | "code" | "credit";
 
 type PendingBooking = {
   id: string;
@@ -143,6 +146,23 @@ async function discountHoldLost(admin: Admin, bookingId: string): Promise<boolea
 }
 
 /**
+ * Whether a stale checkout was priced with a new-account credit it no longer
+ * has: the 24 hours ran out, or another of the traveler's bookings has spent
+ * it since. Without this, a checkout started inside the 24 hours could be left
+ * open and paid at the credited price whenever its owner liked. A read error
+ * answers false, like the checks above.
+ */
+async function creditLost(admin: Admin, booking: { id: string; user_id: string }): Promise<boolean> {
+  if ((await bookingCredit(admin, booking.id)) <= 0) return false;
+  const { data, error } = await admin.auth.admin.getUserById(booking.user_id);
+  if (error || !data.user) {
+    console.error(`creditLost(${booking.id}): ${error?.message ?? "no such user"}`);
+    return false;
+  }
+  return (await welcomeCreditFor(admin, data.user, { exclude: booking.id })) === null;
+}
+
+/**
  * Whether a stale pending booking may still be paid, releasing it if not.
  * A booking that is not stale (or not pending) is always ok here. On a read
  * error it answers ok: the trigger was the control before, and a failed read
@@ -151,12 +171,15 @@ async function discountHoldLost(admin: Admin, bookingId: string): Promise<boolea
 export async function recheckStaleCheckout(admin: Admin, bookingId: string): Promise<StaleCheckoutResult> {
   const { data: booking } = await admin
     .from("bookings")
-    .select("id, status, trip_id, tier_id, group_code, created_at, tiers(max_capacity, group_exclusive)")
+    .select("id, user_id, status, trip_id, tier_id, group_code, created_at, tiers(max_capacity, group_exclusive)")
     .eq("id", bookingId)
     .maybeSingle();
   if (!booking || !isStalePending(booking)) return { ok: true };
 
-  const reason = (await staleConflict(admin, booking)) ?? ((await discountHoldLost(admin, booking.id)) ? "code" : null);
+  const reason =
+    (await staleConflict(admin, booking)) ??
+    ((await discountHoldLost(admin, booking.id)) ? "code" : null) ??
+    ((await creditLost(admin, booking)) ? "credit" : null);
   if (!reason) return { ok: true };
 
   // The form must stop working before the booking stops holding anything. If
@@ -192,8 +215,14 @@ export function staleCheckoutMessage(reason: StaleReason): string {
 }
 
 /** The ?error= code for a released checkout (see lib/flash.ts). */
-export function staleCheckoutCode(reason: StaleReason): "stale_claimed" | "stale_full" | "stale_code" {
-  return reason === "claimed" ? "stale_claimed" : reason === "code" ? "stale_code" : "stale_full";
+export function staleCheckoutCode(reason: StaleReason): "stale_claimed" | "stale_full" | "stale_code" | "stale_credit" {
+  return reason === "claimed"
+    ? "stale_claimed"
+    : reason === "code"
+      ? "stale_code"
+      : reason === "credit"
+        ? "stale_credit"
+        : "stale_full";
 }
 
 /** Where "choose again" goes: the booking page for the same trip, with an error code if given. */

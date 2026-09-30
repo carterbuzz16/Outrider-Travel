@@ -12,6 +12,7 @@ import { syncPaymentFromStripe } from "@/lib/stripe-sync";
 import { formatAmount } from "@/lib/balance";
 import { DEPOSIT_PERCENTAGE, PAY_IN_FULL_DISCOUNT } from "@/lib/deposit";
 import { getRoomMedia } from "@/lib/room-media";
+import { bookingCredit } from "@/lib/welcome-credit";
 import { CONTACT } from "@/lib/site-content";
 import { formatDay } from "@/app/(protected)/dates";
 import { formatDateRange, formatPrice } from "@/lib/trips";
@@ -145,13 +146,18 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
     .eq("booking_id", booking.id)
     .maybeSingle();
   const codeOff = redemption ? Number(redemption.amount) : 0;
+  // The new-account credit (lib/welcome-credit.ts), also already off the
+  // total, and also shown as its own line.
+  const creditOff = await bookingCredit(createAdminClient(), booking.id);
   // A tier repriced since booking would make the difference something else,
   // so it only shows when it is exactly what the discount can account for.
-  const difference = listPrice !== null ? Math.round((listPrice - codeOff - total) * 100) / 100 : 0;
+  const difference = listPrice !== null ? Math.round((listPrice - codeOff - creditOff - total) * 100) / 100 : 0;
   const saving = payingInFull && difference > 0 && difference <= PAY_IN_FULL_DISCOUNT ? difference : 0;
   // The breakdown from the list price shows only when it adds up exactly.
   const itemized =
-    listPrice !== null && (saving > 0 || codeOff > 0) && Math.round((listPrice - saving - codeOff) * 100) === Math.round(total * 100);
+    listPrice !== null &&
+    (saving > 0 || codeOff > 0 || creditOff > 0) &&
+    Math.round((listPrice - saving - codeOff - creditOff) * 100) === Math.round(total * 100);
 
   return (
     <main>
@@ -232,6 +238,7 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
                     {redemption && codeOff > 0 && (
                       <Line label={`Code ${redemption.code}`} value={`−${formatAmount(codeOff)}`} />
                     )}
+                    {creditOff > 0 && <Line label="Account credit" value={`−${formatAmount(creditOff)}`} />}
                     {saving > 0 && <Line label="Paying in full" value={`−${formatAmount(saving)}`} />}
                   </>
                 ) : (

@@ -27,6 +27,7 @@ import { getOrCreateStripeCustomerId } from "@/lib/customers";
 import { checkRateLimit, FAIL_CLOSED } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/client-ip";
 import { resolveGroupCode } from "@/lib/group-code";
+import { creditOrCode, welcomeCreditFor } from "@/lib/welcome-credit";
 import { claimMatches, getTierClaims, normalizeGroupCode } from "@/lib/tier-claims";
 import { hasAcceptedAll, recordAcceptance } from "@/lib/legal-acceptance";
 import {
@@ -194,8 +195,24 @@ export async function createBooking(formData: FormData) {
     discount = amount;
   }
 
+  /*
+   * The new-account credit (lib/welcome-credit.ts): off every account's first
+   * trip for its first 24 hours, with no code to type. Looked up after this
+   * traveler's other checkouts were let go above, so none of those can be
+   * holding it. Recorded on the booking below, which is what marks it spent
+   * once money moves.
+   *
+   * It does not combine with a discount code: with both, the bigger one comes
+   * off (creditOrCode, which the booking page used for its figures too). A
+   * code set aside is not claimed, so it stays unused.
+   */
+  const applied = creditOrCode(discount, (await welcomeCreditFor(admin, user))?.amount ?? 0);
+  const credit = applied.credit;
+  discount = applied.code;
+  const claimCode = discount > 0 ? discountCode : null;
+
   const listTotal = plan === "full" ? computePayInFullAmount(tier.price) : tier.price;
-  const totalAmount = applyDiscount(listTotal, discount);
+  const totalAmount = applyDiscount(listTotal, discount + credit);
   const depositAmount = computeDepositAmount(totalAmount);
   const chargeAmount = plan === "full" ? totalAmount : depositAmount;
   const chargeCents = Math.round(chargeAmount * 100);
@@ -329,7 +346,9 @@ export async function createBooking(formData: FormData) {
     }
     const { data: updated } = await admin
       .from("bookings")
-      .update({ total_amount: totalAmount, deposit_amount: depositAmount })
+      // credit_amount too, so a checkout re-priced after its credit ran out
+      // stops claiming one.
+      .update({ total_amount: totalAmount, deposit_amount: depositAmount, credit_amount: credit })
       .eq("id", carried.id)
       .eq("status", "pending")
       .select("id")
@@ -348,6 +367,7 @@ export async function createBooking(formData: FormData) {
         total_amount: totalAmount,
         deposit_amount: depositAmount,
         group_code: groupCode,
+        credit_amount: credit,
         // sms_consent and its evidence columns are left to their defaults (false
         // and null). The opt-in lives on the trip page now; see
         // app/trip/[bookingId]/actions.ts.
@@ -393,11 +413,11 @@ export async function createBooking(formData: FormData) {
    * the one the total was worked out with (a code edited in between is sent
    * round again rather than charged at a figure nobody saw).
    *
-   * A carried booking re-priced without a code has any earlier one dropped,
-   * which frees it.
+   * A carried booking re-priced without a code (or with one set aside for
+   * the credit) has any earlier one dropped, which frees it.
    */
-  if (discountCode) {
-    const claim = await claimDiscountCode(admin, discountCode, bookingId);
+  if (claimCode) {
+    const claim = await claimDiscountCode(admin, claimCode, bookingId);
     if (!claim.ok || claim.amount !== discount) {
       await abandonPendingBooking(admin, bookingId);
       checkoutError(claim.ok || claim.reason === "invalid" ? "discount_code_invalid" : "discount_code_used", noCode);
@@ -448,7 +468,8 @@ export async function createBooking(formData: FormData) {
           userId: user.id,
           kind: plan,
           bookingStatus: "pending",
-          ...(discountCode ? { discountCode } : {}),
+          ...(claimCode ? { discountCode: claimCode } : {}),
+          ...(credit > 0 ? { newAccountCredit: String(credit) } : {}),
         },
       },
       { idempotencyKey: `checkout-${bookingId}-${chargeCents}${attempt > 0 ? `-${attempt}` : ""}` },

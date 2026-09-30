@@ -13,6 +13,7 @@ import {
   payInFullSaving,
 } from "@/lib/deposit";
 import { discountCodeAmount, normalizeDiscountCode } from "@/lib/discount-codes";
+import { WELCOME_CREDIT, creditOrCode, welcomeCreditFor, type WelcomeCredit } from "@/lib/welcome-credit";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatAmount } from "@/lib/balance";
@@ -65,6 +66,11 @@ export default async function NewBookingPage(props: {
     data: { user },
   } = await (await createClient()).auth.getUser();
   const signedIn = Boolean(user?.email_confirmed_at) && !user?.is_anonymous;
+
+  // The new-account credit (lib/welcome-credit.ts), for an account that still
+  // has it: every figure below has it off, as createBooking will. Signed out,
+  // the form says it comes off once the account is made at Continue instead.
+  const credit = signedIn && user ? await welcomeCreditFor(createAdminClient(), user) : null;
 
   // ?code=, a giveaway discount code (lib/discount-codes.ts), from the link we
   // text a winner or from the Apply button beside the code box. Checked once,
@@ -186,6 +192,7 @@ export default async function NewBookingPage(props: {
                 discount={discount}
                 rejectedCode={discountRejected ? discountCode : null}
                 signedIn={signedIn}
+                credit={credit}
               />
             </div>
             {hasPenthouse && (
@@ -261,6 +268,7 @@ function Packages({
   discount,
   rejectedCode,
   signedIn,
+  credit,
 }: {
   trip: PublicTrip;
   requestedPackage?: string;
@@ -273,16 +281,22 @@ function Packages({
   /** A ?code= that did not, to show in the box with a line saying so. */
   rejectedCode: string | null;
   signedIn: boolean;
+  /** The account's new-account credit, if it still has it. */
+  credit: WelcomeCredit | null;
 }) {
-  const off = discount?.amount ?? 0;
+  // The credit and a code do not combine: the bigger one comes off, the code
+  // on a tie (creditOrCode, as createBooking decides it). Only that one is in
+  // the figures below; the other is named in the order panel as set aside.
+  const applied = creditOrCode(discount?.amount ?? 0, credit?.amount ?? 0);
+  const off = applied.code + applied.credit;
   const tiers: CheckoutTier[] = trip.tiers.map((tier) => {
     // A penthouse another group holds is taken, unless the code in the link is
     // that group's. Then it is theirs to join, capacity permitting.
     const taken = tier.claimed && !unlocked.includes(tier.id);
     const soldOut = taken || (tier.spotsLeft !== null && tier.spotsLeft <= 0);
     const room = getRoomMedia(tier.name);
-    // The code comes off after the pay-in-full saving, as in createBooking, so
-    // these are exactly the figures the card will be charged.
+    // The code and the credit come off after the pay-in-full saving, as in
+    // createBooking, so these are exactly the figures the card will be charged.
     const price = applyDiscount(tier.price, off);
     const full = applyDiscount(computePayInFullAmount(tier.price), off);
     const deposit = computeDepositAmount(price);
@@ -347,9 +361,21 @@ function Packages({
       installmentOffsets={INSTALLMENT_OFFSETS_DAYS}
       contactEmail={CONTACT.email}
       initialGroupCode={groupCode}
-      discount={discount ? { code: discount.code, label: formatAmount(discount.amount) } : null}
+      discount={discount && applied.code > 0 ? { code: discount.code, label: formatAmount(discount.amount) } : null}
       rejectedCode={rejectedCode}
       signedIn={signedIn}
+      credit={credit && applied.credit > 0 ? { label: formatAmount(credit.amount), expiresAt: credit.expiresAt } : null}
+      setAside={
+        discount && applied.code === 0
+          ? { kind: "code", code: discount.code }
+          : credit && applied.credit === 0
+            ? { kind: "credit", label: formatAmount(credit.amount) }
+            : null
+      }
+      // Signed out, a new account would get the credit at Continue, unless a
+      // code already takes off as much or more; then the note would promise
+      // money that never comes off.
+      creditOffer={signedIn || (discount && discount.amount >= WELCOME_CREDIT) ? null : formatAmount(WELCOME_CREDIT)}
     />
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button, cn } from "@/components/ui";
+import { Countdown, useWelcomeCredit } from "@/components/WelcomeCredit";
 
 /**
  * A slim "Reserve" bar along the bottom of a phone screen, on a departure
@@ -22,18 +23,36 @@ import { Button, cn } from "@/components/ui";
  *
  * No price on it: the owner wants people to see what they get before what it
  * costs, and the masthead has already said "from".
+ *
+ * On /telluride, where ads land, it is there from the first screen
+ * (`fromStart`) rather than after the masthead: the masthead's own button
+ * carries data-reserve-bar-hide, so the bar still steps aside while that one
+ * is in view. Inside a WelcomeCreditProvider, a live new-account credit
+ * replaces the place name with its countdown.
  */
-export default function MobileReserveBar({ href, place, dates }: { href: string; place: string; dates: string }) {
-  const [pastHero, setPastHero] = useState(false);
+export default function MobileReserveBar({
+  href,
+  place,
+  dates,
+  fromStart = false,
+}: {
+  href: string;
+  place: string;
+  dates: string;
+  fromStart?: boolean;
+}) {
+  const credit = useWelcomeCredit()?.state;
+  const [pastHero, setPastHero] = useState(fromStart);
   const [covered, setCovered] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
+    if (fromStart) return;
     const onScroll = () => setPastHero(window.scrollY > window.innerHeight * 0.7);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [fromStart]);
 
   useEffect(() => {
     const targets = [...document.querySelectorAll("[data-reserve-bar-hide], footer")];
@@ -67,7 +86,13 @@ export default function MobileReserveBar({ href, place, dates }: { href: string;
     >
       <div className="shell flex h-16 items-center justify-between gap-4">
         <div className="min-w-0">
-          <p className="t-micro m-0 text-[--text-secondary]">{place}</p>
+          {credit?.status === "active" ? (
+            <p className="t-micro m-0 text-[--accent]">
+              $100 credit, <Countdown expiresAt={credit.expiresAt} /> left
+            </p>
+          ) : (
+            <p className="t-micro m-0 text-[--text-secondary]">{place}</p>
+          )}
           <p className="m-0 mt-0.5 truncate font-display text-body-s font-medium text-[--text]">{dates}</p>
         </div>
         <div className="flex shrink-0 items-center gap-1">

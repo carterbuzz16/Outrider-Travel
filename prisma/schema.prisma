@@ -97,6 +97,9 @@ model Booking {
   depositAmount Decimal       @map("deposit_amount") @db.Decimal(10, 2)
   groupCode     String?       @map("group_code")
   createdAt     DateTime      @default(now()) @map("created_at")
+  /// The new-account credit this booking was given, already off totalAmount
+  /// (new_account_credit migration, lib/welcome-credit.ts). Zero for none.
+  creditAmount  Decimal       @default(0) @map("credit_amount") @db.Decimal(10, 2)
 
   // Post-booking tasks, shown in the /trip portal (see the
   // add_post_booking_forms migration). The two *_submitted flags mirror the
