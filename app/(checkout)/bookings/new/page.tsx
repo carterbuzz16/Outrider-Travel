@@ -13,6 +13,7 @@ import {
   payInFullSaving,
 } from "@/lib/deposit";
 import { discountCodeAmount, normalizeDiscountCode } from "@/lib/discount-codes";
+import { offerCodeFromCookie } from "@/lib/code-offer-server";
 import { WELCOME_CREDIT, creditOrCode, welcomeCreditFor, type WelcomeCredit } from "@/lib/welcome-credit";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -79,16 +80,30 @@ export default async function NewBookingPage(props: {
   // createBooking checks again and claims it. Capped per IP like the group
   // check, so the page cannot be used to guess codes; over the cap, or unknown,
   // it simply shows as not working.
-  const discountCode = normalizeDiscountCode(searchParams.code);
+  //
+  // Without one in the link, the $100 code this browser asked for on
+  // /telluride (lib/code-offer-server.ts), so every Reserve on that page lands
+  // here with it off, not only the button that carries it. A code in the link
+  // wins, since it was typed or followed on purpose, and so does an empty one
+  // (?code=), which is the code box emptied to take a code off. A cookie code
+  // that no longer works is simply left off, with no "didn't work" line:
+  // nobody typed it here. It is not counted against the per-IP cap below,
+  // which is for codes worth guessing (lib/code-offer-server.ts says why).
+  const linkCode = normalizeDiscountCode(searchParams.code);
+  const cookieCode = searchParams.code === undefined ? await offerCodeFromCookie() : null;
+  const discountCode = linkCode ?? cookieCode;
   let discount: Discount | null = null;
-  if (discountCode && (await checkRateLimit(`discount-check:${await clientIp()}`, 30, 60 * 60))) {
+  if (
+    discountCode &&
+    (cookieCode || (await checkRateLimit(`discount-check:${await clientIp()}`, 30, 60 * 60)))
+  ) {
     // Checked for signed-out visitors too, now that they can see prices here.
     // The user id only matters for someone with an abandoned checkout of
     // their own (see discount_code_uses).
     const amount = await discountCodeAmount(createAdminClient(), discountCode, user?.id);
     if (amount !== null) discount = { code: discountCode, amount };
   }
-  const discountRejected = Boolean(discountCode) && discount === null;
+  const discountRejected = Boolean(linkCode) && discount === null;
 
   // Not on sale yet: nothing to choose, so no packages and no trip lookups.
   // createBooking refuses too, and sends anyone who posts anyway back here.

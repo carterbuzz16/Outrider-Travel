@@ -28,6 +28,7 @@ import { checkRateLimit, FAIL_CLOSED } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/client-ip";
 import { resolveGroupCode } from "@/lib/group-code";
 import { creditOrCode, welcomeCreditFor } from "@/lib/welcome-credit";
+import { isOfferCode } from "@/lib/code-offer";
 import { claimMatches, getTierClaims, normalizeGroupCode } from "@/lib/tier-claims";
 import { hasAcceptedAll, recordAcceptance } from "@/lib/legal-acceptance";
 import {
@@ -185,7 +186,14 @@ export async function createBooking(formData: FormData) {
   if (discountCode) {
     // Codes are checked per IP on the booking page; this caps guessing through
     // the action itself, where each account would otherwise get its own tries.
-    if (!(await checkRateLimit(`discount-claim-ip:${await clientIp()}`, 20, 60 * 60, FAIL_CLOSED))) {
+    // Not for a $100 offer code, which nobody needs to guess (anyone can have
+    // one for an email address): counted, a campus network sharing one address
+    // could spend the cap, and the page would put the code from the visitor's
+    // cookie straight back on the next try (lib/code-offer-server.ts).
+    if (
+      !isOfferCode(discountCode) &&
+      !(await checkRateLimit(`discount-claim-ip:${await clientIp()}`, 20, 60 * 60, FAIL_CLOSED))
+    ) {
       checkoutError("rate_limited", noCode);
     }
     const amount = await discountCodeAmount(admin, discountCode, user.id);

@@ -9,6 +9,18 @@ import { CONTACT, LEGAL_NAME } from "@/lib/site-content";
 import { waitlistWelcomeHtml } from "@/lib/email/templates/waitlist-welcome";
 import { EARLY_ACCESS_SUBJECT, earlyAccessHtml } from "@/lib/email/templates/early-access";
 import { BOOKING_OPEN_SUBJECT, bookingOpenHtml } from "@/lib/email/templates/booking-open";
+import {
+  CODE_OFFER_FOOTER,
+  CODE_OFFER_PANEL,
+  codeOfferHtml,
+  codeOfferLead,
+  codeOfferPreheader,
+  codeOfferSubject,
+  type CodeOfferKind,
+  type CodeOfferParts,
+} from "@/lib/email/templates/code-offer";
+import { formatOfferDeadline, formatOfferWeekday, offerDaysLeft } from "@/lib/code-offer";
+import { PAY_IN_FULL_DISCOUNT } from "@/lib/deposit";
 
 // resend.emails.send() resolves with { data, error } rather than throwing
 // on an API-level failure (e.g. an unverified domain) — it only throws on
@@ -547,10 +559,88 @@ export function renderBookingOpenReminder(opts: {
   };
 }
 
+/**
+ * The $100 code by email (lib/code-offer.ts, templates/code-offer.ts): the code
+ * when it is asked for (app/code-offer-actions.ts), then "two days left" and
+ * "last day" (app/api/cron/code-offer-reminders). One-click unsubscribe, as on
+ * every list email, because they are mail about a promotion.
+ */
+export type CodeOfferEmailInput = {
+  kind: CodeOfferKind;
+  code: string;
+  /** The code's expires_at. */
+  expiresAt: string;
+  unsubscribeToken: string;
+  fromPrice: string | null;
+  /** For the reminder's "two days left"; the real send leaves it as now. */
+  now?: Date;
+};
+
+export async function sendCodeOfferEmail(to: string, input: CodeOfferEmailInput) {
+  const { subject, html, text, headers } = renderCodeOfferEmail(input);
+  await sendEmail({ from: getFromAddress(), to, subject, headers, html, text });
+}
+
+export function renderCodeOfferEmail(input: CodeOfferEmailInput): RenderedEmail & { html: string; text: string } {
+  const origin = getAppUrl().replace(/\/+$/, "");
+  const unsubscribeUrl = `${origin}/unsubscribe?t=${encodeURIComponent(input.unsubscribeToken)}`;
+  const bookUrl = `${origin}/bookings/new?code=${encodeURIComponent(input.code)}`;
+  const deadline = formatOfferDeadline(input.expiresAt);
+  const parts: CodeOfferParts = {
+    kind: input.kind,
+    origin,
+    code: escapeHtml(input.code),
+    deadline: escapeHtml(deadline),
+    weekday: escapeHtml(formatOfferWeekday(input.expiresAt)),
+    daysLeft: offerDaysLeft(input.expiresAt, input.now),
+    fromPrice: input.fromPrice ? escapeHtml(input.fromPrice) : null,
+    payInFullOff: PAY_IN_FULL_DISCOUNT > 0 ? `$${PAY_IN_FULL_DISCOUNT}` : null,
+    bookUrl: escapeHtml(bookUrl),
+    unsubscribeUrl: escapeHtml(unsubscribeUrl),
+    addressLine: escapeHtml([LEGAL_NAME, ...(CONTACT.postalAddress ?? [])].join(", ")),
+  };
+  // The plain part reads the same values unescaped.
+  const plain: CodeOfferParts = {
+    ...parts,
+    code: input.code,
+    deadline,
+    weekday: formatOfferWeekday(input.expiresAt),
+    fromPrice: input.fromPrice,
+  };
+
+  return {
+    subject: codeOfferSubject(plain),
+    headers: {
+      "List-Unsubscribe": `<${origin}/api/unsubscribe?t=${encodeURIComponent(input.unsubscribeToken)}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    },
+    html: codeOfferHtml(parts),
+    text: [
+      codeOfferPreheader(plain),
+      "",
+      codeOfferLead(plain, (code) => code),
+      "",
+      `Book with your code: ${bookUrl}`,
+      "",
+      "Telluride: December 14-18, 2026 or January 4-8, 2027",
+      "The Peaks, Mountain Village. Ski-in, ski-out. Four to a room, two to a room, or a whole penthouse for your eight.",
+      input.fromPrice ? `From ${input.fromPrice} per person, all in, before your $100.` : "One price per person, all in, before your $100.",
+      "",
+      `${CODE_OFFER_PANEL.label}: ${CODE_OFFER_PANEL.text}`,
+      "",
+      `Questions: ${CONTACT.email}. We reply within a day.`,
+      CODE_OFFER_FOOTER.replace(/&rsquo;/g, "\u2019"),
+      `Unsubscribe: ${unsubscribeUrl}`,
+    ].join("\n"),
+  };
+}
+
 // Optional heads-up to the team when someone joins the waitlist. Silent
 // no-op unless WAITLIST_NOTIFY_TO is set, so the coming-soon page works
 // without it; the caller treats any failure here as non-fatal.
 export type WaitlistSignupContext = {
+  /** What happened, for the subject. Defaults to "new waitlist signup". */
+  event?: string;
   /** "First Last", from the form. */
   name?: string;
   placement?: string;
@@ -587,10 +677,11 @@ export function renderWaitlistNotification(
     context.referrer && `Referrer: ${context.referrer}`,
   ].filter(Boolean);
 
+  const event = context.event ?? "new waitlist signup";
   return {
     subject: context.src || context.source
-      ? `Outrider: new waitlist signup (${context.src || context.source})`
-      : "Outrider: new waitlist signup",
+      ? `Outrider: ${event} (${context.src || context.source})`
+      : `Outrider: ${event}`,
     text: lines.join("\n"),
   };
 }

@@ -498,6 +498,9 @@ export type Database = {
           first_name: string | null
           id: string
           last_name: string | null
+          offer_code: string | null
+          offer_last_day_sent_at: string | null
+          offer_reminder_sent_at: string | null
           phone: string | null
           placement: string | null
           sms_consent: boolean | null
@@ -524,6 +527,9 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
+          offer_code?: string | null
+          offer_last_day_sent_at?: string | null
+          offer_reminder_sent_at?: string | null
           phone?: string | null
           placement?: string | null
           sms_consent?: boolean | null
@@ -550,6 +556,9 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
+          offer_code?: string | null
+          offer_last_day_sent_at?: string | null
+          offer_reminder_sent_at?: string | null
           phone?: string | null
           placement?: string | null
           sms_consent?: boolean | null
@@ -562,7 +571,15 @@ export type Database = {
           utm_medium?: string | null
           utm_source?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "waitlist_signups_offer_code_fkey"
+            columns: ["offer_code"]
+            isOneToOne: true
+            referencedRelation: "discount_codes"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       users: {
         Row: {

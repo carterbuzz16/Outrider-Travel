@@ -74,6 +74,11 @@ export type ListEmailParts = {
   panel: { label: string; text: string };
   addressLine: string;
   unsubscribeUrl: string;
+  /**
+   * Why they are getting it, over the unsubscribe link. Fixed HTML. Defaults
+   * to the list's line; the $100 code's emails say they were asked for.
+   */
+  footerNote?: string;
 };
 
 export function waitlistWelcomeHtml(p: WaitlistWelcomeParts): string {
@@ -217,7 +222,7 @@ export function listEmailHtml(p: ListEmailParts): string {
           <tr>
             <td style="padding-top:20px; font-family:${FONT}; font-size:11px; line-height:1.6; color:#6B635C;">
               ${p.addressLine}<br />
-              You&rsquo;re getting this because you joined the Outrider list. We only email when a trip opens.
+              ${p.footerNote ?? "You&rsquo;re getting this because you joined the Outrider list. We only email when a trip opens."}
               <a href="${p.unsubscribeUrl}" style="color:#6B635C; text-decoration:underline;">Unsubscribe</a>
             </td>
           </tr>

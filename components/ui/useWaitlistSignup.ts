@@ -61,6 +61,11 @@ export function captureFirstTouch() {
   };
 }
 
+/** What captureFirstTouch kept, for another form (the $100 sheet, components/WelcomeCredit.tsx). */
+export function firstTouchContext(): Omit<SignupContext, "placement"> {
+  return firstTouch ?? {};
+}
+
 export function useWaitlistSignup(placement: string) {
   const [values, setValues] = useState<WaitlistInput>(EMPTY_WAITLIST_INPUT);
   const [fieldErrors, setFieldErrors] = useState<WaitlistFieldErrors>({});

@@ -43,6 +43,26 @@ export const WAITLIST_CONSENT_VERSION = "waitlist-optin-2026-09-24";
  */
 export const SIGNUP_EMAIL_CONSENT_VERSION = "signup-email-optin-2026-09-28";
 
+/**
+ * Stored on a list row that came from the $100 code on /telluride
+ * (app/code-offer-actions.ts). Same rule: a new wording or context is a new
+ * version.
+ *
+ * History:
+ *   code-offer-optin-2026-10-01  one box, EMAIL_CONSENT_LABEL, optional and
+ *                                unticked, under the email field of the $100
+ *                                sheet, with CODE_OFFER_PROMISE above it.
+ *
+ * The box is only about the list. The code email and its two reminders go
+ * whichever way it is answered, because asking for the code is asking for
+ * them: CODE_OFFER_PROMISE says so where the address is typed, and every one
+ * of them carries the unsubscribe link.
+ */
+export const CODE_OFFER_CONSENT_VERSION = "code-offer-optin-2026-10-01";
+
+/** Under the $100 sheet's email field: what asking for the code sends. */
+export const CODE_OFFER_PROMISE = "We'll email you the code too, and remind you before it runs out.";
+
 /** Required. Unticked, the form will not submit. */
 export const EMAIL_CONSENT_LABEL = "Okay to email me about Outrider trips";
 

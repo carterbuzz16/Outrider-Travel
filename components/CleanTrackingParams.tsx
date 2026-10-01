@@ -40,7 +40,13 @@ export default function CleanTrackingParams() {
       // The visitor has already moved on; that page's URL is not ours to edit.
       if (now.pathname !== landing.pathname) return;
       for (const key of drop) now.searchParams.delete(key);
-      window.history.replaceState(window.history.state, "", `${now.pathname}${now.search}${now.hash}`);
+      // null, not window.history.state. Next's router only takes notice of a
+      // replaceState whose state is not its own; handed its own state back, it
+      // kept the tagged URL as the page's address, and the next refresh (a
+      // server action setting a cookie, as the $100 sheet does) put the tags
+      // back in the address bar. Given null, Next copies its state across and
+      // adopts the clean URL.
+      window.history.replaceState(null, "", `${now.pathname}${now.search}${now.hash}`);
     }, 250);
 
     return () => window.clearInterval(timer);

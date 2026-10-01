@@ -19,6 +19,9 @@ import AdChoices from "@/components/AdChoices";
  * the Meta Pixel, for Instagram ads to people who have visited: what it
  * sends, where it never runs and how to opt out are stated below, and each
  * of those is enforced in lib/meta-pixel.ts. Change one, change the other.
+ * Since 1.4.0 there is also the $100 code by email (app/code-offer-actions.ts,
+ * lib/code-offer-server.ts for its cookie, app/api/cron/code-offer-reminders
+ * for the reminders).
  *
  * Where the code has no answer, a retention schedule, for instance, which
  * simply does not exist yet, the page says so in a flag instead of inventing
@@ -139,6 +142,19 @@ export default function PrivacyPage() {
           mailing list at Resend.
         </p>
 
+        <h3>A $100 code by email</h3>
+        <p>
+          Asking for a $100 code on our Telluride page stores your email
+          address, the code we give you and when it runs out, your answer to the
+          box asking whether we may email you about Outrider trips, when you gave
+          it and which version of its wording you saw, the IP address and browser
+          the request came from, and the campaign tags of the link that brought
+          you. If you tick the box, your email address is also added to our
+          mailing list at Resend. We also put the code in a cookie on this site
+          so that it comes off at checkout (see section{" "}
+          {sectionIndex("cookies")}).
+        </p>
+
         <h3>Technical information</h3>
         <p>
           Like any website, ours receives your IP address, your browser type and
@@ -152,8 +168,9 @@ export default function PrivacyPage() {
           sends Meta the address of the page you are viewing and of the page
           you came from, your IP address, your browser and device type, and the
           identifiers in its cookies. It also tells Meta when you join the
-          waitlist, when you reach the card form for a new booking, and when you
-          make a booking&rsquo;s first payment, with the amount. It does not send
+          waitlist or ask for a $100 code, when you reach the card form for a
+          new booking, and when you make a booking&rsquo;s first payment, with
+          the amount. It does not send
           your name, email address, phone number, card details or anything you
           type into a form.
         </p>
@@ -243,6 +260,10 @@ export default function PrivacyPage() {
               otherwise asked for them;
             </>,
             <>
+              email you a $100 code you asked for, and up to two reminders
+              before it runs out (see section {sectionIndex("email")});
+            </>,
+            <>
               show Outrider ads on Instagram and Facebook to people who have
               visited this site, and measure how those ads perform (see section{" "}
               {sectionIndex("cookies")});
@@ -266,10 +287,23 @@ export default function PrivacyPage() {
 
       <LegalSection doc={PRIVACY} id="cookies">
         <p>
-          We use cookies for one thing: keeping you signed in. When you log in,
-          Supabase sets session cookies through our server, and our middleware
-          refreshes them as you move around the site so your session stays valid.
-          Without them the booking area cannot know who you are.
+          Our own cookies do three things. The first is keeping you signed in.
+          When you log in, Supabase sets session cookies through our server, and
+          our middleware refreshes them as you move around the site so your
+          session stays valid. Without them the booking area cannot know who you
+          are.
+        </p>
+        <p>
+          The second is the private booking link we email to the list when
+          booking opens to it first. Opening it stores the link&rsquo;s token in
+          a cookie named outrider_early_access, so the booking page knows you
+          came through it.
+        </p>
+        <p>
+          The third is a $100 code you asked for. We store it in a cookie named
+          outrider_offer, which the page&rsquo;s own scripts cannot read and
+          which expires when the code does, so that the code comes off at
+          checkout whichever Reserve button you use. It holds only the code.
         </p>
         <p>
           We also use the Meta Pixel, a piece of code from Meta Platforms that
@@ -344,6 +378,16 @@ export default function PrivacyPage() {
           is held in our database and in our mailing audience at Resend;
           unsubscribing marks you unsubscribed in both.
         </p>
+        <p>
+          <strong>A $100 code you ask for</strong> comes by email straight away,
+          followed by at most two reminders before it runs out: two days before
+          its last day, and on its last day. They stop if you use the code,
+          book, or unsubscribe with the link in any of them. They are sent
+          whether or not you tick the box about Outrider trips; the box decides
+          only whether you also join the list. Each address gets one code. If
+          an address that already has one is typed again, we email the code to
+          that address again and do not show it on the page.
+        </p>
       </LegalSection>
 
       <LegalSection doc={PRIVACY} id="sms">
@@ -391,11 +435,13 @@ export default function PrivacyPage() {
           providers retain them.
         </p>
         <p>
-          The waitlist and contact forms are open to anyone, so both are rate
-          limited. To do that we store a short-lived record keyed to the IP
-          address the request came from, counting how many submissions it has
-          made recently (within the past hour at most). It is used for nothing else, not for
-          analytics, not for profiling, not for advertising.
+          The waitlist, the $100 code and the contact forms are open to anyone,
+          so they are rate limited. To do that we store a short-lived record
+          keyed to the IP address the request came from (and, for the $100
+          code, to the email address typed), counting how many submissions it
+          has made recently (within the past day at most). It is used for
+          nothing else, not for analytics, not for profiling, not for
+          advertising.
         </p>
       </LegalSection>
 
@@ -481,8 +527,9 @@ export default function PrivacyPage() {
           We keep booking, payment and correspondence records for as long as we
           need them to run the trip, to meet tax, accounting and insurance
           obligations, and to defend a legal claim. Account information is kept
-          while your account exists. Waitlist addresses are kept until you
-          unsubscribe or ask us to remove you.
+          while your account exists. Waitlist addresses, and addresses that
+          asked for a $100 code, are kept until you unsubscribe or ask us to
+          remove you.
         </p>
       </LegalSection>
 

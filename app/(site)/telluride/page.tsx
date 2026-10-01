@@ -77,10 +77,12 @@ import { flightTimesPublished } from "@/lib/trip-logistics";
  *   Telluride     four figures and the photographs (#overview)
  *   Good to know  getting there, and the questions, folded (#details)
  *
- * The new-account credit (lib/welcome-credit.ts) lives here too: the pop-up,
- * the line under Reserve, and the countdown on the phone Reserve bar all come
- * from WelcomeCreditProvider, which asks for the visitor's state after the
- * page loads, so the page itself stays static.
+ * $100 off lives here too: since 1 October 2026 the page offers a code by
+ * email (lib/code-offer.ts) in a sheet that opens after the price, and the
+ * line under Reserve carries the same offer, then the code. A running
+ * new-account credit (lib/welcome-credit.ts) shows as a countdown instead. All
+ * of it comes from WelcomeCreditProvider, which asks for the visitor's state
+ * after the page loads, so the page itself stays static.
  *
  * Launch gating follows app/(site)/trips/[id]/page.tsx exactly: before
  * TRIP_DETAILS_OPEN the departures are teased as dates and length only, with no
@@ -339,7 +341,9 @@ export default async function TelluridePage() {
           ))}
         </dl>
 
-        <div className="flex flex-col md:mt-8 md:self-start md:[grid-area:offer]">
+        {/* data-offer-after: the $100 sheet opens once this block, the price
+            and Reserve, has scrolled off the top (components/WelcomeCredit). */}
+        <div data-offer-after className="flex flex-col md:mt-8 md:self-start md:[grid-area:offer]">
           {TRIP_DETAILS_OPEN && Number.isFinite(priceFrom) && (
             <div className="mt-7 flex items-end justify-between gap-6 border-t border-[--rule-strong] pt-5 md:mt-0">
               <p className="m-0 flex flex-col">

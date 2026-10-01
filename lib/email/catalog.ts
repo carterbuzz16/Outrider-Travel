@@ -7,6 +7,7 @@ import {
   renderOverpaymentRefundEmail,
   renderPaymentFailedEmail,
   renderBookingOpenReminder,
+  renderCodeOfferEmail,
   renderEarlyAccess,
   renderWaitlistNotification,
   renderWaitlistWelcome,
@@ -28,6 +29,8 @@ import { renderContactMessage } from "@/lib/email/contact";
 import { TemplateRenderError } from "@/lib/email/render-template";
 import { createPortalUrl } from "@/lib/portal-token";
 import { getAppUrl } from "@/lib/site-url";
+import { endOfMountainDay, offerExpiry } from "@/lib/code-offer";
+import { todayInMountain } from "@/lib/mountain-time";
 
 /*
  * Every email the site sends, for the back office's preview page
@@ -57,6 +60,8 @@ const SAMPLE_EMAIL = "jordan.taylor@example.com";
 const SAMPLE_NAME = "Jordan Taylor";
 const SAMPLE_FIRST_NAME = "Jordan";
 const SAMPLE_GROUP_CODE = "TAYLOR";
+/** Shaped like a real $100 code (lib/code-offer-server.ts) but never issued. */
+const SAMPLE_OFFER_CODE = "TELLURIDESAMPLE";
 
 // A real portal link carries a signed token. The preview never mints one for
 // the fake booking: it is a placeholder of the same shape.
@@ -532,6 +537,48 @@ export function emailCatalog(): EmailEntry[] {
           fromPrice: SAMPLE_FROM_PRICE,
         }),
     },
+    ...(
+      [
+        {
+          kind: "code",
+          name: "$100 code: the code",
+          trigger: "The moment someone asks for a code in the $100 sheet on /telluride.",
+          expiresAt: () => offerExpiry().toISOString(),
+        },
+        {
+          kind: "reminder",
+          name: "$100 code: two days left",
+          trigger: "Daily cron (code-offer-reminders), two days before the code's last day, if it is still unused.",
+          expiresAt: () => endOfMountainDay(todayInMountain(new Date(Date.now() + 2 * 86_400_000))).toISOString(),
+        },
+        {
+          kind: "last-day",
+          name: "$100 code: last day",
+          trigger: "Daily cron (code-offer-reminders), on the morning of the code's last day, if it is still unused.",
+          expiresAt: () => endOfMountainDay(todayInMountain()).toISOString(),
+        },
+      ] as const
+    ).map((entry) => ({
+      id: `code-offer-${entry.kind}`,
+      section: "The list and the contact form",
+      name: entry.name,
+      trigger: entry.trigger,
+      recipient:
+        "The address that asked for the code, whatever they answered to the list box. Not after they unsubscribe, use the code or book.",
+      sandbox: "Ask for a code in the sheet on /telluride with a new address. The reminders come from the cron.",
+      notes: [
+        "The sample code goes nowhere: its button lands on checkout with a line saying the code didn't work.",
+        "Each real one carries a one-click unsubscribe header. The test leaves it off.",
+      ],
+      render: () =>
+        renderCodeOfferEmail({
+          kind: entry.kind,
+          code: SAMPLE_OFFER_CODE,
+          expiresAt: entry.expiresAt(),
+          unsubscribeToken: "sample-preview-token",
+          fromPrice: SAMPLE_FROM_PRICE,
+        }),
+    })),
     {
       id: "waitlist-notification",
       section: "The list and the contact form",

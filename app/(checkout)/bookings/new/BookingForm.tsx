@@ -171,12 +171,19 @@ export default function BookingForm({
     return Boolean(typed) && (typed === discount?.code || typed === codeSetAside);
   }
 
-  // Reloads the page with the code (or without one, to take it off), keeping
-  // the package picked and any group code from the link.
+  // Reloads the page with the code (or with an empty one, to take it off),
+  // keeping the package picked and any group code from the link. Empty rather
+  // than left out: with no ?code= at all, the page applies the $100 code this
+  // browser asked for (lib/code-offer-server.ts), and taking that one off
+  // has to stick.
   function goWithCode(code: string) {
+    // Taking a code off clears the box too. The form keeps its state across the
+    // reload, and the box is posted with the booking, so a code left sitting in
+    // it would come off at createBooking after all.
+    if (!code.trim()) setCodeInput("");
     const params = new URLSearchParams({ trip: tripId, package: tierId });
     if (initialGroupCode) params.set("group", initialGroupCode);
-    if (code.trim()) params.set("code", code.trim());
+    params.set("code", code.trim());
     router.push(`/bookings/new?${params.toString()}`, { scroll: false });
   }
 

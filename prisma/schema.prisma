@@ -237,6 +237,7 @@ model DiscountCode {
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
   redemptions DiscountRedemption[]
+  offeredTo   WaitlistSignup?
 
   @@map("discount_codes")
 }
@@ -308,6 +309,13 @@ model WaitlistSignup {
   utmMedium          String?   @map("utm_medium")
   utmCampaign        String?   @map("utm_campaign")
   updatedAt          DateTime? @map("updated_at") @db.Timestamptz(6)
+  /// The $100 code asked for on /telluride (lib/code-offer.ts). One per address.
+  offerCode           String?   @unique @map("offer_code")
+  /// "Two days left" and "last day" (app/api/cron/code-offer-reminders).
+  offerReminderSentAt DateTime? @map("offer_reminder_sent_at") @db.Timestamptz
+  offerLastDaySentAt  DateTime? @map("offer_last_day_sent_at") @db.Timestamptz
+
+  offer DiscountCode? @relation(fields: [offerCode], references: [code])
 
   @@index([src])
   @@map("waitlist_signups")

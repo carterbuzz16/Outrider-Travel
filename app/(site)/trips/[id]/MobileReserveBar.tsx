@@ -28,7 +28,8 @@ import { Countdown, useWelcomeCredit } from "@/components/WelcomeCredit";
  * (`fromStart`) rather than after the masthead: the masthead's own button
  * carries data-reserve-bar-hide, so the bar still steps aside while that one
  * is in view. Inside a WelcomeCreditProvider, a live new-account credit
- * replaces the place name with its countdown.
+ * replaces the place name with its countdown, and a $100 code the visitor
+ * asked for (lib/code-offer.ts) with a line saying it comes off.
  */
 export default function MobileReserveBar({
   href,
@@ -41,7 +42,9 @@ export default function MobileReserveBar({
   dates: string;
   fromStart?: boolean;
 }) {
-  const credit = useWelcomeCredit()?.state;
+  const welcome = useWelcomeCredit();
+  const credit = welcome?.state;
+  const offer = welcome?.offer;
   const [pastHero, setPastHero] = useState(fromStart);
   const [covered, setCovered] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -90,6 +93,9 @@ export default function MobileReserveBar({
             <p className="t-micro m-0 text-[--accent]">
               $100 credit, <Countdown expiresAt={credit.expiresAt} /> left
             </p>
+          ) : offer ? (
+            // The code rides to checkout in a cookie, so this Reserve has it off too.
+            <p className="t-micro m-0 text-[--accent]">$100 off with your code</p>
           ) : (
             <p className="t-micro m-0 text-[--text-secondary]">{place}</p>
           )}
