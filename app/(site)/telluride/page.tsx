@@ -98,7 +98,7 @@ export const metadata: Metadata = pageMetadata({
   title: "Telluride ski trip for college students",
   path: "/telluride",
   description:
-    "Outrider's Telluride ski weeks for college groups this winter: the dates, the week, where you stay, what every package includes, and how to get there.",
+    "Four nights in Telluride with your best friends: ski-in, ski-out at The Peaks, with lifts, rentals, rides and private nights out in one price.",
 });
 
 // Same cadence as /trips, so publishing or editing a departure shows up here
@@ -294,16 +294,29 @@ export default async function TelluridePage() {
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[64%] bg-gradient-to-t from-[rgb(31_26_23_/_0.86)] via-[rgb(31_26_23_/_0.5)] to-transparent"
+            className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[84%] bg-gradient-to-t from-[rgb(31_26_23_/_0.88)] via-[rgb(31_26_23_/_0.62)] to-transparent md:h-[74%]"
+          />
+          {/* From the left as well, as on the home page: the words now start
+              higher, over the snowfields, and the small line above the
+              headline needs 4.5:1. */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 left-0 -z-10 hidden w-[62%] bg-gradient-to-r from-[rgb(31_26_23_/_0.55)] to-transparent md:block"
           />
           <div className="shell pb-10 pt-40 md:pb-16">
-            <p className="t-label text-[--text]">Telluride, Colorado</p>
-            <h1 className="mt-5 max-w-[11ch] text-balance font-display text-display-xl font-extrabold uppercase leading-[0.92] tracking-display text-[--text]">
+            {/* Written to the student who just tapped the ad (Carter, 1 October
+                2026: "with your best friends", "exclusive experience", "best
+                week of your life"). */}
+            <p className="t-label text-[--text]">
               {nights !== null ? `${spelled(nights)} nights in Telluride` : "A week in Telluride"}
+            </p>
+            <h1 className="mt-5 max-w-[12ch] text-balance font-display text-display-xl font-extrabold uppercase leading-[0.92] tracking-display text-[--text]">
+              The best week of your life
             </h1>
-            <p className="mt-6 max-w-[40ch] font-body text-lede leading-[1.55] text-[--text]">
-              With your friends. We book the hotel, the lifts, the rides and the
-              nights out. You pick the week and show up.
+            <p className="mt-6 max-w-[42ch] font-body text-lede leading-[1.55] text-[--text]">
+              With your best friends, ski-in, ski-out at The Peaks. It&rsquo;s an
+              exclusive experience: we book the hotel, the lifts, the rides and
+              the nights out, and you just show up.
             </p>
           </div>
         </div>
@@ -387,8 +400,8 @@ export default async function TelluridePage() {
                 It&rsquo;s all booked before you land
               </h2>
               <p className="t-lede">
-                Every package comes with all of this. Your package only decides
-                the room.
+                Every package comes with all of this, so you and your best
+                friends just show up. Your package only decides the room.
               </p>
             </div>
           </Reveal>
@@ -452,8 +465,9 @@ export default async function TelluridePage() {
                 Pick your room
               </h2>
               <p className="t-lede">
-                Everyone stays at The Peaks, ski-in, ski-out, up in Mountain
-                Village. Your package decides the room and who&rsquo;s in it.
+                Everyone stays at The Peaks, ski-in, ski-out. Share a room with
+                three friends or one, or take a whole penthouse with your group
+                of eight.
               </p>
             </div>
           </Reveal>
@@ -554,8 +568,9 @@ export default async function TelluridePage() {
 
         <div className="shell py-16 md:py-24">
           <p className="t-lede max-w-measure text-[--text]">
-            Every package comes with the same nights out. They&rsquo;re
-            booked, hosted and closed to anyone who isn&rsquo;t on the trip.
+            The nights out are booked, hosted and closed to anyone who
+            isn&rsquo;t on the trip. Just you, your best friends and the rest
+            of the group.
           </p>
           {TRIP_DETAILS_OPEN && nights !== null && nights >= 2 && (
             <Reveal>
@@ -641,7 +656,8 @@ export default async function TelluridePage() {
                 A box canyon in the San Juans, closed off by peaks that clear
                 13,000 feet. An old mining town with a real Main Street at the
                 bottom, two thousand acres of mountain above it, and a free
-                gondola between the two.
+                gondola between the two. You&rsquo;ll be talking about this
+                place for years.
               </p>
             </Reveal>
           </div>
@@ -760,9 +776,9 @@ export default async function TelluridePage() {
         <section data-reserve-bar-hide className="scheme-club scheme-paint" aria-labelledby="close-heading">
           <div className="shell flex flex-col items-start gap-8 py-20 md:py-28">
             <Reveal>
-              <h2 id="close-heading" className="t-title max-w-[16ch] text-[--text]">
+              <h2 id="close-heading" className="t-title max-w-[20ch] text-[--text]">
                 {openTrips.length > 0
-                  ? "Pick your week"
+                  ? "Pick your week, bring your best friends"
                   : trips.length === 0
                     ? "New dates coming soon"
                     : trips.length === 1
