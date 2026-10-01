@@ -429,7 +429,7 @@ export default function TermsPage() {
               Refund schedule for amounts paid above the deposit
             </caption>
             <thead>
-              <tr className="border-b border-[--rule-strong]">
+              <tr className="bg-[--surface-raised]">
                 <th scope="col" className="t-micro py-3 pr-6 text-[--text]">
                   When you cancel
                 </th>
@@ -439,7 +439,7 @@ export default function TermsPage() {
               </tr>
             </thead>
             <tbody className="font-body text-body-s">
-              <tr className="border-b border-[--rule]">
+              <tr className="border-b border-[--control-rule-soft]">
                 <th scope="row" className="py-4 pr-6 font-normal text-[--text]">
                   60 or more days before departure
                 </th>
@@ -448,7 +448,7 @@ export default function TermsPage() {
                   paid above the deposit
                 </td>
               </tr>
-              <tr className="border-b border-[--rule]">
+              <tr className="border-b border-[--control-rule-soft]">
                 <th scope="row" className="py-4 pr-6 font-normal text-[--text]">
                   30 to 59 days before departure
                 </th>
@@ -743,7 +743,7 @@ export default function TermsPage() {
           penthouse, you agree to the following, which is also shown on the
           booking and payment pages:
         </p>
-        <blockquote className="m-0 border-l-2 border-[--rule-strong] pl-4">
+        <blockquote className="m-0 border-l-2 border-[--accent] bg-[--surface-raised] py-3 pl-4 pr-4">
           <p>{PENTHOUSE_DISCLAIMER}</p>
         </blockquote>
 

@@ -15,19 +15,23 @@ import { useEffect, useRef, useState } from "react";
  * iOS an unmuted or non-inline video refuses to autoplay at all and takes over
  * the screen instead.
  *
- * Phones get the poster and no video at all. The file is 2.3MB of 2560x1440
- * decoration, `preload="metadata"` is defeated the moment play() is called, and
- * this is the entire above-the-fold payload on the page most people land on.
- * The poster alone is a perfectly good hero, and it is what someone on a phone
- * on a hotel wifi actually wants.
+ * Phones get the poster and no video at all, unless the caller passes
+ * `mobileSrc`. The main file is 2.3MB of 2560x1440 decoration, and
+ * `preload="metadata"` is defeated the moment play() is called. /telluride, the
+ * page the Instagram ads land on, passes hero-phone.mp4: a 1080x1440 portrait cut
+ * of the same clip at about 2MB (1 October 2026, when Carter asked for the
+ * site to move the way Palm Tree Crew's does). The poster still paints first.
  */
 const MOBILE = "(max-width: 767px)";
 export default function HeroVideo({
   src,
   poster,
+  mobileSrc,
 }: {
   src: string;
   poster: string;
+  /** A small portrait cut for phones. Without it, phones get the poster. */
+  mobileSrc?: string;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [reduced, setReduced] = useState(false);
@@ -44,8 +48,10 @@ export default function HeroVideo({
     return () => mq.removeEventListener("change", apply);
   }, []);
 
+  const playing = small ? mobileSrc : src;
+
   useEffect(() => {
-    if (small) return;
+    if (!playing) return;
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     const apply = () => {
       setReduced(mq.matches);
@@ -62,10 +68,29 @@ export default function HeroVideo({
     };
     apply();
     mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
-  }, [small]);
 
-  if (small) {
+    // Chrome pauses a muted video that play() started once it scrolls off
+    // screen, and does not start it again on the way back, so a reader who
+    // scrolled down and returned found the masthead frozen (seen on /about,
+    // 1 October 2026). Play whenever it is in view, pause when it is not.
+    const el = ref.current;
+    const io =
+      el && typeof IntersectionObserver !== "undefined"
+        ? new IntersectionObserver(([entry]) => {
+            if (mq.matches) return;
+            if (entry.isIntersecting) void el.play().catch(() => {});
+            else el.pause();
+          })
+        : null;
+    if (el && io) io.observe(el);
+
+    return () => {
+      mq.removeEventListener("change", apply);
+      io?.disconnect();
+    };
+  }, [playing]);
+
+  if (!playing) {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- a full-bleed
       // background frame, already the correct size, and next/image adds nothing
@@ -81,9 +106,10 @@ export default function HeroVideo({
 
   return (
     <video
+      key={playing}
       ref={ref}
       className="h-full w-full object-cover"
-      src={src}
+      src={playing}
       poster={poster}
       muted
       loop

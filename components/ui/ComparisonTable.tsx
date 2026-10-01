@@ -1,14 +1,16 @@
-// Outrider — "How it usually goes / With Outrider" comparison block.
+// Outrider — "The usual trip / With Outrider" comparison.
 // components/ui/ComparisonTable.tsx — rendered on the About page.
 //
-// Desktop: three columns, long copy, the Outrider column as a solid espresso panel.
-// Mobile (<=760px): stacked rows, short copy, espresso panel per row.
-// Both copy sets live in the markup; CSS shows the right one. Real text, so it
-// stays readable to screen readers and search engines.
+// Rebuilt 1 October 2026, when Carter found the About page hard to read and
+// said its main job is to show why Outrider is better than the usual college
+// trip. The old version was a three-column table of small type with hairlines
+// between rows. Now each row is a block: the label, the usual way in muted
+// type, and Outrider's answer in a Ski Club blue panel, its short line large
+// and its detail under it. One layout at every width (side by side from md,
+// stacked on a phone), so there is no second copy of the text to keep in step.
+// No rules: space and the blue panels carry the structure (see .site-quiet).
 //
-// Fonts: the brand family through --font-display / --font-body, loaded
-// site-wide in app/layout.tsx.
-
+// The parent supplies the section, its heading and its scheme (espresso).
 type Row = {
   label: string;
   usualLong: string;
@@ -17,262 +19,101 @@ type Row = {
   outriderShort: string;
 };
 
+// Rewritten 1 October 2026: Carter, "we're comparing ourselves to other tour
+// operators", the big college trip companies, not friends planning their own
+// trip. The left column says what those trips usually are; the right only
+// what the site already promises (TRIP_WHAT_YOU_GET, the tier inclusions in
+// the database, the FAQ). Performance rentals are on Two to a Room and the
+// penthouses, not every package, so the gear row says so. Voice (Carter, the
+// same day): keep it fun, it's college, but say plainly why we're different,
+// why you'd come, and what you get.
 const ROWS: Row[] = [
-  {    label: "The price",
-    usualLong:
-      "A low number up front, then lift tickets, rentals, transfers and resort fees on top.",
-    usualShort: "Base price, then tickets, rentals and fees on top",
-    outriderLong:
-      "One price per person. Everything but your flight is in it.",
+  {
+    label: "The price",
+    usualLong: "A cheap number up front, then lift tickets, rentals, shuttles and resort fees piled on top.",
+    usualShort: "Cheap up front, then fees",
+    outriderLong: "Your room, lifts, rentals, rides and the parties. The only thing you book yourself is your flight.",
     outriderShort: "One price. Everything in it.",
   },
-  {    label: "Where you stay",
-    usualLong:
-      "Your group split across rentals around town, sorted by whoever booked first.",
-    usualShort: "Split across rentals around town",
-    outriderLong:
-      "One property for the whole group. Everyone under the same roof, walking distance from the same lift.",
-    outriderShort: "Everyone under one roof",
+  {
+    label: "Where you stay",
+    usualLong: "Whatever is cheapest, usually a budget hotel or condos scattered around town.",
+    usualShort: "Whatever is cheapest",
+    outriderLong: "Everyone under one roof at The Peaks, ski-in, ski-out, with its own spa. Walk out the door, click in, go.",
+    outriderShort: "A great hotel, ski-in, ski-out",
   },
-  {    label: "Lift tickets and gear",
-    usualLong:
-      "Bought one at a time at the window, on the first morning, in line.",
-    usualShort: "Bought at the window on day one",
-    outriderLong:
-      "Three-day lift tickets and ski or snowboard rentals ready before you land, with upgraded rentals on Two to a Room and the penthouses.",
-    outriderShort: "Ready before you land",
+  {
+    label: "Lift tickets and gear",
+    usualLong: "Sold separately, plus a rental line on the first morning.",
+    usualShort: "Extra, plus a rental line",
+    outriderLong: "In every package and fitted before you land. Two to a Room and the penthouses get performance rentals.",
+    outriderShort: "Already sorted",
   },
-  {    label: "Getting there",
-    usualLong:
-      "Everyone sorts out their own ride from the airport.",
-    usualShort: "Sort your own ride from the airport",
-    outriderLong:
-      "Ground transport both directions is arranged and included, shared or private depending on your package.",
-    outriderShort: "Rides both ways, included",
+  {
+    label: "Getting there",
+    usualLong: "Figure out your own ride from the airport.",
+    usualShort: "Find your own ride",
+    outriderLong: "Pickup at Montrose and the ride back are booked before you land, just for your group. Penthouses get a private SUV.",
+    outriderShort: "Your ride is waiting",
   },
-  {    label: "Paying for it",
-    usualLong:
-      "One friend fronts the money and spends months chasing the group chat.",
-    usualShort: "One friend fronts it and chases the group chat",
-    outriderLong:
-      "Everyone books their own spot. Put down 10% and pay the rest in two installments, or pay in full up front and take $100 off. Nobody owes a friend a thing.",
-    outriderShort: "Everyone books their own spot, in installments or in full",
+  {
+    label: "Paying for it",
+    usualLong: "One friend fronts it and spends the semester chasing Venmo requests.",
+    usualShort: "One friend fronts it",
+    outriderLong: "Put down 10%, then two installments, or pay in full and take $100 off. Nobody owes anybody.",
+    outriderShort: "Everyone pays their own way",
   },
-  {    label: "On the trip",
-    usualLong:
-      "Whoever planned it spends the week as the help desk.",
-    usualShort: "The planner becomes the help desk",
-    outriderLong:
-      "Our team is with you the whole trip, so the friend who planned it finally gets to ski.",
-    outriderShort: "Our team with you all week",
+  {
+    label: "On the trip",
+    usualLong: "Nobody from the company there. Something goes wrong? Good luck.",
+    usualShort: "Nobody there to help",
+    outriderLong: "Our team is with you from pickup to drop-off, for anything you need.",
+    outriderShort: "We've got you all week",
   },
-  {    label: "How many people",
-    usualLong: "As many as will pay.",
+  {
+    label: "How many people",
+    usualLong: "As many as will pay, often hundreds.",
     usualShort: "As many as will pay",
-    outriderLong:
-      "Set before a single spot goes on sale, and it stays there. Rooms hold four or two, and a penthouse holds eight.",
-    outriderShort: "Capped before it sells",
+    outriderLong: "Capped before a single spot sells, with rooms for four or two and penthouses for eight. It feels like a private club.",
+    outriderShort: "Small and exclusive",
   },
 ];
 
 export default function ComparisonTable() {
   return (
-    <section className="ocmp" aria-labelledby="ocmp-heading">
-      <style>{css}</style>
-
-      <header className="ocmp-top">
-        <div>
-          <p className="ocmp-eyebrow">Outrider</p>
-          <h2 className="ocmp-heading" id="ocmp-heading">
-            What sets us apart
-          </h2>
-        </div>
-        <p className="ocmp-standfirst">
-          How a group trip usually goes, and how it goes with us.
-        </p>
-      </header>
-
-      <div className="ocmp-grid">
-        <div className="ocmp-colhead ocmp-colhead--spacer" aria-hidden="true" />
-        <div className="ocmp-colhead ocmp-colhead--usual" aria-hidden="true">
-          The usual way
-        </div>
-        <div className="ocmp-colhead ocmp-colhead--outrider" aria-hidden="true">
-          With Outrider
-        </div>
-
-        {ROWS.map((row) => (
-          <div className="ocmp-row" key={row.label}>
-            <h3 className="ocmp-label">
-              {row.label}
-            </h3>
-
-            <p className="ocmp-cell ocmp-cell--usual">
-              <span className="ocmp-tag">Usually</span>
-              <span className="ocmp-long">{row.usualLong}</span>
-              <span className="ocmp-short">{row.usualShort}</span>
-            </p>
-
-            <p className="ocmp-cell ocmp-cell--outrider">
-              <span className="ocmp-tag ocmp-tag--outrider">Outrider</span>
-              <span className="ocmp-long">{row.outriderLong}</span>
-              <span className="ocmp-short">{row.outriderShort}</span>
-            </p>
-          </div>
-        ))}
+    <div>
+      {/* Column heads, from md, where the two columns sit side by side. */}
+      <div aria-hidden="true" className="hidden md:grid md:grid-cols-[11rem_minmax(0,1fr)_minmax(0,1.25fr)] md:gap-x-8 lg:grid-cols-[13rem_minmax(0,1fr)_minmax(0,1.25fr)] lg:gap-x-12">
+        <span />
+        <span className="t-label text-[--text-secondary]">Other trip companies</span>
+        <span className="t-label text-[--text]">With Outrider</span>
       </div>
-    </section>
+
+      <ul className="m-0 mt-6 flex list-none flex-col gap-4 p-0 md:mt-5 md:gap-5">
+        {ROWS.map((row) => (
+          <li
+            key={row.label}
+            className="grid gap-x-8 gap-y-3 md:grid-cols-[11rem_minmax(0,1fr)_minmax(0,1.25fr)] md:items-center lg:grid-cols-[13rem_minmax(0,1fr)_minmax(0,1.25fr)] lg:gap-x-12"
+          >
+            <h3 className="m-0 pt-4 font-display text-body font-medium text-[--text] md:pt-0">{row.label}</h3>
+
+            <p className="m-0 font-body text-body leading-[1.55] text-[--text-secondary]">
+              <span className="t-micro mb-1 block text-[--text-secondary] md:hidden">Other trip companies</span>
+              {row.usualLong}
+            </p>
+
+            <div className="scheme-club scheme-paint px-5 py-5 md:px-7 md:py-6">
+              <span className="t-micro mb-1.5 block text-[--text-secondary] md:hidden">With Outrider</span>
+              <p className="m-0 font-display text-lede font-extrabold leading-snug tracking-title text-[--text]">
+                {row.outriderShort}
+              </p>
+              <p className="m-0 mt-2 font-body text-body-s leading-[1.6] text-[--text-secondary]">
+                {row.outriderLong}
+              </p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
-
-const css = `
-.ocmp {
-  /* Bound to the site tokens (app/globals.css) rather than restated, so this
-     block cannot drift out of step with the rest of the pages. The literals
-     are fallbacks only. */
-  --paper: var(--surface, #F2EFEA);
-  --charcoal: var(--text, #3E342F);
-  --ash: var(--text-secondary, #6B635C);
-  --teal: var(--accent, #56643F);
-  --ocmp-rule: var(--rule, rgba(62, 52, 47, 0.18));
-  /* The Outrider column: espresso, the brand's own dark ground. Paper on it
-     is 10.5:1, so the long copy reads at full size. */
-  --ocmp-panel: var(--color-espresso, #3E342F);
-  --rule-inverse: rgba(242, 239, 234, 0.22);
-  background: var(--paper);
-  color: var(--charcoal);
-  padding: 0;
-}
-.ocmp *, .ocmp *::before, .ocmp *::after { box-sizing: border-box; }
-.ocmp p, .ocmp h2, .ocmp h3 { margin: 0; }
-.ocmp .ocmp-short { display: none; }
-
-.ocmp-top {
-  display: block;
-  margin-bottom: 48px;
-}
-.ocmp-eyebrow {
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: 13px;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  color: var(--teal);
-  margin-bottom: 14px;
-}
-.ocmp-heading {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: clamp(34px, 4.4vw, 52px);
-  line-height: 1.08;
-  letter-spacing: -0.015em;
-  text-wrap: balance;
-}
-.ocmp .ocmp-standfirst {
-  font-family: var(--font-body);
-  font-size: 18px;
-  line-height: 1.65;
-  color: var(--charcoal);
-  max-width: 52ch;
-  margin-top: 18px;
-}
-
-/* Desktop: label / usual / teal panel. Rows are subgrids so the teal column
-   reads as one continuous block down the table. */
-.ocmp-grid { display: grid; grid-template-columns: 1fr; }
-.ocmp-row {
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1 / -1;
-}
-@supports not (grid-template-columns: subgrid) {
-  .ocmp-row { grid-template-columns: 220px 1fr 1fr; }
-}
-.ocmp-grid { grid-template-columns: 220px 1fr 1fr; }
-
-.ocmp-colhead {
-  align-self: end;
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: 14px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-.ocmp-colhead--usual {
-  color: var(--charcoal);
-  padding: 0 32px 14px 0;
-  border-bottom: 1px solid var(--ocmp-rule);
-}
-.ocmp-colhead--outrider {
-  color: var(--paper);
-  background: var(--ocmp-panel);
-  padding: 16px 32px 14px;
-}
-
-.ocmp-label {
-  display: flex;
-  align-items: baseline;
-  gap: 14px;
-  padding: 26px 32px 26px 0;
-  border-bottom: 1px solid var(--ocmp-rule);
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: 15px;
-  letter-spacing: 0.12em;
-  line-height: 1.45;
-  text-transform: uppercase;
-  color: var(--charcoal);
-}
-
-.ocmp-cell {
-  font-family: var(--font-body);
-  font-size: 19px;
-  line-height: 1.65;
-}
-.ocmp-cell--usual {
-  color: var(--charcoal);
-  padding: 26px 32px 26px 0;
-  border-bottom: 1px solid var(--ocmp-rule);
-}
-.ocmp-cell--outrider {
-  color: var(--paper);
-  background: var(--ocmp-panel);
-  padding: 26px 32px;
-  border-bottom: 1px solid var(--rule-inverse);
-}
-.ocmp-row:last-child .ocmp-cell--outrider { border-bottom: 0; padding-bottom: 32px; }
-.ocmp-tag { display: none; }
-
-@media (max-width: 760px) {
-  .ocmp { padding: 32px 0 36px; }
-  .ocmp .ocmp-long { display: none; }
-  .ocmp .ocmp-short { display: block; }
-
-  .ocmp-top { display: block; margin-bottom: 26px; }
-  .ocmp-standfirst { margin-top: 16px; font-size: 17px; }
-
-  .ocmp-grid { display: flex; flex-direction: column; gap: 22px; }
-  .ocmp-colhead { display: none; }
-  .ocmp-row { display: block; }
-
-  .ocmp-label { padding: 0 0 10px; font-size: 14px; }
-  .ocmp-cell { font-size: 18px; line-height: 1.55; }
-  .ocmp-cell--usual { padding: 14px 0 16px; border-bottom: 0; }
-  .ocmp-cell--outrider { padding: 16px 18px; border-bottom: 0; }
-  .ocmp-row:last-child .ocmp-cell--outrider { padding-bottom: 16px; }
-
-  .ocmp-tag {
-    display: block;
-    margin-bottom: 6px;
-    font-family: var(--font-display);
-    font-weight: 500;
-    font-size: 11px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--ash);
-  }
-    /* 0.75 measured 4.22:1 at 11px against the panel, under the 4.5:1 AA
-     floor for small text. Full cream clears it. */
-  .ocmp-tag--outrider { color: var(--paper); }
-}
-`;

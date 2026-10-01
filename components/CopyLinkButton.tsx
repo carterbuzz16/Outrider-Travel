@@ -41,7 +41,7 @@ export default function CopyLinkButton({
       type="button"
       onClick={copy}
       className={cn(
-        "inline-flex min-h-11 items-center border border-[--rule-strong] px-4 font-body text-body-s text-[--text]",
+        "inline-flex min-h-11 items-center border border-[--control-rule] px-4 font-body text-body-s text-[--text]",
         "transition-colors duration-fast hover:border-[--accent-solid]",
         className,
       )}

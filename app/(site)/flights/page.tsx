@@ -97,7 +97,7 @@ export default async function FlightsPage() {
         </p>
 
         {trips.length > 0 ? (
-          <div className="grid gap-px border border-[--rule] bg-[--rule]">
+          <div className="grid gap-3">
             {trips.map((trip) => (
               <TripWindow key={trip.id} trip={trip} />
             ))}

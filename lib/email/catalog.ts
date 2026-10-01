@@ -10,6 +10,7 @@ import {
   renderCodeOfferEmail,
   renderEarlyAccess,
   renderWaitlistNotification,
+  renderSpringBreakWelcome,
   renderWaitlistWelcome,
   type RenderedEmail,
 } from "@/lib/email/send";
@@ -501,6 +502,19 @@ export function emailCatalog(): EmailEntry[] {
         "The real one carries a one-click unsubscribe header. The test leaves it off, and its unsubscribe link goes nowhere.",
       ],
       render: () => renderWaitlistWelcome("sample-preview-token"),
+    },
+    {
+      id: "spring-break-welcome",
+      section: "The list and the contact form",
+      name: "Spring break welcome",
+      trigger: "When a new address joins the list from /spring-break. Once per address; the same list as everyone else.",
+      recipient: "The person who joined",
+      sandbox: "Join the list on /spring-break with an address you can read that hasn't joined before.",
+      notes: [
+        "Branded Outrider Spring Break Club, with the palm photograph. No destination, dates or price, because none are announced.",
+        "The real one carries a one-click unsubscribe header. The test leaves it off, and its unsubscribe link goes nowhere.",
+      ],
+      render: () => renderSpringBreakWelcome("sample-preview-token"),
     },
     {
       id: "early-access",

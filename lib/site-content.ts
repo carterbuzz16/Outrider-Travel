@@ -3,6 +3,9 @@
  *
  * House style, so this stays consistent as it grows:
  *   - No em dashes. Use a comma, a full stop, or rewrite the sentence.
+ *   - Positioning words are allowed where they say who we are (Carter, 1
+ *     October 2026): exclusive, elevated, luxury. Sparingly, and never as
+ *     filler in place of a fact.
  *   - No "curated", "seamless", "elevate", "crafted", "journey", "unlock",
  *     "designed to", "ensures", or "it's not just X, it's Y".
  *   - Concrete over evocative. "Fourteen people" beats "an intimate group".
@@ -47,6 +50,69 @@ export const CONTACT = {
   responseTime: "We reply within a day.",
 };
 
+/* -- the home page ---------------------------------------------------------------
+ * Rebuilt 1 October 2026 from three research passes (Palm Tree Crew; Surf
+ * Lodge, Soho House, Aman and others; Flash Pack, Deer Valley, Black Tomato,
+ * Contiki) after Carter said the home page still didn't feel right and should
+ * be simple, few words, enough to pique interest, about Outrider the brand,
+ * and without clubs. What the best of them share, and this follows:
+ *   - the first screen is a film of people, with almost no words on it;
+ *   - one loud line per page (ours: the brand book's "We host. You show up."),
+ *     everything else quiet;
+ *   - the trip arrives on screen two with hard facts (the hotel by name, the
+ *     dates, what's in it, the price), not adjectives;
+ *   - a seasonal pair (Surf Lodge's "Summer in Montauk / Winter in Aspen");
+ *   - short: no business pitch and no long form on the home page.
+ * Every line is already promised elsewhere on the site; nothing new is
+ * claimed. The stock friend groups are never captioned as Outrider guests.
+ * ------------------------------------------------------------------------- */
+export const HOME = {
+  headline: "We host. You show up.",
+  // Carter, 1 October 2026: "the exclusive, elevated college trip. It's like
+  // luxury." His words, and the one place the home page says what we are.
+  tagline: "The exclusive, elevated college trip.",
+  peaks: {
+    title: "Ski-in, ski-out at The Peaks",
+    // Each restates a line of TRIP_WHAT_YOU_GET; change them together.
+    lines: ["Lift tickets and rentals", "Private rides from Montrose", "An après party with a DJ", "Our team, all week"],
+  },
+  // "The luxury version of a college trip" is Carter's own line from the
+  // chapter pitch (30 September 2026).
+  why: {
+    title: "The luxury version of a college trip",
+    line: "Small groups, one price, one roof, and our team there all week.",
+  },
+  winter: { label: "This winter", title: "Telluride" },
+  // No destination yet: nothing is announced (see UPCOMING_CATEGORIES).
+  spring: { label: "This spring", title: "Spring break", line: "2027. Destination soon." },
+  closing: "Four nights in Telluride",
+};
+
+/* -- spring break ----------------------------------------------------------------
+ * /spring-break (1 October 2026). Carter: one list that everyone gets, but the
+ * spring break way in branded as its own thing, "Outrider Spring Break Club".
+ * A signup from it lands on the same list with placement "spring-break",
+ * which sends the spring break welcome (lib/email/send.ts) instead of the
+ * Telluride one. No destination is announced (UPCOMING_CATEGORIES), so
+ * nothing here names a place or a price; it promises only what every trip
+ * already is.
+ * ------------------------------------------------------------------------- */
+export const SPRING_BREAK_PLACEMENT = "spring-break";
+
+export const SPRING_BREAK = {
+  club: "Outrider Spring Break Club",
+  headline: "Spring break",
+  tagline: "2027. Somewhere warm. Destination soon.",
+  pitchTitle: "Hosted the way we host Telluride",
+  pitch:
+    "One great place for the whole group, one price with everything in it, and our team there all week. Get on the list and you'll hear where we're going before anyone else.",
+  formHeading: "Get in early",
+  formBody: "The list hears where first. It's the same list as every Outrider trip, so you'll hear about the rest too.",
+  doneHeading: "You're in the club",
+  doneBody: "We'll write the moment spring break is announced, before it reaches the site. A welcome note is on its way to your inbox.",
+  shareText: "Outrider is planning spring break 2027. Get on the list and hear where first.",
+};
+
 /* -- what makes Outrider different ------------------------------------------
  * Describes how the company operates, not one destination. Every claim is
  * backed by the tier inclusions in the database.
@@ -55,8 +121,10 @@ export const VALUE_PROPS = [
   {
     eyebrow: "Small groups",
     title: "Familiar faces by day two",
+    // "Open to every school" is the other half of small (Carter's mission,
+    // 1 October 2026): exclusive by size, never by who you are.
     body:
-      "Every trip is sized before it goes on sale and stays that size, small enough that faces are familiar by day two. Share a Two King room with three friends or one, or take a whole penthouse with seven. Everyone you came with is under the same roof and at the same dinner table.",
+      "Every trip is sized before it goes on sale and stays that size, small enough that faces are familiar by day two. It's open to students from any school, so you come with your friends and leave knowing people from other campuses. Share a Two King room with three friends or one, or take a whole penthouse with seven.",
   },
   {
     eyebrow: "Hosted",
@@ -78,22 +146,73 @@ export const VALUE_PROPS = [
   },
 ];
 
+/* -- the About page's five reasons -------------------------------------------
+ * The main thing the About page has to do (Carter, 1 October 2026): show
+ * plainly why Outrider beats the usual college trip. Five claims, each one a
+ * headline in Extrabold capitals and two sentences under it, with a
+ * photograph. Every line restates something the site already promises
+ * (VALUE_PROPS, SHARED_INCLUSIONS, the ComparisonTable rows), so this adds no
+ * new claim; change them together. No photograph repeats one used elsewhere
+ * on /about.
+ * ------------------------------------------------------------------------- */
+export const ABOUT_DIFFERENCES: { title: string; body: string; image: { src: string; alt: string } }[] = [
+  {
+    title: "One price, everything in it",
+    body: "Your room, three days of lift tickets and rentals, rides from Montrose, the parties and our team. Flights are the only thing you book, and there are no surprise fees at check-in.",
+    image: {
+      src: "/images/people/friends-snow-throw.jpg",
+      alt: "Four friends on skis, arms linked, laughing as someone throws a handful of powder at them in falling snow.",
+    },
+  },
+  {
+    title: "The whole group under one roof",
+    body: "Everyone stays at The Peaks, ski-in, ski-out. Walk out the door, click in, go. Pick a room for four or two, or take a whole penthouse with your eight.",
+    image: {
+      src: "/images/peaks/peaks-exterior-night.jpg",
+      alt: "The Peaks Resort from above on a winter night, its windows lit and the heated outdoor pool glowing, with snowy peaks behind.",
+    },
+  },
+  {
+    title: "Small on purpose",
+    body: "Every trip is capped before it goes on sale, so it never turns into a crowd. Anyone from any school can come, and by day two you know everybody.",
+    image: {
+      src: "/images/people/chairlift-dusk.jpg",
+      alt: "Three snowboarders riding a chairlift up a darkening run at dusk, snowy pines on either side.",
+    },
+  },
+  {
+    title: "We've been there first",
+    body: "We stayed at the hotel, held the rooms and lined up the rides before a single spot went on sale. Nothing on this trip is a guess.",
+    image: {
+      src: "/images/telluride/gondola-night.jpg",
+      alt: "A gondola cabin crossing a snowy ridge, the town far below in the valley.",
+    },
+  },
+  {
+    title: "Our team, all week",
+    body: "We're with you from pickup to drop-off. Everyone pays their own way, so nobody fronts the money, and the friend who planned it finally gets to ski.",
+    image: {
+      src: "/images/telluride/gorrono-deck.jpg",
+      alt: "Gorrono Ranch's old timber barns mid-mountain, skiers in Adirondack chairs on the snow out front and the San Juans behind.",
+    },
+  },
+];
+
 /* -- brand origin ---------------------------------------------------------- */
 export const ORIGIN = {
   title: "Why Outrider",
   lede:
     "An outrider is the one who goes first. They ride ahead of the group, scout the route and have everything ready before anyone else arrives. That's our job on every trip.",
-  /* Carter's words lead this, and they are the argument the company is built
-   * on: the destination is the product. It opens on what a college trip should
-   * feel like rather than on what is wrong with the usual one: the marketing
-   * lead asked for the earnest version first, and the side-by-side table below
-   * it already carries the contrast. The logistics paragraph follows, because
-   * how a trip is run is the consequence of choosing the place, not the reason. */
+  /* Trimmed to one paragraph on 1 October 2026, when the About page was
+   * rebuilt to be easy to read: the place, the property and the logistics
+   * now each have a line in ABOUT_DIFFERENCES, and the club paragraph went
+   * when Carter said he didn't like the clubs. Carter's words lead this, and
+   * they are the argument the company is built on: the destination is the
+   * product. It opens on what a college trip should feel like rather than on
+   * what is wrong with the usual one: the marketing lead asked for the earnest
+   * version first, and the side-by-side comparison carries the contrast. */
   body: [
     "A trip with your friends should be the best week of your year. A place you've wanted to see for ages, somewhere to stay you'd happily tell your parents about, and everyone you like in one town at the same time.",
-    "So we start with the place and build the whole trip around it. In Telluride that means a box canyon, a mountain that climbs straight out of Main Street, and a free gondola between the two.",
-    "That one decision shapes the rest. We choose the property first, with the whole group under one roof at The Peaks, which is what sets the size of every trip. And a trip only goes on sale once one of us has walked the town, eaten the dinners and slept in the rooms.",
-    "Then we take care of everything else. Reservations and activities set before anyone lands, rides both directions, our team on the ground all week, and one price paid up front or in installments.",
   ],
 };
 

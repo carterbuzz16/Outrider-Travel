@@ -145,6 +145,8 @@ const nextConfig = {
   // bucket; next/image only optimises hosts listed here. Scoped to the public
   // object path, so nothing else on that host goes through the optimiser.
   images: {
+    // 85 for the full-bleed mastheads (HeroSlideshow), 75 everywhere else.
+    qualities: [75, 85],
     remotePatterns: supabase
       ? [
           {

@@ -24,7 +24,7 @@ export default function DraftCopy({
   return (
     <div
       className={cn(
-        "border border-dashed border-[--rule-strong] bg-[--surface-raised] px-5 py-5",
+        "border border-dashed border-[--control-rule] bg-[--surface-raised] px-5 py-5",
         className,
       )}
     >

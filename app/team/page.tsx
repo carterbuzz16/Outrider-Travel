@@ -143,7 +143,9 @@ export default function TeamPage() {
         onClick={() => setOpen(true)}
         aria-expanded={open}
         aria-controls="otr-nav"
-        className="fixed right-6 top-6 z-30 font-[family-name:var(--brand-display)] text-[13px] uppercase tracking-[0.2em] text-[color:var(--brand-ink)] md:right-10 md:top-10"
+        // A paper chip behind the word, so the fixed trigger stays legible
+        // over the text it scrolls across (site check, 1 October 2026).
+        className="fixed right-4 top-4 z-30 bg-[color:var(--brand-bg)] px-2 py-2 font-[family-name:var(--brand-display)] text-[13px] uppercase tracking-[0.2em] text-[color:var(--brand-ink)] md:right-8 md:top-8"
       >
         Menu
       </button>
@@ -157,10 +159,12 @@ export default function TeamPage() {
           Outrider Team
         </h1>
 
-        {/* Sits in the left 40% and stops at 46ch, whichever is narrower. */}
+        {/* Sits in the left 40% and stops at 46ch, whichever is narrower.
+            The 40% applies from md: on a phone it squeezed the text into a
+            156px column (site check, 1 October 2026). */}
         <p
-          className="m-0 font-[family-name:var(--brand-body)] text-[17px] leading-[1.6]"
-          style={{ maxWidth: "min(46ch, 40vw)", marginBottom: "120px" }}
+          className="m-0 max-w-[46ch] font-[family-name:var(--brand-body)] text-[17px] leading-[1.6] md:max-w-[min(46ch,40vw)]"
+          style={{ marginBottom: "120px" }}
         >
           Outrider is run by the person who used to be on the other end of it:
           booking the rooms, moving the group, and answering for it when

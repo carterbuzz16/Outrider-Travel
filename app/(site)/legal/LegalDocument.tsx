@@ -178,7 +178,7 @@ export function LegalList({ items }: { items: React.ReactNode[] }) {
         <li key={index} className="relative pl-6">
           <span
             aria-hidden="true"
-            className="absolute left-0 top-[0.72em] h-1 w-1 bg-[--rule-strong]"
+            className="absolute left-0 top-[0.72em] h-1 w-1 bg-[--text-muted]"
           />
           {item}
         </li>

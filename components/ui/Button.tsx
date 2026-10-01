@@ -33,8 +33,10 @@ const VARIANTS: Record<ButtonVariant, string> = {
     "hover:bg-[--accent-solid-hover] hover:border-[--accent-solid-hover]",
 
   // A hairline box. The workhorse — safe on any surface, quiet in a stack.
+  // Its edge is a control's (--control-rule), so it survives .site-quiet
+  // taking the decorative rules off the marketing pages.
   secondary:
-    "bg-transparent text-[--text] border-[--rule-strong] " +
+    "bg-transparent text-[--text] border-[--control-rule] " +
     "hover:bg-[--text] hover:text-[--surface] hover:border-[--text]",
 
   // No box at all. For tertiary actions and anything sitting in running text.

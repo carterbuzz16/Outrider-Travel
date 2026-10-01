@@ -18,7 +18,7 @@ import { cn } from "./cn";
 /** Container classes. Collapses to one column rather than leaving a hole. */
 export function cellGridClass(count: number, className?: string): string {
   return cn(
-    "grid gap-px border border-[--rule] bg-[--rule]",
+    "grid gap-3",
     count > 1 && "md:grid-cols-2",
     className,
   );

@@ -26,10 +26,16 @@ export default function WaitlistShare({
   compact = false,
   className,
   headingId,
+  sharePath = "/waitlist",
+  shareText,
   children,
 }: {
   heading?: string;
   body?: string;
+  /** The page the share link points at, e.g. /spring-break. */
+  sharePath?: string;
+  /** What the share sheet says. Defaults to the list's line. */
+  shareText?: string;
   /** Tighter type for the dialog and the footer. */
   compact?: boolean;
   className?: string;
@@ -53,12 +59,14 @@ export default function WaitlistShare({
   }, [copied]);
 
   async function share() {
-    const url = `${window.location.origin}/waitlist?utm_source=share&utm_medium=referral`;
+    const url = `${window.location.origin}${sharePath}?utm_source=share&utm_medium=referral`;
     // Before launch the pitch is getting in ahead of the sale; after it,
     // there is no "before" left for Telluride, so it points at the next trip.
-    const text = BOOKINGS_OPEN
-      ? "Outrider opens its trips to this list first. Get on it for the next one."
-      : "Outrider opens its trips to this list first. Get on it before booking opens.";
+    const text =
+      shareText ??
+      (BOOKINGS_OPEN
+        ? "Outrider opens its trips to this list first. Get on it for the next one."
+        : "Outrider opens its trips to this list first. Get on it before booking opens.");
 
     if (canShare) {
       try {
@@ -138,7 +146,7 @@ export default function WaitlistShare({
             type="button"
             onClick={share}
             className={cn(
-              "inline-flex items-center gap-2.5 border border-[--rule-strong] px-5 py-3",
+              "inline-flex items-center gap-2.5 border border-[--control-rule] px-5 py-3",
               "t-label text-[--text] transition-colors duration-fast",
               "hover:border-[--text] hover:bg-[--text] hover:text-[--surface]",
             )}

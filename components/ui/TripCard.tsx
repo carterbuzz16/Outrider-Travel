@@ -50,8 +50,8 @@ export default function TripCard({
       className={cn(
         // `group` is what makes the image hover at the media block fire. Without
         // it the card was inert despite the docblock describing the hover.
-        "group relative flex flex-col border border-[--rule] bg-[--surface-raised]",
-        "transition-colors duration-[--dur] ease-out hover:border-[--rule-strong]",
+        "group relative flex flex-col border border-[--control-rule-soft] bg-[--surface-raised]",
+        "transition-colors duration-[--dur] ease-out hover:border-[--control-rule]",
         className,
       )}
     >

@@ -27,6 +27,10 @@ export default function WaitlistCTA({
   /** Anchor target, so /trips#waitlist and /#waitlist land on the form. */
   id,
   placement = "inline",
+  doneHeading,
+  doneBody,
+  sharePath,
+  shareText,
 }: {
   heading?: string;
   body?: string;
@@ -36,6 +40,12 @@ export default function WaitlistCTA({
   id?: string;
   /** Which form this is, as reported with the signup. */
   placement?: string;
+  /** The confirmation's heading and line, when this list is branded its own way. */
+  doneHeading?: string;
+  doneBody?: string;
+  /** Where the confirmation's share link points, and what it says. */
+  sharePath?: string;
+  shareText?: string;
 }) {
   const signup = useWaitlistSignup(placement);
 
@@ -61,7 +71,14 @@ export default function WaitlistCTA({
           </div>
 
           {signup.status === "done" ? (
-            <WaitlistShare compact className="motion-safe:animate-rise" />
+            <WaitlistShare
+              compact
+              className="motion-safe:animate-rise"
+              {...(doneHeading ? { heading: doneHeading } : {})}
+              {...(doneBody ? { body: doneBody } : {})}
+              sharePath={sharePath}
+              shareText={shareText}
+            />
           ) : (
             <WaitlistFields signup={signup} tone={tone} />
           )}

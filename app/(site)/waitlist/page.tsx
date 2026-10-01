@@ -235,7 +235,7 @@ export default async function WaitlistPage() {
           </Reveal>
 
           {/* Always exactly three, so a three-up grid never leaves a hole. */}
-          <ol className="m-0 mt-14 grid list-none gap-px border border-[--rule] bg-[--rule] p-0 md:grid-cols-3">
+          <ol className="m-0 mt-14 grid list-none gap-3 p-0 md:grid-cols-3">
             {STEPS.map((step, i) => (
               <Reveal as="li" key={step.title} delay={i * 90} className="bg-[--surface-raised]">
                 <div className="group relative flex h-full flex-col p-7 md:p-9">
@@ -275,9 +275,9 @@ export default async function WaitlistPage() {
             </Reveal>
 
             <Reveal delay={90}>
-              <div className="mt-14 border-y border-[--rule]">
+              <div className="mt-14 border-y border-[--control-rule-soft]">
                 <div
-                  className="hidden grid-cols-[minmax(0,1.2fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.8fr)] gap-6 border-b border-[--rule] py-4 md:grid"
+                  className="hidden grid-cols-[minmax(0,1.2fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.8fr)] gap-6 border-b border-[--control-rule-soft] py-4 md:grid"
                   aria-hidden="true"
                 >
                   {["Destination", "Trip", "When", "Status"].map((h) => (
@@ -290,7 +290,7 @@ export default async function WaitlistPage() {
                   {board.map((row, i) => (
                     <li
                       key={row.key}
-                      className="grid grid-cols-2 gap-x-6 gap-y-3 border-b border-[--rule-faint] py-6 transition-colors duration-fast last:border-0 hover:bg-[--surface-raised] md:grid-cols-[minmax(0,1.2fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.8fr)] md:items-center md:px-3 md:-mx-3"
+                      className="grid grid-cols-2 gap-x-6 gap-y-3 border-b border-[--control-rule-soft] py-6 transition-colors duration-fast last:border-0 hover:bg-[--surface-raised] md:grid-cols-[minmax(0,1.2fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.8fr)] md:items-center md:px-3 md:-mx-3"
                     >
                       <span className="col-span-2 font-display font-medium text-display-s leading-none text-[--text] md:col-span-1">
                         <SplitFlap text={row.destination} delay={i * 140} />

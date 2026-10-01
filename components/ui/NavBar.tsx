@@ -214,7 +214,7 @@ export default function NavBar({
       <div
         id="nav-sheet"
         hidden={!open}
-        className="scheme-light border-t border-[--rule] bg-[--surface] text-[--text] md:hidden"
+        className="scheme-light bg-[--surface] text-[--text] shadow-[0_28px_36px_-18px_rgb(31_26_23_/_0.45)] md:hidden"
       >
         <ul className="shell flex list-none flex-col gap-0 py-2">
           {links.map((link) => (

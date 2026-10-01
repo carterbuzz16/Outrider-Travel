@@ -57,7 +57,7 @@ export default function ScheduleTable({
         {caption}
       </caption>
       <thead>
-        <tr className="border-b border-[--rule-strong]">
+        <tr className="border-b border-[--control-rule]">
           <th scope="col" className="pb-2.5 pr-4 text-left t-micro font-normal text-[--text-secondary]">
             Date
           </th>
@@ -77,7 +77,7 @@ export default function ScheduleTable({
             key={row.key}
             // Without a total the last rule is left off, so the table does not
             // close on a hairline sitting just above whatever follows it.
-            className={cn("border-b border-[--rule-faint] align-top", !total && "last:border-b-0")}
+            className={cn("border-b border-[--control-rule-soft] align-top", !total && "last:border-b-0")}
           >
             <td className="py-3.5 pr-4">
               <span
@@ -123,7 +123,7 @@ export default function ScheduleTable({
       </tbody>
       {total && (
         <tfoot>
-          <tr className="border-t border-[--rule-strong]">
+          <tr className="border-t border-[--control-rule]">
             <th
               scope="row"
               colSpan={columns - 1}

@@ -40,7 +40,7 @@ export default function ContactPage() {
                 <p className="stamp-type text-[--text-muted]">Email</p>
                 <a
                   href={`mailto:${CONTACT.email}`}
-                  className="font-display text-label tracking-title text-[--text] no-underline transition-colors duration-fast hover:text-[--accent] inline-block py-2 -my-2"
+                  className="font-display text-lede tracking-title text-[--text] no-underline transition-colors duration-fast hover:text-[--accent] inline-block py-2 -my-2"
                 >
                   {CONTACT.email}
                 </a>
@@ -51,7 +51,7 @@ export default function ContactPage() {
                   <p className="stamp-type text-[--text-muted]">Phone</p>
                   <a
                     href={`tel:${CONTACT.phone.replace(/[^\d+]/g, "")}`}
-                    className="font-display text-label tracking-title text-[--text] no-underline transition-colors duration-fast hover:text-[--accent] inline-block py-2 -my-2"
+                    className="font-display text-lede tracking-title text-[--text] no-underline transition-colors duration-fast hover:text-[--accent] inline-block py-2 -my-2"
                   >
                     {CONTACT.phone}
                   </a>
@@ -62,7 +62,7 @@ export default function ContactPage() {
                 <p className="stamp-type text-[--text-muted]">Instagram</p>
                 <a
                   href={CONTACT.instagram}
-                  className="font-display text-label tracking-title text-[--text] no-underline transition-colors duration-fast hover:text-[--accent] inline-block py-2 -my-2"
+                  className="font-display text-lede tracking-title text-[--text] no-underline transition-colors duration-fast hover:text-[--accent] inline-block py-2 -my-2"
                   target="_blank"
                   rel="noreferrer noopener"
                 >

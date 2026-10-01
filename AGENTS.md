@@ -47,8 +47,17 @@ layer only.
   a single panel, never alternated.
 - Use `shell` for page width, `t-display` (Extrabold capitals, the book's
   HEADLINE) / `t-title` / `t-heading` (Medium, the book's Subhead) /
-  `t-label` / `t-body` / `t-lede` for type, and `t-rule-label` (capitals over
-  a hairline) to open a section.
+  `t-label` / `t-body` / `t-lede` for type, and `t-rule-label` (small
+  capitals) to open a section.
+- **No hairlines on the public site** (Carter, 1 Oct 2026: the lines between
+  words and sections "make it feel super AI"). `.site-quiet`, set in the
+  (site) layout, makes `--rule`/`--rule-strong`/`--rule-faint` transparent;
+  form controls and outlined buttons draw their edge from `--control-rule`.
+  Don't add decorative rules back; use space, color panels and type size.
+- **Presence over politeness.** He wants the site to feel elevated and
+  exclusive, like Palm Tree Crew's: full-bleed video (`HeroVideo` with a
+  `mobileSrc`, `VideoBand` for mid-page loops made from his own photos),
+  headlines in Extrabold capitals set straight on the picture, big numbers.
 - **The whole site uses the Ski Club look for now.** Palette is warm gray,
   espresso, black and Ski Club blue (#89B2C4). Do not use the book's sage
   green: the team rejected it. Club blue is 2.2:1 on paper, so on light

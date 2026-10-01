@@ -5,6 +5,7 @@ import {
   Badge,
   Button,
   Gallery,
+  HeroVideo,
   Plate,
   Reveal,
   RoomPanel,
@@ -12,6 +13,7 @@ import {
   StatusBadge,
   TAKEN_NOTE,
   Tabs,
+  VideoBand,
   WaitlistButton,
   WaitlistCTA,
 } from "@/components/ui";
@@ -115,19 +117,12 @@ const SECTION_SCROLL = "scroll-mt-[7.5rem] md:scroll-mt-[8.5rem]";
  * Alt text describes what is in each photograph, written by looking at them:
  * the filenames in public/images/telluride are unreliable (gondola-night.jpg is
  * a daytime cabin, group.jpg is a lone skier under the gondola).
- *
- * The masthead is the bright one: the gondola, the town and a skier in one
- * frame, which says "ski trip to Telluride" before a word is read. It is shown
- * as it is. The old masthead sat under a 60% scrim so type could go over it,
- * which is what made it read as dull; the type now sits below the picture.
  */
-const HERO_IMAGE = {
-  src: "/images/telluride/skiing.jpg",
-  alt: "A skier carving a groomed run high above the town of Telluride, a gondola cabin passing overhead and the San Juans behind.",
-};
 
-// The photographs the masthead and "What you get" use are not repeated here.
+// The photographs "What you get" uses are not repeated here. skiing.jpg was
+// the masthead until the video replaced it (1 October 2026).
 const GALLERY = [
+  { src: "/images/telluride/skiing.jpg", alt: "A skier carving a groomed run high above the town of Telluride, a gondola cabin passing overhead and the San Juans behind." },
   { src: "/images/telluride/alpenglow.jpg", alt: "Pink alpenglow over the snow-covered San Juan peaks, with ski runs cut through dark forest below." },
   { src: "/images/telluride/apres.jpg", alt: "A skier in a pink jacket turning through deep powder among snow-loaded pines." },
   { src: "/images/telluride/town-christmas.jpg", alt: "Main Street at dusk through strings of big colored holiday bulbs, the mountains behind." },
@@ -277,112 +272,99 @@ export default async function TelluridePage() {
   const page = (
     <main className="scheme-light scheme-paint">
       {/* ---- masthead -------------------------------------------------------
-          Two layouts from one set of elements, arranged by grid areas.
+          Rebuilt 1 October 2026. Carter found the page plain, with no
+          character, and wanted it to move and feel exclusive the way Palm Tree
+          Crew's site does. So: the Telluride clip full-bleed under the
+          transparent nav, on a phone too (hero-phone.mp4, a 1080x1440 cut of the
+          same clip), with the headline in the brand book's Extrabold capitals
+          set straight on it. Two fades and no even scrim, which is what made
+          the old darkened masthead read as dull: one behind the nav, one under
+          the words at the foot, so the peak and the sky stay bright.
 
-          On a phone, in source order: the photograph full-bleed under the
-          transparent site nav, then the headline, the trip in six lines, the
-          price and Reserve on paper. Only a fade at the very top, behind the
-          nav, so its white type reads against the sky; tuned by sampling this
-          photograph under the logo and Menu at 390 wide, where the brightest
-          pixel behind either stays above 4.5:1.
-
-          From md the photograph sits beside the headline at its own 3:2, so
-          none of it is cropped (a full-width band at desktop proportions cut
-          off the gondola and the skier, 29 September 2026), the price and
-          Reserve go under the headline, and the six lines run across the foot
-          in three columns. The nav is the solid bar there (overHero="phone"
-          in SiteNav). Above the fold, so nothing here is wrapped in Reveal. */}
-      <header
-        className={[
-          "shell grid pb-14 md:pb-20 md:pt-28 lg:pt-32",
-          "md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] md:gap-x-12 lg:gap-x-20",
-          "md:[grid-template-areas:'head_photo'_'offer_photo'_'facts_facts']",
-        ].join(" ")}
-      >
-        <div className="relative -mx-gutter h-[44svh] min-h-[17rem] bg-[--surface-inset] md:mx-0 md:aspect-[3/2] md:h-auto md:min-h-0 md:self-center md:[grid-area:photo]">
-          <Image
-            src={HERO_IMAGE.src}
-            alt={HERO_IMAGE.alt}
-            fill
-            priority
-            sizes="(min-width: 768px) 55vw, 100vw"
-            className="object-cover"
-            style={{ objectPosition: "62% 40%" }}
+          Then, on paper, the trip in six lines beside the price and Reserve.
+          Above the fold, so nothing here is wrapped in Reveal. */}
+      <header>
+        <div className="scheme-espresso relative isolate flex min-h-[78svh] flex-col justify-end overflow-hidden bg-[--color-espresso-deep] md:min-h-[90svh]">
+          <div className="absolute inset-0 -z-10">
+            <HeroVideo src="/video/hero.mp4" mobileSrc="/video/hero-phone.mp4" poster="/video/hero-poster.jpg" />
+          </div>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-40 bg-gradient-to-b from-[rgb(42_35_32_/_0.6)] to-transparent"
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[rgb(42_35_32_/_0.74)] via-[rgb(42_35_32_/_0.52)] to-transparent md:hidden"
+            className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[64%] bg-gradient-to-t from-[rgb(31_26_23_/_0.86)] via-[rgb(31_26_23_/_0.5)] to-transparent"
           />
+          <div className="shell pb-10 pt-40 md:pb-16">
+            <p className="t-label text-[--text]">Telluride, Colorado</p>
+            <h1 className="mt-5 max-w-[11ch] text-balance font-display text-display-xl font-extrabold uppercase leading-[0.92] tracking-display text-[--text]">
+              {nights !== null ? `${spelled(nights)} nights in Telluride` : "A week in Telluride"}
+            </h1>
+            <p className="mt-6 max-w-[40ch] font-body text-lede leading-[1.55] text-[--text]">
+              With your friends. We book the hotel, the lifts, the rides and the
+              nights out. You pick the week and show up.
+            </p>
+          </div>
         </div>
 
-        <div className="flex flex-col gap-4 pt-7 md:gap-6 md:self-end md:pt-0 md:[grid-area:head]">
-          <p className="t-label text-[--text-secondary]">Telluride, Colorado</p>
-          <h1 className="max-w-[15ch] font-display text-display-l font-medium leading-[1.04] tracking-title text-[--text]">
-            {nights !== null ? `${spelled(nights)} nights in Telluride with your friends` : "A week in Telluride with your friends"}
-          </h1>
-          <p className="t-lede max-w-[38ch]">
-            We book the hotel, the lifts, the rides and the nights out. You
-            pick the week and show up.
-          </p>
-        </div>
+        <div className="shell grid gap-10 py-10 md:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] md:items-end md:gap-16 md:py-16">
+          {/* The trip in six lines: the label small, the value large enough
+              to read at a glance. Two columns, three on a wide screen. */}
+          <dl className="m-0 grid grid-cols-2 gap-x-6 gap-y-6 md:gap-x-10 md:gap-y-8 xl:grid-cols-3">
+            {[...(trips.length > 0 ? [{ label: "Dates", value: datesLine }] : []), ...TELLURIDE_AT_A_GLANCE].map((row) => (
+              // Dates take a whole row on a phone: "Dec 14–18 or Jan 4–8"
+              // broke at the dash in half a column.
+              <div key={row.label} className={`flex flex-col gap-1.5 ${row.label === "Dates" ? "col-span-2 xl:col-span-1" : ""}`}>
+                <dt className="t-label text-[--text-secondary]">{row.label}</dt>
+                <dd className="m-0 font-display text-body font-medium leading-snug text-[--text] md:text-lede">{row.value}</dd>
+              </div>
+            ))}
+          </dl>
 
-        {/* The trip in six lines, a label in ink and its value in gray, the
-            way the brand book sets its detail rows: side by side on a phone,
-            the label over its value in three columns from md. */}
-        <dl className="m-0 mt-8 grid gap-y-3 font-body text-body-s leading-[1.45] md:mt-14 md:grid-cols-3 md:gap-x-10 md:gap-y-6 md:border-t md:border-[--rule-strong] md:pt-8 md:[grid-area:facts]">
-          {[...(trips.length > 0 ? [{ label: "Dates", value: datesLine }] : []), ...TELLURIDE_AT_A_GLANCE].map((row) => (
-            <div
-              key={row.label}
-              className="grid grid-cols-[5.75rem_minmax(0,1fr)] content-start gap-x-4 sm:grid-cols-[7rem_minmax(0,1fr)] md:grid-cols-1 md:gap-y-1"
-            >
-              <dt className="font-medium text-[--text]">{row.label}</dt>
-              <dd className="m-0 text-[--text-secondary]">{row.value}</dd>
-            </div>
-          ))}
-        </dl>
-
-        {/* data-offer-after: the $100 sheet opens once this block, the price
-            and Reserve, has scrolled off the top (components/WelcomeCredit). */}
-        <div data-offer-after className="flex flex-col md:mt-8 md:self-start md:[grid-area:offer]">
-          {TRIP_DETAILS_OPEN && Number.isFinite(priceFrom) && (
-            <div className="mt-7 flex items-end justify-between gap-6 border-t border-[--rule-strong] pt-5 md:mt-0">
-              <p className="m-0 flex flex-col">
-                <span className="t-micro text-[--text-secondary]">From</span>
-                <span className="mt-1 flex items-baseline gap-2">
-                  <span className="font-display text-display-m font-medium leading-none tracking-title text-[--text]">
-                    {formatPrice(priceFrom)}
+          {/* data-offer-after: the $100 sheet opens once this block, the price
+              and Reserve, has scrolled off the top (components/WelcomeCredit). */}
+          <div data-offer-after className="flex flex-col">
+            {TRIP_DETAILS_OPEN && Number.isFinite(priceFrom) && (
+              <div className="flex items-end justify-between gap-6">
+                <p className="m-0 flex flex-col">
+                  <span className="t-micro text-[--text-secondary]">From</span>
+                  <span className="mt-1 flex items-baseline gap-2">
+                    <span className="font-display text-display-m font-extrabold leading-none tracking-title text-[--text]">
+                      {formatPrice(priceFrom)}
+                    </span>
+                    <span className="font-body text-body-s text-[--text-secondary]">per person</span>
                   </span>
-                  <span className="font-body text-body-s text-[--text-secondary]">per person</span>
-                </span>
-              </p>
-              {bookable && (
-                <p className="m-0 text-right font-body text-body-s leading-[1.45] text-[--text-secondary]">
-                  Hold your spot
-                  <br />
-                  with {depositFrom(openTrips)}
                 </p>
-              )}
-            </div>
-          )}
-
-          {/* data-reserve-bar-hide: the phone Reserve bar steps aside while
-              this button is on screen, so there is one ask at a time.
-              Straight to the booking page, which asks for the dates, then
-              the package. */}
-          <div data-reserve-bar-hide className="mt-5 flex flex-col gap-4">
-            {bookable ? (
-              <Button href="/bookings/new" variant="primary" size="lg" block>
-                Reserve your spot
-              </Button>
-            ) : !BOOKINGS_OPEN && TRIP_DETAILS_OPEN ? (
-              // Paying is list-only: the emailed link is the way in.
-              <WaitlistButton label={LIST_BOOKING_CTA} variant="primary" size="lg" placement="telluride-hero" />
-            ) : (
-              <Button href="#departures" variant="primary" size="lg" block>
-                See the dates
-              </Button>
+                {bookable && (
+                  <p className="m-0 text-right font-body text-body-s leading-[1.45] text-[--text-secondary]">
+                    Hold your spot
+                    <br />
+                    with {depositFrom(openTrips)}
+                  </p>
+                )}
+              </div>
             )}
-            {bookable && <CreditLine />}
+
+            {/* data-reserve-bar-hide: the phone Reserve bar steps aside while
+                this button is on screen, so there is one ask at a time.
+                Straight to the booking page, which asks for the dates, then
+                the package. */}
+            <div data-reserve-bar-hide className="mt-5 flex flex-col gap-4">
+              {bookable ? (
+                <Button href="/bookings/new" variant="primary" size="lg" block>
+                  Reserve your spot
+                </Button>
+              ) : !BOOKINGS_OPEN && TRIP_DETAILS_OPEN ? (
+                // Paying is list-only: the emailed link is the way in.
+                <WaitlistButton label={LIST_BOOKING_CTA} variant="primary" size="lg" placement="telluride-hero" />
+              ) : (
+                <Button href="#departures" variant="primary" size="lg" block>
+                  See the dates
+                </Button>
+              )}
+              {bookable && <CreditLine />}
+            </div>
           </div>
         </div>
       </header>
@@ -542,31 +524,42 @@ export default async function TelluridePage() {
       </section>
 
       {/* ---- the week ---------------------------------------------------------
-          Espresso. The days as one row of three (itinerary is trip detail, so
-          it waits for launch), then the events and the town as tabs. id="events"
-          is what the home page's "See the week" links to. */}
+          Opens on the valley at dusk, a sharp still easing closer (VideoBand,
+          1 October 2026; the earlier clip read as blurry): the
+          headline in Extrabold capitals on the dark sky, the way Palm Tree
+          Crew sets its statements. Then espresso: the days as one row of three
+          (itinerary is trip detail, so it waits for launch), then the events
+          and the town as tabs. id="events" is what the home page's "See the
+          week" links to. */}
       <section
         id="events"
         className={`scheme-espresso scheme-paint ${SECTION_SCROLL}`}
         aria-labelledby="events-heading"
       >
-        <div className="shell py-16 md:py-24">
-          <Reveal>
-            <p className="t-rule-label text-[--text]">The week</p>
-            <div className="mt-10 grid gap-6 md:mt-12 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:items-end md:gap-20">
-              <h2 id="events-heading" className="t-title max-w-[14ch] text-[--text]">
-                The week has a guest list
-              </h2>
-              <p className="t-lede max-w-measure text-[--text-secondary]">
-                Every package comes with the same nights out. They&rsquo;re
-                booked, hosted and closed to anyone who isn&rsquo;t on the trip.
-              </p>
-            </div>
-          </Reveal>
+        <VideoBand
+          poster="/images/home/valley-dusk.jpg"
+          position="50% 60%"
+          alt="The valley at dusk below snowy peaks, the lights of town coming on and mist low over the trees."
+        >
+          <div className="shell pt-24 md:pt-32">
+            <p className="t-label text-[--text]">The week</p>
+            <h2
+              id="events-heading"
+              className="mt-5 max-w-[15ch] text-balance font-display text-display-xl font-extrabold uppercase leading-[0.92] tracking-display text-[--text]"
+            >
+              The week has a guest list
+            </h2>
+          </div>
+        </VideoBand>
 
+        <div className="shell py-16 md:py-24">
+          <p className="t-lede max-w-measure text-[--text]">
+            Every package comes with the same nights out. They&rsquo;re
+            booked, hosted and closed to anyone who isn&rsquo;t on the trip.
+          </p>
           {TRIP_DETAILS_OPEN && nights !== null && nights >= 2 && (
             <Reveal>
-              <ol className="m-0 mt-12 grid list-none gap-8 border-t border-[--rule-strong] p-0 pt-8 md:mt-14 md:grid-cols-3 md:gap-10">
+              <ol className="m-0 mt-12 grid list-none gap-8 p-0 md:mt-14 md:grid-cols-3 md:gap-10">
                 {weekPlan(nights, firstDay, lastDay).map((day) => (
                   <li key={day.title} className="flex flex-col gap-2">
                     <p className="t-micro text-[--accent]">{day.when}</p>
@@ -669,7 +662,7 @@ export default async function TelluridePage() {
                   ].join(" ")}
                 >
                   <dt className="t-micro order-2 text-[--accent]">{fact.label}</dt>
-                  <dd className="order-1 m-0 font-display text-display-s font-medium leading-none tracking-title text-[--text] sm:text-display-m">
+                  <dd className="order-1 m-0 font-display text-display-m font-extrabold leading-none tracking-title text-[--text] sm:text-display-l">
                     {fact.value}
                   </dd>
                   <dd className="order-3 m-0 font-body text-body-s leading-[1.6] text-[--text-secondary]">
@@ -705,7 +698,7 @@ export default async function TelluridePage() {
                   the only facts that matter are the two ends and the gap. */}
               <div className="grid grid-cols-[auto_minmax(2rem,1fr)_auto] items-center gap-x-4 gap-y-2 sm:gap-x-6">
                 <span className="font-display text-display-s font-medium tracking-title text-[--text]">MTJ</span>
-                <span aria-hidden="true" className="h-px bg-[--rule-strong]" />
+                <span aria-hidden="true" className="h-px bg-[--control-rule]" />
                 <span className="font-display text-display-s font-medium tracking-title text-[--text]">Telluride</span>
                 <span className="t-micro text-[--text-secondary]">Montrose</span>
                 <span className="t-micro text-center text-[--text-secondary]">65 mi, 90 min</span>
@@ -1035,7 +1028,7 @@ function DateRow({ trip }: { trip: PublicTrip }) {
           {TRIP_DETAILS_OPEN && `, from ${formatPrice(trip.priceFrom)}`}
         </span>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4 [&>span]:whitespace-nowrap">
         {/* Same rule as TripCard: before launch the badge says so, once. */}
         {BOOKINGS_OPEN ? <StatusBadge status={trip.status} /> : <Badge tone="neutral">{COMING_SOON_LABEL}</Badge>}
         {BOOKINGS_OPEN && !soldOut && (

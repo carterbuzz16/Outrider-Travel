@@ -70,7 +70,7 @@ export default function TierTable({
       {plain.length > 0 && (
         <div
           className={cn(
-            "grid gap-px border border-[--rule] bg-[--rule]",
+            "grid gap-px border border-[--control-rule-soft] bg-[--control-rule-soft]",
             plain.length >= 3 ? "md:grid-cols-3" : plain.length === 2 && "md:grid-cols-2",
           )}
         >
@@ -95,7 +95,7 @@ export default function TierTable({
             </div>
             <div
               className={cn(
-                "grid gap-px border border-[--rule] bg-[--rule]",
+                "grid gap-px border border-[--control-rule-soft] bg-[--control-rule-soft]",
                 members.length > 1 && "md:grid-cols-2",
               )}
             >

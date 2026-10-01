@@ -79,6 +79,8 @@ export type ListEmailParts = {
    * to the list's line; the $100 code's emails say they were asked for.
    */
   footerNote?: string;
+  /** The photograph under the header band, from public/email. Defaults to Telluride. */
+  hero?: { file: string; alt: string };
 };
 
 export function waitlistWelcomeHtml(p: WaitlistWelcomeParts): string {
@@ -103,6 +105,39 @@ export function waitlistWelcomeHtml(p: WaitlistWelcomeParts): string {
     },
     addressLine: p.addressLine,
     unsubscribeUrl: p.unsubscribeUrl,
+  });
+}
+
+/*
+ * The welcome for someone who joined from /spring-break (1 October 2026).
+ * Carter: one list that everyone gets, but spring break branded as its own
+ * thing, "Outrider Spring Break Club". Nothing about the trip is announced,
+ * so it promises only what the site already does (UPCOMING_CATEGORIES): spring
+ * 2027, somewhere warm, hosted the way we host Telluride, and the list hears
+ * where first. Telluride is the button, since it is the trip on sale now.
+ */
+export function springBreakWelcomeHtml(p: WaitlistWelcomeParts): string {
+  return listEmailHtml({
+    origin: p.origin,
+    preheader: p.preheader,
+    title: "You're in the Outrider Spring Break Club",
+    eyebrow: "Outrider Spring Break Club",
+    headlineHtml: "You&rsquo;re in.<br />Spring break is next",
+    leadHtml:
+      "Spring 2027, somewhere warm, hosted the way we host Telluride. When we announce where, you&rsquo;ll hear it here before anyone else.",
+    rows: [
+      ["When", "Spring break 2027"],
+      ["Where", "Somewhere warm. This list hears first."],
+      ["How", "One great place for the whole group, one price, and our team there all week"],
+    ],
+    button: { label: "Ski Telluride this winter", href: `${p.origin}/telluride` },
+    panel: {
+      label: "Bring your people",
+      text: "Send this to the friends you&rsquo;d go with, so the whole group hears at once.",
+    },
+    addressLine: p.addressLine,
+    unsubscribeUrl: p.unsubscribeUrl,
+    hero: { file: "email-hero-spring.jpg", alt: "A palm tree arching over a pink Mediterranean-style tower" },
   });
 }
 
@@ -156,7 +191,7 @@ export function listEmailHtml(p: ListEmailParts): string {
 
     <tr>
       <td style="padding:0; font-size:0; line-height:0;">
-        <img class="hero" src="${EMAIL_ASSET_ORIGIN}/email/email-hero-telluride.jpg" width="600" alt="Telluride's peaks at dusk, snow on the ridgelines" style="display:block; width:600px; max-width:100%; height:auto;" />
+        <img class="hero" src="${EMAIL_ASSET_ORIGIN}/email/${p.hero?.file ?? "email-hero-telluride.jpg"}" width="600" alt="${p.hero?.alt ?? "Telluride's peaks at dusk, snow on the ridgelines"}" style="display:block; width:600px; max-width:100%; height:auto;" />
       </td>
     </tr>
 

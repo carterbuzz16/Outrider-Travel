@@ -20,9 +20,13 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   return (
     <ToastProvider>
       <OrganizationSchema siteUrl={getAppUrl()} />
-      <SiteNav />
-      {children}
-      <Footer />
+      {/* .site-quiet (globals.css) takes the hairlines off every marketing
+          page; display: contents, so it adds no box to the layout. */}
+      <div className="site-quiet contents">
+        <SiteNav />
+        {children}
+        <Footer />
+      </div>
       {/* Both render nothing visible until needed: one reads the landing URL's
           campaign tags, the other waits for a phone reader to scroll. */}
       <AttributionCapture />

@@ -245,10 +245,10 @@ function GalleryButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "grid h-11 w-11 place-items-center border border-[--rule-strong] text-[--text]",
+        "grid h-11 w-11 place-items-center border border-[--control-rule] text-[--text]",
         "transition-colors duration-fast",
         "hover:enabled:bg-[--text] hover:enabled:text-[--surface]",
-        "disabled:border-[--rule] disabled:text-[--text-muted]",
+        "disabled:border-[--control-rule-soft] disabled:text-[--text-muted]",
       )}
     >
       {children}

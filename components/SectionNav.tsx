@@ -41,7 +41,7 @@ export default function SectionNav({ links }: { links: SectionLink[] }) {
   return (
     <nav
       aria-label="On this page"
-      className="sticky top-16 z-30 border-b border-[--rule] bg-[--surface] md:top-20"
+      className="sticky top-16 z-30 bg-[--surface] shadow-[0_14px_22px_-18px_rgb(31_26_23_/_0.5)] md:top-20"
     >
       <div className="shell flex h-14 items-center">
         <ul className="-mx-gutter m-0 flex h-full list-none items-stretch gap-7 overflow-x-auto px-gutter [scrollbar-width:none] sm:mx-0 sm:px-0 md:gap-10 [&::-webkit-scrollbar]:hidden">

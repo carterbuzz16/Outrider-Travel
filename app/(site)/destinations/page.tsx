@@ -83,7 +83,7 @@ export default function DestinationsPage() {
         {/* Facts, set as a row of their own so the page has something with
             weight in it between the photographs. */}
         <div className="shell py-16 md:py-20">
-          <div className="grid gap-px border border-[--rule] bg-[--rule] sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {FACTS.map((fact, i) => (
               <Reveal key={fact.label} delay={i * 70}>
                 <div className="flex h-full flex-col gap-3 bg-[--surface-raised] p-6 md:p-8">

@@ -5,12 +5,13 @@ import { addContactToAudience } from "@/lib/resend-audience";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit, FAIL_CLOSED } from "@/lib/rate-limit";
 import { honeypotTripped } from "@/lib/honeypot";
-import { sendWaitlistNotification, sendWaitlistWelcome } from "@/lib/email/send";
+import { sendSpringBreakWelcome, sendWaitlistNotification, sendWaitlistWelcome } from "@/lib/email/send";
 import { sendEarlyAccessOnJoin } from "@/lib/early-access";
 import { clientIp } from "@/lib/client-ip";
 import type { Database } from "@/types/supabase";
 import { WAITLIST_CONSENT_VERSION } from "@/lib/waitlist-consent";
 import { cleanSignupContext, type SignupContext } from "@/lib/signup-context";
+import { SPRING_BREAK_PLACEMENT } from "@/lib/site-content";
 import {
   validateWaitlist,
   type CleanWaitlistInput,
@@ -186,8 +187,13 @@ export async function joinWaitlist(
     // instead: the trip is public, and joining is how you book. It carries
     // the same unsubscribe link, so it does the welcome's job too. Anything
     // short of a sent link falls through to the ordinary welcome.
+    //
+    // Someone who joined from /spring-break (1 October 2026) is on the same
+    // list but gets the spring break welcome, and no Telluride booking link:
+    // they came for the next trip, not this one.
+    const springBreak = context.placement === SPRING_BREAK_PLACEMENT;
     const linkSent =
-      stored.token && stored.earlyToken
+      !springBreak && stored.token && stored.earlyToken
         ? await sendEarlyAccessOnJoin(input.email, { earlyAccess: stored.earlyToken, unsubscribe: stored.token })
         : false;
 
@@ -195,7 +201,7 @@ export async function joinWaitlist(
       // Sent and stamped; nothing more to do for this address.
     } else if (stored.token) {
       try {
-        await sendWaitlistWelcome(input.email, stored.token);
+        await (springBreak ? sendSpringBreakWelcome : sendWaitlistWelcome)(input.email, stored.token);
       } catch (err) {
         // Loud and specific. The first time this failed in production it was a
         // missing EMAIL_FROM_ADDRESS, and the only evidence was silence: the

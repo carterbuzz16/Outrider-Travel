@@ -6,7 +6,7 @@ import { renderEmailLayout, formatCurrency, formatDate } from "@/lib/email/layou
 import { getAppUrl } from "@/lib/site-url";
 import { BOOKINGS_OPEN } from "@/lib/booking-window";
 import { CONTACT, LEGAL_NAME } from "@/lib/site-content";
-import { waitlistWelcomeHtml } from "@/lib/email/templates/waitlist-welcome";
+import { springBreakWelcomeHtml, waitlistWelcomeHtml } from "@/lib/email/templates/waitlist-welcome";
 import { EARLY_ACCESS_SUBJECT, earlyAccessHtml } from "@/lib/email/templates/early-access";
 import { BOOKING_OPEN_SUBJECT, bookingOpenHtml } from "@/lib/email/templates/booking-open";
 import {
@@ -419,6 +419,46 @@ export function renderOverpaymentRefundEmail(opts: OverpaymentRefundInput): Rend
 export async function sendWaitlistWelcome(email: string, token: string) {
   const { subject, html, text, headers } = renderWaitlistWelcome(token);
   await sendEmail({ from: getFromAddress(), to: email, subject, headers, html, text });
+}
+
+/** The welcome for a signup from /spring-break: same list, its own branding. */
+export async function sendSpringBreakWelcome(email: string, token: string) {
+  const { subject, html, text, headers } = renderSpringBreakWelcome(token);
+  await sendEmail({ from: getFromAddress(), to: email, subject, headers, html, text });
+}
+
+export function renderSpringBreakWelcome(token: string): RenderedEmail & { html: string; text: string } {
+  const url = `${getAppUrl()}/unsubscribe?t=${encodeURIComponent(token)}`;
+  const origin = getAppUrl().replace(/\/+$/, "");
+  return {
+    subject: "You're in the Outrider Spring Break Club",
+    headers: {
+      "List-Unsubscribe": `<${getAppUrl()}/api/unsubscribe?t=${encodeURIComponent(token)}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    },
+    html: springBreakWelcomeHtml({
+      origin,
+      unsubscribeUrl: escapeHtml(url),
+      bookingsOpen: BOOKINGS_OPEN,
+      addressLine: escapeHtml([LEGAL_NAME, ...(CONTACT.postalAddress ?? [])].join(", ")),
+      preheader: "Spring break 2027, somewhere warm. You'll hear where before anyone else.",
+    }),
+    text: [
+      "You're in. Spring break is next.",
+      "",
+      "Spring 2027, somewhere warm, hosted the way we host Telluride. When we announce where, you'll hear it here before anyone else.",
+      "",
+      "One great place for the whole group, one price, and our team there all week.",
+      "",
+      `Ski Telluride this winter: ${origin}/telluride`,
+      "",
+      "Send this to the friends you'd go with, so the whole group hears at once.",
+      "",
+      "Questions: bookings@outrider.travel. We reply within a day.",
+      "We only email when a trip opens.",
+      `Unsubscribe: ${url}`,
+    ].join("\n"),
+  };
 }
 
 export function renderWaitlistWelcome(token: string): RenderedEmail & { html: string; text: string } {

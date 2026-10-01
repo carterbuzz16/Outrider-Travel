@@ -18,7 +18,7 @@ import { cn } from "./cn";
  */
 
 const CONTROL =
-  "w-full bg-transparent border border-[--rule-strong] rounded-sm " +
+  "w-full bg-transparent border border-[--control-rule] rounded-sm " +
   "px-3.5 py-3 font-body text-body text-[--text] " +
   "placeholder:text-[--text-muted] placeholder:font-display " +
   "placeholder:text-label placeholder:uppercase placeholder:tracking-label " +
@@ -160,7 +160,7 @@ export function InlineInput({
   return (
     <input
       className={cn(
-        "w-full min-w-0 border-0 border-b border-[--rule-strong] bg-transparent",
+        "w-full min-w-0 border-0 border-b border-[--control-rule] bg-transparent",
         "px-0 py-3 font-display text-label uppercase tracking-label text-[--text]",
         "placeholder:text-[--text-muted]",
         "transition-colors duration-fast ease-out focus:border-[--accent]",

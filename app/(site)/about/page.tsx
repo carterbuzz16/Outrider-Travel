@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { pageMetadata } from "@/lib/metadata";
 import Image from "next/image";
-import { Button, ComparisonTable, Plate, Reveal } from "@/components/ui";
-import { FOUNDER, ORIGIN, PARTNER } from "@/lib/site-content";
+import { Button, ComparisonTable, HeroSlideshow, Plate, Reveal } from "@/components/ui";
+import SectionNav, { type SectionLink } from "@/components/SectionNav";
+import { pageMetadata } from "@/lib/metadata";
+import { ABOUT_DIFFERENCES, FOUNDER, ORIGIN, PARTNER } from "@/lib/site-content";
 
 export const metadata: Metadata = pageMetadata({
   title: "About",
@@ -12,226 +13,269 @@ export const metadata: Metadata = pageMetadata({
   shareTitle: "Why Outrider | College group trips, hosted",
 });
 
+/*
+ * /about, rebuilt 1 October 2026. Carter found the old page hard to read and
+ * hard to navigate (a title, one tall photograph, a wall of small type, then a
+ * dense table), and said its main job is to show why Outrider is better than
+ * the usual college trip. So, in page order:
+ *
+ *   masthead      the village in alpenglow, with "We go first" in the brand
+ *                 book's Extrabold capitals: what the name means
+ *   Why us        five reasons, each a big headline, two sentences and a
+ *                 photograph, alternating sides (#difference)
+ *   Side by side  the big college trip companies against us, row by row, Outrider's answer
+ *                 in a Ski Club blue panel (#compare)
+ *   Our story     Carter, his reason, and the bio folded (#story)
+ *   Partners      Chptr (#partner)
+ *
+ * A sticky row of section links under the masthead, as on /telluride, so any
+ * part of the page is one tap away. No hairlines anywhere (.site-quiet).
+ */
+
+/** Fixed site nav (h-16, md:h-20) plus the sticky section row (h-14). */
+const SECTION_SCROLL = "scroll-mt-[7.5rem] md:scroll-mt-[8.5rem]";
+
+const DISPLAY = "font-display font-extrabold uppercase leading-[0.92] tracking-display text-[--text]";
+
 export default function AboutPage() {
-  const hasFounderStory = FOUNDER.bio.length > 0;
+  const hasFounderStory = FOUNDER.bio.length > 0 && Boolean(FOUNDER.name);
   const hasPartnerCopy = PARTNER.confirmed && PARTNER.body.length > 0;
+
+  const sections: SectionLink[] = [
+    { href: "#difference", label: "Why us" },
+    { href: "#compare", label: "Side by side" },
+    ...(hasFounderStory ? [{ href: "#story" as const, label: "Our story" }] : []),
+    ...(hasPartnerCopy ? [{ href: "#partner" as const, label: "Partners" }] : []),
+  ];
 
   return (
     <main className="scheme-light scheme-paint">
-      {/* ---- opening ------------------------------------------------------
-          The definition of the word is the whole thesis, so it opens the page
-          rather than sitting in a paragraph three screens down. */}
-      <header className="shell pt-32 md:pt-40">
-        <h1 className="t-display mt-6 max-w-[12ch] text-[--text]">{ORIGIN.title}</h1>
-        <p className="t-lede mt-10 max-w-measure">{ORIGIN.lede}</p>
+      {/* ---- masthead -------------------------------------------------------
+          One full-resolution photograph, the village in alpenglow, easing
+          slowly closer (HeroSlideshow). It replaced a 1600-wide video clip
+          that Carter found blurry (1 October 2026). Full-bleed under the
+          transparent nav, with
+          the words on the dark foot of the frame. Two fades and no even scrim,
+          as on /telluride. Above the fold, so nothing is wrapped in Reveal. */}
+      <header className="scheme-espresso relative isolate flex min-h-[78svh] flex-col justify-end overflow-hidden bg-[--color-espresso-deep] md:min-h-[88svh]">
+        <div className="absolute inset-0 -z-10">
+          <HeroSlideshow
+            slides={[
+              {
+                src: "/images/about/village-alpenglow.jpg",
+                alt: "Mountain Village and the ski runs in alpenglow at dusk, snowy peaks behind.",
+                position: "50% 45%",
+              },
+            ]}
+          />
+        </div>
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-40 bg-gradient-to-b from-[rgb(42_35_32_/_0.6)] to-transparent"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[70%] bg-gradient-to-t from-[rgb(31_26_23_/_0.9)] via-[rgb(31_26_23_/_0.55)] to-transparent"
+        />
+        <div className="shell pb-12 pt-40 md:pb-20">
+          <p className="t-label text-[--text]">{ORIGIN.title}</p>
+          <h1 className={`mt-5 max-w-[12ch] text-display-xl ${DISPLAY}`}>We go first</h1>
+          <p className="mt-6 max-w-[44ch] font-body text-lede leading-[1.55] text-[--text]">{ORIGIN.lede}</p>
+        </div>
       </header>
 
-      {/* ---- full-bleed band ----------------------------------------------
-          Deliberately edge to edge and tall: it is the one moment on this page
-          that should feel like the mountain rather than like a document. */}
-      <div className="relative mt-12 h-[30vh] min-h-[210px] w-full overflow-hidden md:mt-24 md:h-[62vh]">
-        <Image
-          src="/images/people/friends-boards-mountain.jpg"
-          alt="Four friends laughing together on a snowy summit with their skis and snowboards, ski runs on the mountain behind."
-          fill
-          sizes="100vw"
-          className="object-cover"
-          // The faces sit in the upper third; keep them in a wide, short crop.
-          style={{ objectPosition: "50% 35%" }}
-          // Sits inside the first screen at 375px, so it is the LCP element.
-          priority
-        />
-      </div>
+      <SectionNav links={sections} />
 
-      {/* ---- why it exists -------------------------------------------------- */}
-      <section id="why" className="shell py-20 md:py-28">
-        <div className="grid gap-12 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:gap-20">
+      {/* ---- why us -----------------------------------------------------------
+          The page's main job. Each reason is one headline you can read from
+          across a room, two sentences, and a photograph, alternating sides
+          from md so the page has a rhythm rather than a list. */}
+      <section
+        id="difference"
+        className={`shell ${SECTION_SCROLL} py-20 md:py-28`}
+        aria-labelledby="difference-heading"
+      >
+        <Reveal>
+          <p className="t-label text-[--text-secondary]">Why us</p>
+          <h2 id="difference-heading" className={`mt-5 max-w-[14ch] text-display-l ${DISPLAY}`}>
+            Why it&rsquo;s better with us
+          </h2>
+        </Reveal>
+
+        <ol className="m-0 mt-14 flex list-none flex-col gap-16 p-0 md:mt-20 md:gap-28">
+          {ABOUT_DIFFERENCES.map((item, i) => (
+            <li key={item.title}>
+              <Reveal>
+                <div className="grid items-center gap-7 md:grid-cols-2 md:gap-16 lg:gap-24">
+                  <div className={`relative aspect-[4/3] overflow-hidden bg-[--surface-inset] ${i % 2 === 1 ? "md:order-2" : ""}`}>
+                    <Image
+                      src={item.image.src}
+                      alt={item.image.alt}
+                      fill
+                      sizes="(min-width: 768px) 46vw, 100vw"
+                      className="object-cover"
+                    />
+                  </div>
+                  <div>
+                    <h3 className={`m-0 max-w-[14ch] text-balance text-display-m ${DISPLAY}`}>{item.title}</h3>
+                    <p className="m-0 mt-5 max-w-[44ch] font-body text-lede leading-[1.6] text-[--text-secondary]">
+                      {item.body}
+                    </p>
+                  </div>
+                </div>
+              </Reveal>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* ---- side by side ------------------------------------------------------
+          Espresso, the one dark panel in the body of the page, so the
+          comparison reads as its own moment. */}
+      <section
+        id="compare"
+        className={`scheme-espresso scheme-paint ${SECTION_SCROLL}`}
+        aria-labelledby="compare-heading"
+      >
+        <div className="shell py-20 md:py-28">
           <Reveal>
-            <div className="flex items-baseline gap-5 md:sticky md:top-32">
-              <h2 className="t-heading text-[--accent]">Why we started</h2>
-            </div>
+            <p className="t-label text-[--text-secondary]">Side by side</p>
+            <h2 id="compare-heading" className={`mt-5 max-w-[16ch] text-display-l ${DISPLAY}`}>
+              Other trips, and ours
+            </h2>
+            <p className="t-lede mt-6 max-w-measure text-[--text-secondary]">
+              Same mountain, very different week. Here&rsquo;s how the big
+              college trip companies do it, and how we do.
+            </p>
           </Reveal>
-          <Reveal delay={80}>
-            <div className="flex flex-col gap-7">
-              {ORIGIN.body.map((paragraph, i) => (
-                <p
-                  key={paragraph.slice(0, 32)}
-                  className={
-                    i === 0
-                      ? "font-body text-lede leading-[1.8] text-[--text]"
-                      : "font-body text-body leading-[1.85] text-[--text]"
-                  }
-                >
-                  {paragraph}
-                </p>
-              ))}
+          <Reveal>
+            <div className="mt-12 md:mt-16">
+              <ComparisonTable />
             </div>
           </Reveal>
         </div>
-
-        {/* The same argument laid out side by side, for anyone who skims.
-            Full content width: this is the section people screenshot. */}
-        <Reveal>
-          <div className="mt-8">
-            <ComparisonTable />
-          </div>
-        </Reveal>
       </section>
 
-      {/* ---- leadership ------------------------------------------------------
-          Given its own section rather than a footnote under the origin story:
-          this is a founder-led company and the person is the credential. */}
-      {hasFounderStory && FOUNDER.name && (
-        <section id="leadership" className="shell py-20 md:py-28" aria-labelledby="leadership-heading">
-          <h2 id="leadership-heading" className="sr-only">
-            Leadership
-          </h2>
-          <Reveal>
-            <p className="t-rule-label text-[--text]">Leadership</p>
-          </Reveal>
-
-          <div className="mt-12 grid gap-12 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:items-start md:gap-20">
+      {/* ---- our story ---------------------------------------------------------
+          Why the company exists, in Carter's words, then who he is. His own
+          sentence is pulled up large; the full bio stays folded so the
+          section is a read of a minute, not five. */}
+      {hasFounderStory && (
+        <section id="story" className={`shell ${SECTION_SCROLL} py-20 md:py-28`} aria-labelledby="story-heading">
+          <div className="grid gap-12 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:items-start md:gap-20">
             <Reveal>
-              <figure className="m-0 flex flex-col gap-5">
-                <Plate
-                  image={FOUNDER.portrait}
-                  ratio="aspect-[4/5]"
-                  sizes="(min-width: 768px) 42vw, 100vw"
-                />
-                <figcaption className="border-t border-[--rule] pt-5">
+              <figure className="m-0 flex flex-col gap-5 md:sticky md:top-40">
+                <Plate image={FOUNDER.portrait} ratio="aspect-[4/5]" sizes="(min-width: 768px) 40vw, 100vw" />
+                <figcaption>
                   <p className="t-subheading text-[--text]">{FOUNDER.name}</p>
-                  <p className="t-micro mt-2.5 text-[--accent]">{FOUNDER.role}</p>
+                  <p className="t-micro mt-2 text-[--accent]">{FOUNDER.role}</p>
                 </figcaption>
               </figure>
             </Reveal>
 
             <Reveal delay={90}>
               <div className="flex flex-col gap-8">
-                {/* His own sentence, pulled up so the section leads with the
-                    reason rather than with biography. */}
-                <blockquote className="m-0 border-l-2 border-[--accent] pl-6">
-                  <p className="font-display font-medium text-display-s leading-[1.3] tracking-title text-[--text]">
-                    &ldquo;{FOUNDER.pullQuote}&rdquo;
+                <p className="t-label text-[--text-secondary]">Our story</p>
+                <h2 id="story-heading" className="m-0 font-display text-display-m font-medium leading-[1.15] tracking-title text-[--text]">
+                  &ldquo;{FOUNDER.pullQuote}&rdquo;
+                </h2>
+                {ORIGIN.body.map((paragraph) => (
+                  <p key={paragraph.slice(0, 32)} className="m-0 font-body text-lede leading-[1.65] text-[--text]">
+                    {paragraph}
                   </p>
-                </blockquote>
+                ))}
+                <p className="m-0 font-body text-body leading-[1.8] text-[--text-secondary]">{FOUNDER.bio[0]}</p>
 
-                {/* Quote, then everything else folded away. The story and the
-                    longer bio are one continuous read, so they share a single
-                    disclosure rather than splitting across two. */}
-                {/* One line stays visible so the section is not just a quote
-                    and a toggle. The rest is behind the disclosure. */}
-                <p className="font-body text-body leading-[1.85] text-[--text]">
-                  {FOUNDER.bio[0]}
-                </p>
-
-                <details className="group border-t border-[--rule] pt-6">
-                  <summary
-                    className={[
-                      "flex cursor-pointer list-none items-center gap-3 py-2.5 -my-2.5",
-                      "t-label text-[--accent] transition-colors duration-fast",
-                      "hover:text-[--text] [&::-webkit-details-marker]:hidden",
-                    ].join(" ")}
-                  >
-                    <span className="group-open:hidden">Read Carter&rsquo;s bio</span>
-                    <span className="hidden group-open:inline">Close</span>
-                    <span
-                      aria-hidden="true"
-                      className="transition-transform duration-fast group-open:rotate-45"
+                {FOUNDER.bio.length > 1 && (
+                  <details className="group">
+                    <summary
+                      className={[
+                        "-my-2.5 flex cursor-pointer list-none items-center gap-3 py-2.5",
+                        "t-label text-[--accent] transition-colors duration-fast",
+                        "hover:text-[--text] [&::-webkit-details-marker]:hidden",
+                      ].join(" ")}
                     >
-                      +
-                    </span>
-                  </summary>
-
-                  <div className="mt-6 flex flex-col gap-6">
-                    {FOUNDER.bio.slice(1).map((paragraph) => (
-                      <p
-                        key={paragraph.slice(0, 32)}
-                        className="font-body text-body leading-[1.85] text-[--text-secondary]"
-                      >
-                        {paragraph}
-                      </p>
-                    ))}
-                  </div>
-                </details>
+                      <span className="group-open:hidden">Read Carter&rsquo;s story</span>
+                      <span className="hidden group-open:inline">Close</span>
+                      <span aria-hidden="true" className="transition-transform duration-fast group-open:rotate-45">
+                        +
+                      </span>
+                    </summary>
+                    <div className="mt-6 flex flex-col gap-6">
+                      {FOUNDER.bio.slice(1).map((paragraph) => (
+                        <p key={paragraph.slice(0, 32)} className="m-0 font-body text-body leading-[1.8] text-[--text-secondary]">
+                          {paragraph}
+                        </p>
+                      ))}
+                    </div>
+                  </details>
+                )}
               </div>
             </Reveal>
           </div>
         </section>
       )}
 
-      {/* ---- partner --------------------------------------------------------- */}
-      <section id="partner" className="shell py-20 md:py-28" aria-labelledby="partner-heading">
-        <h2 id="partner-heading" className="sr-only">
-          Vetted partner
-        </h2>
-        <Reveal>
-          <p className="t-rule-label text-[--text]">{PARTNER.eyebrow}</p>
-        </Reveal>
-
-        <div className="mt-12 grid gap-12 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:gap-20">
-          <Reveal>
-            <div className="flex flex-col gap-6">
-              {/* Their mark, in their own green, on a white panel. A partner
-                  logo is not ours to recolour, and the white plate keeps the
-                  supplied artwork's own background from reading as a slightly
-                  wrong white against the page's warm paper. */}
+      {/* ---- partners ------------------------------------------------------------
+          Chptr's mark on a white plate (a partner logo is not ours to
+          recolor, and its COLLECTIVE band is white), beside what the
+          partnership means for a chapter. Stone, so it sits apart from the
+          story above it without a rule. */}
+      {hasPartnerCopy && (
+        <section id="partner" className={`scheme-stone scheme-paint ${SECTION_SCROLL}`} aria-labelledby="partner-heading">
+          <div className="shell grid gap-10 py-20 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] md:items-center md:gap-20 md:py-24">
+            <Reveal>
               <a
                 href={PARTNER.url}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="flex w-full items-center justify-center border border-[--rule] bg-white px-8 py-10 transition-colors duration-fast hover:border-[--rule-strong] md:px-10 md:py-14"
+                className="flex w-full items-center justify-center bg-white px-8 py-10 md:px-10 md:py-14"
               >
-                {/* The Collective lockup, supplied transparent. Their export
-                    arrives on a canvas several times the size of the artwork,
-                    which would render the mark small inside this plate, so the
-                    file here is trimmed to the mark itself. The COLLECTIVE band
-                    is white, so it needs the white plate behind it to read as
-                    intended rather than the page's warm paper. */}
+                {/* The Collective lockup, trimmed to the mark itself. */}
                 <Image
                   src="/images/partners/chptr-collective.png"
                   alt={`${PARTNER.name} Collective logo`}
                   width={780}
                   height={628}
-                  className="h-auto w-full max-w-[240px] md:max-w-[300px]"
+                  className="h-auto w-full max-w-[220px] md:max-w-[280px]"
                 />
               </a>
-              <a
-                href={PARTNER.url}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="t-micro text-[--accent] no-underline transition-colors duration-fast hover:text-[--text] inline-block py-2 -my-2"
-              >
-                chptr.house
-              </a>
-            </div>
-          </Reveal>
-
-          <Reveal delay={90}>
-            {hasPartnerCopy && (
-              <div className="flex flex-col gap-6">
+            </Reveal>
+            <Reveal delay={90}>
+              <div className="flex flex-col gap-5">
+                <p className="t-label text-[--text-secondary]">{PARTNER.eyebrow}</p>
+                <h2 id="partner-heading" className={`m-0 text-display-m ${DISPLAY}`}>
+                  Vetted by {PARTNER.name}
+                </h2>
                 {PARTNER.body.map((paragraph) => (
-                  <p
-                    key={paragraph.slice(0, 32)}
-                    className="font-body text-body leading-[1.85] text-[--text-secondary]"
-                  >
+                  <p key={paragraph.slice(0, 32)} className="m-0 max-w-measure font-body text-lede leading-[1.6] text-[--text-secondary]">
                     {paragraph}
                   </p>
                 ))}
+                <a
+                  href={PARTNER.url}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="t-micro -my-2 inline-block self-start py-2 text-[--accent] no-underline transition-colors duration-fast hover:text-[--text]"
+                >
+                  chptr.house
+                </a>
               </div>
-            )}
-          </Reveal>
-        </div>
-      </section>
+            </Reveal>
+          </div>
+        </section>
+      )}
 
-      {/* ---- close ----------------------------------------------------------- */}
-      <section className="scheme-espresso scheme-paint">
-        <div className="shell flex flex-col items-start gap-8 py-16 md:flex-row md:items-center md:justify-between md:py-24">
-          <h2 className="t-heading max-w-[18ch] text-[--text]">
-            Two trips to Telluride this winter: December 14 to 18 and January 4 to 8.
-          </h2>
+      {/* ---- close ---------------------------------------------------------------
+          Club blue, the Ski Club tile, handing into the espresso footer. Every
+          Telluride link goes to /telluride. */}
+      <section className="scheme-club scheme-paint">
+        <div className="shell flex flex-col items-start gap-8 py-20 md:py-28">
+          <h2 className={`max-w-[16ch] text-display-l ${DISPLAY}`}>Two trips to Telluride this winter</h2>
+          <p className="t-lede m-0 text-[--text-secondary]">December 14 to 18, and January 4 to 8.</p>
           <div className="flex flex-wrap gap-4">
-            <Button href="/trips" variant="primary" size="lg">
-              View trips
+            <Button href="/telluride" variant="primary" size="lg">
+              See the trip
             </Button>
             <Button href="/contact" variant="secondary" size="lg">
               Ask a question

@@ -87,8 +87,8 @@ export function CheckRow({
       className={cn(
         "flex cursor-pointer items-start gap-3.5",
         boxed &&
-          "border border-[--rule] p-4 transition-colors duration-fast ease-out " +
-            "hover:border-[--rule-strong] has-[:checked]:border-[--accent-solid] sm:p-5",
+          "border border-[--control-rule-soft] p-4 transition-colors duration-fast ease-out " +
+            "hover:border-[--control-rule] has-[:checked]:border-[--accent-solid] sm:p-5",
         "has-[:disabled]:cursor-not-allowed",
         className,
       )}

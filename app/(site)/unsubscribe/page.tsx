@@ -73,7 +73,7 @@ export default async function UnsubscribePage({
               <input type="hidden" name="t" value={t} />
               <button
                 type="submit"
-                className="t-label border border-[--rule-strong] px-6 py-3.5 text-[--text] transition-colors duration-fast hover:bg-[--text] hover:text-[--surface]"
+                className="t-label border border-[--control-rule] px-6 py-3.5 text-[--text] transition-colors duration-fast hover:bg-[--text] hover:text-[--surface]"
               >
                 Unsubscribe me
               </button>
