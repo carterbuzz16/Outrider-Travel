@@ -36,7 +36,10 @@
  * none of it is sent.
  */
 
-export const META_PIXEL_ID = "1109966388146467";
+// Switched 1 Oct 2026 from 1109966388146467, which belonged to the Outrider
+// Travel business portfolio, out of reach of the ad account running the ads.
+// The old dataset's audiences don't carry over; build them on this one.
+export const META_PIXEL_ID = "2162809887927563";
 
 /** Inlined at build time by Vercel; absent locally, "preview" on previews. */
 export const PIXEL_ENABLED = process.env.NEXT_PUBLIC_VERCEL_ENV === "production";
