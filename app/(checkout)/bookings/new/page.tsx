@@ -14,7 +14,13 @@ import {
 } from "@/lib/deposit";
 import { discountCodeAmount, normalizeDiscountCode } from "@/lib/discount-codes";
 import { offerCodeFromCookie } from "@/lib/code-offer-server";
-import { WELCOME_CREDIT, creditOrCode, welcomeCreditFor, type WelcomeCredit } from "@/lib/welcome-credit";
+import {
+  WELCOME_CREDIT,
+  creditOrCode,
+  welcomeCreditFor,
+  welcomeCreditOpen,
+  type WelcomeCredit,
+} from "@/lib/welcome-credit";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatAmount } from "@/lib/balance";
@@ -389,8 +395,13 @@ function Packages({
       }
       // Signed out, a new account would get the credit at Continue, unless a
       // code already takes off as much or more; then the note would promise
-      // money that never comes off.
-      creditOffer={signedIn || (discount && discount.amount >= WELCOME_CREDIT) ? null : formatAmount(WELCOME_CREDIT)}
+      // money that never comes off. Nor once new accounts no longer get it
+      // (WELCOME_CREDIT_ENDS).
+      creditOffer={
+        signedIn || !welcomeCreditOpen() || (discount && discount.amount >= WELCOME_CREDIT)
+          ? null
+          : formatAmount(WELCOME_CREDIT)
+      }
     />
   );
 }

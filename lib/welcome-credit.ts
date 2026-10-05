@@ -37,10 +37,26 @@ type Admin = SupabaseClient<Database>;
  *
  * A read error answers "no credit", as a failed discount lookup does: the
  * traveler sees the full price rather than a figure that might not hold.
+ *
+ * Ended for new accounts on 5 October 2026 (WELCOME_CREDIT_ENDS).
  */
 
 export const WELCOME_CREDIT = 100;
 export const WELCOME_CREDIT_HOURS = 24;
+
+/**
+ * Accounts made from this moment on get no credit (Carter, 5 October 2026).
+ * $100 off is now for chapter members, through their chapter's own code, and
+ * a credit every new account got would hand anyone the same $100 at checkout
+ * with no code at all. An account made before it keeps its 24 hours, since
+ * checkout promised them; no real account had one running when this was set.
+ */
+export const WELCOME_CREDIT_ENDS = Date.parse("2026-10-05T16:00:00Z");
+
+/** Whether an account made now would get the credit, which is what checkout's "New here?" note promises. */
+export function welcomeCreditOpen(now: number = Date.now()): boolean {
+  return now < WELCOME_CREDIT_ENDS;
+}
 
 export type WelcomeCredit = { amount: number; expiresAt: string };
 
@@ -73,6 +89,8 @@ export async function welcomeCreditFor(
   user: { id: string; created_at?: string | null },
   { exclude, now = Date.now() }: { exclude?: string; now?: number } = {},
 ): Promise<WelcomeCredit | null> {
+  // Made on or after the end, or a timestamp that does not parse: no credit.
+  if (!(Date.parse(user.created_at ?? "") < WELCOME_CREDIT_ENDS)) return null;
   const expiresAt = welcomeCreditExpiry(user.created_at);
   if (!expiresAt || expiresAt.getTime() <= now) return null;
   if (await creditSpent(admin, user.id, exclude)) return null;

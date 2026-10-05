@@ -84,7 +84,9 @@ import { flightTimesPublished } from "@/lib/trip-logistics";
  * line under Reserve carries the same offer, then the code. A running
  * new-account credit (lib/welcome-credit.ts) shows as a countdown instead. All
  * of it comes from WelcomeCreditProvider, which asks for the visitor's state
- * after the page loads, so the page itself stays static.
+ * after the page loads, so the page itself stays static. Both offers ended on
+ * 5 October 2026, when $100 off became the chapter codes' alone, so the page
+ * now offers nothing; the provider stays, switched off (CODE_OFFER_OPEN).
  *
  * Launch gating follows app/(site)/trips/[id]/page.tsx exactly: before
  * TRIP_DETAILS_OPEN the departures are teased as dates and length only, with no

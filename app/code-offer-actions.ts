@@ -13,7 +13,7 @@ import { discountCodeAmount } from "@/lib/discount-codes";
 import { isDeliverableEmail, WAITLIST_ERRORS } from "@/lib/waitlist-signup";
 import { CODE_OFFER_CONSENT_VERSION } from "@/lib/waitlist-consent";
 import { cleanSignupContext, type SignupContext } from "@/lib/signup-context";
-import { OFFER_AMOUNT, offerExpiry } from "@/lib/code-offer";
+import { CODE_OFFER_OPEN, OFFER_AMOUNT, offerExpiry } from "@/lib/code-offer";
 import { generateOfferCode, setOfferCookie } from "@/lib/code-offer-server";
 import type { Database } from "@/types/supabase";
 
@@ -74,6 +74,10 @@ export async function claimCodeOffer(
   rawContext?: SignupContext,
   honeypot?: unknown,
 ): Promise<CodeOfferResult> {
+  // The page no longer offers it (CODE_OFFER_OPEN), but a server action can
+  // still be posted to by hand, so the switch is checked here too.
+  if (!CODE_OFFER_OPEN) return { ok: false, message: "This offer has ended." };
+
   const email = String(raw?.email ?? "").trim().toLowerCase();
   if (!isDeliverableEmail(email)) return { ok: false, message: WAITLIST_ERRORS.email, field: "email" };
   // Strictly true: a string "false" from a hand-made POST is not a yes.

@@ -34,6 +34,16 @@ import { TRIP_TIME_ZONE, todayInMountain } from "@/lib/mountain-time";
  * from here.
  */
 
+/**
+ * Off since 5 October 2026 (Carter): nobody used it, and $100 off is now for
+ * chapter members, through their chapter's own code. Off, the sheet never
+ * opens, the line under Reserve offers nothing, and claimCodeOffer refuses a
+ * request made by hand. Only test inboxes ever had a code, so none is left
+ * running; the rest (the cookie at checkout, the reminders, the emails) stays
+ * as it was, so setting this back to true brings the whole offer back.
+ */
+export const CODE_OFFER_OPEN = false;
+
 export const OFFER_AMOUNT = 100;
 export const OFFER_DAYS = 7;
 

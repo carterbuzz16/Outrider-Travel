@@ -5,7 +5,7 @@ import { track } from "@vercel/analytics";
 import { Button, CheckRow, Dialog, Field, Input, cn } from "@/components/ui";
 import { captureFirstTouch, firstTouchContext } from "@/components/ui/useWaitlistSignup";
 import { claimCodeOffer } from "@/app/code-offer-actions";
-import { formatOfferDeadline, offerExpiry, OFFER_AMOUNT } from "@/lib/code-offer";
+import { CODE_OFFER_OPEN, formatOfferDeadline, offerExpiry, OFFER_AMOUNT } from "@/lib/code-offer";
 import { CODE_OFFER_PROMISE, EMAIL_CONSENT_LABEL } from "@/lib/waitlist-consent";
 import { HONEYPOT_FIELD, HONEYPOT_STYLE, honeypotValue } from "@/lib/honeypot";
 import { pixelEvent } from "@/lib/meta-pixel";
@@ -38,6 +38,12 @@ import { pixelEvent } from "@/lib/meta-pixel";
  *
  * Nobody is offered both: someone with the credit running already has $100
  * off, and the code would not combine with it.
+ *
+ * Since 5 October 2026 neither is offered: the code is switched off
+ * (CODE_OFFER_OPEN) and new accounts get no credit (WELCOME_CREDIT_ENDS),
+ * because $100 off is now for chapter members, through their chapter's code.
+ * So the sheet never opens and the line under Reserve stays empty, unless
+ * someone already has a code or a running credit to be shown.
  */
 
 type CreditState =
@@ -143,7 +149,7 @@ export function WelcomeCreditProvider({
     return () => window.clearTimeout(timer);
   }, [expiresAt]);
 
-  const canOffer = (state.status === "signed-out" || state.status === "none") && !offer;
+  const canOffer = CODE_OFFER_OPEN && (state.status === "signed-out" || state.status === "none") && !offer;
 
   // The sheet, once, after the price, for someone with nothing to claim yet.
   useEffect(() => {
