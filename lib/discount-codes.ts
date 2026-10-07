@@ -36,6 +36,16 @@ type Admin = SupabaseClient<Database>;
  *
  * The discounted figure becomes bookings.total_amount (createBooking), the same
  * way the pay-in-full discount does, so nothing downstream needs to know.
+ *
+ * A code can also take a share of the price instead of an amount, work on one
+ * package only, and be used once per person (free_package_codes migration).
+ * A code that takes everything off leaves nothing for Stripe: createBooking
+ * makes no card form, and the payment step confirms the booking with the terms
+ * alone (confirmFreeBooking). For example, the whole of Four to a Room for two
+ * different people:
+ *
+ *   insert into discount_codes (code, percent_off, tier_name, max_uses, once_per_person, note)
+ *   values ('ELLISCOMPUSC', 100, 'BASE', 2, true, 'Comp, Four to a Room, two people');
  */
 
 /**
@@ -51,12 +61,23 @@ export function normalizeDiscountCode(raw: unknown): string | null {
 
 /**
  * What the code takes off right now, or null if it cannot be used (unknown,
- * switched off, expired, used up). For showing prices; claimDiscountCode is
- * what decides. The traveler's own abandoned checkout does not count against
- * them (see discount_code_uses).
+ * switched off, expired, used up, or already used by this person when it is
+ * once per person). For showing prices; claimDiscountCode is what decides. The
+ * traveler's own abandoned checkout does not count against them (see
+ * discount_code_uses).
+ *
+ * With a package (tierId), what it takes off that package, and null when the
+ * code is for another one. Without one, a percent or one-package code has no
+ * single figure and reads as null; the callers that leave it out only ask
+ * whether a $100 offer code is still live.
  */
-export async function discountCodeAmount(admin: Admin, code: string, userId?: string): Promise<number | null> {
-  const { data, error } = await admin.rpc("discount_code_amount", { p_code: code, p_user: userId });
+export async function discountCodeAmount(
+  admin: Admin,
+  code: string,
+  userId?: string,
+  tierId?: string,
+): Promise<number | null> {
+  const { data, error } = await admin.rpc("discount_code_amount", { p_code: code, p_user: userId, p_tier: tierId });
   if (error) {
     console.error(`discountCodeAmount: lookup failed: ${error.code} ${error.message}`);
     return null;
@@ -77,6 +98,28 @@ export async function claimDiscountCode(admin: Admin, code: string, bookingId: s
     return { ok: false, reason: "invalid" };
   }
   return { ok: true, amount: Number(data) };
+}
+
+export type FreeConfirmation = { ok: true; confirmed: boolean } | { ok: false; reason: "used" | "invalid" };
+
+/**
+ * Moves a pending $0 booking to paid_in_full, checking its code once more
+ * under the code's lock. `confirmed` is false when it already was (a second
+ * press). "used" means the code went to others, or to this person on another
+ * booking, after it was claimed; "invalid" covers a code switched off or
+ * expired since, and a booking that is not a pending $0 one. See
+ * confirm_free_booking.
+ */
+export async function confirmFreeBookingRow(admin: Admin, bookingId: string): Promise<FreeConfirmation> {
+  const { data, error } = await admin.rpc("confirm_free_booking", { p_booking: bookingId });
+  if (error) {
+    if (error.message.includes("discount_code_used")) return { ok: false, reason: "used" };
+    if (!error.message.includes("discount_code_invalid") && !error.message.includes("free_booking_invalid")) {
+      console.error(`confirmFreeBookingRow(${bookingId}): ${error.code} ${error.message}`);
+    }
+    return { ok: false, reason: "invalid" };
+  }
+  return { ok: true, confirmed: data === true };
 }
 
 /** Takes any code off a booking that is being re-priced without one. */

@@ -148,30 +148,39 @@ export type Database = {
       discount_codes: {
         Row: {
           active: boolean
-          amount: number
+          amount: number | null
           code: string
           created_at: string
           expires_at: string | null
           max_uses: number
           note: string | null
+          once_per_person: boolean
+          percent_off: number | null
+          tier_name: string | null
         }
         Insert: {
           active?: boolean
-          amount: number
+          amount?: number | null
           code: string
           created_at?: string
           expires_at?: string | null
           max_uses?: number
           note?: string | null
+          once_per_person?: boolean
+          percent_off?: number | null
+          tier_name?: string | null
         }
         Update: {
           active?: boolean
-          amount?: number
+          amount?: number | null
           code?: string
           created_at?: string
           expires_at?: string | null
           max_uses?: number
           note?: string | null
+          once_per_person?: boolean
+          percent_off?: number | null
+          tier_name?: string | null
         }
         Relationships: []
       }
@@ -634,9 +643,16 @@ export type Database = {
         }
         Returns: number
       }
+      confirm_free_booking: {
+        Args: {
+          p_booking: string
+        }
+        Returns: boolean
+      }
       discount_code_amount: {
         Args: {
           p_code: string
+          p_tier?: string
           p_user?: string
         }
         Returns: number | null
@@ -648,6 +664,21 @@ export type Database = {
           p_user?: string
         }
         Returns: number
+      }
+      discount_code_used_by: {
+        Args: {
+          p_code: string
+          p_exclude?: string
+          p_user: string
+        }
+        Returns: boolean
+      }
+      discount_code_value: {
+        Args: {
+          p_code: string
+          p_tier: string
+        }
+        Returns: number | null
       }
       discount_hold_lost: {
         Args: {

@@ -104,6 +104,9 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
 
   const settled = status === "succeeded";
   const paidInFull = booking.status === "paid_in_full";
+  // A code took the whole price off (confirmFreeBooking): confirmed with
+  // nothing paid, so none of the money lines below are about money.
+  const free = paidInFull && Number(booking.total_amount) === 0;
   // Chose to pay in full at booking: the checkout row is for the whole price.
   // Known before Stripe answers, so the pending copy can say "payment".
   const fullPlan =
@@ -173,7 +176,7 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
         <div className="flex items-start justify-between gap-8">
           <div className="min-w-0 flex-1">
             <p className="stamp-type text-[--text-muted]">
-              {settled ? (paidInFull ? "Paid in full" : "Deposit received") : "Payment pending"}
+              {settled ? (free ? "Confirmed" : paidInFull ? "Paid in full" : "Deposit received") : "Payment pending"}
             </p>
             <h1 className="t-title mt-5 max-w-[18ch] text-[--text]">
               {settled
@@ -187,7 +190,9 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
             </h1>
             <p className="mt-6 max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
               {settled
-                ? paidInFull
+                ? free
+                  ? `${trip ? `${formatDateRange(trip.start_date, trip.end_date)}. ` : ""}Your code covers the whole trip, your spot is yours, and nothing is owed. A confirmation is on its way to ${user.email}.`
+                  : paidInFull
                   ? `${trip ? `${formatDateRange(trip.start_date, trip.end_date)}. ` : ""}${formatAmount(paid)} is in, your spot is yours, and nothing more is owed. A confirmation is on its way to ${user.email}.`
                   : `${trip ? `${formatDateRange(trip.start_date, trip.end_date)}. ` : ""}Your ${formatAmount(depositAmount)} deposit is in and your spot is yours. A confirmation is on its way to ${user.email}.`
                 : "Your bank has the charge and we are waiting on the result. This page updates on refresh, and nothing is owed twice."}
@@ -240,7 +245,11 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
             className="mt-8 border-t border-[--rule] pt-6"
             items={[
               { label: settled ? "Paid" : "Being charged", value: formatAmount(settled ? paid : fullPlan ? total : depositAmount) },
-              { label: "Left to pay", value: formatAmount(balanceLeft), note: `of ${formatAmount(total)}` },
+              {
+                label: "Left to pay",
+                value: formatAmount(balanceLeft),
+                note: free ? "Covered by your code" : `of ${formatAmount(total)}`,
+              },
             ]}
           />
 
@@ -266,7 +275,9 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
             </div>
           ) : (
             <p className="mt-8 max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
-              {fullPlan
+              {free
+                ? "Nothing is scheduled and no card is on file. Your code covers the whole trip."
+                : fullPlan
                 ? "Nothing is scheduled. The trip is paid for, so no more charges are taken from your card."
                 : "Your payment schedule appears here once the deposit clears. It splits the balance into two dated payments before departure."}
             </p>

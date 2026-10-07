@@ -221,20 +221,25 @@ model TravelerDetails {
   @@map("traveler_details")
 }
 
-/// A fixed amount off one booking, for giveaway prizes and shared group codes
+/// An amount or a share off one booking, for giveaway prizes and shared group codes
 /// (discount_codes migration, lib/discount-codes.ts). Single use unless
 /// maxUses says otherwise. Added by the team in SQL; RLS on with no policies,
 /// so only the service role reads or writes it. CHECK: code is
 /// ^[A-Z0-9]{8,32}$, or ^[A-Z0-9]{3,32}$ when maxUses > 1
-/// (shared_discount_codes migration).
+/// (shared_discount_codes migration). Exactly one of amount and percentOff is
+/// set; tierName limits it to one package and oncePerPerson to one use per
+/// account (free_package_codes migration).
 model DiscountCode {
-  code      String    @id
-  amount    Decimal   @db.Decimal(10, 2)
-  maxUses   Int       @default(1) @map("max_uses")
-  note      String?
-  active    Boolean   @default(true)
-  expiresAt DateTime? @map("expires_at") @db.Timestamptz
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  code          String    @id
+  amount        Decimal?  @db.Decimal(10, 2)
+  percentOff    Int?      @map("percent_off") @db.SmallInt
+  tierName      String?   @map("tier_name")
+  oncePerPerson Boolean   @default(false) @map("once_per_person")
+  maxUses       Int       @default(1) @map("max_uses")
+  note          String?
+  active        Boolean   @default(true)
+  expiresAt     DateTime? @map("expires_at") @db.Timestamptz
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
   redemptions DiscountRedemption[]
   offeredTo   WaitlistSignup?

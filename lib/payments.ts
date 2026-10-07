@@ -387,6 +387,21 @@ async function settleCheckoutPayment(
   await sendEmailSafely(() => sendPenthouseFullEmailsFor(admin, bookingId));
 }
 
+/**
+ * What follows a booking its code paid for in full (confirmFreeBooking in
+ * app/(protected)/bookings/actions.ts). No money moves, so Stripe never sends
+ * an event for it and nothing above runs: this is the tail of
+ * settleCheckoutPayment without the payment. Safe to run more than once, for
+ * the same reasons as there: the confirmation is claimed per booking, and the
+ * owner's alert rides on that claim. `confirmedNow` is whether this caller
+ * moved the booking out of pending, as `booking` is there.
+ */
+export async function settleFreeBooking(admin: SupabaseClient<Database>, bookingId: string, confirmedNow: boolean) {
+  const confirmation = await sendConfirmationEmailOnce(admin, bookingId, { afterScheduling: confirmedNow });
+  if (confirmation === "designed" || confirmation === "plain") await sendEmailSafely(() => sendNewBookingAlert(admin, bookingId));
+  await sendEmailSafely(() => sendPenthouseFullEmailsFor(admin, bookingId));
+}
+
 /** Marks the automatic refunds settleStaleCheckout makes, so a redelivery can find them. */
 const STALE_CHECKOUT_REFUND_REASON = "stale_checkout";
 

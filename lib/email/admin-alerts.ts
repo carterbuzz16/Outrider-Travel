@@ -63,8 +63,14 @@ export function renderNewBookingAlert(booking: NewBookingAlertBooking): Rendered
   const paidCents = booking.payments
     .filter((p) => p.status === "succeeded")
     .reduce((sum, p) => sum + toCents(Number(p.amount)), 0);
-  // At the first payment, paid_in_full can only mean the pay-in-full plan.
-  const plan = booking.status === "paid_in_full" ? "paid in full" : "deposit";
+  // At the first payment, paid_in_full can only mean the pay-in-full plan, or
+  // a code that took the whole price off (lib/discount-codes.ts).
+  const plan =
+    Number(booking.total_amount) === 0
+      ? "free with a code"
+      : booking.status === "paid_in_full"
+        ? "paid in full"
+        : "deposit";
   const amount = formatAmount(paidCents / 100);
   const confirmation = confirmationNumber(booking.id);
   const url = `${getAppUrl()}/admin/bookings/${booking.id}`;

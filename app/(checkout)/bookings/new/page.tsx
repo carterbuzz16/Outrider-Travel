@@ -98,25 +98,15 @@ export default async function NewBookingPage(props: {
   const linkCode = normalizeDiscountCode(searchParams.code);
   const cookieCode = searchParams.code === undefined ? await offerCodeFromCookie() : null;
   const discountCode = linkCode ?? cookieCode;
-  let discount: Discount | null = null;
-  if (
-    discountCode &&
-    (cookieCode || (await checkRateLimit(`discount-check:${await clientIp()}`, 30, 60 * 60)))
-  ) {
-    // Checked for signed-out visitors too, now that they can see prices here.
-    // The user id only matters for someone with an abandoned checkout of
-    // their own (see discount_code_uses).
-    const amount = await discountCodeAmount(createAdminClient(), discountCode, user?.id);
-    if (amount !== null) discount = { code: discountCode, amount };
-  }
-  const discountRejected = Boolean(linkCode) && discount === null;
+  const codeChecked =
+    discountCode !== null &&
+    Boolean(cookieCode || (await checkRateLimit(`discount-check:${await clientIp()}`, 30, 60 * 60)));
 
   // Not on sale yet: nothing to choose, so no packages and no trip lookups.
   // createBooking refuses too, and sends anyone who posts anyway back here.
   // The list is the exception during its head start, and so is anyone holding
-  // a live discount code (lib/early-access.ts). The code was checked above, so
-  // it is not looked up a second time here.
-  if (!discount && !(await bookingsOpenForViewer())) {
+  // a live discount code (lib/early-access.ts), which is only looked up then.
+  if (!(await bookingsOpenForViewer(codeChecked ? discountCode : null, user?.id))) {
     return (
       <main>
         <div className="shell max-w-[76rem] pb-20 pt-8 md:pb-28 md:pt-12">
@@ -131,6 +121,25 @@ export default async function NewBookingPage(props: {
   const trips: PublicTrip[] = requested ? [requested] : await getPublishedTrips();
   const requestMissed = Boolean(requestedId) && requested === null;
   const trip = trips.length === 1 ? trips[0] : null;
+
+  // What the code takes off each package of this trip, since a code can be for
+  // one package only, or take a share of the price (lib/discount-codes.ts).
+  // Checked for signed-out visitors too, now that they can see prices here.
+  // The user id matters for someone with an abandoned checkout of their own
+  // (see discount_code_uses), and for a code they may use only once.
+  let discount: Discount | null = null;
+  if (trip && discountCode && codeChecked) {
+    const admin = createAdminClient();
+    const amounts: Record<string, number> = {};
+    await Promise.all(
+      trip.tiers.map(async (tier) => {
+        const amount = await discountCodeAmount(admin, discountCode, user?.id, tier.id);
+        if (amount !== null) amounts[tier.id] = amount;
+      }),
+    );
+    if (Object.keys(amounts).length > 0) discount = { code: discountCode, amounts };
+  }
+  const discountRejected = Boolean(linkCode) && discount === null;
 
   // ?group=CODE, from a friend's invite link or the JoinGroup form. Checked on
   // the server against the penthouse claims; the page only ever learns which
@@ -278,8 +287,8 @@ function TripHeader({ trip, showAll }: { trip: PublicTrip; showAll: boolean }) {
 
 /* -- the packages ------------------------------------------------------------ */
 
-/** A discount code that checked out, and what it takes off. */
-type Discount = { code: string; amount: number };
+/** A discount code that checked out, and what it takes off each package it works on, by tier id. */
+type Discount = { code: string; amounts: Record<string, number> };
 
 function Packages({
   trip,
@@ -308,14 +317,20 @@ function Packages({
   // The credit and a code do not combine: the bigger one comes off, the code
   // on a tie (creditOrCode, as createBooking decides it). Only that one is in
   // the figures below; the other is named in the order panel as set aside.
-  const applied = creditOrCode(discount?.amount ?? 0, credit?.amount ?? 0);
-  const off = applied.code + applied.credit;
+  // Decided per package for the figures, since a code can be worth a
+  // different amount on each, or nothing. The set-aside note is one line for
+  // the page, decided on the code's best package; for a code worth the same
+  // everywhere, which every code but a one-package one is, that is the same.
+  const bestCode = discount ? Math.max(...Object.values(discount.amounts)) : 0;
+  const applied = creditOrCode(bestCode, credit?.amount ?? 0);
   const tiers: CheckoutTier[] = trip.tiers.map((tier) => {
     // A penthouse another group holds is taken, unless the code in the link is
     // that group's. Then it is theirs to join, capacity permitting.
     const taken = tier.claimed && !unlocked.includes(tier.id);
     const soldOut = taken || (tier.spotsLeft !== null && tier.spotsLeft <= 0);
     const room = getRoomMedia(tier.name);
+    const here = creditOrCode(discount?.amounts[tier.id] ?? 0, credit?.amount ?? 0);
+    const off = here.code + here.credit;
     // The code and the credit come off after the pay-in-full saving, as in
     // createBooking, so these are exactly the figures the card will be charged.
     const price = applyDiscount(tier.price, off);
@@ -340,6 +355,9 @@ function Packages({
       fullLabel: formatAmount(full),
       balanceLabel: formatAmount(Math.round((price - deposit) * 100) / 100),
       savingLabel: saving > 0 ? formatAmount(saving) : null,
+      codeLabel: here.code > 0 ? formatAmount(here.code) : null,
+      // Nothing to pay on either plan: createBooking makes no card form.
+      free: here.code > 0 && price === 0,
     };
   });
 
@@ -382,7 +400,7 @@ function Packages({
       installmentOffsets={INSTALLMENT_OFFSETS_DAYS}
       contactEmail={CONTACT.email}
       initialGroupCode={groupCode}
-      discount={discount && applied.code > 0 ? { code: discount.code, label: formatAmount(discount.amount) } : null}
+      discount={discount && applied.code > 0 ? { code: discount.code } : null}
       rejectedCode={rejectedCode}
       signedIn={signedIn}
       credit={credit && applied.credit > 0 ? { label: formatAmount(credit.amount), expiresAt: credit.expiresAt } : null}
@@ -398,7 +416,7 @@ function Packages({
       // money that never comes off. Nor once new accounts no longer get it
       // (WELCOME_CREDIT_ENDS).
       creditOffer={
-        signedIn || !welcomeCreditOpen() || (discount && discount.amount >= WELCOME_CREDIT)
+        signedIn || !welcomeCreditOpen() || bestCode >= WELCOME_CREDIT
           ? null
           : formatAmount(WELCOME_CREDIT)
       }

@@ -18,6 +18,7 @@ import { formatDay } from "@/app/(protected)/dates";
 import { formatDateRange, formatPrice } from "@/lib/trips";
 import { tierDisplayName } from "@/lib/tier-display";
 import CheckoutForm from "@/components/CheckoutForm";
+import ConfirmFreeBookingForm from "@/components/ConfirmFreeBookingForm";
 import CheckoutSteps from "@/components/CheckoutSteps";
 import { TravelInsuranceNote } from "@/components/TravelInsurance";
 import { PENTHOUSE_DISCLAIMER } from "@/lib/penthouse";
@@ -75,6 +76,17 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
     .maybeSingle();
   if (!identity) {
     redirect(`/bookings/${booking.id}/details`);
+  }
+
+  // A booking its code pays for in full has no card form (createBooking), so
+  // none of the Stripe reads below apply. The same stale-checkout release as
+  // a paid one, then the terms and a button.
+  if (Number(booking.total_amount) === 0) {
+    if (isStalePending(booking)) {
+      const stale = await recheckStaleCheckout(createAdminClient(), booking.id);
+      if (!stale.ok) redirect(chooseAgainPath(stale.tripId, staleCheckoutCode(stale.reason)));
+    }
+    return <FreeBooking booking={booking} />;
   }
 
   // The checkout row: the one with no scheduled date. Read by shape rather
@@ -356,6 +368,135 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
 }
 
 const LINK = "text-[--accent] underline underline-offset-2";
+
+type FreeBookingRow = {
+  id: string;
+  total_amount: number;
+  trips: { name: string; start_date: string; end_date: string } | null;
+  tiers: { name: string; price: number } | null;
+};
+
+/**
+ * Step 3 for a booking its code pays for in full (ELLISCOMPUSC and the like,
+ * lib/discount-codes.ts): the same two columns as a paid checkout, with the
+ * order showing the code taking the whole price off, and in place of the card
+ * the one box and a button (components/ConfirmFreeBookingForm). There is no
+ * deposit, so none of the refund and insurance notes that hang off one.
+ */
+async function FreeBooking({ booking }: { booking: FreeBookingRow }) {
+  const trip = booking.trips;
+  const tierName = booking.tiers ? tierDisplayName(booking.tiers.name) : "Your package";
+  const room = booking.tiers ? getRoomMedia(booking.tiers.name) : null;
+  const photo = room?.photos[0] ?? null;
+  // Admin client: the table is service-role only, and the booking was read
+  // through the traveler's own session, so it is theirs.
+  const { data: redemption } = await createAdminClient()
+    .from("discount_redemptions")
+    .select("code, amount")
+    .eq("booking_id", booking.id)
+    .maybeSingle();
+
+  return (
+    <main>
+      <div className="shell max-w-[76rem] pb-20 pt-8 md:pb-28 md:pt-12">
+        <CheckoutSteps current={3} />
+
+        <header className="mt-8 border-b border-[--rule] pb-6 md:mt-10">
+          <h1 className="t-heading text-[--text]">Confirm your place</h1>
+          <p className="mt-2 max-w-measure font-body text-body leading-[1.65] text-[--text-secondary]">
+            {redemption ? (
+              <>
+                Your code <span className="text-[--text]">{redemption.code}</span> covers
+              </>
+            ) : (
+              "Your code covers"
+            )}{" "}
+            the whole trip, deposit included. There&rsquo;s nothing to pay and no card to add. Your place is held for
+            30 minutes while you confirm.
+          </p>
+        </header>
+
+        <div className="mt-8 grid items-start gap-10 md:mt-10 lg:grid-cols-[minmax(0,1fr)_23rem] lg:gap-12 xl:gap-16">
+          <aside
+            aria-labelledby="order-heading"
+            className="border border-[--rule] bg-[--surface-raised] lg:sticky lg:top-8 lg:order-2"
+          >
+            <h2 id="order-heading" className="sr-only">
+              Your order
+            </h2>
+
+            <div className="flex gap-4 border-b border-[--rule] p-5 sm:p-6">
+              {room && (
+                <div className="w-28 shrink-0 sm:w-32">
+                  {photo ? (
+                    <div className="relative aspect-[3/2] overflow-hidden bg-[--surface-inset]">
+                      <Image src={photo.src} alt={photo.alt} fill sizes="8rem" className="object-cover" />
+                    </div>
+                  ) : (
+                    <RoomPanel room={room} size="thumb" />
+                  )}
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="font-display text-display-s font-medium tracking-title text-[--text]">{tierName}</p>
+                {room && (
+                  <p className="mt-0.5 font-body text-body-s leading-[1.5] text-[--text-secondary]">{room.summary}</p>
+                )}
+              </div>
+            </div>
+
+            {trip && (
+              <dl className="m-0 flex flex-col gap-2.5 border-b border-[--rule] p-5 font-body text-body-s sm:p-6">
+                <Line label="Trip" value={trip.name} />
+                <Line label="Dates" value={formatDateRange(trip.start_date, trip.end_date)} />
+              </dl>
+            )}
+
+            <div className="p-5 sm:p-6">
+              <dl className="m-0 flex flex-col gap-2.5 font-body text-body-s">
+                {booking.tiers && <Line label="Trip price" value={formatAmount(Number(booking.tiers.price))} />}
+                {redemption && <Line label={`Code ${redemption.code}`} value={`−${formatAmount(Number(redemption.amount))}`} />}
+                <div className="mt-2 flex items-baseline justify-between gap-4 border-t border-[--rule-strong] pt-4">
+                  <dt className="font-body text-body font-medium text-[--text]">Due today</dt>
+                  <dd className="m-0 font-display text-display-s font-medium tabular-nums tracking-title text-[--text]">
+                    {formatAmount(Number(booking.total_amount))}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          </aside>
+
+          <section aria-label="Confirm" className="min-w-0 lg:order-1">
+            <ConfirmFreeBookingForm bookingId={booking.id} />
+
+            <div className="mt-10 flex flex-col gap-3 border-t border-[--rule] pt-6 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap gap-x-6">
+                <Link
+                  href={`/bookings/${booking.id}/details`}
+                  className="inline-flex min-h-11 items-center font-body text-body-s text-[--text-secondary] underline underline-offset-4 hover:text-[--text]"
+                >
+                  Change your details
+                </Link>
+                <Link
+                  href="/bookings"
+                  className="inline-flex min-h-11 items-center font-body text-body-s text-[--text-secondary] underline underline-offset-4 hover:text-[--text]"
+                >
+                  Back to your bookings
+                </Link>
+              </div>
+              <p className="font-body text-body-s text-[--text-secondary]">
+                Questions?{" "}
+                <a href={`mailto:${CONTACT.email}`} className={LINK}>
+                  {CONTACT.email}
+                </a>
+              </p>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  );
+}
 
 function Line({ label, value }: { label: string; value: string }) {
   return (

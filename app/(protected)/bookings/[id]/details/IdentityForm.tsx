@@ -29,6 +29,7 @@ export default function IdentityForm({
   defaultName,
   saved,
   payHref,
+  continueLabel = "Continue to payment",
   className,
 }: {
   bookingId: string;
@@ -38,6 +39,8 @@ export default function IdentityForm({
   saved: boolean;
   /** The payment step, for a traveler who already sent this and came back. */
   payHref: string;
+  /** The button on to that step. Not "payment" when a code leaves nothing to pay. */
+  continueLabel?: string;
   className?: string;
 }) {
   const [state, formAction, pending] = useActionState(saveIdentityDetails, null);
@@ -66,7 +69,7 @@ export default function IdentityForm({
         </p>
         <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
           <Button href={payHref} variant="primary" size="md">
-            Continue to payment
+            {continueLabel}
           </Button>
           <Button type="button" variant="ghost" size="sm" className="min-h-11" onClick={() => setEditing(true)}>
             Change something
@@ -148,7 +151,7 @@ export default function IdentityForm({
 
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <Button type="submit" variant="primary" size="md" disabled={pending} aria-busy={pending}>
-            {pending ? "Saving" : "Continue to payment"}
+            {pending ? "Saving" : continueLabel}
           </Button>
           {editing && (
             <Button

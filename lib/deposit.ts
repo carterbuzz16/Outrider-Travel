@@ -27,8 +27,9 @@ export function computePayInFullAmount(price: number): number {
 }
 
 // A price with a discount code's amount off (lib/discount-codes.ts), after any
-// pay-in-full saving. Never below zero; createBooking refuses a charge Stripe
-// cannot take, so a code worth the whole trip is a data-entry slip, not free.
+// pay-in-full saving. Never below zero. At zero, createBooking makes the
+// booking without a card (a comp code such as ELLISCOMPUSC); anything between
+// zero and Stripe's 50 cents it refuses.
 export function applyDiscount(price: number, discount: number): number {
   return Math.max(0, Math.round((price - Math.max(0, discount)) * 100) / 100);
 }

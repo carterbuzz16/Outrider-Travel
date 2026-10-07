@@ -86,6 +86,10 @@ export type CheckoutTier = {
   balanceLabel: string;
   /** What paying in full saves, or null when there is no discount. */
   savingLabel: string | null;
+  /** What the discount code takes off this package, or null when it does not come off here. */
+  codeLabel: string | null;
+  /** The code takes the whole price off, deposit included: nothing to pay, and no card. */
+  free: boolean;
 };
 
 type Plan = "deposit" | "full";
@@ -119,8 +123,12 @@ export default function BookingForm({
   contactEmail: string;
   /** From a friend's invite link (?group=), already checked by the page. Opens the code box, filled in. */
   initialGroupCode?: string;
-  /** A discount code the page checked (?code=). The tier figures already have it off. */
-  discount?: { code: string; label: string } | null;
+  /**
+   * A discount code the page checked (?code=). The tier figures already have
+   * it off, and each tier's codeLabel says how much: a code can be for one
+   * package only, or worth a share of each.
+   */
+  discount?: { code: string } | null;
   /** A ?code= that did not check out: shown in its box with a line saying so. */
   rejectedCode?: string | null;
   /** A session with a confirmed email. Without one, Continue asks for an email and a code first. */
@@ -144,6 +152,9 @@ export default function BookingForm({
   const packagesLegend = useId();
   const planLegend = useId();
   const dueToday = plan === "full" ? selected.fullLabel : selected.depositLabel;
+  const continueLabel = selected.free ? "Continue, nothing due today" : `Continue, ${dueToday} due today`;
+  // The packages the code works on, for saying so beside one it does not.
+  const codePackages = tiers.filter((t) => t.codeLabel).map((t) => tierDisplayName(t.name));
   const installments = installmentOffsets.length === 2 ? "two" : String(installmentOffsets.length);
   // "70 and 40", or "90, 60 and 30" if the schedule ever grows a third.
   const installmentDays =
@@ -264,7 +275,21 @@ export default function BookingForm({
           )}
         </div>
 
-        <fieldset className="m-0 min-w-0 border-0 border-b border-[--rule] p-5 sm:p-6" aria-labelledby={planLegend}>
+        {selected.free && (
+          <div className="border-b border-[--rule] p-5 sm:p-6">
+            <p className="t-micro text-[--text-secondary]">How you pay</p>
+            <p className="mt-3 font-body text-body-s leading-[1.55] text-[--text]">
+              Nothing. Your code covers the whole trip, deposit included, so there&rsquo;s no card to add.
+            </p>
+          </div>
+        )}
+        {/* Hidden rather than left out on a package the code covers: there is
+            nothing to choose (both plans come to $0), and kept mounted, the
+            radios still match `plan` when another package is picked again. */}
+        <fieldset
+          className={cn("m-0 min-w-0 border-0 border-b border-[--rule] p-5 sm:p-6", selected.free && "hidden")}
+          aria-labelledby={planLegend}
+        >
           <legend id={planLegend} className="t-micro float-left w-full p-0 text-[--text-secondary]">
             How you pay
           </legend>
@@ -327,11 +352,15 @@ export default function BookingForm({
             <Field
               label="Discount code"
               hint={
-                discount
-                  ? `${discount.code} takes ${discount.label} off. It's in the prices above.`
-                  : codeSetAside
-                    ? `${codeSetAside} doesn't combine with your account credit, and the credit is worth more, so the credit comes off instead.`
-                    : undefined
+                codeSetAside
+                  ? `${codeSetAside} doesn't combine with your account credit, and the credit is worth more, so the credit comes off instead.`
+                  : discount && selected.free
+                    ? `${discount.code} covers ${tierDisplayName(selected.name)} in full, deposit included.`
+                    : discount && selected.codeLabel
+                      ? `${discount.code} takes ${selected.codeLabel} off. It's in the prices above.`
+                      : discount
+                        ? `${discount.code} works on ${codePackages.join(" and ")} only. Choose it above to use the code.`
+                        : undefined
               }
               error={rejectedCode ? "That code didn't work. It may be mistyped or already used." : undefined}
             >
@@ -373,7 +402,9 @@ export default function BookingForm({
         <div ref={panelRef} className="p-5 sm:p-6">
           <dl className="m-0 flex flex-col gap-2.5 font-body text-body-s">
             <Line label="Trip price" value={selected.priceLabel} />
-            {discount && <Line label={`Code ${discount.code}`} value={`−${discount.label}`} />}
+            {discount && selected.codeLabel && (
+              <Line label={`Code ${discount.code}`} value={`−${selected.codeLabel}`} />
+            )}
             {setAside?.kind === "credit" && (
               <p className="m-0 text-body-s leading-[1.5] text-[--text-secondary]">
                 Your {setAside.label} account credit doesn&rsquo;t combine with codes, so the code comes off
@@ -389,10 +420,10 @@ export default function BookingForm({
                 </p>
               </div>
             )}
-            {plan === "full" && selected.savingLabel && (
+            {!selected.free && plan === "full" && selected.savingLabel && (
               <Line label="Paying in full" value={`−${selected.savingLabel}`} />
             )}
-            {plan === "deposit" && <Line label="Paid later" value={selected.balanceLabel} />}
+            {!selected.free && plan === "deposit" && <Line label="Paid later" value={selected.balanceLabel} />}
             <div className="mt-2 flex items-baseline justify-between gap-4 border-t border-[--rule-strong] pt-4">
               <dt className="font-body text-body font-medium text-[--text]">Due today</dt>
               <dd className="m-0 font-display text-display-s font-medium tabular-nums tracking-title text-[--text]">
@@ -420,7 +451,7 @@ export default function BookingForm({
                 askName
                 offerList
                 autoFocus
-                continueLabel={`Continue, ${dueToday} due today`}
+                continueLabel={continueLabel}
                 busyLabel="Holding your spot"
                 onSignedIn={() => {
                   setAuthed(true);
@@ -439,22 +470,28 @@ export default function BookingForm({
               className="mt-6 !whitespace-normal text-center !leading-[1.35]"
               disabled={selected.soldOut}
             >
-              Continue, {dueToday} due today
+              {continueLabel}
             </PendingSubmitButton>
           )}
 
           <ul className="m-0 mt-5 flex list-none flex-col gap-2 p-0 font-body text-body-s leading-[1.5] text-[--text-secondary]">
             <li className="flex items-start gap-2.5">
               <LockGlyph />
-              <span>Next, who&rsquo;s going. Then your card, which Stripe handles.</span>
+              <span>
+                {selected.free
+                  ? "Next, who\u2019s going. Then you confirm, with no card needed."
+                  : "Next, who\u2019s going. Then your card, which Stripe handles."}
+              </span>
             </li>
-            <li className="pl-[1.375rem]">
-              Deposits aren&rsquo;t refundable. Here are the{" "}
-              <Link href="/terms#cancellation" target="_blank" rel="noreferrer" className={LINK}>
-                cancellation terms
-              </Link>
-              .
-            </li>
+            {!selected.free && (
+              <li className="pl-[1.375rem]">
+                Deposits aren&rsquo;t refundable. Here are the{" "}
+                <Link href="/terms#cancellation" target="_blank" rel="noreferrer" className={LINK}>
+                  cancellation terms
+                </Link>
+                .
+              </li>
+            )}
             <li className="pl-[1.375rem]">
               Questions?{" "}
               <a href={`mailto:${contactEmail}`} className={LINK}>
@@ -599,6 +636,9 @@ function PackageCard({
                   {tier.soldOut ? "Sold out" : tier.availability}
                 </span>
               )
+            )}
+            {tier.free && !tier.soldOut && (
+              <span className="t-micro mt-3 text-[--accent]">Covered by your code</span>
             )}
             {tier.terms && !tier.taken && (
               <span className="mt-3 border-l-2 border-[--rule-strong] pl-3 font-body text-body-s leading-[1.55] text-[--text-secondary]">

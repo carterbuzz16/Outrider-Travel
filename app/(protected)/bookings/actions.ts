@@ -7,6 +7,7 @@ import { getStripe } from "@/lib/stripe";
 import { applyDiscount, computeDepositAmount, computePayInFullAmount } from "@/lib/deposit";
 import {
   claimDiscountCode,
+  confirmFreeBookingRow,
   discountCodeAmount,
   dropDiscountCode,
   normalizeDiscountCode,
@@ -21,7 +22,7 @@ import {
 } from "@/lib/balance";
 import type Stripe from "stripe";
 import { installmentInFlight } from "@/lib/installments";
-import { paymentKindOf } from "@/lib/payments";
+import { paymentKindOf, settleFreeBooking } from "@/lib/payments";
 import { syncPaymentFromStripe } from "@/lib/stripe-sync";
 import { getOrCreateStripeCustomerId } from "@/lib/customers";
 import { checkRateLimit, FAIL_CLOSED } from "@/lib/rate-limit";
@@ -196,7 +197,9 @@ export async function createBooking(formData: FormData) {
     ) {
       checkoutError("rate_limited", noCode);
     }
-    const amount = await discountCodeAmount(admin, discountCode, user.id);
+    // For this package: a code can be for one package only, or take a share
+    // of its price (lib/discount-codes.ts).
+    const amount = await discountCodeAmount(admin, discountCode, user.id, tier.id);
     if (amount === null) {
       checkoutError("discount_code_invalid", noCode);
     }
@@ -225,10 +228,17 @@ export async function createBooking(formData: FormData) {
   const chargeAmount = plan === "full" ? totalAmount : depositAmount;
   const chargeCents = Math.round(chargeAmount * 100);
 
-  // Stripe will not take less than 50 cents. Only reachable with a tier priced
-  // at or under the pay-in-full discount, which is a data-entry slip, not a
-  // free trip.
-  if (chargeCents < 50) {
+  // A code that takes the whole price off, deposit and all (ELLISCOMPUSC):
+  // nothing for Stripe to take, so no Stripe customer and no card form. The
+  // booking is made and the code claimed as for any other, and the payment
+  // step confirms it with the terms alone (confirmFreeBooking). Only a code
+  // can do this; the credit is never worth a whole trip.
+  const free = totalAmount === 0 && claimCode !== null;
+
+  // Stripe will not take less than 50 cents. Otherwise only reachable with a
+  // tier priced at or under the pay-in-full discount, which is a data-entry
+  // slip, not a free trip.
+  if (!free && chargeCents < 50) {
     checkoutError("not_payable_online", back);
   }
 
@@ -336,12 +346,14 @@ export async function createBooking(formData: FormData) {
   // setup_future_usage (below) attaches the payment method used here to this
   // Customer on success, so the installment cron can charge it off-session
   // later.
-  let stripeCustomerId: string;
-  try {
-    stripeCustomerId = await getOrCreateStripeCustomerId(admin, { id: user.id, email: user.email! });
-  } catch (err) {
-    console.error(`createBooking: no Stripe customer for user ${user.id}: ${err instanceof Error ? err.message : err}`);
-    checkoutError("checkout_failed", back);
+  let stripeCustomerId = "";
+  if (!free) {
+    try {
+      stripeCustomerId = await getOrCreateStripeCustomerId(admin, { id: user.id, email: user.email! });
+    } catch (err) {
+      console.error(`createBooking: no Stripe customer for user ${user.id}: ${err instanceof Error ? err.message : err}`);
+      checkoutError("checkout_failed", back);
+    }
   }
 
   let bookingId: string;
@@ -408,7 +420,8 @@ export async function createBooking(formData: FormData) {
     const twin = await earlierTwin(admin, { userId: user.id, tierId, bookingId: booking.id });
     if (twin) {
       await admin.from("bookings").delete().eq("id", booking.id).eq("status", "pending");
-      redirect((await waitForCheckoutRow(admin, twin)) ? `/bookings/${twin}/pay` : "/bookings");
+      // A free twin never gets a card form to wait for.
+      redirect(free || (await waitForCheckoutRow(admin, twin)) ? `/bookings/${twin}/pay` : "/bookings");
     }
     bookingId = booking.id;
   }
@@ -432,6 +445,13 @@ export async function createBooking(formData: FormData) {
     }
   } else if (carried) {
     await dropDiscountCode(admin, bookingId);
+  }
+
+  // Nothing to charge: straight to the payment step, which asks for the terms
+  // and confirms the booking (see `free` above). A carried booking's old card
+  // form was cancelled above, so it cannot be paid as well.
+  if (free) {
+    redirect(`/bookings/${bookingId}/pay`);
   }
 
   /*
@@ -606,6 +626,53 @@ export async function acceptTermsForBooking(bookingId: string): Promise<AcceptTe
       message: "We couldn't record your agreement, so nothing was charged. Please try again.",
     };
   }
+}
+
+/**
+ * Confirms a booking its code pays for in full (see `free` in createBooking),
+ * from the one box on its payment step. There is no card, so this is the
+ * whole of what CheckoutForm and the webhook do between them for a paid one:
+ * the agreement first (acceptTermsForBooking, which also proves the booking is
+ * the traveler's, still pending, inside or rechecked past its hold, and has a
+ * traveler named on it), then the booking moved to paid_in_full under the
+ * code's lock, then the confirmation email.
+ *
+ * If the code has gone in the meantime (its other use taken while this
+ * checkout sat past its hold, or switched off), the checkout is let go and
+ * the traveler sent to choose again, as a stale one is.
+ */
+export async function confirmFreeBooking(bookingId: string): Promise<AcceptTermsResult> {
+  const accepted = await acceptTermsForBooking(bookingId);
+  if (!accepted.ok) return accepted;
+
+  const admin = createAdminClient();
+  const result = await confirmFreeBookingRow(admin, bookingId);
+  if (!result.ok) {
+    const { data: booking } = await admin
+      .from("bookings")
+      .select("trip_id, total_amount")
+      .eq("id", bookingId)
+      .maybeSingle();
+    // Not a $0 booking at all (a form posted at a priced one): its card form
+    // is still good, so nothing is let go.
+    if (!booking || Number(booking.total_amount) !== 0) {
+      return { ok: false, message: "This booking has a price to pay. Reload the page." };
+    }
+    await releasePendingCheckout(admin, bookingId);
+    return {
+      ok: false,
+      message:
+        result.reason === "used"
+          ? "That code has been used up since you started, so this booking couldn't be confirmed. Nothing was charged."
+          : "That code no longer works, so this booking couldn't be confirmed. Nothing was charged.",
+      href: chooseAgainPath(booking.trip_id),
+    };
+  }
+
+  // A send that fails here is retried by the daily post-booking sweep, as a
+  // paid booking's is; the claim keeps it to one email either way.
+  await settleFreeBooking(admin, bookingId, result.confirmed);
+  return { ok: true };
 }
 
 /*

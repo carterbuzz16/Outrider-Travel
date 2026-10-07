@@ -35,7 +35,7 @@ export default async function DetailsPage(props: { params: Promise<{ id: string 
   // RLS ("Users can view own bookings") scopes this to the signed-in user.
   const { data: booking } = await supabase
     .from("bookings")
-    .select("id, status, created_at, trips(name, start_date, end_date), tiers(name)")
+    .select("id, status, created_at, total_amount, trips(name, start_date, end_date), tiers(name)")
     .eq("id", params.id)
     .single();
 
@@ -91,6 +91,8 @@ export default async function DetailsPage(props: { params: Promise<{ id: string 
           defaultName={typeof user.user_metadata?.name === "string" ? user.user_metadata.name : null}
           saved={Boolean(saved)}
           payHref={payHref}
+          // A code that covers the whole trip: the next step is a button, not a card.
+          continueLabel={Number(booking.total_amount) === 0 ? "Continue" : undefined}
         />
 
         <div className="mt-10 border-t border-[--rule] pt-6">
