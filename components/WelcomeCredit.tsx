@@ -369,7 +369,6 @@ function OfferSheet({
               autoComplete="email"
               autoCapitalize="none"
               spellCheck={false}
-              placeholder="you@college.edu"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);

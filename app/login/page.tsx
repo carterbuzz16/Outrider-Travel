@@ -142,7 +142,6 @@ export default function LoginPage(
                 type="email"
                 required
                 autoComplete="email"
-                placeholder="you@college.edu"
               />
             )}
           </Field>

@@ -84,7 +84,6 @@ export default function ForgotPasswordPage(
                     type="email"
                     required
                     autoComplete="email"
-                    placeholder="you@college.edu"
                   />
                 )}
               </Field>
