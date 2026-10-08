@@ -382,7 +382,7 @@ export default async function TripDetailPage(props: {
                   ? COMING_SOON_NOTE
                   : soldOut
                     ? "Tell us you want in, and you'll hear first when the next trip opens."
-                    : `Hold your spot for ${formatAmount(computeDepositAmount(trip.priceFrom))} and pay the rest in two installments${
+                    : `Hold your spot for ${formatAmount(computeDepositAmount(trip.priceFrom))} and pay the rest 37 days before the trip${
                         PAY_IN_FULL_DISCOUNT > 0 ? `, or pay it all now and take $${PAY_IN_FULL_DISCOUNT} off` : ""
                       }. Each of you books your own.`}
               </p>

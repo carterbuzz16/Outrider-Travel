@@ -42,7 +42,7 @@ export default async function EmailsPage() {
         lede={
           <>
             Every email the site sends, when it goes and who gets it, previewed with a sample booking: Jordan Taylor,
-            Telluride, December 14 to 18, 2026, Two to a Room, a $229.90 deposit and two installments. Test sends go
+            Telluride, December 14 to 18, 2026, Two to a Room, a $229.90 deposit and the $2,069.10 balance due Nov 7. Test sends go
             only to you{user?.email ? <> ({user.email})</> : null}, with [TEST] in the subject, and touch no bookings.
           </>
         }

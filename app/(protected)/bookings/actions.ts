@@ -184,6 +184,11 @@ export async function createBooking(formData: FormData) {
   }
 
   let discount = 0;
+  // A code that checks out but takes nothing off: its discount has ended
+  // (discount_ends_at, lib/discount-codes.ts). It is still claimed below, at
+  // $0, because the claim is what credits the booking to the ambassador whose
+  // code it is.
+  let creditsOnly = false;
   if (discountCode) {
     // Codes are checked per IP on the booking page; this caps guessing through
     // the action itself, where each account would otherwise get its own tries.
@@ -204,6 +209,7 @@ export async function createBooking(formData: FormData) {
       checkoutError("discount_code_invalid", noCode);
     }
     discount = amount;
+    creditsOnly = amount === 0;
   }
 
   /*
@@ -220,7 +226,7 @@ export async function createBooking(formData: FormData) {
   const applied = creditOrCode(discount, (await welcomeCreditFor(admin, user))?.amount ?? 0);
   const credit = applied.credit;
   discount = applied.code;
-  const claimCode = discount > 0 ? discountCode : null;
+  const claimCode = discount > 0 || creditsOnly ? discountCode : null;
 
   const listTotal = plan === "full" ? computePayInFullAmount(tier.price) : tier.price;
   const totalAmount = applyDiscount(listTotal, discount + credit);

@@ -102,7 +102,7 @@ export default function BookingForm({
   tiers,
   initialTierId,
   depositPercent,
-  installmentOffsets,
+  balanceWhen,
   contactEmail,
   initialGroupCode,
   discount = null,
@@ -117,9 +117,12 @@ export default function BookingForm({
   /** Selected on arrival: the package named in the link, or the first open one. */
   initialTierId: string;
   depositPercent: number;
-  /** How many scheduled payments the balance is split into. */
-  /** INSTALLMENT_OFFSETS_DAYS, passed down: lib/installments.ts is server-only. */
-  installmentOffsets: number[];
+  /**
+   * When the balance comes off the card on the deposit plan ("on Nov 7,
+   * 2026", with the reason when the trip is inside the balance window).
+   * Worked out on the server because lib/installments.ts is server-only.
+   */
+  balanceWhen: string;
   contactEmail: string;
   /** From a friend's invite link (?group=), already checked by the page. Opens the code box, filled in. */
   initialGroupCode?: string;
@@ -128,7 +131,7 @@ export default function BookingForm({
    * it off, and each tier's codeLabel says how much: a code can be for one
    * package only, or worth a share of each.
    */
-  discount?: { code: string } | null;
+  discount?: { code: string; ended?: boolean } | null;
   /** A ?code= that did not check out: shown in its box with a line saying so. */
   rejectedCode?: string | null;
   /** A session with a confirmed email. Without one, Continue asks for an email and a code first. */
@@ -155,12 +158,6 @@ export default function BookingForm({
   const continueLabel = selected.free ? "Continue, nothing due today" : `Continue, ${dueToday} due today`;
   // The packages the code works on, for saying so beside one it does not.
   const codePackages = tiers.filter((t) => t.codeLabel).map((t) => tierDisplayName(t.name));
-  const installments = installmentOffsets.length === 2 ? "two" : String(installmentOffsets.length);
-  // "70 and 40", or "90, 60 and 30" if the schedule ever grows a third.
-  const installmentDays =
-    installmentOffsets.length > 1
-      ? `${installmentOffsets.slice(0, -1).join(", ")} and ${installmentOffsets[installmentOffsets.length - 1]}`
-      : String(installmentOffsets[0]);
   const groups = [...new Set(tiers.map((t) => t.group).filter((g): g is string => Boolean(g)))];
 
   // The account step (see the note at the top). `authed` starts from the
@@ -300,7 +297,7 @@ export default function BookingForm({
               onSelect={() => setPlan("deposit")}
               title={`${depositPercent}% deposit today`}
               amount={selected.depositLabel}
-              detail={`The other ${selected.balanceLabel} in ${installments} payments, charged to your card ${installmentDays} days before the trip.`}
+              detail={`The other ${selected.balanceLabel} comes off your card ${balanceWhen}.`}
             />
             <PlanOption
               value="full"
@@ -354,13 +351,15 @@ export default function BookingForm({
               hint={
                 codeSetAside
                   ? `${codeSetAside} doesn't combine with your account credit, and the credit is worth more, so the credit comes off instead.`
-                  : discount && selected.free
-                    ? `${discount.code} covers ${tierDisplayName(selected.name)} in full, deposit included.`
-                    : discount && selected.codeLabel
-                      ? `${discount.code} takes ${selected.codeLabel} off. It's in the prices above.`
-                      : discount
-                        ? `${discount.code} works on ${codePackages.join(" and ")} only. Choose it above to use the code.`
-                        : undefined
+                  : discount?.ended
+                    ? `${discount.code} is added. Its discount has ended, so the prices stay the same.`
+                    : discount && selected.free
+                      ? `${discount.code} covers ${tierDisplayName(selected.name)} in full, deposit included.`
+                      : discount && selected.codeLabel
+                        ? `${discount.code} takes ${selected.codeLabel} off. It's in the prices above.`
+                        : discount
+                          ? `${discount.code} works on ${codePackages.join(" and ")} only. Choose it above to use the code.`
+                          : undefined
               }
               error={rejectedCode ? "That code didn't work. It may be mistyped or already used." : undefined}
             >

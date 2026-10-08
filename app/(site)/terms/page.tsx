@@ -35,7 +35,9 @@ export const metadata: Metadata = pageMetadata({
 });
 
 const depositPercent = Math.round(DEPOSIT_PERCENTAGE * 100);
-const [firstOffset, secondOffset] = INSTALLMENT_OFFSETS_DAYS;
+// One scheduled payment since 4.0.0 (lib/installments.ts). Section 5 is
+// written for one; a schedule of more than one needs that section rewritten.
+const [balanceOffset] = INSTALLMENT_OFFSETS_DAYS;
 // Zero switches the discount off (lib/deposit.ts), and then the Terms must not
 // promise one: every sentence that mentions it is conditional on this.
 const payInFullDiscount = PAY_IN_FULL_DISCOUNT > 0 ? formatAmount(PAY_IN_FULL_DISCOUNT) : null;
@@ -127,7 +129,7 @@ export default function TermsPage() {
         <h3>What happens when you book</h3>
         <p>
           When you book, you choose how to pay: the deposit now and the balance
-          in installments, or the whole trip at once. Choosing a trip, a tier
+          later, or the whole trip at once. Choosing a trip, a tier
           and one of those two options creates a booking in a{" "}
           <strong>pending</strong> state and holds a spot in that tier while you
           pay. A booking is not confirmed until that first payment has actually
@@ -140,13 +142,13 @@ export default function TermsPage() {
           The deposit is <strong>{depositPercent}% of the tier price</strong>,
           rounded to the cent, and is charged at the time of booking. Once it is
           captured, the booking moves to <strong>deposit paid</strong>, your
-          spot is confirmed, and the balance is scheduled as installments (see
-          section {sectionIndex("payment-plan")}). The deposit is
+          spot is confirmed, and the balance is scheduled as one installment
+          (see section {sectionIndex("payment-plan")}). The deposit is
           non-refundable, as set out in section {sectionIndex("cancellation")}.
         </p>
         <p>
           The card you use to pay the deposit is saved with our payment
-          processor and set as the card your future installments are charged to.
+          processor and set as the card your installment is charged to.
           You can tell us to use a different card by contacting {CONTACT.email}.
         </p>
 
@@ -166,7 +168,7 @@ export default function TermsPage() {
               and it cannot be added to a booking after it is made.
             </>
           ) : (
-            <>The price is the same as on the installment plan.</>
+            <>The price is the same as with the deposit.</>
           )}
         </p>
         <p>
@@ -204,44 +206,34 @@ export default function TermsPage() {
       <LegalSection doc={TERMS} id="payment-plan">
         <h3>How the balance is collected</h3>
         <p>
-          The balance of the tier price after the deposit is split into{" "}
-          <strong>{INSTALLMENT_OFFSETS_DAYS.length} equal installments</strong>{" "}
-          (the last absorbing any rounding remainder, so the installments sum
-          exactly to the balance). They are due on fixed dates measured from the
-          first day of the trip:
+          The balance of the tier price after the deposit is collected in{" "}
+          <strong>
+            one installment, due {balanceOffset} days before the trip starts
+          </strong>
+          . It is the whole of the balance, less anything you have paid ahead
+          (see below).
         </p>
-        <LegalList
-          items={[
-            <>
-              <strong>{firstOffset} days before the trip starts</strong>, first
-              installment.
-            </>,
-            <>
-              <strong>{secondOffset} days before the trip starts</strong>, second installment, which clears the balance.
-            </>,
-          ]}
-        />
         <p>
-          The schedule is anchored to the trip, not to the day you booked. If
-          you book fewer than {firstOffset} days before departure, one or both
-          installment dates are already in the past, and those installments will
-          be charged on the next daily run after your deposit is confirmed
-          rather than being spread out. Booking close to departure therefore
-          means paying most or all of the price straight away.
+          The date is anchored to the trip, not to the day you booked. If you
+          book {balanceOffset} days or fewer before departure, that date has
+          already passed, and the installment is due{" "}
+          <strong>the day after you book</strong> instead. Booking close to
+          departure therefore means paying the whole price within a day or so.
+          The payment page shows the date before you pay.
         </p>
 
         <h3>Automatic charges</h3>
         <p>
           <strong>
-            Installments are charged automatically, without further action from
-            you, to the card saved when you paid your deposit.
+            The installment is charged automatically, without further action
+            from you, to the card saved when you paid your deposit.
           </strong>{" "}
           A job runs once a day, finds installments that are due, and charges
           them off-session, that is, with no checkout page and nobody present.
-          You will get an email each time an installment is charged, showing the
-          amount and the remaining balance. You will not be asked to approve
-          each charge, which is the whole point of the plan: you authorized
-          them when you paid the deposit (see section{" "}
+          You will get an email when yours is charged, showing the amount and
+          the remaining balance. You will not be asked to approve the charge,
+          which is the whole point of the plan: you authorized it when you
+          paid the deposit (see section{" "}
           {sectionIndex("booking-and-deposit")}).
         </p>
         <p>
@@ -262,15 +254,14 @@ export default function TermsPage() {
         </p>
         <p>
           <strong>
-            An early payment reduces your scheduled installments, earliest first.
+            An early payment reduces your scheduled installment.
           </strong>{" "}
-          Once it goes through, it comes off the next installment due; an
-          installment it covers completely is cancelled, and one it covers only
-          in part is reduced by the amount the payment covers and is still
-          charged on its original date. Any installment still scheduled after that keeps its date and
-          amount, and is charged automatically to the card saved with your
-          deposit. An early payment also covers an installment that has been
-          declined or is waiting for bank verification. When nothing is left to
+          Once it goes through, it comes off the installment: if it covers the
+          installment completely, the installment is cancelled, and if it
+          covers only part, the installment is reduced by that amount and is
+          still charged on its original date, automatically, to the card saved
+          with your deposit. An early payment also covers an installment that
+          has been declined or is waiting for bank verification. When nothing is left to
           pay, the booking moves to <strong>paid in full</strong>.
         </p>
         <p>

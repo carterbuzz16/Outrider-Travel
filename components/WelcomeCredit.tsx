@@ -401,7 +401,7 @@ function OfferSheet({
         )}
       </form>
       <p className="mt-5 font-body text-body-s leading-[1.6] text-[--text-secondary]">
-        One code per email, off one trip. It works with the pay-in-full discount, not with other codes.
+        One code per email, off one trip. It doesn&rsquo;t combine with other codes.
       </p>
       <button
         type="button"

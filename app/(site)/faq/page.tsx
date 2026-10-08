@@ -48,12 +48,12 @@ const GROUPS: Group[] = [
         q: "How does paying work?",
         a: (
           <>
-            A deposit holds your spot, and the balance is split into scheduled
-            installments charged automatically to the card you booked with. You
-            can pay toward the balance early from your bookings page any time,
-            which brings the next installment down. Or pay for the whole trip
-            when you book,{" "}
-            {PAY_IN_FULL_DISCOUNT > 0 && `which takes $${PAY_IN_FULL_DISCOUNT} off and `}means
+            A deposit holds your spot, and the balance comes off the card you
+            booked with automatically, a few weeks before the trip. You can pay
+            toward it early from your bookings page any time, which brings that
+            payment down. Or pay for the whole trip
+            when you book
+            {PAY_IN_FULL_DISCOUNT > 0 && `, take $${PAY_IN_FULL_DISCOUNT} off,`} and
             nothing is charged later. Everyone books and pays for their own
             spot, so nobody fronts money for friends or spends the spring
             chasing a group chat. The exact deposit and paying in full
@@ -61,9 +61,9 @@ const GROUPS: Group[] = [
             <Link href="/terms#booking-and-deposit" className="text-[--accent] underline underline-offset-4">
               the booking section of the Terms
             </Link>
-            , and the installment dates and paying ahead in{" "}
+            , and the balance date and paying ahead in{" "}
             <Link href="/terms#payment-plan" className="text-[--accent] underline underline-offset-4">
-              the payment plan section
+              the balance section
             </Link>
             .
           </>

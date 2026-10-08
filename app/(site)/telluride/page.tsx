@@ -793,7 +793,7 @@ export default async function TelluridePage() {
             <Reveal delay={90}>
               <p className="t-lede text-[--text-secondary]">
                 {openTrips.length > 0
-                  ? `Hold your spot for ${depositFrom(openTrips)} and pay the rest in two installments${
+                  ? `Hold your spot for ${depositFrom(openTrips)} and pay the rest 37 days before the trip${
                       PAY_IN_FULL_DISCOUNT > 0 ? `, or pay it all now and take $${PAY_IN_FULL_DISCOUNT} off` : ""
                     }. Each of you books your own.`
                   : "Tell us you want in. If a spot opens up or the next trip goes live, you'll hear first."}
@@ -1086,7 +1086,7 @@ const ANSWERS: { q: string; a: React.ReactNode }[] = [
     q: "How does paying work?",
     a: (
       <>
-        Put down 10% to hold your spot and pay the rest in two installments
+        Put down 10% to hold your spot and pay the rest 37 days before the trip
         {PAY_IN_FULL_DISCOUNT > 0 && `, or pay it all now and take $${PAY_IN_FULL_DISCOUNT} off`}. Each
         of you books your own, so nobody fronts money for friends. The detail is in{" "}
         <Link href="/terms#payment-plan" className={LINK}>

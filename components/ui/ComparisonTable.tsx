@@ -23,7 +23,7 @@ type Row = {
 // operators", the big college trip companies, not friends planning their own
 // trip. The left column says what those trips usually are; the right only
 // what the site already promises (TRIP_WHAT_YOU_GET, the tier inclusions in
-// the database, the FAQ). Performance rentals are on Two to a Room and the
+// the database, the FAQ). Upgraded rentals are on Two to a Room and the
 // penthouses, not every package, so the gear row says so. Voice (Carter, the
 // same day): keep it fun, it's college, but say plainly why we're different,
 // why you'd come, and what you get.
@@ -46,7 +46,7 @@ const ROWS: Row[] = [
     label: "Lift tickets and gear",
     usualLong: "Sold separately, plus a rental line on the first morning.",
     usualShort: "Extra, plus a rental line",
-    outriderLong: "In every package and fitted before you land. Two to a Room and the penthouses get performance rentals.",
+    outriderLong: "In every package and fitted before you land. Two to a Room and the penthouses get upgraded rentals.",
     outriderShort: "Already sorted",
   },
   {
@@ -60,7 +60,7 @@ const ROWS: Row[] = [
     label: "Paying for it",
     usualLong: "One friend fronts it and spends the semester chasing Venmo requests.",
     usualShort: "One friend fronts it",
-    outriderLong: "Put down 10%, then two installments, or pay in full and take $100 off. Nobody owes anybody.",
+    outriderLong: "Put down 10% and the rest 37 days before the trip, or pay it all at once. Nobody owes anybody.",
     outriderShort: "Everyone pays their own way",
   },
   {

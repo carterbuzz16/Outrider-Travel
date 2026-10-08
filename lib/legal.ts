@@ -69,7 +69,7 @@ export const TERMS: LegalDocumentMeta = {
   title: "Terms of Service",
   shortTitle: "Terms of Service",
   description:
-    "The agreement between you and Outrider when you book a departure: deposits, paying in full, the installment plan and paying ahead, cancellation, weather, suppliers, insurance, liability and trip text messages.",
+    "The agreement between you and Outrider when you book a departure: deposits, paying in full, the balance installment and paying ahead, cancellation, weather, suppliers, insurance, liability and trip text messages.",
   // 2.0.0: a MAJOR change under the rules above. The deposit fell from 20% to
   // 10%, and the terms now cover paying in full at booking (and how its
   // deposit portion is refunded), paying ahead, the charge authorization and
@@ -92,16 +92,29 @@ export const TERMS: LegalDocumentMeta = {
   // (INSTALLMENT_OFFSETS_DAYS, lib/installments.ts), so they land ahead of
   // the hotel's room deposits. No booking existed on the day it took effect,
   // so no traveler needed notice; the rule's counsel sign-off is still owed.
-  version: "3.0.0",
+  // 3.1.0: MINOR. The pay-in-full discount is off (PAY_IN_FULL_DISCOUNT,
+  // lib/deposit.ts), so section 4 no longer offers money off for paying at
+  // booking, and the sentences in the payment-plan and cancellation sections
+  // that referred to it drop out. Nothing a traveler with a booking owes or
+  // can claim changes: a booking made with the discount keeps its discounted
+  // total, and is still refunded on what was actually paid. It withdraws an
+  // offer for bookings not yet made, so no re-acceptance or notice.
+  // 4.0.0: MAJOR, because it changes when a traveler pays: the balance is one
+  // installment 37 days before the trip instead of two at 70 and 40
+  // (INSTALLMENT_OFFSETS_DAYS, lib/installments.ts), and a booking made after
+  // that date owes it the day after booking rather than on the next daily
+  // run. No booking existed on the day it took effect (checked 8 October
+  // 2026), so no traveler needed notice; counsel sign-off is still owed.
+  version: "4.0.0",
   status: "in-force",
-  effectiveDate: "2026-09-29",
-  lastUpdated: "2026-09-29",
+  effectiveDate: "2026-10-08",
+  lastUpdated: "2026-10-08",
   sections: [
     { id: "about", title: "Who these terms are between" },
     { id: "eligibility", title: "Eligibility and your account" },
     { id: "trips-and-tiers", title: "Trips, tiers and what is included" },
     { id: "booking-and-deposit", title: "Booking, the deposit and paying in full" },
-    { id: "payment-plan", title: "The payment plan, automatic installments and paying ahead" },
+    { id: "payment-plan", title: "The balance installment and paying ahead" },
     { id: "failed-payments", title: "Missed payments, retries and bank authentication" },
     { id: "cancellation", title: "If you cancel" },
     { id: "outrider-changes", title: "If Outrider cancels or changes a trip" },

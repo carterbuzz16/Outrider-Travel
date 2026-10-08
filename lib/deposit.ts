@@ -15,7 +15,12 @@ export const DEPOSIT_PERCENTAGE = 0.1;
 // price actually agreed and everything downstream (receipts, the bookings
 // page, admin totals) reads the right number without knowing a discount
 // exists.
-export const PAY_IN_FULL_DISCOUNT = 100;
+//
+// Off since 8 October 2026 (Carter): with the chapter codes, the ambassador
+// $100 and the comp codes, $100 for paying in full was one discount too many
+// and nobody needed it to pay up front. Paying in full is still offered, at
+// the tier price. Bookings made with it on keep their discounted total.
+export const PAY_IN_FULL_DISCOUNT = 0;
 
 export function computeDepositAmount(price: number): number {
   return Math.round(price * DEPOSIT_PERCENTAGE * 100) / 100;

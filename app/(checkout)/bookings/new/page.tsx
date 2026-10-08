@@ -24,7 +24,8 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatAmount } from "@/lib/balance";
-import { INSTALLMENT_OFFSETS_DAYS } from "@/lib/installments";
+import { INSTALLMENT_OFFSETS_DAYS, installmentDates } from "@/lib/installments";
+import { formatDay } from "@/app/(protected)/dates";
 import { countPenthouses, getRoomMedia, tierDisplayName, tierGrouping } from "@/lib/room-media";
 import { CONTACT } from "@/lib/site-content";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -323,6 +324,11 @@ function Packages({
   // everywhere, which every code but a one-package one is, that is the same.
   const bestCode = discount ? Math.max(...Object.values(discount.amounts)) : 0;
   const applied = creditOrCode(bestCode, credit?.amount ?? 0);
+  // A code whose discount has ended (discount_ends_at, lib/discount-codes.ts)
+  // is worth nothing on every package, but it still goes on the booking,
+  // which is what credits its ambassador. So it shows as added, and is never
+  // the one set aside for the credit.
+  const ended = discount !== null && bestCode === 0;
   const tiers: CheckoutTier[] = trip.tiers.map((tier) => {
     // A penthouse another group holds is taken, unless the code in the link is
     // that group's. Then it is theirs to join, capacity permitting.
@@ -397,15 +403,15 @@ function Packages({
       tiers={tiers}
       initialTierId={initial.id}
       depositPercent={Math.round(DEPOSIT_PERCENTAGE * 100)}
-      installmentOffsets={INSTALLMENT_OFFSETS_DAYS}
+      balanceWhen={balanceWhen(trip.startDate)}
       contactEmail={CONTACT.email}
       initialGroupCode={groupCode}
-      discount={discount && applied.code > 0 ? { code: discount.code } : null}
+      discount={discount && (applied.code > 0 || ended) ? { code: discount.code, ended } : null}
       rejectedCode={rejectedCode}
       signedIn={signedIn}
       credit={credit && applied.credit > 0 ? { label: formatAmount(credit.amount), expiresAt: credit.expiresAt } : null}
       setAside={
-        discount && applied.code === 0
+        discount && !ended && applied.code === 0
           ? { kind: "code", code: discount.code }
           : credit && applied.credit === 0
             ? { kind: "credit", label: formatAmount(credit.amount) }
@@ -538,4 +544,20 @@ function OpensSoon({ badLink = false }: { badLink?: boolean }) {
       </div>
     </div>
   );
+}
+
+/**
+ * When the balance comes off the card on the deposit plan, finishing "The
+ * other $X comes off your card ...". Inside the balance window the date is the
+ * next day (installmentDates), and the deposit option says why, so nobody
+ * picks "10% today" expecting the rest weeks from now.
+ */
+function balanceWhen(startDate: string): string {
+  const dates = installmentDates(startDate);
+  // The dates carry their own commas, so more than one would be split with
+  // semicolons, as AuthorizeCharge does.
+  const on = `on ${dates.map((d) => formatDay(d.date)).join("; ")}`;
+  return dates.some((d) => d.late)
+    ? `${on}, because the trip is less than ${INSTALLMENT_OFFSETS_DAYS[0]} days away`
+    : on;
 }

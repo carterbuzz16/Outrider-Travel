@@ -82,6 +82,7 @@ model Tier {
 
   trip     Trip      @relation(fields: [tripId], references: [id])
   bookings Booking[]
+  discountCodes DiscountCode[]
 
   @@index([tripId])
   @@map("tiers")
@@ -227,22 +228,28 @@ model TravelerDetails {
 /// so only the service role reads or writes it. CHECK: code is
 /// ^[A-Z0-9]{8,32}$, or ^[A-Z0-9]{3,32}$ when maxUses > 1
 /// (shared_discount_codes migration). Exactly one of amount and percentOff is
-/// set; tierName limits it to one package and oncePerPerson to one use per
+/// set; tierName limits it to one package on every trip, tierId to one trip's
+/// package (code_tier_id migration), and oncePerPerson to one use per
 /// account (free_package_codes migration).
 model DiscountCode {
   code          String    @id
   amount        Decimal?  @db.Decimal(10, 2)
   percentOff    Int?      @map("percent_off") @db.SmallInt
   tierName      String?   @map("tier_name")
+  tierId        String?   @map("tier_id") @db.Uuid
   oncePerPerson Boolean   @default(false) @map("once_per_person")
   maxUses       Int       @default(1) @map("max_uses")
   note          String?
   active        Boolean   @default(true)
   expiresAt     DateTime? @map("expires_at") @db.Timestamptz
+  /// After this the code takes nothing off but still checks out and is still
+  /// claimed, at $0, so bookings keep crediting the ambassador whose code it is.
+  discountEndsAt DateTime? @map("discount_ends_at") @db.Timestamptz
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
   redemptions DiscountRedemption[]
   offeredTo   WaitlistSignup?
+  tier        Tier?                @relation(fields: [tierId], references: [id])
 
   @@map("discount_codes")
 }

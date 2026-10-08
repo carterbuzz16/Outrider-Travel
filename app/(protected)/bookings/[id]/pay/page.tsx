@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { chooseAgainPath, isStalePending, recheckStaleCheckout, staleCheckoutCode } from "@/lib/stale-checkout";
 import { getStripe } from "@/lib/stripe";
-import { INSTALLMENT_OFFSETS_DAYS } from "@/lib/installments";
+import { INSTALLMENT_OFFSETS_DAYS, installmentDates } from "@/lib/installments";
 import { paymentKindOf } from "@/lib/payments";
 import { syncPaymentFromStripe } from "@/lib/stripe-sync";
 import { formatAmount } from "@/lib/balance";
@@ -191,11 +191,25 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
                 . Nothing else is taken from your card later, and the card isn&rsquo;t kept. Your
                 place is held for 30 minutes while you pay.
               </>
+            ) : schedule[0]?.late ? (
+              // Booked inside the balance window: the rest is due the next day
+              // (installmentDates), which nobody expects from "deposit", so it
+              // is said here in so many words, not only in the schedule.
+              <>
+                <span className="tabular-nums text-[--text]">{formatAmount(dueToday)}</span> today holds your
+                spot.{" "}
+                <span className="text-[--text]">
+                  The trip is less than {INSTALLMENT_OFFSETS_DAYS[0]} days away, so the other{" "}
+                  <span className="tabular-nums">{formatAmount(balance)}</span> comes off this same card on{" "}
+                  {formatDay(schedule[0].date)}.
+                </span>{" "}
+                You can change the card by getting in touch. Your place is held for 30 minutes while you pay.
+              </>
             ) : (
               <>
                 <span className="tabular-nums text-[--text]">{formatAmount(dueToday)}</span> today holds your
-                spot. The two installments come off this same card, and you can change it later by getting
-                in touch. Your place is held for 30 minutes while you pay.
+                spot. The rest comes off this same card automatically, and you can change the card by
+                getting in touch. Your place is held for 30 minutes while you pay.
               </>
             )}
           </p>
@@ -271,10 +285,14 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
                   caption="Your payment schedule"
                   rows={[
                     { key: "today", date: "Today", note: "Deposit", amount: formatAmount(depositAmount), current: true },
-                    ...schedule.map((row) => ({
-                      key: String(row.offsetDays),
+                    ...schedule.map((row, i) => ({
+                      key: `due-${i}`,
                       date: formatDay(row.date),
-                      note: `${row.offsetDays} days before the trip`,
+                      note: row.late
+                        ? `Less than ${INSTALLMENT_OFFSETS_DAYS[0]} days to go`
+                        : schedule.length === 1
+                          ? "The rest"
+                          : `Payment ${i + 1} of ${schedule.length}`,
                       amount: formatAmount(row.amount),
                     })),
                   ]}
@@ -513,10 +531,10 @@ function Line({ label, value }: { label: string; value: string }) {
  *
  * The rows do not exist yet: they are written only once the deposit's
  * payment_intent.succeeded webhook lands, which is after this page. So this
- * mirrors that module's split (even halves, last one absorbing the rounding
- * remainder) and its offsets rather than inventing a second set of numbers.
- * Display only — nothing here is persisted, and if the two ever drift the
- * booking follows lib/installments.ts, not this.
+ * mirrors that module's split (even shares, last one absorbing the rounding
+ * remainder) and takes its dates from installmentDates rather than inventing a
+ * second set of numbers. Display only — nothing here is persisted, and if the
+ * two ever drift the booking follows lib/installments.ts, not this.
  */
 function previewInstallments(total: number, deposit: number, startDate: string | undefined) {
   const remaining = Math.round((total - deposit) * 100) / 100;
@@ -527,11 +545,5 @@ function previewInstallments(total: number, deposit: number, startDate: string |
   const amounts = Array(n).fill(base);
   amounts[n - 1] = Math.round((remaining - base * (n - 1)) * 100) / 100;
 
-  return INSTALLMENT_OFFSETS_DAYS.map((offsetDays, i) => {
-    // start_date is a bare YYYY-MM-DD, which Date parses as UTC midnight, so
-    // the subtraction has to be UTC too or a westward timezone lands a day out.
-    const date = new Date(startDate);
-    date.setUTCDate(date.getUTCDate() - offsetDays);
-    return { offsetDays, amount: amounts[i] as number, date: date.toISOString().slice(0, 10) };
-  });
+  return installmentDates(startDate).map(({ date, late }, i) => ({ amount: amounts[i] as number, date, late }));
 }

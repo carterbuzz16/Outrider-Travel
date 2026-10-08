@@ -280,10 +280,10 @@ export default String.raw`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitio
         </table>
         <div style="font-family:Figtree,'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; line-height:1.6; color:#6B635C; padding-top:14px;">
           <!-- {{#unless paid_in_full}} -->
-          Next installment of {{next_payment_amount}} comes out {{next_payment_date}} on the card you used.
+          Your next payment, {{next_payment_amount}}, comes out {{next_payment_date}} on the card you used.
           <!-- {{/unless}} -->
           <!-- {{#unless has_balance}} -->
-          You paid in full, so there are no installments to come.
+          You paid in full, so nothing more comes out.
           <!-- {{/unless}} -->
           Nothing else gets added: no booking fee, no service charge.
           <a href="{{portal_url}}" style="color:#3E342F; text-decoration:underline;">See your payment schedule</a>

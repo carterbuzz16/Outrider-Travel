@@ -78,7 +78,7 @@ const SAMPLE_TRIP = {
   logistics: null,
 };
 
-// "Two to a Room" at $2,299: a 10% deposit today, the rest in two installments.
+// "Two to a Room" at $2,299: a 10% deposit today, the rest 37 days before the trip.
 const SAMPLE_BOOKING: BookingForEmail = {
   id: SAMPLE_BOOKING_ID,
   user_id: "sample-user",
@@ -96,8 +96,7 @@ const SAMPLE_BOOKING: BookingForEmail = {
   tiers: { name: "MID" },
   payments: [
     { status: "succeeded", amount: 229.9, scheduled_date: null },
-    { status: "scheduled", amount: 1034.55, scheduled_date: "2026-10-15" },
-    { status: "scheduled", amount: 1034.55, scheduled_date: "2026-11-15" },
+    { status: "scheduled", amount: 2069.1, scheduled_date: "2026-11-07" },
   ],
 };
 
@@ -326,14 +325,14 @@ export function emailCatalog(): EmailEntry[] {
       trigger: "When a scheduled installment is charged and clears. One per payment.",
       recipient: TRAVELER,
       sandbox: CRON_ONLY_13,
-      notes: ["Sample: the first $1,034.55 installment, $1,034.55 left."],
+      notes: ["Sample: the $2,069.10 balance installment, nothing left."],
       render: () =>
         renderInstallmentChargedEmail({
           name: SAMPLE_NAME,
           bookingId: SAMPLE_BOOKING_ID,
           tripName: SAMPLE_TRIP.name,
-          amount: 1034.55,
-          remainingBalance: 1034.55,
+          amount: 2069.1,
+          remainingBalance: 0,
         }),
     },
     {
@@ -367,7 +366,7 @@ export function emailCatalog(): EmailEntry[] {
           name: SAMPLE_NAME,
           bookingId: SAMPLE_BOOKING_ID,
           tripName: SAMPLE_TRIP.name,
-          amount: 1034.55,
+          amount: 2069.1,
           willRetry: true,
         }),
     },
@@ -384,7 +383,7 @@ export function emailCatalog(): EmailEntry[] {
           name: SAMPLE_NAME,
           bookingId: SAMPLE_BOOKING_ID,
           tripName: SAMPLE_TRIP.name,
-          amount: 1034.55,
+          amount: 2069.1,
           willRetry: false,
         }),
     },
@@ -402,7 +401,7 @@ export function emailCatalog(): EmailEntry[] {
           bookingId: SAMPLE_BOOKING_ID,
           paymentId: SAMPLE_PAYMENT_ID,
           tripName: SAMPLE_TRIP.name,
-          amount: 1034.55,
+          amount: 2069.1,
         }),
     },
 
@@ -435,7 +434,7 @@ export function emailCatalog(): EmailEntry[] {
           name: SAMPLE_NAME,
           bookingId: SAMPLE_BOOKING_ID,
           tripName: SAMPLE_TRIP.name,
-          amount: 1034.55,
+          amount: 2069.1,
           reason: "cancelled",
         }),
     },

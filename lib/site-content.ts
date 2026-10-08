@@ -136,7 +136,7 @@ export const VALUE_PROPS = [
     eyebrow: "All in",
     title: "One price, all in",
     body:
-      "Lodging, lift tickets and rentals, ground transport, the private events, a welcome package and our team are all in the price. No resort fee at check-in and no surprise shuttle charge. Everyone books and pays for their own spot, all at once or in installments, so nobody fronts the money for friends or spends the semester chasing Venmo requests.",
+      "Lodging, lift tickets and rentals, ground transport, the private events, a welcome package and our team are all in the price. No resort fee at check-in and no surprise shuttle charge. Everyone books and pays for their own spot, all at once or 10% now and the rest later, so nobody fronts the money for friends or spends the semester chasing Venmo requests.",
   },
   {
     eyebrow: "We go first",

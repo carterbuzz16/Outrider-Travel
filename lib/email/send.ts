@@ -254,7 +254,7 @@ export function renderInstallmentChargedEmail(opts: InstallmentChargedInput): Re
   const balanceLine =
     remainingBalance > 0
       ? kind === "balance"
-        ? `Remaining balance: <strong>${formatCurrency(remainingBalance)}</strong>. We took this off your next scheduled payments, earliest first, and your bookings page shows the new amounts.`
+        ? `Remaining balance: <strong>${formatCurrency(remainingBalance)}</strong>. We took this off your scheduled payment, and your bookings page shows the new amount.`
         : `Remaining balance: <strong>${formatCurrency(remainingBalance)}</strong>.`
       : kind === "balance"
         ? `That covers the rest of the trip. You're paid in full, and no more payments will be taken.`
@@ -544,7 +544,7 @@ export function renderEarlyAccess(opts: {
       "Telluride: December 14-18, 2026 or January 4-8, 2027",
       "The Peaks, Mountain Village. Four to a room, two to a room, or a whole penthouse for your eight.",
       opts.fromPrice ? `From ${opts.fromPrice} per person, all in.` : "One price per person, all in.",
-      "10% down holds your spot. The rest comes in two installments, or pay it all at once.",
+      "10% down holds your spot. The rest is due 37 days before the trip, or pay it all at once.",
       "",
       "Forward this to the friends you're rooming with. The link works for them too, so you can all book before it opens to everyone.",
       "",
@@ -589,7 +589,7 @@ export function renderBookingOpenReminder(opts: {
       "Telluride: December 14-18, 2026 or January 4-8, 2027",
       "The Peaks, Mountain Village. Ski-in, ski-out. Four to a room, two to a room, or a whole penthouse for your eight.",
       opts.fromPrice ? `From ${opts.fromPrice} per person, all in.` : "One price per person, all in.",
-      "10% down holds your spot. The rest comes in two installments, or pay it all at once.",
+      "10% down holds your spot. The rest is due 37 days before the trip, or pay it all at once.",
       "",
       "Going with friends? Each of you books your own spot, then tells us who you're rooming with. The earlier those come in, the better the odds we keep your group together.",
       "",

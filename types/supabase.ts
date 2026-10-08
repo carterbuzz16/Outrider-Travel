@@ -151,11 +151,13 @@ export type Database = {
           amount: number | null
           code: string
           created_at: string
+          discount_ends_at: string | null
           expires_at: string | null
           max_uses: number
           note: string | null
           once_per_person: boolean
           percent_off: number | null
+          tier_id: string | null
           tier_name: string | null
         }
         Insert: {
@@ -163,11 +165,13 @@ export type Database = {
           amount?: number | null
           code: string
           created_at?: string
+          discount_ends_at?: string | null
           expires_at?: string | null
           max_uses?: number
           note?: string | null
           once_per_person?: boolean
           percent_off?: number | null
+          tier_id?: string | null
           tier_name?: string | null
         }
         Update: {
@@ -175,14 +179,24 @@ export type Database = {
           amount?: number | null
           code?: string
           created_at?: string
+          discount_ends_at?: string | null
           expires_at?: string | null
           max_uses?: number
           note?: string | null
           once_per_person?: boolean
           percent_off?: number | null
+          tier_id?: string | null
           tier_name?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "discount_codes_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "tiers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       discount_redemptions: {
         Row: {

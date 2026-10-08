@@ -4,18 +4,47 @@ import { getStripe } from "@/lib/stripe";
 import { toCents } from "@/lib/balance";
 
 // Days before trip start_date that each installment is due. Fixed calendar
-// dates relative to the trip, not the booking date — a booking made close
-// to departure will simply have installments whose dates are already in
-// the past, which the cron picks up on its very next run.
+// dates relative to the trip, not the booking date; a booking made after a
+// date has passed is due the next day instead (installmentDates).
 //
-// 70 and 40, moved from 60 and 30 on 29 September 2026. The Peaks bills the
-// group's room deposits 61 and 30 days before December and 61 and 31 before
-// January, so at 60/30 every traveler installment landed a day after the
-// hotel payment it was meant to fund. Ten days ahead covers one failed charge
-// and its retry (INSTALLMENT_RETRY_AFTER_DAYS in lib/payments.ts) plus
-// Stripe's payout to the bank. The Terms and the booking form read these
-// numbers; the Terms version moved to 2.3.0 with them.
-export const INSTALLMENT_OFFSETS_DAYS = [70, 40];
+// One payment, 37 days out, since 8 October 2026 (Carter). It was 70 and 40,
+// and the December trip passed its 70-day date on 5 October, so every
+// December deposit was followed by 45% of the price the next morning. The
+// Peaks bills the group's room deposits 61 and 30 days before December and
+// 61 and 31 before January; 37 lands a week ahead of the second bill, which
+// covers one failed charge and its retry (INSTALLMENT_RETRY_AFTER_DAYS in
+// lib/payments.ts) plus Stripe's payout to the bank. The first hotel bill is
+// no longer funded by travelers' installments: deposits and Outrider cover it.
+// The Terms (4.0.0), the booking form and the pay page read this; the
+// marketing pages and emails say "37 days before the trip" in words, so grep
+// for that if it moves.
+export const INSTALLMENT_OFFSETS_DAYS = [37];
+
+/**
+ * The due dates (YYYY-MM-DD) a booking made `now` on a trip starting
+ * `startDate` gets, one per INSTALLMENT_OFFSETS_DAYS entry. scheduleInstallments
+ * writes these and the checkout pages show them, so they always agree.
+ *
+ * A date that is today or already past becomes tomorrow (UTC), and the cron
+ * charges it on that day's run. Left in the past it would be charged on the
+ * next run anyway, but every page that shows the schedule (the authorization
+ * above the pay button, the confirmation, the bookings page) would print a
+ * date that had already gone. `late` marks a date moved up that way, so
+ * checkout can say why the balance comes off so soon.
+ */
+export function installmentDates(startDate: string, now = new Date()): { date: string; late: boolean }[] {
+  const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1))
+    .toISOString()
+    .slice(0, 10);
+  return INSTALLMENT_OFFSETS_DAYS.map((offsetDays) => {
+    // start_date is a bare YYYY-MM-DD, which Date parses as UTC midnight, so
+    // the subtraction has to be UTC too or a westward timezone lands a day out.
+    const date = new Date(startDate);
+    date.setUTCDate(date.getUTCDate() - offsetDays);
+    const due = date.toISOString().slice(0, 10);
+    return due < tomorrow ? { date: tomorrow, late: true } : { date: due, late: false };
+  });
+}
 
 // Called once, right after the deposit's payment_intent.succeeded webhook
 // flips the booking pending -> deposit_paid (see lib/payments.ts). Splits
@@ -44,16 +73,12 @@ export async function scheduleInstallments(
   const amounts = Array(n).fill(base);
   amounts[n - 1] = Math.round((remaining - base * (n - 1)) * 100) / 100;
 
-  const rows = INSTALLMENT_OFFSETS_DAYS.map((offsetDays, i) => {
-    const date = new Date(trip.start_date);
-    date.setUTCDate(date.getUTCDate() - offsetDays);
-    return {
-      booking_id: booking.id,
-      amount: amounts[i],
-      status: "scheduled" as const,
-      scheduled_date: date.toISOString().slice(0, 10),
-    };
-  });
+  const rows = installmentDates(trip.start_date).map(({ date: scheduledDate }, i) => ({
+    booking_id: booking.id,
+    amount: amounts[i],
+    status: "scheduled" as const,
+    scheduled_date: scheduledDate,
+  }));
 
   const { data: inserted } = await admin.from("payments").insert(rows).select("id");
 

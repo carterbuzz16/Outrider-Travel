@@ -34,6 +34,16 @@ type Admin = SupabaseClient<Database>;
  *   values ('PHIDELT', 100, 1000, 'Phi Delt chapter code',
  *           timestamptz '2026-10-04 00:00 America/Chicago');
  *
+ * An ambassador's code is the same, but ends with discount_ends_at instead
+ * (discount_ends_at migration): after it the code takes nothing off but still
+ * checks out and is still claimed, at $0, so every booking made with it keeps
+ * crediting the ambassador. expires_at would end the code outright, and the
+ * ambassador's later sales with it. For example:
+ *
+ *   insert into discount_codes (code, amount, max_uses, note, discount_ends_at)
+ *   values ('CAMILLE', 100, 1000, 'Ambassador code',
+ *           timestamptz '2026-10-23 00:00 America/Chicago');
+ *
  * The discounted figure becomes bookings.total_amount (createBooking), the same
  * way the pay-in-full discount does, so nothing downstream needs to know.
  *
@@ -46,6 +56,10 @@ type Admin = SupabaseClient<Database>;
  *
  *   insert into discount_codes (code, percent_off, tier_name, max_uses, once_per_person, note)
  *   values ('ELLISCOMPUSC', 100, 'BASE', 2, true, 'Comp, Four to a Room, two people');
+ *
+ * tier_name matches the package on every trip. For one trip's package only,
+ * set tier_id to that tier's row as well (code_tier_id migration), as
+ * CECECOMPAU is for December's Four to a Room.
  */
 
 /**
