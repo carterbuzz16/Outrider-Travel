@@ -6,11 +6,11 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { chooseAgainPath, isStalePending, recheckStaleCheckout, staleCheckoutCode } from "@/lib/stale-checkout";
 import { getStripe } from "@/lib/stripe";
-import { INSTALLMENT_OFFSETS_DAYS, installmentDates } from "@/lib/installments";
+import { installmentSchedule, latePaymentNote } from "@/lib/installments";
 import { paymentKindOf } from "@/lib/payments";
 import { syncPaymentFromStripe } from "@/lib/stripe-sync";
 import { formatAmount } from "@/lib/balance";
-import { DEPOSIT_PERCENTAGE, PAY_IN_FULL_DISCOUNT } from "@/lib/deposit";
+import { PAY_IN_FULL_DISCOUNT, klarnaPhrase } from "@/lib/deposit";
 import { getRoomMedia } from "@/lib/room-media";
 import { bookingCredit } from "@/lib/welcome-credit";
 import { CONTACT } from "@/lib/site-content";
@@ -143,7 +143,12 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
   // createBooking), not from anything the browser sends. A payment in full
   // has no schedule to preview; total_amount already has the discount off.
   const payingInFull = paymentKindOf(paymentIntent) === "full";
-  const schedule = payingInFull ? [] : previewInstallments(total, depositAmount, trip?.start_date);
+  // The schedule the traveler is about to agree to. The rows do not exist yet:
+  // scheduleInstallments writes them once the deposit clears, which is after
+  // this page, from the same function, so the two agree. Display only; if they
+  // ever drift, the booking follows lib/installments.ts.
+  const schedule = payingInFull || !trip ? [] : installmentSchedule(trip.start_date, balance);
+  const lateNote = payingInFull || !trip ? null : latePaymentNote(trip.start_date);
   const dueToday = payingInFull ? total : depositAmount;
   // The tier's list price, for showing the pay-in-full saving as a line. Only
   // when it is really the difference; the booking row is what is charged.
@@ -188,28 +193,30 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
                 <span className="tabular-nums text-[--text]">{formatAmount(dueToday)}</span> today for the
                 whole trip
                 {PAY_IN_FULL_DISCOUNT > 0 && `, with ${formatPrice(PAY_IN_FULL_DISCOUNT)} off for paying it all now`}
-                . Nothing else is taken from your card later, and the card isn&rsquo;t kept. Your
-                place is held for 30 minutes while you pay.
+                . Pay by card, or {klarnaPhrase(dueToday)}. We take nothing more after this, and
+                don&rsquo;t keep the card. Your place is held for 30 minutes while you pay.
               </>
-            ) : schedule[0]?.late ? (
-              // Booked inside the balance window: the rest is due the next day
-              // (installmentDates), which nobody expects from "deposit", so it
-              // is said here in so many words, not only in the schedule.
+            ) : lateNote && schedule[0] ? (
+              // Booked after one of the trip's payment dates: that payment is
+              // due the next day (installmentDates), which nobody expects from
+              // "deposit", so it is said here in so many words, not only in
+              // the schedule.
               <>
                 <span className="tabular-nums text-[--text]">{formatAmount(dueToday)}</span> today holds your
                 spot.{" "}
                 <span className="text-[--text]">
-                  The trip is less than {INSTALLMENT_OFFSETS_DAYS[0]} days away, so the other{" "}
-                  <span className="tabular-nums">{formatAmount(balance)}</span> comes off this same card on{" "}
-                  {formatDay(schedule[0].date)}.
+                  {lateNote} That&rsquo;s <span className="tabular-nums">{formatAmount(schedule[0].amount)}</span>{" "}
+                  on {formatDay(schedule[0].date)}, off this same card.
                 </span>{" "}
                 You can change the card by getting in touch. Your place is held for 30 minutes while you pay.
               </>
             ) : (
               <>
                 <span className="tabular-nums text-[--text]">{formatAmount(dueToday)}</span> today holds your
-                spot. The rest comes off this same card automatically, and you can change the card by
-                getting in touch. Your place is held for 30 minutes while you pay.
+                spot. The rest comes off this same card automatically
+                {schedule.length > 1 && `, in ${schedule.length === 2 ? "two" : schedule.length} payments`}, or you
+                can pay it off with Klarna from your bookings page. To change the card, get in touch. Your place
+                is held for 30 minutes while you pay.
               </>
             )}
           </p>
@@ -251,7 +258,7 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
                 <Line label="Dates" value={formatDateRange(trip.start_date, trip.end_date)} />
                 <Line
                   label="Plan"
-                  value={payingInFull ? "Paid in full" : `${Math.round(DEPOSIT_PERCENTAGE * 100)}% deposit`}
+                  value={payingInFull ? "Paid in full" : `${formatAmount(depositAmount)} deposit`}
                 />
               </dl>
             )}
@@ -288,11 +295,9 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
                     ...schedule.map((row, i) => ({
                       key: `due-${i}`,
                       date: formatDay(row.date),
-                      note: row.late
-                        ? `Less than ${INSTALLMENT_OFFSETS_DAYS[0]} days to go`
-                        : schedule.length === 1
-                          ? "The rest"
-                          : `Payment ${i + 1} of ${schedule.length}`,
+                      note: `${schedule.length === 1 ? "The rest" : `Payment ${i + 1} of ${schedule.length}`}${
+                        row.late ? ", moved up" : ""
+                      }`,
                       amount: formatAmount(row.amount),
                     })),
                   ]}
@@ -316,7 +321,7 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
                   <>
                     Once this payment clears, the deposit is not refundable, whatever the reason for
                     canceling. Anything you pay above it is refunded on a sliding scale that closes 30
-                    days before the trip.
+                    days before the trip. If an installment is missed, your spot may be released.
                   </>
                 )}{" "}
                 Read the{" "}
@@ -350,6 +355,7 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
               amountLabel={formatAmount(dueToday)}
               submitLabel={payingInFull ? `Pay ${formatAmount(dueToday)}` : undefined}
               acceptTerms
+              cardOnly={!payingInFull}
               scheduledCharges={schedule.map((row) => ({
                 dateLabel: formatDay(row.date),
                 amountLabel: formatAmount(row.amount),
@@ -523,27 +529,4 @@ function Line({ label, value }: { label: string; value: string }) {
       <dd className="m-0 min-w-0 text-right tabular-nums text-[--text]">{value}</dd>
     </div>
   );
-}
-
-/**
- * The schedule the traveler is about to agree to, worked out the same way
- * lib/installments.ts will work it out for real.
- *
- * The rows do not exist yet: they are written only once the deposit's
- * payment_intent.succeeded webhook lands, which is after this page. So this
- * mirrors that module's split (even shares, last one absorbing the rounding
- * remainder) and takes its dates from installmentDates rather than inventing a
- * second set of numbers. Display only — nothing here is persisted, and if the
- * two ever drift the booking follows lib/installments.ts, not this.
- */
-function previewInstallments(total: number, deposit: number, startDate: string | undefined) {
-  const remaining = Math.round((total - deposit) * 100) / 100;
-  if (remaining <= 0 || !startDate) return [];
-
-  const n = INSTALLMENT_OFFSETS_DAYS.length;
-  const base = Math.floor((remaining / n) * 100) / 100;
-  const amounts = Array(n).fill(base);
-  amounts[n - 1] = Math.round((remaining - base * (n - 1)) * 100) / 100;
-
-  return installmentDates(startDate).map(({ date, late }, i) => ({ amount: amounts[i] as number, date, late }));
 }

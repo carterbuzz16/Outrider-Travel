@@ -3,53 +3,140 @@ import type { Database } from "@/types/supabase";
 import { getStripe } from "@/lib/stripe";
 import { toCents } from "@/lib/balance";
 
-// Days before trip start_date that each installment is due. Fixed calendar
-// dates relative to the trip, not the booking date; a booking made after a
-// date has passed is due the next day instead (installmentDates).
-//
-// One payment, 37 days out, since 8 October 2026 (Carter). It was 70 and 40,
-// and the December trip passed its 70-day date on 5 October, so every
-// December deposit was followed by 45% of the price the next morning. The
-// Peaks bills the group's room deposits 61 and 30 days before December and
-// 61 and 31 before January; 37 lands a week ahead of the second bill, which
-// covers one failed charge and its retry (INSTALLMENT_RETRY_AFTER_DAYS in
-// lib/payments.ts) plus Stripe's payout to the bank. The first hotel bill is
-// no longer funded by travelers' installments: deposits and Outrider cover it.
-// The Terms (4.0.0), the booking form and the pay page read this; the
-// marketing pages and emails say "37 days before the trip" in words, so grep
-// for that if it moves.
-export const INSTALLMENT_OFFSETS_DAYS = [37];
+/*
+ * When the balance is collected: two equal payments on fixed calendar dates,
+ * set per departure (Carter, 13 October 2026), after the $100 deposit
+ * (lib/deposit.ts). The dates belong to the trip, not to the day someone
+ * books, so everyone on a departure pays on the same two days.
+ *
+ * Keyed on the trip's start date rather than its id, so a test trip given the
+ * same dates (scripts/seed.ts) gets the same schedule, and in code rather than
+ * a column on trips, so setting them needed no migration. A departure added
+ * later needs its line here, or it falls back to FALLBACK_OFFSET_DAYS.
+ *
+ * History: two payments at 60 and 30 days before the trip, then 70 and 40
+ * (29 September), then one at 37 (8 October, timed a week ahead of The Peaks'
+ * second room bill, 30 days before December and 31 before January). These
+ * dates put December's last payment after that bill and January's three days
+ * before it; Carter chose them knowing that.
+ *
+ * The Terms (5.0.0), the booking form and the pay page read this. The
+ * marketing pages and emails say "two payments before the trip" in words, so
+ * grep for that if the count changes.
+ */
+export const INSTALLMENT_DATES_BY_START: Readonly<Record<string, readonly string[]>> = {
+  // Telluride, December 14 to 18, 2026
+  "2026-12-14": ["2026-11-10", "2026-12-01"],
+  // Telluride, January 4 to 8, 2027
+  "2027-01-04": ["2026-11-20", "2026-12-01"],
+};
+
+// A trip with no dates above pays the balance in one payment this many days
+// before it starts, the rule in force from 8 to 13 October 2026.
+export const FALLBACK_OFFSET_DAYS = 37;
+
+/** The due dates (YYYY-MM-DD) set for a trip, before any is moved up for a late booking. */
+export function balanceDueDates(startDate: string): string[] {
+  const set = INSTALLMENT_DATES_BY_START[startDate];
+  if (set) return [...set];
+  // start_date is a bare YYYY-MM-DD, which Date parses as UTC midnight, so
+  // the subtraction has to be UTC too or a westward timezone lands a day out.
+  const date = new Date(startDate);
+  date.setUTCDate(date.getUTCDate() - FALLBACK_OFFSET_DAYS);
+  return [date.toISOString().slice(0, 10)];
+}
 
 /**
  * The due dates (YYYY-MM-DD) a booking made `now` on a trip starting
- * `startDate` gets, one per INSTALLMENT_OFFSETS_DAYS entry. scheduleInstallments
- * writes these and the checkout pages show them, so they always agree.
+ * `startDate` gets. scheduleInstallments writes these and the checkout pages
+ * show them, so they always agree.
  *
  * A date that is today or already past becomes tomorrow (UTC), and the cron
  * charges it on that day's run. Left in the past it would be charged on the
  * next run anyway, but every page that shows the schedule (the authorization
  * above the pay button, the confirmation, the bookings page) would print a
  * date that had already gone. `late` marks a date moved up that way, so
- * checkout can say why the balance comes off so soon.
+ * checkout can say why money comes off so soon.
+ *
+ * Two dates that land on the same day become one payment: a December booking
+ * made on 30 November owes its first payment tomorrow, which is 1 December,
+ * the day of the second; a January booking made in December owes both
+ * tomorrow. One charge for the lot, not two on the same card the same morning.
  */
 export function installmentDates(startDate: string, now = new Date()): { date: string; late: boolean }[] {
-  const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1))
-    .toISOString()
-    .slice(0, 10);
-  return INSTALLMENT_OFFSETS_DAYS.map((offsetDays) => {
-    // start_date is a bare YYYY-MM-DD, which Date parses as UTC midnight, so
-    // the subtraction has to be UTC too or a westward timezone lands a day out.
-    const date = new Date(startDate);
-    date.setUTCDate(date.getUTCDate() - offsetDays);
-    const due = date.toISOString().slice(0, 10);
-    return due < tomorrow ? { date: tomorrow, late: true } : { date: due, late: false };
-  });
+  const tomorrow = tomorrowUtc(now);
+  const dates: { date: string; late: boolean }[] = [];
+  for (const due of balanceDueDates(startDate)) {
+    const row = due < tomorrow ? { date: tomorrow, late: true } : { date: due, late: false };
+    const same = dates.find((d) => d.date === row.date);
+    if (same) same.late = same.late || row.late;
+    else dates.push(row);
+  }
+  return dates;
+}
+
+function tomorrowUtc(now: Date): string {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1)).toISOString().slice(0, 10);
+}
+
+/**
+ * Why money comes off sooner than the trip's set dates, for a booking made
+ * `now`, or null when it does not. Said beside the schedule on the booking
+ * form and the pay page, so nobody picks "$100 today" expecting the rest
+ * weeks away and finds it charged tomorrow.
+ */
+export function latePaymentNote(startDate: string, now = new Date()): string | null {
+  const set = balanceDueDates(startDate);
+  const tomorrow = tomorrowUtc(now);
+  const passed = set.filter((due) => due < tomorrow).length;
+  if (passed === 0) return null;
+  if (set.length === 1) {
+    return "The payment date for this trip has passed, so the rest comes off the day after you book.";
+  }
+  const which =
+    passed < set.length
+      ? "The first payment date for this trip has"
+      : set.length === 2
+        ? "Both payment dates for this trip have"
+        : "Every payment date for this trip has";
+  // Merged into one (installmentDates): on 30 November the moved-up December
+  // payment lands on 1 December with the second.
+  const what =
+    installmentDates(startDate, now).length === 1
+      ? "the rest comes off in one payment the day after you book"
+      : "that payment comes off the day after you book";
+  return `${which} passed, so ${what}.`;
+}
+
+/**
+ * Splits a balance into `n` even shares, the last absorbing any rounding
+ * remainder so they always sum exactly to the balance.
+ */
+export function splitBalance(remaining: number, n: number): number[] {
+  const base = Math.floor((remaining / n) * 100) / 100;
+  const amounts: number[] = Array(n).fill(base);
+  amounts[n - 1] = Math.round((remaining - base * (n - 1)) * 100) / 100;
+  return amounts;
+}
+
+/**
+ * The installments a booking made `now` gets for a balance of `remaining`:
+ * installmentDates' dates, splitBalance's amounts. What scheduleInstallments
+ * writes, and what checkout shows before the rows exist.
+ */
+export function installmentSchedule(
+  startDate: string,
+  remaining: number,
+  now = new Date(),
+): { date: string; late: boolean; amount: number }[] {
+  if (remaining <= 0) return [];
+  const dates = installmentDates(startDate, now);
+  const amounts = splitBalance(remaining, dates.length);
+  return dates.map((d, i) => ({ ...d, amount: amounts[i] }));
 }
 
 // Called once, right after the deposit's payment_intent.succeeded webhook
-// flips the booking pending -> deposit_paid (see lib/payments.ts). Splits
-// evenly with the last installment absorbing any rounding remainder so the
-// installments always sum exactly to the remaining balance.
+// flips the booking pending -> deposit_paid (see lib/payments.ts).
 export async function scheduleInstallments(
   admin: SupabaseClient<Database>,
   booking: { id: string; trip_id: string; total_amount: number; deposit_amount: number }
@@ -68,16 +155,11 @@ export async function scheduleInstallments(
   // A failed read is not a "no": the check after the insert still covers it.
   if (!trip || (current && current.status !== "deposit_paid")) return;
 
-  const n = INSTALLMENT_OFFSETS_DAYS.length;
-  const base = Math.floor((remaining / n) * 100) / 100;
-  const amounts = Array(n).fill(base);
-  amounts[n - 1] = Math.round((remaining - base * (n - 1)) * 100) / 100;
-
-  const rows = installmentDates(trip.start_date).map(({ date: scheduledDate }, i) => ({
+  const rows = installmentSchedule(trip.start_date, remaining).map(({ date, amount }) => ({
     booking_id: booking.id,
-    amount: amounts[i],
+    amount,
     status: "scheduled" as const,
-    scheduled_date: scheduledDate,
+    scheduled_date: date,
   }));
 
   const { data: inserted } = await admin.from("payments").insert(rows).select("id");

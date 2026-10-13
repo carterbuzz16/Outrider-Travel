@@ -70,11 +70,11 @@ export async function createBooking(formData: FormData) {
   // picked, and only if it is one of the two. Every figure is worked out below
   // from the tier row. A form rendered before this field existed sends nothing,
   // which means the deposit, the only plan there was.
-  const requestedPlan = String(formData.get("payment_plan") ?? "deposit");
-  if (!isPaymentPlan(requestedPlan)) {
+  const postedPlan = String(formData.get("payment_plan") ?? "deposit");
+  if (!isPaymentPlan(postedPlan)) {
     checkoutError("invalid_plan", back);
   }
-  const plan: PaymentPlan = requestedPlan;
+  const requestedPlan: PaymentPlan = postedPlan;
 
   const supabase = await createClient();
   const {
@@ -161,9 +161,10 @@ export async function createBooking(formData: FormData) {
    * share of what they paid that the Terms treat as the non-refundable
    * deposit. Nothing is scheduled against it.
    *
-   * A discount code comes off after that, so the two stack, and the deposit
-   * is the deposit percentage of what is left. The code is claimed on the
-   * booking further down, once the booking exists; this read only prices it.
+   * A discount code comes off after that, so the two stack. The deposit is
+   * the flat DEPOSIT_AMOUNT whatever the code, so a code comes off the
+   * balance. The code is claimed on the booking further down, once the
+   * booking exists; this read only prices it.
    */
   // Booking/payment writes use the service role: RLS intentionally has no
   // INSERT policy for these tables (see the booking_checkout_rls_policies
@@ -228,9 +229,13 @@ export async function createBooking(formData: FormData) {
   discount = applied.code;
   const claimCode = discount > 0 || creditsOnly ? discountCode : null;
 
-  const listTotal = plan === "full" ? computePayInFullAmount(tier.price) : tier.price;
+  const listTotal = requestedPlan === "full" ? computePayInFullAmount(tier.price) : tier.price;
   const totalAmount = applyDiscount(listTotal, discount + credit);
   const depositAmount = computeDepositAmount(totalAmount);
+  // A code that leaves no more than the $100 deposit to pay makes the deposit
+  // the whole price, with nothing to schedule after it, and the booking would
+  // sit at deposit_paid owing nothing. That checkout is a payment in full.
+  const plan: PaymentPlan = requestedPlan === "deposit" && depositAmount >= totalAmount ? "full" : requestedPlan;
   const chargeAmount = plan === "full" ? totalAmount : depositAmount;
   const chargeCents = Math.round(chargeAmount * 100);
 
@@ -475,6 +480,21 @@ export async function createBooking(formData: FormData) {
    * needed, since a real amount is being charged right now (a SetupIntent is
    * for saving a card with no charge). A payment in full has no later
    * charges, so its card is not kept.
+   *
+   * Which payment methods each plan offers (13 October 2026):
+   *
+   *   - The deposit plan is card only, named explicitly. With automatic
+   *     payment methods, Stripe offers everything turned on in the Dashboard
+   *     that can be saved for later, which includes Klarna, Cash App Pay,
+   *     Amazon Pay and Link, and the cron would then charge the installments
+   *     to whichever was saved. Apple Pay and Google Pay are cards, so they
+   *     still show.
+   *   - Paying in full keeps automatic payment methods, so whatever the
+   *     Dashboard has on appears, Klarna included. Klarna is a one-time
+   *     payment here: Klarna pays Outrider the whole amount and collects from
+   *     the traveler itself. Turning a method on or off in the Dashboard is
+   *     all it takes to change this list. Paying off a deposit booking's whole
+   *     balance later gets the same list (startBalancePayment).
    */
   let paymentIntent: Stripe.PaymentIntent | undefined;
   try {
@@ -493,8 +513,9 @@ export async function createBooking(formData: FormData) {
         amount: chargeCents,
         currency: "usd",
         customer: stripeCustomerId,
-        ...(plan === "deposit" ? { setup_future_usage: "off_session" as const } : {}),
-        automatic_payment_methods: { enabled: true },
+        ...(plan === "deposit"
+          ? { setup_future_usage: "off_session" as const, payment_method_types: ["card"] }
+          : { automatic_payment_methods: { enabled: true } }),
         // discountCode is for anyone reading the payment in the Stripe
         // dashboard; nothing in the app reads it back.
         metadata: {
@@ -839,6 +860,15 @@ export async function startBalancePayment(formData: FormData) {
     // routes the webhook to settleBalancePayment, and bookingStatus is read by
     // lib/overpayment.ts (see createBooking).
     //
+    // Paying off everything still owed is one payment that ends the plan, so
+    // it gets the same payment methods as paying in full at booking: automatic,
+    // so Klarna shows (Carter, 13 October 2026: "$100 down, then Klarna for the
+    // rest"). Klarna pays Outrider the whole balance at once, and the
+    // installments it covers are cancelled by reconcileInstallments like any
+    // early payment's. Any smaller amount is card only, like the deposit and
+    // the installments: Klarna never pays part of a balance that a scheduled
+    // card charge then finishes.
+    //
     // The idempotency key catches two submits that both got past the reuse
     // check above because neither had written its row yet: for the same
     // booking and amount within the same couple of minutes, Stripe hands both
@@ -849,7 +879,7 @@ export async function startBalancePayment(formData: FormData) {
         amount: cents,
         currency: "usd",
         customer: stripeCustomerId,
-        automatic_payment_methods: { enabled: true },
+        ...(cents === owed ? { automatic_payment_methods: { enabled: true } } : { payment_method_types: ["card"] }),
         metadata: { bookingId: booking.id, userId: user.id, kind: "balance", bookingStatus: booking.status },
       },
       { idempotencyKey: `balance-${booking.id}-${cents}-${Math.floor(Date.now() / BALANCE_IDEMPOTENCY_BUCKET_MS)}` },

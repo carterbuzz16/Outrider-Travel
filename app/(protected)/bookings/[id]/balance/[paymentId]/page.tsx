@@ -8,6 +8,7 @@ import { formatAmount, fromCents, owedCents, toCents } from "@/lib/balance";
 import { formatDay } from "@/app/(protected)/dates";
 import { formatDateRange } from "@/lib/trips";
 import CheckoutForm from "@/components/CheckoutForm";
+import { klarnaPhrase } from "@/lib/deposit";
 
 /**
  * The card screen for an early payment toward a booking's balance.
@@ -185,8 +186,11 @@ export default async function BalancePaymentPage(props: {
                   Payment
                 </h2>
                 <p className="mt-3 max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
-                  Use any card. This payment does not change the card your scheduled payments come
-                  from.
+                  {/* Paying off the whole balance is the one early payment that
+                      offers Klarna (startBalancePayment); anything less is card only. */}
+                  {owedAfter === 0
+                    ? `Pay by card, or ${klarnaPhrase(amount)}.`
+                    : "Use any card. This payment does not change the card your scheduled payments come from."}
                 </p>
 
                 <CheckoutForm
@@ -195,6 +199,7 @@ export default async function BalancePaymentPage(props: {
                   amountLabel={formatAmount(amount)}
                   submitLabel={`Pay ${formatAmount(amount)}`}
                   returnPath={`/bookings/${params.id}/balance/${payment.id}?paid=1`}
+                  cardOnly={owedAfter > 0}
                 />
               </section>
             )}

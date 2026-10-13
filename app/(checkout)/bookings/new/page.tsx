@@ -9,7 +9,8 @@ import {
   applyDiscount,
   computeDepositAmount,
   computePayInFullAmount,
-  DEPOSIT_PERCENTAGE,
+  holdSpotLine,
+  klarnaPhrase,
   payInFullSaving,
 } from "@/lib/deposit";
 import { discountCodeAmount, normalizeDiscountCode } from "@/lib/discount-codes";
@@ -24,7 +25,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatAmount } from "@/lib/balance";
-import { INSTALLMENT_OFFSETS_DAYS, installmentDates } from "@/lib/installments";
+import { installmentSchedule, latePaymentNote } from "@/lib/installments";
 import { formatDay } from "@/app/(protected)/dates";
 import { countPenthouses, getRoomMedia, tierDisplayName, tierGrouping } from "@/lib/room-media";
 import { CONTACT } from "@/lib/site-content";
@@ -343,6 +344,9 @@ function Packages({
     const full = applyDiscount(computePayInFullAmount(tier.price), off);
     const deposit = computeDepositAmount(price);
     const saving = payInFullSaving(tier.price);
+    // The same split and dates scheduleInstallments will write once the
+    // deposit clears, so the form names the payments the card will see.
+    const schedule = installmentSchedule(trip.startDate, Math.round((price - deposit) * 100) / 100);
     return {
       id: tier.id,
       name: tier.name,
@@ -360,6 +364,11 @@ function Packages({
       depositLabel: formatAmount(deposit),
       fullLabel: formatAmount(full),
       balanceLabel: formatAmount(Math.round((price - deposit) * 100) / 100),
+      scheduleLabel: schedule.map((row) => `${formatAmount(row.amount)} on ${formatDay(row.date)}`).join(" and "),
+      // Nothing to split when a code leaves no more than the deposit, and
+      // createBooking takes that checkout as a payment in full.
+      holdLine: schedule.length > 0 ? holdSpotLine(schedule.length, full) : null,
+      klarnaLabel: klarnaPhrase(full),
       savingLabel: saving > 0 ? formatAmount(saving) : null,
       codeLabel: here.code > 0 ? formatAmount(here.code) : null,
       // Nothing to pay on either plan: createBooking makes no card form.
@@ -402,8 +411,7 @@ function Packages({
       tripId={trip.id}
       tiers={tiers}
       initialTierId={initial.id}
-      depositPercent={Math.round(DEPOSIT_PERCENTAGE * 100)}
-      balanceWhen={balanceWhen(trip.startDate)}
+      lateNote={latePaymentNote(trip.startDate)}
       contactEmail={CONTACT.email}
       initialGroupCode={groupCode}
       discount={discount && (applied.code > 0 || ended) ? { code: discount.code, ended } : null}
@@ -544,20 +552,4 @@ function OpensSoon({ badLink = false }: { badLink?: boolean }) {
       </div>
     </div>
   );
-}
-
-/**
- * When the balance comes off the card on the deposit plan, finishing "The
- * other $X comes off your card ...". Inside the balance window the date is the
- * next day (installmentDates), and the deposit option says why, so nobody
- * picks "10% today" expecting the rest weeks from now.
- */
-function balanceWhen(startDate: string): string {
-  const dates = installmentDates(startDate);
-  // The dates carry their own commas, so more than one would be split with
-  // semicolons, as AuthorizeCharge does.
-  const on = `on ${dates.map((d) => formatDay(d.date)).join("; ")}`;
-  return dates.some((d) => d.late)
-    ? `${on}, because the trip is less than ${INSTALLMENT_OFFSETS_DAYS[0]} days away`
-    : on;
 }

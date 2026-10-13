@@ -3,8 +3,8 @@ import { pageMetadata } from "@/lib/metadata";
 import Link from "next/link";
 import { TERMS } from "@/lib/legal";
 import { CONTACT, LEGAL_NAME } from "@/lib/site-content";
-import { DEPOSIT_PERCENTAGE, PAY_IN_FULL_DISCOUNT } from "@/lib/deposit";
-import { BALANCE_PAYMENT_HOLD_HOURS, INSTALLMENT_OFFSETS_DAYS } from "@/lib/installments";
+import { DEPOSIT_AMOUNT, PAY_IN_FULL_DISCOUNT } from "@/lib/deposit";
+import { BALANCE_PAYMENT_HOLD_HOURS, FALLBACK_OFFSET_DAYS, INSTALLMENT_DATES_BY_START } from "@/lib/installments";
 import { MAX_INSTALLMENT_ATTEMPTS, INSTALLMENT_RETRY_AFTER_DAYS } from "@/lib/payments";
 import { MIN_BALANCE_PAYMENT, formatAmount } from "@/lib/balance";
 import { PENTHOUSE_DISCLAIMER } from "@/lib/penthouse";
@@ -14,7 +14,7 @@ import LegalDocument, { LegalList, LegalSection } from "../legal/LegalDocument";
  * Terms of Service.
  *
  * The payment mechanics described here are not invented: the deposit
- * percentage, the pay-in-full discount, the installment schedule, the early
+ * amount, the pay-in-full discount, the installment dates, the early
  * payment minimum, the retry rules and the SCA behavior are all imported from
  * or read directly out of lib/deposit.ts, lib/balance.ts, lib/installments.ts,
  * lib/payments.ts, app/(protected)/bookings/actions.ts and
@@ -34,10 +34,19 @@ export const metadata: Metadata = pageMetadata({
   description: TERMS.description,
 });
 
-const depositPercent = Math.round(DEPOSIT_PERCENTAGE * 100);
-// One scheduled payment since 4.0.0 (lib/installments.ts). Section 5 is
-// written for one; a schedule of more than one needs that section rewritten.
-const [balanceOffset] = INSTALLMENT_OFFSETS_DAYS;
+const deposit = formatAmount(DEPOSIT_AMOUNT);
+// Two installments on fixed dates per departure since 5.0.0
+// (lib/installments.ts), listed in section 5 straight from that table, so a
+// departure added there is listed here too. Section 5 is written for two; a
+// departure with a different count needs that section reread.
+const departureSchedules = Object.entries(INSTALLMENT_DATES_BY_START).sort(([a], [b]) => a.localeCompare(b));
+const longDate = (iso: string) =>
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 // Zero switches the discount off (lib/deposit.ts), and then the Terms must not
 // promise one: every sentence that mentions it is conditional on this.
 const payInFullDiscount = PAY_IN_FULL_DISCOUNT > 0 ? formatAmount(PAY_IN_FULL_DISCOUNT) : null;
@@ -139,17 +148,21 @@ export default function TermsPage() {
 
         <h3>The deposit</h3>
         <p>
-          The deposit is <strong>{depositPercent}% of the tier price</strong>,
-          rounded to the cent, and is charged at the time of booking. Once it is
-          captured, the booking moves to <strong>deposit paid</strong>, your
-          spot is confirmed, and the balance is scheduled as one installment
-          (see section {sectionIndex("payment-plan")}). The deposit is
-          non-refundable, as set out in section {sectionIndex("cancellation")}.
+          The deposit is <strong>{deposit}</strong>, whatever the tier and
+          whatever discount code you use, and is charged at the time of booking.
+          A discount comes off the balance, not the deposit. If the price after
+          a discount is {deposit} or less, the whole of it is charged at booking
+          as a payment in full. Once the deposit is captured, the booking moves
+          to <strong>deposit paid</strong>, your spot is confirmed, and the
+          balance is scheduled as two installments (see section{" "}
+          {sectionIndex("payment-plan")}). Deposits are non-refundable, as set
+          out in section {sectionIndex("cancellation")}.
         </p>
         <p>
-          The card you use to pay the deposit is saved with our payment
-          processor and set as the card your installment is charged to.
-          You can tell us to use a different card by contacting {CONTACT.email}.
+          The deposit is paid by card. The card you use is saved with our
+          payment processor and set as the card your installments are charged
+          to. You can tell us to use a different card by contacting{" "}
+          {CONTACT.email}.
         </p>
 
         <h3>Paying in full at booking</h3>
@@ -178,9 +191,23 @@ export default function TermsPage() {
           for future charges.
         </p>
         <p>
+          You can pay in full by card or, where it is offered, with{" "}
+          <strong>Klarna</strong>. Klarna is for one payment that clears the
+          whole price: paying in full at booking, or paying off everything
+          still owed after the deposit (see section{" "}
+          {sectionIndex("payment-plan")}). It is not available for the deposit,
+          an installment, or an early payment of less than everything owed. If
+          you choose Klarna, Klarna pays us that amount at once, and you repay
+          Klarna on the terms you agree with Klarna,
+          which are between you and Klarna. Klarna decides whether to approve
+          you and which of its plans to offer. Paying with Klarna does not
+          change the price, and a refund under section{" "}
+          {sectionIndex("cancellation")} on a Klarna payment is made back
+          through Klarna.
+        </p>
+        <p>
           <strong>
-            {depositPercent}% of the total price you pay is treated as the
-            deposit
+            {deposit} of the total price you pay is treated as the deposit
           </strong>
           , exactly as if you had paid the deposit and the balance separately,
           and is non-refundable in the same way. The rest of what you paid is
@@ -204,33 +231,56 @@ export default function TermsPage() {
       </LegalSection>
 
       <LegalSection doc={TERMS} id="payment-plan">
+        <p>
+          <strong>
+            Deposits are non-refundable. If an installment is missed, your spot
+            may be released.
+          </strong>{" "}
+          Sections {sectionIndex("failed-payments")} and{" "}
+          {sectionIndex("cancellation")} say how.
+        </p>
+
         <h3>How the balance is collected</h3>
         <p>
-          The balance of the tier price after the deposit is collected in{" "}
-          <strong>
-            one installment, due {balanceOffset} days before the trip starts
-          </strong>
-          . It is the whole of the balance, less anything you have paid ahead
-          (see below).
+          The balance is the price of your booking, after any discount code,
+          less the deposit. It is collected in{" "}
+          <strong>two equal installments, on fixed dates set for each departure</strong>
+          , with any odd cent added to the second:
         </p>
+        <LegalList
+          items={[
+            ...departureSchedules.map(([start, dates]) => (
+              <>
+                For the trip starting {longDate(start)}:{" "}
+                <strong>{dates.map(longDate).join(" and ")}</strong>.
+              </>
+            )),
+            <>
+              For any other trip: one installment of the whole balance,{" "}
+              {FALLBACK_OFFSET_DAYS} days before the trip starts, unless its
+              payment page shows other dates.
+            </>,
+          ]}
+        />
         <p>
-          The date is anchored to the trip, not to the day you booked. If you
-          book {balanceOffset} days or fewer before departure, that date has
-          already passed, and the installment is due{" "}
-          <strong>the day after you book</strong> instead. Booking close to
-          departure therefore means paying the whole price within a day or so.
-          The payment page shows the date before you pay.
+          The dates are anchored to the trip, not to the day you booked. If you
+          book after one of them has passed, that installment is due{" "}
+          <strong>the day after you book</strong> instead. If both have passed,
+          the whole balance is due the day after you book, as one installment.
+          Each installment is what is left of it after anything you have paid
+          ahead (see below). The payment page shows the dates and amounts before
+          you pay.
         </p>
 
         <h3>Automatic charges</h3>
         <p>
           <strong>
-            The installment is charged automatically, without further action
+            The installments are charged automatically, without further action
             from you, to the card saved when you paid your deposit.
           </strong>{" "}
           A job runs once a day, finds installments that are due, and charges
           them off-session, that is, with no checkout page and nobody present.
-          You will get an email when yours is charged, showing the amount and
+          You will get an email when each one is charged, showing the amount and
           the remaining balance. You will not be asked to approve the charge,
           which is the whole point of the plan: you authorized it when you
           paid the deposit (see section{" "}
@@ -250,17 +300,18 @@ export default function TermsPage() {
           from <strong>{minimumEarlyPayment}</strong> up to what you owe (if you
           owe less than {minimumEarlyPayment}, the whole of it). You cannot pay
           more than you owe. An early payment is charged to whichever card you
-          enter at the time, and that card is not saved for later charges.
+          enter at the time, and that card is not saved for later charges. An
+          early payment of everything still owed can instead be made with
+          Klarna, on the terms in section {sectionIndex("booking-and-deposit")}.
         </p>
         <p>
           <strong>
-            An early payment reduces your scheduled installment.
+            An early payment reduces your scheduled installments.
           </strong>{" "}
-          Once it goes through, it comes off the installment: if it covers the
-          installment completely, the installment is cancelled, and if it
-          covers only part, the installment is reduced by that amount and is
-          still charged on its original date, automatically, to the card saved
-          with your deposit. An early payment also covers an installment that
+          Once it goes through, it comes off the earliest installment first: an
+          installment it covers completely is cancelled, and one it covers only
+          in part is reduced by that amount and is still charged on its
+          original date, automatically, to the card saved with your deposit. An early payment also covers an installment that
           has been declined or is waiting for bank verification. When nothing is left to
           pay, the booking moves to <strong>paid in full</strong>.
         </p>
@@ -402,8 +453,8 @@ export default function TermsPage() {
           made.
         </p>
         <p>
-          The same applies if you paid in full at booking: {depositPercent}% of
-          the total price you paid is the deposit, and that part is
+          The same applies if you paid in full at booking: {deposit} of the
+          total price you paid is the deposit, and that part is
           non-refundable under all circumstances once paid (see section{" "}
           {sectionIndex("booking-and-deposit")}).
         </p>
@@ -481,7 +532,8 @@ export default function TermsPage() {
 
         <h3>3. Missed installment payments</h3>
         <p>
-          If a scheduled installment is missed and not resolved within{" "}
+          If an installment is missed, your spot may be released. If a
+          scheduled installment is missed and not resolved within{" "}
           <strong>10 days</strong>, the booking is treated as{" "}
           <strong>cancelled by you</strong>, and the refund schedule above
           applies based on the date of that cancellation.

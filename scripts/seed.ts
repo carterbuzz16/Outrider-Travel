@@ -21,6 +21,61 @@ const trips: {
   status: Database["public"]["Enums"]["trip_status"];
   tiers: { name: string; price: number; max_capacity: number; description: string; inclusions: string[] }[];
 }[] = [
+  // Stand-ins for the two Telluride departures: the same start dates, so they
+  // get the real installment dates (INSTALLMENT_DATES_BY_START in
+  // lib/installments.ts is keyed on start date), and the same prices, so
+  // Klarna's Pay in 4 cap falls between the same packages. Booking these
+  // instead of the real trips keeps test bookings from holding real beds,
+  // since the sandbox and the live site share one database. The destination
+  // is not Telluride, so /telluride does not list them beside the real ones.
+  {
+    name: `${SEED_PREFIX}Telluride December test`,
+    destination: "Seed Mountain, Colorado",
+    start_date: "2026-12-14",
+    end_date: "2026-12-18",
+    description: "Test copy of the December Telluride departure, for checkout testing.",
+    status: "published",
+    tiers: [
+      {
+        name: "BASE",
+        price: 1600,
+        max_capacity: 20,
+        description: "Four to a room.",
+        inclusions: ["Lodging", "Lift tickets", "Rentals"],
+      },
+      {
+        name: "MID",
+        price: 2299,
+        max_capacity: 20,
+        description: "Two to a room.",
+        inclusions: ["Lodging", "Lift tickets", "Rentals"],
+      },
+    ],
+  },
+  {
+    name: `${SEED_PREFIX}Telluride January test`,
+    destination: "Seed Mountain, Colorado",
+    start_date: "2027-01-04",
+    end_date: "2027-01-08",
+    description: "Test copy of the January Telluride departure, for checkout testing.",
+    status: "published",
+    tiers: [
+      {
+        name: "BASE",
+        price: 1800,
+        max_capacity: 20,
+        description: "Four to a room.",
+        inclusions: ["Lodging", "Lift tickets", "Rentals"],
+      },
+      {
+        name: "MID",
+        price: 2600,
+        max_capacity: 20,
+        description: "Two to a room.",
+        inclusions: ["Lodging", "Lift tickets", "Rentals"],
+      },
+    ],
+  },
   {
     name: `${SEED_PREFIX}Patagonia Trekking Expedition`,
     destination: "Torres del Paine, Chile",

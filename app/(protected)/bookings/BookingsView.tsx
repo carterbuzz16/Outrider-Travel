@@ -423,8 +423,8 @@ function EmptyState({ canBook }: { canBook: boolean }) {
       <p className="stamp-type text-[--text-muted]">Nothing booked yet</p>
       <h2 className="t-subheading max-w-[20ch] text-[--text]">No trips here yet</h2>
       <p className="max-w-measure-tight font-body text-body leading-[1.7] text-[--text-secondary]">
-        Telluride is open for December and January. Put down 10% to hold your spot and pay the
-        rest 37 days before the trip.
+        Telluride is open for December and January. $100 holds your spot, and the rest is split
+        into two payments before the trip.
       </p>
       {/* During the list's head start the public trip pages still say
           "coming soon", so a list member goes straight to the booking page. */}

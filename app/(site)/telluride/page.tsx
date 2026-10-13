@@ -49,7 +49,8 @@ import {
   type PublicTrip,
 } from "@/lib/trips";
 import { getRoomMedia, isTaken, tierDisplayName, type RoomMedia } from "@/lib/room-media";
-import { PAY_IN_FULL_DISCOUNT, computeDepositAmount } from "@/lib/deposit";
+import { DEPOSIT_AMOUNT, KLARNA_PAY_IN_4_MAX, PAY_IN_FULL_DISCOUNT, holdSpotLine } from "@/lib/deposit";
+import { balanceDueDates, latePaymentNote } from "@/lib/installments";
 import { formatAmount } from "@/lib/balance";
 import { flightTimesPublished } from "@/lib/trip-logistics";
 
@@ -138,13 +139,42 @@ const TOWN_IMAGE = {
 };
 
 /**
- * The smallest deposit on offer across these departures: 10% of the cheapest
- * package (computeDepositAmount), in dollars, so the page says "$160" rather
- * than a percentage someone has to work out.
+ * The close's line about paying (holdSpotLine, lib/deposit.ts), worded for the
+ * cheapest open package, the one the masthead's "From" price names, so its
+ * Klarna words match that price: Four to a Room is under Klarna's Pay in 4
+ * cap, and the bigger rooms are not. Checkout says it per package.
  */
-function depositFrom(trips: PublicTrip[]): string {
+function holdLineFor(trips: PublicTrip[]): string {
   const cheapest = Math.min(...trips.map((trip) => trip.priceFrom).filter((p) => p > 0));
-  return Number.isFinite(cheapest) ? formatAmount(computeDepositAmount(cheapest)) : "a 10% deposit";
+  const payments = Math.min(...trips.map((trip) => balanceDueDates(trip.startDate).length));
+  return holdSpotLine(payments, cheapest);
+}
+
+/**
+ * "The rest doesn’t come out until November." Said under the $100 in the
+ * masthead, and only while it is true of every open departure: none has a
+ * payment date already passed (latePaymentNote), and their first payments fall
+ * in one month that has not started yet. With a single departure left it names
+ * the day. Otherwise it is left out rather than said wrong; the page is
+ * regenerated every few minutes, so it drops off on its own.
+ */
+function restNotUntil(trips: PublicTrip[], now = new Date()): string | null {
+  if (trips.length === 0 || trips.some((trip) => latePaymentNote(trip.startDate, now))) return null;
+  const firsts = trips.map((trip) => balanceDueDates(trip.startDate)[0]).sort();
+  const month = (iso: string) =>
+    new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
+  if (new Set(firsts.map((d) => d.slice(0, 7))).size === 1 && firsts[0].slice(0, 7) > now.toISOString().slice(0, 7)) {
+    return `The rest doesn’t come out until ${month(firsts[0])}.`;
+  }
+  if (trips.length === 1) {
+    const day = new Date(`${firsts[0]}T00:00:00Z`).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    });
+    return `The rest doesn’t come out until ${day}.`;
+  }
+  return null;
 }
 
 function isTelluride(trip: PublicTrip): boolean {
@@ -257,6 +287,7 @@ export default async function TelluridePage() {
   const packages = TRIP_DETAILS_OPEN ? packageOptions(trips) : [];
   const priceFrom = Math.min(...openTrips.map((trip) => trip.priceFrom).filter((p) => p > 0));
   const datesLine = orList((openTrips.length > 0 ? openTrips : trips).map(shortRange));
+  const restLine = bookable ? restNotUntil(openTrips) : null;
   const nightsLabel = nights !== null ? `${spelled(nights)} nights` : "Every night";
 
   // In page order: the trip first, then the week, then the place.
@@ -340,7 +371,36 @@ export default async function TelluridePage() {
           {/* data-offer-after: the $100 sheet opens once this block, the price
               and Reserve, has scrolled off the top (components/WelcomeCredit). */}
           <div data-offer-after className="flex flex-col">
-            {TRIP_DETAILS_OPEN && Number.isFinite(priceFrom) && (
+            {/* $100 down is the big number while booking is open (Carter, 13
+                October 2026: "the big thing needs to be people knowing it's
+                only $100 down"). The trip price stays right beside it, never
+                behind a click: a deposit shown without the total is what the
+                FTC's fee rule for lodging targets, and checkout shows the total
+                on its first screen anyway. */}
+            {TRIP_DETAILS_OPEN && Number.isFinite(priceFrom) && bookable && (
+              <div className="flex flex-col">
+                <div className="flex items-end justify-between gap-6">
+                  <p className="m-0 flex flex-col">
+                    <span className="t-micro text-[--text-secondary]">To hold your spot</span>
+                    <span className="mt-1 flex items-baseline gap-2">
+                      <span className="font-display text-display-m font-extrabold leading-none tracking-title text-[--text]">
+                        {formatAmount(DEPOSIT_AMOUNT)}
+                      </span>
+                      <span className="font-body text-body text-[--text]">down</span>
+                    </span>
+                  </p>
+                  <p className="m-0 text-right font-body text-body-s leading-[1.45] text-[--text]">
+                    Trip from {formatPrice(priceFrom)}
+                    <br />
+                    <span className="text-[--text-secondary]">per person</span>
+                  </p>
+                </div>
+                {restLine && (
+                  <p className="m-0 mt-3 font-body text-body-s leading-[1.5] text-[--text-secondary]">{restLine}</p>
+                )}
+              </div>
+            )}
+            {TRIP_DETAILS_OPEN && Number.isFinite(priceFrom) && !bookable && (
               <div className="flex items-end justify-between gap-6">
                 <p className="m-0 flex flex-col">
                   <span className="t-micro text-[--text-secondary]">From</span>
@@ -351,13 +411,6 @@ export default async function TelluridePage() {
                     <span className="font-body text-body-s text-[--text-secondary]">per person</span>
                   </span>
                 </p>
-                {bookable && (
-                  <p className="m-0 text-right font-body text-body-s leading-[1.45] text-[--text-secondary]">
-                    Hold your spot
-                    <br />
-                    with {depositFrom(openTrips)}
-                  </p>
-                )}
               </div>
             )}
 
@@ -368,7 +421,7 @@ export default async function TelluridePage() {
             <div data-reserve-bar-hide className="mt-5 flex flex-col gap-4">
               {bookable ? (
                 <Button href="/bookings/new" variant="primary" size="lg" block>
-                  Reserve your spot
+                  Reserve for {formatAmount(DEPOSIT_AMOUNT)}
                 </Button>
               ) : !BOOKINGS_OPEN && TRIP_DETAILS_OPEN ? (
                 // Paying is list-only: the emailed link is the way in.
@@ -793,9 +846,7 @@ export default async function TelluridePage() {
             <Reveal delay={90}>
               <p className="t-lede text-[--text-secondary]">
                 {openTrips.length > 0
-                  ? `Hold your spot for ${depositFrom(openTrips)} and pay the rest 37 days before the trip${
-                      PAY_IN_FULL_DISCOUNT > 0 ? `, or pay it all now and take $${PAY_IN_FULL_DISCOUNT} off` : ""
-                    }. Each of you books your own.`
+                  ? `${holdLineFor(openTrips)} Each of you books your own.`
                   : "Tell us you want in. If a spot opens up or the next trip goes live, you'll hear first."}
               </p>
             </Reveal>
@@ -837,7 +888,13 @@ export default async function TelluridePage() {
   return (
     <WelcomeCreditProvider bookHref="/bookings/new">
       {page}
-      <MobileReserveBar href="/bookings/new" place="Telluride" dates={datesLine} fromStart />
+      <MobileReserveBar
+        href="/bookings/new"
+        place="Telluride"
+        dates={datesLine}
+        label={`Reserve for ${formatAmount(DEPOSIT_AMOUNT)}`}
+        fromStart
+      />
     </WelcomeCreditProvider>
   );
 }
@@ -961,7 +1018,7 @@ function RoomCard({ option, tripCount }: { option: PackageOption; tripCount: num
           <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
             {BOOKINGS_OPEN && open.length > 0 ? (
               <Button href={href} variant="primary" size="md">
-                Reserve
+                Reserve for {formatAmount(DEPOSIT_AMOUNT)}
               </Button>
             ) : !BOOKINGS_OPEN ? (
               // No Reserve while paying is list-only; this is the way in.
@@ -1086,9 +1143,13 @@ const ANSWERS: { q: string; a: React.ReactNode }[] = [
     q: "How does paying work?",
     a: (
       <>
-        Put down 10% to hold your spot and pay the rest 37 days before the trip
-        {PAY_IN_FULL_DISCOUNT > 0 && `, or pay it all now and take $${PAY_IN_FULL_DISCOUNT} off`}. Each
-        of you books your own, so nobody fronts money for friends. The detail is in{" "}
+        {formatAmount(DEPOSIT_AMOUNT)} holds your spot. The rest is split into two payments before
+        the trip, off the same card, or pay it off with Klarna from your bookings page. Or pay it
+        all now
+        {PAY_IN_FULL_DISCOUNT > 0 && ` and take $${PAY_IN_FULL_DISCOUNT} off`}, by card or with Klarna.
+        Klarna splits it into 4 on packages up to {formatAmount(KLARNA_PAY_IN_4_MAX)} and over time
+        above that. Each of you books your own, so nobody fronts money for friends. Deposits are
+        non-refundable. If an installment is missed, your spot may be released. The detail is in{" "}
         <Link href="/terms#payment-plan" className={LINK}>
           the Terms
         </Link>

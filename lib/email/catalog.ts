@@ -78,7 +78,7 @@ const SAMPLE_TRIP = {
   logistics: null,
 };
 
-// "Two to a Room" at $2,299: a 10% deposit today, the rest 37 days before the trip.
+// "Two to a Room" at $2,299: the $100 deposit today, then two payments of $1,099.50.
 const SAMPLE_BOOKING: BookingForEmail = {
   id: SAMPLE_BOOKING_ID,
   user_id: "sample-user",
@@ -95,8 +95,9 @@ const SAMPLE_BOOKING: BookingForEmail = {
   trips: SAMPLE_TRIP,
   tiers: { name: "MID" },
   payments: [
-    { status: "succeeded", amount: 229.9, scheduled_date: null },
-    { status: "scheduled", amount: 2069.1, scheduled_date: "2026-11-07" },
+    { status: "succeeded", amount: 100, scheduled_date: null },
+    { status: "scheduled", amount: 1099.5, scheduled_date: "2026-11-10" },
+    { status: "scheduled", amount: 1099.5, scheduled_date: "2026-12-01" },
   ],
 };
 
@@ -325,13 +326,13 @@ export function emailCatalog(): EmailEntry[] {
       trigger: "When a scheduled installment is charged and clears. One per payment.",
       recipient: TRAVELER,
       sandbox: CRON_ONLY_13,
-      notes: ["Sample: the $2,069.10 balance installment, nothing left."],
+      notes: ["Sample: the second $1,099.50 installment, nothing left."],
       render: () =>
         renderInstallmentChargedEmail({
           name: SAMPLE_NAME,
           bookingId: SAMPLE_BOOKING_ID,
           tripName: SAMPLE_TRIP.name,
-          amount: 2069.1,
+          amount: 1099.5,
           remainingBalance: 0,
         }),
     },
@@ -343,14 +344,14 @@ export function emailCatalog(): EmailEntry[] {
         "When a traveler pays some or all of their balance early from their bookings page (Pay ahead) and it clears. One per payment.",
       recipient: TRAVELER,
       sandbox: "On a sandbox booking, open Bookings, choose Pay ahead and pay with 4242 4242 4242 4242.",
-      notes: ["Sample: $500 paid ahead, $1,569.10 left."],
+      notes: ["Sample: $500 paid ahead, $1,699 left."],
       render: () =>
         renderInstallmentChargedEmail({
           name: SAMPLE_NAME,
           bookingId: SAMPLE_BOOKING_ID,
           tripName: SAMPLE_TRIP.name,
           amount: 500,
-          remainingBalance: 1569.1,
+          remainingBalance: 1699,
           kind: "balance",
         }),
     },
@@ -366,7 +367,7 @@ export function emailCatalog(): EmailEntry[] {
           name: SAMPLE_NAME,
           bookingId: SAMPLE_BOOKING_ID,
           tripName: SAMPLE_TRIP.name,
-          amount: 2069.1,
+          amount: 1099.5,
           willRetry: true,
         }),
     },
@@ -383,7 +384,7 @@ export function emailCatalog(): EmailEntry[] {
           name: SAMPLE_NAME,
           bookingId: SAMPLE_BOOKING_ID,
           tripName: SAMPLE_TRIP.name,
-          amount: 2069.1,
+          amount: 1099.5,
           willRetry: false,
         }),
     },
@@ -401,7 +402,7 @@ export function emailCatalog(): EmailEntry[] {
           bookingId: SAMPLE_BOOKING_ID,
           paymentId: SAMPLE_PAYMENT_ID,
           tripName: SAMPLE_TRIP.name,
-          amount: 2069.1,
+          amount: 1099.5,
         }),
     },
 
@@ -434,7 +435,7 @@ export function emailCatalog(): EmailEntry[] {
           name: SAMPLE_NAME,
           bookingId: SAMPLE_BOOKING_ID,
           tripName: SAMPLE_TRIP.name,
-          amount: 2069.1,
+          amount: 1099.5,
           reason: "cancelled",
         }),
     },
@@ -452,7 +453,7 @@ export function emailCatalog(): EmailEntry[] {
           name: SAMPLE_NAME,
           tripId: SAMPLE_TRIP_ID,
           tripName: SAMPLE_TRIP.name,
-          amount: 229.9,
+          amount: 100,
           reason: "full",
         }),
     },
@@ -469,7 +470,7 @@ export function emailCatalog(): EmailEntry[] {
           name: SAMPLE_NAME,
           tripId: SAMPLE_TRIP_ID,
           tripName: SAMPLE_TRIP.name,
-          amount: 229.9,
+          amount: 100,
           reason: "claimed",
         }),
     },

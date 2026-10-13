@@ -222,6 +222,26 @@ export default function PrivacyPage() {
             its own privacy policy
           </a>, including for fraud prevention.
         </p>
+        <p>
+          <strong>Klarna.</strong> If you choose to pay for a whole trip, or
+          pay off its whole balance, with Klarna, you leave our checkout for
+          Klarna&rsquo;s own pages, and what
+          you tell Klarna there goes to Klarna, not to us. To set up the payment,
+          Stripe passes Klarna the amount and the email address and billing
+          details given at checkout. Klarna decides whether to approve you and
+          collects your repayments itself, as a business in its own right, under{" "}
+          <a
+            href="https://www.klarna.com/us/privacy/"
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            its own privacy policy
+          </a>
+          . We learn only that the payment went through, and its amount. Klarna
+          is offered only for a payment that clears the whole price, never for
+          a deposit or the installments, so no Klarna account is saved for
+          later charges.
+        </p>
       </LegalSection>
 
       <LegalSection doc={PRIVACY} id="how-we-use">
@@ -458,6 +478,12 @@ export default function PrivacyPage() {
             <>
               <strong>Stripe</strong>, payments. Holds your card details and
               payment history; see section {sectionIndex("payment-data")}.
+            </>,
+            <>
+              <strong>Klarna</strong>, only if you choose it to pay for a whole
+              trip or its whole balance: the amount and the details Stripe
+              passes to set up the payment; see section{" "}
+              {sectionIndex("payment-data")}.
             </>,
             <>
               <strong>Resend</strong>, email delivery and the waitlist mailing

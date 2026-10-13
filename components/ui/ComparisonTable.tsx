@@ -60,7 +60,7 @@ const ROWS: Row[] = [
     label: "Paying for it",
     usualLong: "One friend fronts it and spends the semester chasing Venmo requests.",
     usualShort: "One friend fronts it",
-    outriderLong: "Put down 10% and the rest 37 days before the trip, or pay it all at once. Nobody owes anybody.",
+    outriderLong: "Put down $100 and the rest in two payments before the trip, or pay it all at once. Nobody owes anybody.",
     outriderShort: "Everyone pays their own way",
   },
   {

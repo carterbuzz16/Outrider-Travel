@@ -82,7 +82,9 @@ export default function AuthorizeCharge({
           the deposit is non-refundable, and I have read the{" "}
         </>
       ) : (
-        <>I authorize Outrider to charge {amount} to this card today, and I have read the </>
+        // "The payment method I chose", not "this card": paying in full can
+        // be Klarna (createBooking), and then there is no card on this page.
+        <>I authorize Outrider to charge {amount} today, by the payment method I chose above, and I have read the </>
       )}
       <Link href="/terms#cancellation" target="_blank" rel="noreferrer" className={LINK}>
         cancellation terms

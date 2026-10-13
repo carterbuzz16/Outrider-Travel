@@ -22,7 +22,9 @@ import { Countdown, useWelcomeCredit } from "@/components/WelcomeCredit";
  *   - it never shows from md up.
  *
  * No price on it: the owner wants people to see what they get before what it
- * costs, and the masthead has already said "from".
+ * costs, and the masthead has already said "from". The one figure it can
+ * carry is the $100 deposit, in the button (`label`): /telluride passes
+ * "Reserve for $100", since knowing it is only $100 down is the point there.
  *
  * On /telluride, where ads land, it is there from the first screen
  * (`fromStart`) rather than after the masthead: the masthead's own button
@@ -35,11 +37,14 @@ export default function MobileReserveBar({
   href,
   place,
   dates,
+  label = "Reserve",
   fromStart = false,
 }: {
   href: string;
   place: string;
   dates: string;
+  /** The button's words. "Reserve" unless the page says otherwise. */
+  label?: string;
   fromStart?: boolean;
 }) {
   const welcome = useWelcomeCredit();
@@ -103,7 +108,7 @@ export default function MobileReserveBar({
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <Button href={href} variant="primary" size="md">
-            Reserve
+            {label}
           </Button>
           <button
             type="button"

@@ -36,6 +36,7 @@ export default function BalancePayment({ bookingId, remaining }: { bookingId: st
       </h3>
       <p className="mt-2 max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
         Pay some or all of what is left now. It comes off your scheduled payments, earliest first.
+        Pay all of it and you can use a card or Klarna.
       </p>
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6">

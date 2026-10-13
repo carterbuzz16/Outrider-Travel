@@ -84,6 +84,12 @@ export type CheckoutTier = {
   depositLabel: string;
   fullLabel: string;
   balanceLabel: string;
+  /** The installments after the deposit, amounts and dates: "$675 on Nov 10, 2026 and $675 on Dec 1, 2026". */
+  scheduleLabel: string;
+  /** The line beside the price (holdSpotLine, lib/deposit.ts), or null when there is nothing to split. */
+  holdLine: string | null;
+  /** "pay in 4 with Klarna" up to Klarna's Pay in 4 cap, "pay over time with Klarna" above it. */
+  klarnaLabel: string;
   /** What paying in full saves, or null when there is no discount. */
   savingLabel: string | null;
   /** What the discount code takes off this package, or null when it does not come off here. */
@@ -101,8 +107,7 @@ export default function BookingForm({
   tripId,
   tiers,
   initialTierId,
-  depositPercent,
-  balanceWhen,
+  lateNote,
   contactEmail,
   initialGroupCode,
   discount = null,
@@ -116,13 +121,12 @@ export default function BookingForm({
   tiers: CheckoutTier[];
   /** Selected on arrival: the package named in the link, or the first open one. */
   initialTierId: string;
-  depositPercent: number;
   /**
-   * When the balance comes off the card on the deposit plan ("on Nov 7,
-   * 2026", with the reason when the trip is inside the balance window).
-   * Worked out on the server because lib/installments.ts is server-only.
+   * Why a payment comes off sooner than the trip's set dates, when one does
+   * (latePaymentNote). Worked out on the server, like each tier's
+   * scheduleLabel, because lib/installments.ts is server-only.
    */
-  balanceWhen: string;
+  lateNote: string | null;
   contactEmail: string;
   /** From a friend's invite link (?group=), already checked by the page. Opens the code box, filled in. */
   initialGroupCode?: string;
@@ -270,6 +274,11 @@ export default function BookingForm({
           {selected.summary && (
             <p className="mt-1 font-body text-body-s leading-[1.6] text-[--text-secondary]">{selected.summary}</p>
           )}
+          {/* Carter's line beside the price (13 October 2026). Hidden on a
+              package a code covers, which has nothing to hold or split. */}
+          {!selected.free && selected.holdLine && (
+            <p className="mt-3 font-body text-body-s leading-[1.55] text-[--text]">{selected.holdLine}</p>
+          )}
         </div>
 
         {selected.free && (
@@ -295,9 +304,13 @@ export default function BookingForm({
               value="deposit"
               defaultChecked
               onSelect={() => setPlan("deposit")}
-              title={`${depositPercent}% deposit today`}
+              title="Deposit today"
               amount={selected.depositLabel}
-              detail={`The other ${selected.balanceLabel} comes off your card ${balanceWhen}.`}
+              detail={
+                selected.scheduleLabel
+                  ? `Then ${selected.scheduleLabel}, off the same card, or pay it off with Klarna from your bookings page.${lateNote ? ` ${lateNote}` : ""}`
+                  : "That covers the whole trip."
+              }
             />
             <PlanOption
               value="full"
@@ -307,7 +320,7 @@ export default function BookingForm({
               detail={
                 selected.savingLabel
                   ? `${selected.savingLabel} off the price, and nothing more to pay later.`
-                  : "One payment, and nothing more to pay later."
+                  : `One payment by card, or ${selected.klarnaLabel}. Nothing more to pay later.`
               }
             />
           </div>
@@ -484,7 +497,8 @@ export default function BookingForm({
             </li>
             {!selected.free && (
               <li className="pl-[1.375rem]">
-                Deposits aren&rsquo;t refundable. Here are the{" "}
+                Deposits are non-refundable.
+                {plan === "deposit" && " If an installment is missed, your spot may be released."} Here are the{" "}
                 <Link href="/terms#cancellation" target="_blank" rel="noreferrer" className={LINK}>
                   cancellation terms
                 </Link>

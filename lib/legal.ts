@@ -69,7 +69,7 @@ export const TERMS: LegalDocumentMeta = {
   title: "Terms of Service",
   shortTitle: "Terms of Service",
   description:
-    "The agreement between you and Outrider when you book a departure: deposits, paying in full, the balance installment and paying ahead, cancellation, weather, suppliers, insurance, liability and trip text messages.",
+    "The agreement between you and Outrider when you book a departure: the $100 deposit, paying in full and Klarna, the balance installments and paying ahead, cancellation, weather, suppliers, insurance, liability and trip text messages.",
   // 2.0.0: a MAJOR change under the rules above. The deposit fell from 20% to
   // 10%, and the terms now cover paying in full at booking (and how its
   // deposit portion is refunded), paying ahead, the charge authorization and
@@ -105,16 +105,29 @@ export const TERMS: LegalDocumentMeta = {
   // that date owes it the day after booking rather than on the next daily
   // run. No booking existed on the day it took effect (checked 8 October
   // 2026), so no traveler needed notice; counsel sign-off is still owed.
-  version: "4.0.0",
+  // 5.0.0: MAJOR, because it changes what a traveler pays and when: the
+  // deposit is a flat $100 (DEPOSIT_AMOUNT, lib/deposit.ts) instead of 10%,
+  // and the balance is two equal installments on fixed dates per departure
+  // (INSTALLMENT_DATES_BY_START, lib/installments.ts): 10 November and 1
+  // December 2026 for the December trip, 20 November and 1 December for
+  // January. Klarna is offered for one payment that clears the whole price
+  // (paying in full at booking, or paying off the whole balance early), never
+  // for the deposit, an installment or a partial early payment. Section 5 now opens with
+  // Carter's two sentences ("Deposits are non-refundable. If an installment
+  // is missed, your spot may be released."), and the missed-installment
+  // clause repeats the second. The only booking on the day it took effect
+  // (checked 13 October 2026) was a $0 comp paid in full, so nobody on a
+  // payment plan needed notice; counsel sign-off is still owed.
+  version: "5.0.0",
   status: "in-force",
-  effectiveDate: "2026-10-08",
-  lastUpdated: "2026-10-08",
+  effectiveDate: "2026-10-13",
+  lastUpdated: "2026-10-13",
   sections: [
     { id: "about", title: "Who these terms are between" },
     { id: "eligibility", title: "Eligibility and your account" },
     { id: "trips-and-tiers", title: "Trips, tiers and what is included" },
     { id: "booking-and-deposit", title: "Booking, the deposit and paying in full" },
-    { id: "payment-plan", title: "The balance installment and paying ahead" },
+    { id: "payment-plan", title: "The balance installments and paying ahead" },
     { id: "failed-payments", title: "Missed payments, retries and bank authentication" },
     { id: "cancellation", title: "If you cancel" },
     { id: "outrider-changes", title: "If Outrider cancels or changes a trip" },
@@ -138,7 +151,7 @@ export const PRIVACY: LegalDocumentMeta = {
   title: "Privacy Policy",
   shortTitle: "Privacy Policy",
   description:
-    "What Outrider collects when you join the waitlist, ask for a $100 code or book a trip, where card details actually go, who your information is shared with, the Meta Pixel and how to opt out of it, how trip texts work, and how to have it deleted.",
+    "What Outrider collects when you join the waitlist, ask for a $100 code or book a trip, where card details actually go, what Klarna receives if you pay with it, who your information is shared with, the Meta Pixel and how to opt out of it, how trip texts work, and how to have it deleted.",
   // 1.1.0: MINOR. New: the trip page and the traveler details it collects
   // (and the insurer and rental shop they go to), and a text-message section
   // stating that mobile numbers and SMS consent are not shared for marketing,
@@ -164,14 +177,19 @@ export const PRIVACY: LegalDocumentMeta = {
   // head-start cookie, which "one thing" had left out. Rate limiting now names that form, its per-address key, and the real
   // window (a day, not an hour: the waitlist's daily limits were already
   // there). New collection from new requests only.
-  version: "1.4.0",
+  // 1.5.0: MINOR. Klarna, offered for paying a whole trip or a whole balance
+  // (13 October 2026): a new recipient, only for travelers who choose it,
+  // named in the payment and sharing sections with what it receives (the
+  // amount and the checkout details Stripe passes to set up the payment). New collection
+  // from new payments only, so the notice-by-email promise is not triggered.
+  version: "1.5.0",
   status: "in-force",
-  effectiveDate: "2026-10-01",
-  lastUpdated: "2026-10-01",
+  effectiveDate: "2026-10-13",
+  lastUpdated: "2026-10-13",
   sections: [
     { id: "scope", title: "Scope and who is responsible" },
     { id: "what-we-collect", title: "What we collect" },
-    { id: "payment-data", title: "Payment information and Stripe" },
+    { id: "payment-data", title: "Payment information, Stripe and Klarna" },
     { id: "how-we-use", title: "How we use your information" },
     { id: "cookies", title: "Cookies, the Meta Pixel and your ad choices" },
     { id: "email", title: "Email, the waitlist and marketing" },

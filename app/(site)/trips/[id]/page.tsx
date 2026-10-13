@@ -24,8 +24,8 @@ import {
 } from "@/lib/booking-window";
 import { getAppUrl } from "@/lib/site-url";
 import { pageMetadata } from "@/lib/metadata";
-import { PAY_IN_FULL_DISCOUNT, computeDepositAmount } from "@/lib/deposit";
-import { formatAmount } from "@/lib/balance";
+import { holdSpotLine } from "@/lib/deposit";
+import { balanceDueDates } from "@/lib/installments";
 import { CONTACT } from "@/lib/site-content";
 import {
   availabilityLabel,
@@ -382,9 +382,9 @@ export default async function TripDetailPage(props: {
                   ? COMING_SOON_NOTE
                   : soldOut
                     ? "Tell us you want in, and you'll hear first when the next trip opens."
-                    : `Hold your spot for ${formatAmount(computeDepositAmount(trip.priceFrom))} and pay the rest 37 days before the trip${
-                        PAY_IN_FULL_DISCOUNT > 0 ? `, or pay it all now and take $${PAY_IN_FULL_DISCOUNT} off` : ""
-                      }. Each of you books your own.`}
+                    : // Worded for the "from" price, the cheapest package, as on
+                      // /telluride; checkout says it per package.
+                      `${holdSpotLine(balanceDueDates(trip.startDate).length, trip.priceFrom)} Each of you books your own.`}
               </p>
             </div>
           </div>

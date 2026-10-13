@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FaqSchema, Reveal, SectionDivider, WaitlistCTA } from "@/components/ui";
 import { CONTACT } from "@/lib/site-content";
 import { BOOKINGS_OPEN, TRIP_DETAILS_OPEN } from "@/lib/booking-window";
-import { PAY_IN_FULL_DISCOUNT } from "@/lib/deposit";
+import { DEPOSIT_AMOUNT, KLARNA_PAY_IN_4_MAX, PAY_IN_FULL_DISCOUNT } from "@/lib/deposit";
 import { flightTimesPublished } from "@/lib/trip-logistics";
 
 export const metadata: Metadata = pageMetadata({
@@ -15,13 +15,17 @@ export const metadata: Metadata = pageMetadata({
   shareTitle: "Questions about Outrider trips",
 });
 
-/* Answers deliberately do not restate deposit percentages, installment counts,
- * the pay-in-full discount or refund windows. Those live in the Terms and are
- * computed from the booking data, and an FAQ that quotes a number the contract later changes is worse
- * than one that points at the contract. Anything with money or liability in it
- * links to the clause instead. The one exception is the pay-in-full discount,
- * which is read from PAY_IN_FULL_DISCOUNT so it cannot drift from checkout. The
- * group sizes restate each departure's capacity (lib/trip-logistics.ts). */
+/* Answers deliberately do not restate installment dates, the pay-in-full
+ * discount or refund windows. Those live in the Terms and are computed from the
+ * booking data, and an FAQ that quotes a number the contract later changes is
+ * worse than one that points at the contract. Anything with money or liability
+ * in it links to the clause instead. The exceptions are read from the same
+ * constants checkout uses, so they cannot drift from it: the deposit
+ * (DEPOSIT_AMOUNT), Klarna's Pay in 4 cap (KLARNA_PAY_IN_4_MAX) and the
+ * pay-in-full discount. "Two payments" is the count for every departure on
+ * sale (lib/installments.ts). Carter's two sentences about deposits and missed
+ * installments (13 October 2026) are quoted as he wrote them. The group sizes
+ * restate each departure's capacity (lib/trip-logistics.ts). */
 type QA = { q: string; a: React.ReactNode };
 type Group = { heading: string; items: QA[] };
 
@@ -48,20 +52,24 @@ const GROUPS: Group[] = [
         q: "How does paying work?",
         a: (
           <>
-            A deposit holds your spot, and the balance comes off the card you
-            booked with automatically, a few weeks before the trip. You can pay
-            toward it early from your bookings page any time, which brings that
-            payment down. Or pay for the whole trip
-            when you book
+            ${DEPOSIT_AMOUNT} holds your spot. The rest is split into two
+            payments before the trip, and they come off the card you booked
+            with automatically. You can pay toward them early from your bookings
+            page any time, which brings the next one down. Or pay for the whole
+            trip when you book
             {PAY_IN_FULL_DISCOUNT > 0 && `, take $${PAY_IN_FULL_DISCOUNT} off,`} and
-            nothing is charged later. Everyone books and pays for their own
-            spot, so nobody fronts money for friends or spends the spring
-            chasing a group chat. The exact deposit and paying in full
-            are set out in{" "}
+            nothing is charged later. Klarna works for either one payment: the
+            whole trip when you book, or everything left after the deposit,
+            from your bookings page. It splits it into 4 on packages up to{" "}
+            {`$${KLARNA_PAY_IN_4_MAX.toLocaleString("en-US")}`} and over time
+            above that. Everyone books and pays for their own spot, so nobody fronts
+            money for friends or spends the spring chasing a group chat.
+            Deposits are non-refundable. If an installment is missed, your spot
+            may be released. The deposit and paying in full are set out in{" "}
             <Link href="/terms#booking-and-deposit" className="text-[--accent] underline underline-offset-4">
               the booking section of the Terms
             </Link>
-            , and the balance date and paying ahead in{" "}
+            , and the payment dates and paying ahead in{" "}
             <Link href="/terms#payment-plan" className="text-[--accent] underline underline-offset-4">
               the balance section
             </Link>

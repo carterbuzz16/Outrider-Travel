@@ -157,6 +157,7 @@ export default function CheckoutForm({
    * confirmed. Off for balance payments, which were agreed to at booking.
    */
   acceptTerms = false,
+  cardOnly = false,
 }: {
   clientSecret: string;
   bookingId: string;
@@ -165,6 +166,15 @@ export default function CheckoutForm({
   submitLabel?: string;
   returnPath?: string;
   acceptTerms?: boolean;
+  /**
+   * A card and nothing else: the deposit (whose card the installments are
+   * charged to) and an early payment of less than the whole balance. The
+   * intent is already card only (createBooking, startBalancePayment), but
+   * Stripe still offers Link's "Bank" tab beside the card, Instant Bank
+   * Payments, which saves a bank account rather than a card. Hiding Link
+   * hides that tab.
+   */
+  cardOnly?: boolean;
 }) {
   // Computed once per mount. The result never reaches the DOM this component
   // renders, only Stripe's iframe, so the server/client difference is not a
@@ -180,6 +190,7 @@ export default function CheckoutForm({
         scheduledCharges={scheduledCharges}
         label={submitLabel ?? `Pay ${amountLabel} deposit`}
         returnPath={returnPath ?? `/bookings/${bookingId}/confirmation`}
+        cardOnly={cardOnly}
       />
     </Elements>
   );
@@ -192,6 +203,7 @@ function PaymentForm({
   scheduledCharges,
   label,
   returnPath,
+  cardOnly,
 }: {
   bookingId: string;
   acceptTerms: boolean;
@@ -199,6 +211,7 @@ function PaymentForm({
   scheduledCharges?: ScheduledCharge[];
   label: string;
   returnPath: string;
+  cardOnly: boolean;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -303,7 +316,7 @@ function PaymentForm({
             iframe. Padding sits on this box rather than on the frame so the
             fields line up with the rules above and below them. */}
         <div className="border border-[--rule] bg-[--surface-raised] p-4 sm:p-6">
-          <PaymentElement />
+          <PaymentElement options={cardOnly ? { wallets: { link: "never" } } : undefined} />
         </div>
 
         <p className="mt-3 flex items-start gap-2.5 font-body text-body-s leading-[1.6] text-[--text-secondary]">
