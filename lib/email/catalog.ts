@@ -53,7 +53,7 @@ import { todayInMountain } from "@/lib/mountain-time";
 // "this link doesn't open a trip" page rather than anybody's booking.
 const SAMPLE_BOOKING_ID = "5f2c9e71-3a8d-4b6e-9c14-7d0e2a6b8f39";
 /** The head-start email's "From" line in preview; the real send reads the published trips. */
-const SAMPLE_FROM_PRICE = "$1,600";
+const SAMPLE_FROM_PRICE = "$1,400";
 const SAMPLE_TRIP_ID = "b1e7d2c4-6a3f-4e58-8d21-0c9f7a5e3b16";
 const SAMPLE_PENTHOUSE_TIER_ID = "c8a41f6e-2d7b-4c93-a5e0-9b3d6f1e7a24";
 const SAMPLE_PAYMENT_ID = "e4b92d17-8c5a-4f36-b0e1-6a7d3c9f2e58";
@@ -78,13 +78,13 @@ const SAMPLE_TRIP = {
   logistics: null,
 };
 
-// "Two to a Room" at $2,299: the $100 deposit today, then two payments of $1,099.50.
+// "Two to a Room" at $2,099: the $100 deposit today, then two payments of $999.50.
 const SAMPLE_BOOKING: BookingForEmail = {
   id: SAMPLE_BOOKING_ID,
   user_id: "sample-user",
   trip_id: SAMPLE_TRIP_ID,
   status: "deposit_paid",
-  total_amount: 2299,
+  total_amount: 2099,
   group_code: SAMPLE_GROUP_CODE,
   flights_booked: true,
   rooming_submitted: false,
@@ -96,8 +96,8 @@ const SAMPLE_BOOKING: BookingForEmail = {
   tiers: { name: "MID" },
   payments: [
     { status: "succeeded", amount: 100, scheduled_date: null },
-    { status: "scheduled", amount: 1099.5, scheduled_date: "2026-11-10" },
-    { status: "scheduled", amount: 1099.5, scheduled_date: "2026-12-01" },
+    { status: "scheduled", amount: 999.5, scheduled_date: "2026-11-10" },
+    { status: "scheduled", amount: 999.5, scheduled_date: "2026-12-01" },
   ],
 };
 
@@ -326,13 +326,13 @@ export function emailCatalog(): EmailEntry[] {
       trigger: "When a scheduled installment is charged and clears. One per payment.",
       recipient: TRAVELER,
       sandbox: CRON_ONLY_13,
-      notes: ["Sample: the second $1,099.50 installment, nothing left."],
+      notes: ["Sample: the second $999.50 installment, nothing left."],
       render: () =>
         renderInstallmentChargedEmail({
           name: SAMPLE_NAME,
           bookingId: SAMPLE_BOOKING_ID,
           tripName: SAMPLE_TRIP.name,
-          amount: 1099.5,
+          amount: 999.5,
           remainingBalance: 0,
         }),
     },
@@ -344,14 +344,14 @@ export function emailCatalog(): EmailEntry[] {
         "When a traveler pays some or all of their balance early from their bookings page (Pay ahead) and it clears. One per payment.",
       recipient: TRAVELER,
       sandbox: "On a sandbox booking, open Bookings, choose Pay ahead and pay with 4242 4242 4242 4242.",
-      notes: ["Sample: $500 paid ahead, $1,699 left."],
+      notes: ["Sample: $500 paid ahead, $1,499 left."],
       render: () =>
         renderInstallmentChargedEmail({
           name: SAMPLE_NAME,
           bookingId: SAMPLE_BOOKING_ID,
           tripName: SAMPLE_TRIP.name,
           amount: 500,
-          remainingBalance: 1699,
+          remainingBalance: 1499,
           kind: "balance",
         }),
     },
@@ -367,7 +367,7 @@ export function emailCatalog(): EmailEntry[] {
           name: SAMPLE_NAME,
           bookingId: SAMPLE_BOOKING_ID,
           tripName: SAMPLE_TRIP.name,
-          amount: 1099.5,
+          amount: 999.5,
           willRetry: true,
         }),
     },
@@ -384,7 +384,7 @@ export function emailCatalog(): EmailEntry[] {
           name: SAMPLE_NAME,
           bookingId: SAMPLE_BOOKING_ID,
           tripName: SAMPLE_TRIP.name,
-          amount: 1099.5,
+          amount: 999.5,
           willRetry: false,
         }),
     },
@@ -402,7 +402,7 @@ export function emailCatalog(): EmailEntry[] {
           bookingId: SAMPLE_BOOKING_ID,
           paymentId: SAMPLE_PAYMENT_ID,
           tripName: SAMPLE_TRIP.name,
-          amount: 1099.5,
+          amount: 999.5,
         }),
     },
 
@@ -435,7 +435,7 @@ export function emailCatalog(): EmailEntry[] {
           name: SAMPLE_NAME,
           bookingId: SAMPLE_BOOKING_ID,
           tripName: SAMPLE_TRIP.name,
-          amount: 1099.5,
+          amount: 999.5,
           reason: "cancelled",
         }),
     },

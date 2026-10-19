@@ -27,7 +27,7 @@ export type CodeOfferParts = {
   weekday: string;
   /** Mountain Time days left, for the reminder's eyebrow. */
   daysLeft: number;
-  /** "$1,600", the cheapest package, when there is a published price. Escaped. */
+  /** "$1,400", the cheapest package, when there is a published price. Escaped. */
   fromPrice: string | null;
   /** "$100", or null when pay in full has no discount. */
   payInFullOff: string | null;

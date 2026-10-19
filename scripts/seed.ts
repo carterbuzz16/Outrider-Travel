@@ -38,14 +38,14 @@ const trips: {
     tiers: [
       {
         name: "BASE",
-        price: 1600,
+        price: 1400,
         max_capacity: 20,
         description: "Four to a room.",
         inclusions: ["Lodging", "Lift tickets", "Rentals"],
       },
       {
         name: "MID",
-        price: 2299,
+        price: 2099,
         max_capacity: 20,
         description: "Two to a room.",
         inclusions: ["Lodging", "Lift tickets", "Rentals"],
@@ -62,14 +62,14 @@ const trips: {
     tiers: [
       {
         name: "BASE",
-        price: 1800,
+        price: 1700,
         max_capacity: 20,
         description: "Four to a room.",
         inclusions: ["Lodging", "Lift tickets", "Rentals"],
       },
       {
         name: "MID",
-        price: 2600,
+        price: 2500,
         max_capacity: 20,
         description: "Two to a room.",
         inclusions: ["Lodging", "Lift tickets", "Rentals"],

@@ -15,7 +15,7 @@ export type EarlyAccessParts = {
   bookingUrl: string;
   unsubscribeUrl: string;
   addressLine: string;
-  /** "$1,600", the cheapest package, when there is a published price. */
+  /** "$1,400", the cheapest package, when there is a published price. */
   fromPrice: string | null;
 };
 
