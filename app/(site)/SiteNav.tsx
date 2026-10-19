@@ -12,7 +12,7 @@ import { NavBar } from "@/components/ui";
  * group on 1 October 2026, when their mastheads became full-bleed video. Keeping this here means the layout owns the
  * chrome and no page has to remember to render its own nav.
  */
-const PHOTO_HEROES = new Set(["/", "/waitlist", "/telluride", "/about", "/spring-break"]);
+const PHOTO_HEROES = new Set(["/", "/waitlist", "/telluride", "/about", "/spring-break", "/ambassador"]);
 // Empty since 1 October 2026, when /telluride moved to a full-bleed video on
 // every screen size. Kept for the next page that needs the phone-only mode.
 const PHONE_PHOTO_HEROES = new Set<string>([]);

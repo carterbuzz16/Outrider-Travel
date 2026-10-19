@@ -333,6 +333,25 @@ model WaitlistSignup {
   @@map("waitlist_signups")
 }
 
+// /ambassador's application form (app/(site)/ambassador/actions.ts), written
+// only through the service role. RLS on, no policies, no API-role grants.
+model AmbassadorApplication {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  school    String
+  /// The Chptr chapter, as typed.
+  chapter   String
+  /// Without the "@", lowercased (checked by ambassador_applications_instagram).
+  instagram String
+  /// E.164, US only: +1XXXXXXXXXX (checked by ambassador_applications_phone_us).
+  phone     String
+  /// '1-5', '5-10' or '10+' (checked by ambassador_applications_reach).
+  reach     String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("ambassador_applications")
+}
+
 enum PaymentStatus {
   scheduled
   pending

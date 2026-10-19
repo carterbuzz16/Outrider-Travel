@@ -51,6 +51,39 @@ export type Database = {
         }
         Relationships: []
       }
+      ambassador_applications: {
+        Row: {
+          chapter: string
+          created_at: string
+          id: string
+          instagram: string
+          name: string
+          phone: string
+          reach: string
+          school: string
+        }
+        Insert: {
+          chapter: string
+          created_at?: string
+          id?: string
+          instagram: string
+          name: string
+          phone: string
+          reach: string
+          school: string
+        }
+        Update: {
+          chapter?: string
+          created_at?: string
+          id?: string
+          instagram?: string
+          name?: string
+          phone?: string
+          reach?: string
+          school?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           chase_email_sent_at: string | null

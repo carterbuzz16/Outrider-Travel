@@ -27,6 +27,7 @@ import { renderNewBookingAlert } from "@/lib/email/admin-alerts";
 import { renderPortalLinkEmail } from "@/lib/email/portal-link";
 import { renderStaleCheckoutRefundEmail } from "@/lib/email/stale-checkout";
 import { renderContactMessage } from "@/lib/email/contact";
+import { renderAmbassadorApplication } from "@/lib/email/ambassador";
 import { TemplateRenderError } from "@/lib/email/render-template";
 import { createPortalUrl } from "@/lib/portal-token";
 import { getAppUrl } from "@/lib/site-url";
@@ -622,6 +623,30 @@ export function emailCatalog(): EmailEntry[] {
           message:
             "Hi! A few of us are thinking about Telluride in December. Can four friends all book Two to a Room and be put in rooms next to each other?",
         }),
+    },
+    {
+      id: "ambassador-application",
+      section: "The list and the contact form",
+      name: "Ambassador application (to the team)",
+      trigger: "Each time someone applies on /ambassador. Plain text.",
+      recipient:
+        "The team, at AMBASSADOR_NOTIFY_TO (falling back to CONTACT_NOTIFY_TO, then WAITLIST_NOTIFY_TO, then bookings@outrider.travel)",
+      sandbox: "Apply on /ambassador. The application is saved to the live table, so delete the row afterwards.",
+      notes: [
+        "The phone number stays in the ambassador_applications table. It is only in the email when the save failed, and the email then says so at the top.",
+      ],
+      render: () =>
+        renderAmbassadorApplication(
+          {
+            name: SAMPLE_NAME,
+            school: "Auburn University",
+            chapter: "Alpha Delta Pi",
+            instagram: "jordan.taylor",
+            phone: "+12055550123",
+            reach: "5-10",
+          },
+          { saved: true },
+        ),
     },
 
     /* -- Supabase ------------------------------------------------------------ */

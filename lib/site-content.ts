@@ -113,6 +113,42 @@ export const SPRING_BREAK = {
   shareText: "Outrider is planning spring break 2027. Get on the list and hear where first.",
 };
 
+/* -- /ambassador -------------------------------------------------------------
+ * The Campus Lead and Ambassador application (19 October 2026). Carter's
+ * brief, word for word: traffic arrives from a pop-up in the Chptr app whose
+ * headline is "TRAVEL FOR FREE", so the page opens on the same line.
+ *
+ * The program's terms (what an ambassador earns per friend, the free-trip
+ * threshold) are deliberately not here: the brief says "Full details are
+ * shared once you're selected", and the terms are still being settled.
+ * ------------------------------------------------------------------------- */
+export const AMBASSADOR = {
+  headline: "Travel for free",
+  subhead: "Outrider is selecting a small team of Campus Leads and Ambassadors at Chptr schools.",
+  apply: "Apply",
+  aboutTitle: "What Outrider is",
+  about: [
+    "College group travel hasn’t changed in twenty years. Cheapest hotel, biggest party, hope nothing goes wrong.",
+    "Outrider is the other version. Small groups. Hand-picked places. Properties we stay at before we book them.",
+    // Non-breaking spaces, so a date never wraps away from its month.
+    "First up: Telluride, December 14–18 and January 4–8.",
+  ],
+  getTitle: "What you get",
+  get: [
+    { label: "Free travel.", line: "Earn your spot on Outrider trips." },
+    { label: "Rewards.", line: "For every friend who books." },
+    { label: "First access.", line: "Every trip opens to you before anyone else." },
+    { label: "A direct line to the founders.", line: "Your input shapes where we go next." },
+  ],
+  getNote: "Full details are shared once you’re selected.",
+  whoTitle: "Who we’re looking for",
+  who: "People whose friends already follow their lead. You know who decides where your group goes. If that’s you, apply.",
+  formTitle: "Apply",
+  formNote: "Limited spots per campus.",
+  submit: "Submit",
+  received: "Application received. We’ll be in touch.",
+};
+
 /* -- what makes Outrider different ------------------------------------------
  * Describes how the company operates, not one destination. Every claim is
  * backed by the tier inclusions in the database.
