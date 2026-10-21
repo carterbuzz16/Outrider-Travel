@@ -27,7 +27,7 @@ export function renderAmbassadorApplication(
         ]),
     input.name,
     `School: ${input.school}`,
-    `Chptr chapter: ${input.chapter}`,
+    `Chapter: ${input.chapter}`,
     `Instagram: @${input.instagram} (https://www.instagram.com/${input.instagram}/)`,
     `Friends they could bring: ${reachLabel(input.reach)}`,
     saved ? "Phone: in the ambassador_applications table in Supabase" : `Phone: ${formatUsPhone(input.phone)}`,

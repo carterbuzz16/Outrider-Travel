@@ -122,23 +122,23 @@ export default function ApplicationForm({
 
   return (
     <form ref={formRef} onSubmit={onSubmit} noValidate className="relative flex flex-col gap-6">
-      <Field label="Name" required error={errors.name}>
-        {(p) => (
-          <Input
-            {...p}
-            name="name"
-            value={values.name}
-            onChange={(e) => update("name", e.target.value)}
-            onBlur={() => checkOnLeave("name")}
-            autoComplete="name"
-            maxLength={120}
-            disabled={busy}
-            required
-          />
-        )}
-      </Field>
-
       <div className="grid gap-6 sm:grid-cols-2">
+        <Field label="Name" required error={errors.name}>
+          {(p) => (
+            <Input
+              {...p}
+              name="name"
+              value={values.name}
+              onChange={(e) => update("name", e.target.value)}
+              onBlur={() => checkOnLeave("name")}
+              autoComplete="name"
+              maxLength={120}
+              disabled={busy}
+              required
+            />
+          )}
+        </Field>
+
         <Field label="School" required error={errors.school}>
           {(p) => (
             <Input
@@ -153,22 +153,24 @@ export default function ApplicationForm({
             />
           )}
         </Field>
-
-        <Field label="Chptr chapter" required error={errors.chapter}>
-          {(p) => (
-            <Input
-              {...p}
-              name="chapter"
-              value={values.chapter}
-              onChange={(e) => update("chapter", e.target.value)}
-              onBlur={() => checkOnLeave("chapter")}
-              maxLength={120}
-              disabled={busy}
-              required
-            />
-          )}
-        </Field>
       </div>
+
+      {/* A row of its own: the label is long enough to wrap in half a
+          column, which would push its box out of line with its neighbour's. */}
+      <Field label="Chapter you’re a part of" required error={errors.chapter}>
+        {(p) => (
+          <Input
+            {...p}
+            name="chapter"
+            value={values.chapter}
+            onChange={(e) => update("chapter", e.target.value)}
+            onBlur={() => checkOnLeave("chapter")}
+            maxLength={120}
+            disabled={busy}
+            required
+          />
+        )}
+      </Field>
 
       <div className="grid gap-6 sm:grid-cols-2">
         <Field label="Instagram handle" required error={errors.instagram}>

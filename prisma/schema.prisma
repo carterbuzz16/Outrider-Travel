@@ -339,7 +339,7 @@ model AmbassadorApplication {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name      String
   school    String
-  /// The Chptr chapter, as typed.
+  /// The chapter they're a part of, as typed.
   chapter   String
   /// Without the "@", lowercased (checked by ambassador_applications_instagram).
   instagram String

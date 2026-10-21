@@ -10,7 +10,7 @@ export const metadata: Metadata = pageMetadata({
   absoluteTitle: true,
   path: "/ambassador",
   description:
-    "Travel for free. Outrider is selecting a small team of Campus Leads and Ambassadors at Chptr schools. Limited spots per campus.",
+    "Travel for free. Outrider is selecting a small team of Campus Leads and Ambassadors. Limited spots per campus.",
   // The share card is ./opengraph-image.tsx: the hero photograph and the
   // headline, because this link travels by text message.
   ownImage: true,

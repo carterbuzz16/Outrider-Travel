@@ -118,13 +118,17 @@ export const SPRING_BREAK = {
  * brief, word for word: traffic arrives from a pop-up in the Chptr app whose
  * headline is "TRAVEL FOR FREE", so the page opens on the same line.
  *
+ * Carter took "at Chptr schools" off the subhead on 21 October 2026, and
+ * "Chptr" off the form's chapter question: it asks for the chapter the
+ * applicant is part of, whoever their chapter is with.
+ *
  * The program's terms (what an ambassador earns per friend, the free-trip
  * threshold) are deliberately not here: the brief says "Full details are
  * shared once you're selected", and the terms are still being settled.
  * ------------------------------------------------------------------------- */
 export const AMBASSADOR = {
   headline: "Travel for free",
-  subhead: "Outrider is selecting a small team of Campus Leads and Ambassadors at Chptr schools.",
+  subhead: "Outrider is selecting a small team of Campus Leads and Ambassadors.",
   apply: "Apply",
   aboutTitle: "What Outrider is",
   about: [

@@ -59,7 +59,7 @@ export const AMBASSADOR_ERRORS = {
   name: "Enter your name.",
   nameChars: "Use letters, spaces, hyphens or apostrophes.",
   school: "Enter your school.",
-  chapter: "Enter your Chptr chapter.",
+  chapter: "Enter the chapter you’re a part of.",
   text: "Keep it to letters, numbers and ordinary punctuation.",
   instagram: "Enter your Instagram handle.",
   instagramChars: "Instagram handles use letters, numbers, periods and underscores, up to 30.",
