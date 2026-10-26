@@ -31,6 +31,7 @@ const COLUMNS: Column[] = [
       { label: "Destinations", href: "/destinations" },
       { label: "Join the list", href: "/waitlist" },
       { label: "About Outrider", href: "/about" },
+      { label: "Become an ambassador", href: "/ambassador" },
       { label: "FAQ", href: "/faq" },
       { label: "Contact", href: "/contact" },
       // Same href as the nav's account entry, so there is one way in and it

@@ -20,7 +20,8 @@ export const metadata: Metadata = pageMetadata({
  * /ambassador, 19 October 2026: the application for the Campus Lead and
  * Ambassador program. Nearly everyone arrives from a pop-up in the Chptr app
  * headed "TRAVEL FOR FREE", on a phone, so the page opens on that same line
- * and is laid out for a phone first. Not in the navigation or the sitemap yet.
+ * and is laid out for a phone first. Linked from the nav ("Ambassadors"), the
+ * footer and the sitemap since 26 October 2026.
  *
  * Carter's brief for it: at most two colors on any one surface, no
  * gradients, capital headlines, short plain copy, no exclamation marks. It

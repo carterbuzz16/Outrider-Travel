@@ -34,6 +34,9 @@ export { ACCOUNT_LINK };
 export const DEFAULT_LINKS: NavLink[] = [
   { label: "Trips", href: "/trips" },
   { label: "About", href: "/about" },
+  // The Campus Lead and Ambassador application, in the nav since 26 October
+  // 2026 (Carter: "somewhere accessible on our site for people to see").
+  { label: "Ambassadors", href: "/ambassador" },
 ];
 
 /** Pages whose hero is washed in club blue; see `clubHero` below. */
