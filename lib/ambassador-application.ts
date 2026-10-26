@@ -12,14 +12,31 @@ import { normalizeUsPhone } from "@/lib/phone";
 export type AmbassadorInput = {
   name: string;
   school: string;
+  year: string;
   chapter: string;
   instagram: string;
   phone: string;
   reach: string;
+  why: string;
+  fit: string;
 };
 
 export type AmbassadorField = keyof AmbassadorInput;
 export type AmbassadorFieldErrors = Partial<Record<AmbassadorField, string>>;
+
+/**
+ * Year in school, added 26 October 2026 with the two short answers: a Campus
+ * Lead who graduates in May can't lead next year. Stored lowercase; shown as
+ * the label.
+ */
+export const YEAR_OPTIONS = [
+  { value: "freshman", label: "Freshman" },
+  { value: "sophomore", label: "Sophomore" },
+  { value: "junior", label: "Junior" },
+  { value: "senior", label: "Senior" },
+] as const;
+
+export type Year = (typeof YEAR_OPTIONS)[number]["value"];
 
 /**
  * "Roughly how many friends could you bring on a trip?" The value is what is
@@ -34,24 +51,40 @@ export const REACH_OPTIONS = [
 
 export type Reach = (typeof REACH_OPTIONS)[number]["value"];
 
+/**
+ * The cap on each short answer. Carter asked for "simple answers", and 300
+ * characters holds one with room to spare. The form shows the count against
+ * it (no hint text: Carter, 26 Oct, didn't want the page to say how long),
+ * and the table refuses anything longer.
+ */
+export const ANSWER_MAX = 300;
+
 export type CleanAmbassadorInput = {
   name: string;
   school: string;
+  year: Year;
   chapter: string;
   /** Without the "@", lowercased. */
   instagram: string;
   /** +1XXXXXXXXXX */
   phone: string;
   reach: Reach;
+  /** Why they want to do it. Line breaks kept, at most ANSWER_MAX. */
+  why: string;
+  /** Why they'd be a good fit. Same rules. */
+  fit: string;
 };
 
 export const EMPTY_AMBASSADOR_INPUT: AmbassadorInput = {
   name: "",
   school: "",
+  year: "",
   chapter: "",
   instagram: "",
   phone: "",
   reach: "",
+  why: "",
+  fit: "",
 };
 
 // Error copy lives here so the browser and the server say the same thing.
@@ -59,12 +92,16 @@ export const AMBASSADOR_ERRORS = {
   name: "Enter your name.",
   nameChars: "Use letters, spaces, hyphens or apostrophes.",
   school: "Enter your school.",
+  year: "Pick your year.",
   chapter: "Enter the chapter you’re a part of.",
   text: "Keep it to letters, numbers and ordinary punctuation.",
   instagram: "Enter your Instagram handle.",
   instagramChars: "Instagram handles use letters, numbers, periods and underscores, up to 30.",
   phone: "Enter a 10-digit US phone number, like 205 555 0123.",
   reach: "Pick how many friends you could bring.",
+  why: "Tell us why you want to do this.",
+  fit: "Tell us what makes you a good fit.",
+  answerLong: `Keep it under ${ANSWER_MAX} characters.`,
   /** The brief's wording for anything that is not a field's fault. */
   failed: "Something went wrong. Try again in a moment.",
 } as const;
@@ -84,6 +121,11 @@ const NAME_PATTERN = new RegExp("^[\\p{L}\\p{M}][\\p{L}\\p{M} .'’\\-]*$", "u")
 const FREE_TEXT_FORBIDDEN = new RegExp("[<>\\u0000-\\u001f\\u007f]");
 const HAS_WORD = new RegExp("[\\p{L}\\p{N}]", "u");
 
+// The short answers are prose, so they keep what prose has (line breaks, and
+// "<3", which is how a college student says they love a trip). Only control
+// characters other than the line break go; the team reads these as plain text.
+const ANSWER_CONTROL = new RegExp("[\\u0000-\\u0009\\u000b-\\u001f\\u007f]", "g");
+
 // Instagram's own rule for a username: up to 30 letters, numbers, periods and
 // underscores.
 const INSTAGRAM_PATTERN = /^[a-z0-9._]{1,30}$/;
@@ -92,6 +134,17 @@ function clean(raw: unknown): string {
   return String(raw ?? "")
     .normalize("NFC")
     .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** A short answer as stored: Windows line endings unified, no blank-line runs. */
+export function cleanAnswer(raw: unknown): string {
+  return String(raw ?? "")
+    .normalize("NFC")
+    .replace(/\r\n?/g, "\n")
+    .replace(ANSWER_CONTROL, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
@@ -118,6 +171,16 @@ function checkFreeText(value: string, missing: string): string | undefined {
   return undefined;
 }
 
+function checkAnswer(value: string, missing: string): string | undefined {
+  if (!value || !HAS_WORD.test(value)) return missing;
+  if (value.length > ANSWER_MAX) return AMBASSADOR_ERRORS.answerLong;
+  return undefined;
+}
+
+function isYear(value: string): value is Year {
+  return YEAR_OPTIONS.some((option) => option.value === value);
+}
+
 function isReach(value: string): value is Reach {
   return REACH_OPTIONS.some((option) => option.value === value);
 }
@@ -127,10 +190,13 @@ export function validateAmbassador(
 ): { ok: true; data: CleanAmbassadorInput } | { ok: false; errors: AmbassadorFieldErrors } {
   const name = clean(raw.name);
   const school = clean(raw.school);
+  const year = String(raw.year ?? "");
   const chapter = clean(raw.chapter);
   const instagram = cleanInstagram(raw.instagram);
   const phone = normalizeUsPhone(String(raw.phone ?? ""));
   const reach = String(raw.reach ?? "");
+  const why = cleanAnswer(raw.why);
+  const fit = cleanAnswer(raw.fit);
 
   const errors: AmbassadorFieldErrors = {};
 
@@ -139,6 +205,7 @@ export function validateAmbassador(
 
   const schoolError = checkFreeText(school, AMBASSADOR_ERRORS.school);
   if (schoolError) errors.school = schoolError;
+  if (!isYear(year)) errors.year = AMBASSADOR_ERRORS.year;
   const chapterError = checkFreeText(chapter, AMBASSADOR_ERRORS.chapter);
   if (chapterError) errors.chapter = chapterError;
 
@@ -148,12 +215,24 @@ export function validateAmbassador(
   if (!phone) errors.phone = AMBASSADOR_ERRORS.phone;
   if (!isReach(reach)) errors.reach = AMBASSADOR_ERRORS.reach;
 
-  if (Object.keys(errors).length > 0 || !phone || !isReach(reach)) return { ok: false, errors };
+  const whyError = checkAnswer(why, AMBASSADOR_ERRORS.why);
+  if (whyError) errors.why = whyError;
+  const fitError = checkAnswer(fit, AMBASSADOR_ERRORS.fit);
+  if (fitError) errors.fit = fitError;
 
-  return { ok: true, data: { name, school, chapter, instagram, phone, reach } };
+  if (Object.keys(errors).length > 0 || !phone || !isYear(year) || !isReach(reach)) {
+    return { ok: false, errors };
+  }
+
+  return { ok: true, data: { name, school, year, chapter, instagram, phone, reach, why, fit } };
 }
 
 /** "5-10" -> "5–10", for anything a person reads. */
 export function reachLabel(value: Reach): string {
   return REACH_OPTIONS.find((option) => option.value === value)?.label ?? value;
+}
+
+/** "junior" -> "Junior". */
+export function yearLabel(value: Year): string {
+  return YEAR_OPTIONS.find((option) => option.value === value)?.label ?? value;
 }

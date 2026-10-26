@@ -22,23 +22,38 @@ export const metadata: Metadata = pageMetadata({
  * headed "TRAVEL FOR FREE", on a phone, so the page opens on that same line
  * and is laid out for a phone first. Not in the navigation or the sitemap yet.
  *
- * Carter's brief for it: Ski Club blue as the main surface, at most two
- * colors on any one surface, no gradients, capital headlines, short plain
- * copy, no exclamation marks. So:
+ * Carter's brief for it: at most two colors on any one surface, no
+ * gradients, capital headlines, short plain copy, no exclamation marks. It
+ * first asked for Ski Club blue as the main surface; on 26 October 2026
+ * Carter dropped that ("it's kind of an any season ambassador program so
+ * doesn't have to match ski"), so the page is the core palette only, with no
+ * club blue anywhere on it:
  *   - the masthead is one photograph with the headline set on it. Its scrim
  *     is a single flat wash, not the fades the other mastheads use;
- *   - the subhead and the button sit right under it on club blue (small text
- *     goes on solid ground, never on the picture), and that one blue ground
- *     carries the page down to the form rather than alternating;
- *   - the form is on paper, where the fields and their errors read best.
- * Club blue with deep espresso is 6.8:1 (globals.css, .scheme-club).
+ *   - the subhead and the button sit right under it on paper (small text
+ *     goes on solid ground, never on the picture), and that one paper ground
+ *     carries the pitch: what Outrider is, what you get;
+ *   - "Who we're looking for" is one espresso band, the beat before the ask.
+ *     It holds no control, because a button on espresso is club blue;
+ *   - the form is on warm gray, the book's single-moment panel. Its scheme
+ *     (.scheme-stone) makes espresso the accent, so focus and the sent seal
+ *     stay off blue too.
+ * Espresso on paper is 11:1, paper on espresso the same, and on warm gray the
+ * secondary text is 5.4:1 (globals.css, .scheme-stone).
+ *
+ * Polished 26 October 2026 ("to the point and simple, but sleek"): every
+ * section shares one grid, heading left and content right from md, so the
+ * page reads as one system rather than four stacked blocks.
  *
  * The program's terms stay off the page: "Full details are shared once
  * you're selected."
  */
 
 const HEADING =
-  "font-display text-display-l font-extrabold uppercase leading-[0.95] tracking-display text-[--text]";
+  "m-0 font-display text-display-l font-extrabold uppercase leading-[0.95] tracking-display text-[--text]";
+
+// The one grid every section sits on: heading left, content right from md.
+const GRID = "grid gap-7 md:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] md:gap-16";
 
 export default function AmbassadorPage() {
   return (
@@ -78,28 +93,30 @@ export default function AmbassadorPage() {
       </section>
 
       <main>
-        <div className="scheme-club scheme-paint">
+        <div className="scheme-light scheme-paint">
           {/* Above the fold on a phone, so plain rather than in a Reveal. */}
-          <section className="shell flex flex-col gap-7 pb-16 pt-8 md:flex-row md:items-end md:justify-between md:gap-16 md:pb-24 md:pt-12">
+          <section className="shell flex flex-col gap-7 pb-20 pt-8 md:flex-row md:items-end md:justify-between md:gap-16 md:pb-28 md:pt-12">
             <p className="m-0 max-w-[30ch] font-body text-lede font-medium leading-snug text-[--text]">
               {AMBASSADOR.subhead}
             </p>
             <div className="shrink-0">
-              <Button href="#apply" variant="primary" size="lg">
+              <Button href="#apply" variant="primary" size="lg" className="min-w-[10rem]">
                 {AMBASSADOR.apply}
               </Button>
             </div>
           </section>
 
-          <section className="shell pb-16 md:pb-28" aria-labelledby="ambassador-about">
-            <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] md:gap-16">
+          <section className="shell pb-20 md:pb-28" aria-labelledby="ambassador-about">
+            <div className={GRID}>
               <h2 id="ambassador-about" className={HEADING}>
                 {AMBASSADOR.aboutTitle}
               </h2>
               <Reveal delay={80}>
-                <div className="flex max-w-[40ch] flex-col gap-5 font-body text-lede leading-[1.5] text-[--text]">
-                  {AMBASSADOR.about.map((paragraph) => (
-                    <p key={paragraph} className="m-0">
+                <div className="flex max-w-[40ch] flex-col gap-5 text-pretty font-body text-lede leading-[1.5] text-[--text]">
+                  {AMBASSADOR.about.map((paragraph, i) => (
+                    // The last line is the one hard fact (where, when), so it
+                    // carries the weight; the two before it set it up.
+                    <p key={paragraph} className={i === AMBASSADOR.about.length - 1 ? "m-0 font-medium" : "m-0"}>
                       {paragraph}
                     </p>
                   ))}
@@ -108,49 +125,69 @@ export default function AmbassadorPage() {
             </div>
           </section>
 
-          <section className="shell pb-16 md:pb-28" aria-labelledby="ambassador-get">
-            <h2 id="ambassador-get" className={HEADING}>
-              {AMBASSADOR.getTitle}
-            </h2>
-            <ul className="m-0 mt-8 grid list-none gap-8 p-0 sm:grid-cols-2 md:mt-12 md:gap-x-16 md:gap-y-12">
-              {AMBASSADOR.get.map((item, i) => (
-                <li key={item.label}>
-                  <Reveal delay={i * 70}>
-                    <p className="m-0 font-display text-display-s font-bold leading-tight tracking-title text-[--text]">
-                      {item.label}
-                    </p>
-                    <p className="m-0 mt-2 max-w-[32ch] font-body text-body text-[--text]">{item.line}</p>
-                  </Reveal>
-                </li>
-              ))}
-            </ul>
-            <p className="m-0 mt-10 font-body text-body-s text-[--text-secondary] md:mt-14">{AMBASSADOR.getNote}</p>
-          </section>
-
-          <section className="shell pb-20 md:pb-32" aria-labelledby="ambassador-who">
-            <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] md:gap-16">
-              <h2 id="ambassador-who" className={HEADING}>
-                {AMBASSADOR.whoTitle}
+          <section className="shell pb-20 md:pb-28" aria-labelledby="ambassador-get">
+            <div className={GRID}>
+              <h2 id="ambassador-get" className={HEADING}>
+                {AMBASSADOR.getTitle}
               </h2>
-              <Reveal delay={80}>
-                <p className="m-0 max-w-[26ch] font-display text-display-m font-medium tracking-title text-[--text]">
-                  {AMBASSADOR.who}
+              <div>
+                <ul className="m-0 grid list-none gap-8 p-0 sm:grid-cols-2 sm:gap-x-10 md:gap-y-12">
+                  {AMBASSADOR.get.map((item, i) => (
+                    <li key={item.label}>
+                      <Reveal delay={i * 70}>
+                        {/* The book's HEADLINE at label size: Extrabold
+                            capitals, so each benefit reads as a headline,
+                            and the line under it as the subhead. */}
+                        <h3 className="m-0 font-display text-display-s font-extrabold uppercase leading-[1.05] tracking-display text-[--text]">
+                          {item.label}
+                        </h3>
+                        <p className="m-0 mt-2 max-w-[30ch] text-pretty font-body text-body text-[--text]">{item.line}</p>
+                      </Reveal>
+                    </li>
+                  ))}
+                </ul>
+                <p className="m-0 mt-10 font-body text-body-s text-[--text-secondary] md:mt-12">
+                  {AMBASSADOR.getNote}
                 </p>
-              </Reveal>
+              </div>
             </div>
           </section>
         </div>
 
+        <section className="scheme-espresso scheme-paint" aria-labelledby="ambassador-who">
+          <div className={`shell py-20 md:py-28 ${GRID}`}>
+            <h2 id="ambassador-who" className={HEADING}>
+              {AMBASSADOR.whoTitle}
+            </h2>
+            <Reveal delay={80}>
+              <p className="m-0 max-w-[24ch] text-pretty font-display text-display-m font-medium leading-[1.15] tracking-title text-[--text]">
+                {AMBASSADOR.who}
+              </p>
+            </Reveal>
+          </div>
+        </section>
+
         {/* scroll-mt clears the fixed nav when APPLY jumps here. */}
-        <section id="apply" className="scheme-light scheme-paint scroll-mt-16" aria-labelledby="ambassador-apply">
-          <div className="shell grid gap-10 py-16 md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] md:gap-16 md:py-28">
-            <div>
+        <section id="apply" className="scheme-stone scheme-paint scroll-mt-16" aria-labelledby="ambassador-apply">
+          {/* The control rule goes from the stone scheme's 55% to 62% espresso
+              for this form: a field's edge must clear 3:1, and 55% on warm
+              gray measures 2.76:1; 62% is 3.23:1. Set on this inner box, not
+              the section, because .scheme-stone on the same element would
+              win; local, so other stone panels keep theirs. */}
+          <div className={`shell py-20 md:py-28 ${GRID} [--control-rule:rgb(var(--rgb-espresso)/0.62)]`}>
+            {/* Held in view beside the form on wider screens: the form is
+                long enough now that the ask would otherwise scroll away. */}
+            <div className="md:sticky md:top-28 md:self-start">
               <h2 id="ambassador-apply" className={HEADING}>
                 {AMBASSADOR.formTitle}
               </h2>
               <p className="m-0 mt-4 font-body text-lede text-[--text-secondary]">{AMBASSADOR.formNote}</p>
             </div>
-            <ApplicationForm submitLabel={AMBASSADOR.submit} receivedMessage={AMBASSADOR.received} />
+            <ApplicationForm
+              submitLabel={AMBASSADOR.submit}
+              receivedTitle={AMBASSADOR.receivedTitle}
+              receivedBody={AMBASSADOR.receivedBody}
+            />
           </div>
         </section>
       </main>

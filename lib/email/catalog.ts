@@ -640,10 +640,13 @@ export function emailCatalog(): EmailEntry[] {
           {
             name: SAMPLE_NAME,
             school: "Auburn University",
+            year: "junior",
             chapter: "Alpha Delta Pi",
             instagram: "jordan.taylor",
             phone: "+12055550123",
             reach: "5-10",
+            why: "I plan every trip my friends take anyway. I'd love to do it for something this good.",
+            fit: "Half my pledge class follows whatever I post. I'm the one who books the group house.",
           },
           { saved: true },
         ),

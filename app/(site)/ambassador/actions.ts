@@ -76,34 +76,58 @@ export async function applyForAmbassador(
 
   // In order, not side by side: the email's contents depend on whether the
   // row was written.
-  const saved = await storeApplication(input);
-  const notified = await notifyTeam(input, saved);
+  const stored = await storeApplication(input);
+  const notified = await notifyTeam(input, stored);
 
-  if (!saved && !notified) return FAILED;
+  if (!stored.saved && !notified) return FAILED;
   return { ok: true };
 }
 
-async function storeApplication(input: CleanAmbassadorInput): Promise<boolean> {
+type Stored = { saved: boolean; answersSaved: boolean };
+
+// PostgREST's "column not in the schema cache", and Postgres's own
+// undefined_column: the database is behind the code.
+const MISSING_COLUMN = "PGRST204";
+const UNKNOWN_COLUMN = "42703";
+
+async function storeApplication(input: CleanAmbassadorInput): Promise<Stored> {
+  const core = {
+    name: input.name,
+    school: input.school,
+    chapter: input.chapter,
+    instagram: input.instagram,
+    phone: input.phone,
+    reach: input.reach,
+  };
   try {
     // Service-role: the table has RLS on, no policies and no grants for the
     // API roles (prisma/migrations/20261019120000_ambassador_applications).
-    const { error } = await createAdminClient().from("ambassador_applications").insert({
-      name: input.name,
-      school: input.school,
-      chapter: input.chapter,
-      instagram: input.instagram,
-      phone: input.phone,
-      reach: input.reach,
-    });
-    if (error) {
-      // 42P01 / PGRST205 here means the migration has not been run yet.
-      console.error(`AMBASSADOR APPLICATION NOT SAVED: ${error.code} ${error.message}`);
-      return false;
+    const admin = createAdminClient();
+    const { error } = await admin
+      .from("ambassador_applications")
+      .insert({ ...core, year: input.year, why: input.why, fit: input.fit });
+    if (!error) return { saved: true, answersSaved: true };
+
+    // year, why and fit arrived in 20261026120000_ambassador_application_answers.
+    // If this runs before that SQL has, keep the application rather than lose
+    // it: the row without them, and the email (which always carries the
+    // answers) says they are only there.
+    if (error.code === MISSING_COLUMN || error.code === UNKNOWN_COLUMN) {
+      console.error(
+        `AMBASSADOR ANSWERS NOT STORED: ambassador_applications is missing year/why/fit (${error.message}). Saved the rest; the answers are in the team email only. Run the ambassador_application_answers SQL.`,
+      );
+      const fallback = await admin.from("ambassador_applications").insert(core);
+      if (!fallback.error) return { saved: true, answersSaved: false };
+      console.error(`AMBASSADOR APPLICATION NOT SAVED: ${fallback.error.code} ${fallback.error.message}`);
+      return { saved: false, answersSaved: false };
     }
-    return true;
+
+    // 42P01 / PGRST205 here would mean the table itself is missing.
+    console.error(`AMBASSADOR APPLICATION NOT SAVED: ${error.code} ${error.message}`);
+    return { saved: false, answersSaved: false };
   } catch (err) {
     console.error("AMBASSADOR APPLICATION NOT SAVED: the insert threw.", err);
-    return false;
+    return { saved: false, answersSaved: false };
   }
 }
 
@@ -118,9 +142,9 @@ function inbox(): string {
   );
 }
 
-async function notifyTeam(input: CleanAmbassadorInput, saved: boolean): Promise<boolean> {
+async function notifyTeam(input: CleanAmbassadorInput, { saved, answersSaved }: Stored): Promise<boolean> {
   try {
-    const { subject, text } = renderAmbassadorApplication(input, { saved });
+    const { subject, text } = renderAmbassadorApplication(input, { saved, answersSaved });
     await sendEmail({ from: getFromAddress(), to: inbox(), subject, text });
     return true;
   } catch (err) {

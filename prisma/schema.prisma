@@ -347,6 +347,12 @@ model AmbassadorApplication {
   phone     String
   /// '1-5', '5-10' or '10+' (checked by ambassador_applications_reach).
   reach     String
+  /// 'freshman' to 'senior'. Null on applications from before 26 Oct 2026.
+  year      String?
+  /// "Why do you want to do this?" At most 300 characters.
+  why       String?
+  /// "What makes you a good fit?" At most 300 characters.
+  fit       String?
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@map("ambassador_applications")

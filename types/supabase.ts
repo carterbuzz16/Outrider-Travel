@@ -55,32 +55,41 @@ export type Database = {
         Row: {
           chapter: string
           created_at: string
+          fit: string | null
           id: string
           instagram: string
           name: string
           phone: string
           reach: string
           school: string
+          why: string | null
+          year: string | null
         }
         Insert: {
           chapter: string
           created_at?: string
+          fit?: string | null
           id?: string
           instagram: string
           name: string
           phone: string
           reach: string
           school: string
+          why?: string | null
+          year?: string | null
         }
         Update: {
           chapter?: string
           created_at?: string
+          fit?: string | null
           id?: string
           instagram?: string
           name?: string
           phone?: string
           reach?: string
           school?: string
+          why?: string | null
+          year?: string | null
         }
         Relationships: []
       }

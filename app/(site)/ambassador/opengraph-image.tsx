@@ -19,8 +19,9 @@ export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 const PAPER = "#F2EFEA";
-// Club-light, the espresso scheme's accent, for the one short label.
-const CLUB_LIGHT = "#A3C4D2";
+// Warm gray for the one short label, not club blue: the program runs every
+// season, so the card stays off the Ski Club palette (Carter, 26 Oct 2026).
+const WARM_GRAY = "#D7D2CB";
 
 export default async function AmbassadorOpengraphImage() {
   const [medium, extrabold, photo] = await Promise.all([
@@ -70,7 +71,7 @@ export default async function AmbassadorOpengraphImage() {
             <svg width="62" height="53" viewBox={`0 0 ${MARK.w} ${MARK.h}`} fill={PAPER}>
               <path d={MARK.d} />
             </svg>
-            <div style={{ display: "flex", fontSize: 21, letterSpacing: 3, color: CLUB_LIGHT }}>
+            <div style={{ display: "flex", fontSize: 21, letterSpacing: 3, color: WARM_GRAY }}>
               LIMITED SPOTS PER CAMPUS
             </div>
           </div>

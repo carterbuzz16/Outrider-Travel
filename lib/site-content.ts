@@ -124,7 +124,10 @@ export const SPRING_BREAK = {
  *
  * The program's terms (what an ambassador earns per friend, the free-trip
  * threshold) are deliberately not here: the brief says "Full details are
- * shared once you're selected", and the terms are still being settled.
+ * shared once you're selected", and the terms are still being settled. But
+ * the page says that a free trip has to be earned (Carter, 26 October 2026:
+ * "make it clear they have to hit a goal"), and that rewards come for friends
+ * who book, not for every friend. It names no number.
  * ------------------------------------------------------------------------- */
 export const AMBASSADOR = {
   headline: "Travel for free",
@@ -138,11 +141,13 @@ export const AMBASSADOR = {
     "First up: Telluride, December 14–18 and January 4–8.",
   ],
   getTitle: "What you get",
+  // Labels are set as capitals headings (26 Oct 2026 polish), so they carry
+  // no full stop; the lines under them are sentences and keep theirs.
   get: [
-    { label: "Free travel.", line: "Earn your spot on Outrider trips." },
-    { label: "Rewards.", line: "For every friend who books." },
-    { label: "First access.", line: "Every trip opens to you before anyone else." },
-    { label: "A direct line to the founders.", line: "Your input shapes where we go next." },
+    { label: "Free travel", line: "Hit your goal and your trip is on us." },
+    { label: "Rewards", line: "For friends who book." },
+    { label: "First access", line: "Every trip opens to you before anyone else." },
+    { label: "A direct line to the founders", line: "Your input shapes where we go next." },
   ],
   getNote: "Full details are shared once you’re selected.",
   whoTitle: "Who we’re looking for",
@@ -150,7 +155,8 @@ export const AMBASSADOR = {
   formTitle: "Apply",
   formNote: "Limited spots per campus.",
   submit: "Submit",
-  received: "Application received. We’ll be in touch.",
+  receivedTitle: "Application received.",
+  receivedBody: "We’ll be in touch.",
 };
 
 /* -- what makes Outrider different ------------------------------------------
