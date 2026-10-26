@@ -32,7 +32,7 @@ export const metadata: Metadata = pageMetadata({
  *     is a single flat wash, not the fades the other mastheads use;
  *   - the subhead and the button sit right under it on paper (small text
  *     goes on solid ground, never on the picture), and that one paper ground
- *     carries the pitch: what Outrider is, what you get;
+ *     carries where we go and what you get, each in a warm gray block;
  *   - "Who we're looking for" is one espresso band, the beat before the ask.
  *     It holds no control, because a button on espresso is club blue;
  *   - the form is on warm gray, the book's single-moment panel. Its scheme
@@ -54,6 +54,13 @@ const HEADING =
 
 // The one grid every section sits on: heading left, content right from md.
 const GRID = "grid gap-7 md:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] md:gap-16";
+
+// A solid panel for the pitch's text (Carter, 26 October 2026: copy set loose
+// on the page was "hard to read", put it "in a block"). Warm gray through
+// .scheme-stone rather than a bare background, so the text tiers inside are
+// the stone ones: espresso at 8:1, and secondary #564E48 at 5.4:1 where
+// taupe would fall to 3.9:1. Square, as every panel in the brand book is.
+const BLOCK = "scheme-stone scheme-paint p-6 sm:p-9 lg:p-12";
 
 export default function AmbassadorPage() {
   return (
@@ -112,14 +119,25 @@ export default function AmbassadorPage() {
                 {AMBASSADOR.aboutTitle}
               </h2>
               <Reveal delay={80}>
-                <div className="flex max-w-[40ch] flex-col gap-5 text-pretty font-body text-lede leading-[1.5] text-[--text]">
-                  {AMBASSADOR.about.map((paragraph, i) => (
-                    // The last line is the one hard fact (where, when), so it
-                    // carries the weight; the two before it set it up.
-                    <p key={paragraph} className={i === AMBASSADOR.about.length - 1 ? "m-0 font-medium" : "m-0"}>
-                      {paragraph}
-                    </p>
-                  ))}
+                <div className={BLOCK}>
+                  <div className="flex flex-col gap-4 text-pretty">
+                    {AMBASSADOR.about.map((paragraph, i) =>
+                      // The two lines are the voice, set at subhead size; the
+                      // last is the one hard fact (where, when), at text size.
+                      i === AMBASSADOR.about.length - 1 ? (
+                        <p key={paragraph} className="m-0 mt-2 font-body text-lede font-medium text-[--text]">
+                          {paragraph}
+                        </p>
+                      ) : (
+                        <p
+                          key={paragraph}
+                          className="m-0 font-display text-display-s font-medium leading-snug tracking-title text-[--text]"
+                        >
+                          {paragraph}
+                        </p>
+                      ),
+                    )}
+                  </div>
                 </div>
               </Reveal>
             </div>
@@ -130,26 +148,27 @@ export default function AmbassadorPage() {
               <h2 id="ambassador-get" className={HEADING}>
                 {AMBASSADOR.getTitle}
               </h2>
-              <div>
-                <ul className="m-0 grid list-none gap-8 p-0 sm:grid-cols-2 sm:gap-x-10 md:gap-y-12">
-                  {AMBASSADOR.get.map((item, i) => (
-                    <li key={item.label}>
-                      <Reveal delay={i * 70}>
+              <Reveal delay={80}>
+                <div className={BLOCK}>
+                  {/* Two across only where the block is wide enough for
+                      "A direct line to the founders" in a half: the full
+                      shell from sm, the right column again from lg. */}
+                  <ul className="m-0 grid list-none gap-8 p-0 sm:grid-cols-2 sm:gap-x-10 md:grid-cols-1 lg:grid-cols-2 lg:gap-y-10">
+                    {AMBASSADOR.get.map((item) => (
+                      <li key={item.label}>
                         {/* The book's HEADLINE at label size: Extrabold
                             capitals, so each benefit reads as a headline,
                             and the line under it as the subhead. */}
                         <h3 className="m-0 font-display text-display-s font-extrabold uppercase leading-[1.05] tracking-display text-[--text]">
                           {item.label}
                         </h3>
-                        <p className="m-0 mt-2 max-w-[30ch] text-pretty font-body text-body text-[--text]">{item.line}</p>
-                      </Reveal>
-                    </li>
-                  ))}
-                </ul>
-                <p className="m-0 mt-10 font-body text-body-s text-[--text-secondary] md:mt-12">
-                  {AMBASSADOR.getNote}
-                </p>
-              </div>
+                        <p className="m-0 mt-2 max-w-[30ch] text-pretty font-body text-lede text-[--text]">{item.line}</p>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="m-0 mt-10 font-body text-body-s text-[--text-secondary]">{AMBASSADOR.getNote}</p>
+                </div>
+              </Reveal>
             </div>
           </section>
         </div>

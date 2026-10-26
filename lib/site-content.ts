@@ -133,10 +133,15 @@ export const AMBASSADOR = {
   headline: "Travel for free",
   subhead: "Outrider is selecting a small team of Campus Leads and Ambassadors.",
   apply: "Apply",
-  aboutTitle: "What Outrider is",
+  // Was "What Outrider is", a problem-and-answer pitch. Carter, 26 October
+  // 2026: less like a business pitch; "it's high end awesome locations, not
+  // the normal. You're cool for going on Outrider." So it shows the place
+  // and says little. Trips are open to anyone who books, so nothing here
+  // suggests you have to be picked to go (only to be an ambassador).
+  aboutTitle: "Where we go",
   about: [
-    "College group travel hasn’t changed in twenty years. Cheapest hotel, biggest party, hope nothing goes wrong.",
-    "Outrider is the other version. Small groups. Hand-picked places. Properties we stay at before we book them.",
+    "High-end places the usual college trip never gets near.",
+    "Fair warning: everyone will ask where you went.",
     // Non-breaking spaces, so a date never wraps away from its month.
     "First up: Telluride, December 14–18 and January 4–8.",
   ],
