@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 import { getStripe } from "@/lib/stripe";
 import { toCents } from "@/lib/balance";
+import { SIGNUP_DEADLINE_DAY, dayInCentral } from "@/lib/signup-deadline";
 
 /*
  * When the balance is collected: two equal payments on fixed calendar dates,
@@ -20,16 +21,68 @@ import { toCents } from "@/lib/balance";
  * dates put December's last payment after that bill and January's three days
  * before it; Carter chose them knowing that.
  *
- * The Terms (5.0.0), the booking form and the pay page read this. The
- * marketing pages and emails say "two payments before the trip" in words, so
- * grep for that if the count changes.
+ * The Terms, the booking form and the pay page read this. The marketing pages
+ * and emails say how the rest is paid in words, so grep for "before the trip"
+ * if the count changes.
+ *
+ * December changed on 27 October 2026 (Carter): the whole balance on the
+ * signup deadline, 14 November (SIGNUP_DEADLINE_DAY, lib/signup-deadline.ts),
+ * in place of 10 November and 1 December, and nobody books it on the deposit
+ * from 11 November (PAY_IN_FULL_FROM_BY_START below). Only new bookings: a
+ * booking's installments are written once, when its deposit clears, so those
+ * made earlier keep the two dates they agreed to until the team moves them
+ * with the traveler's agreement (/admin/ambassadors, moveToSingleBalance).
  */
 export const INSTALLMENT_DATES_BY_START: Readonly<Record<string, readonly string[]>> = {
   // Telluride, December 14 to 18, 2026
-  "2026-12-14": ["2026-11-10", "2026-12-01"],
+  "2026-12-14": [SIGNUP_DEADLINE_DAY],
   // Telluride, January 4 to 8, 2027
   "2027-01-04": ["2026-11-20", "2026-12-01"],
 };
+
+/**
+ * The day (YYYY-MM-DD, Central time) from which a departure is paid in full at
+ * booking: the $100 deposit is no longer offered. December from 11 November,
+ * three days before its balance date, so nobody puts $100 down and is charged
+ * the rest days later. A departure with no line here always offers the deposit.
+ */
+export const PAY_IN_FULL_FROM_BY_START: Readonly<Record<string, string>> = {
+  "2026-12-14": "2026-11-11",
+};
+
+/** Whether a booking made `now` on this departure must be paid in full (see above). */
+export function mustPayInFull(startDate: string, now = new Date()): boolean {
+  const from = PAY_IN_FULL_FROM_BY_START[startDate];
+  return from !== undefined && dayInCentral(now) >= from;
+}
+
+/**
+ * How the rest is paid on each departure, in words, read from
+ * INSTALLMENT_DATES_BY_START so the FAQ answers move with the schedule:
+ * "For December, the rest comes off in one payment on November 14. For
+ * January, it's split into two payments, November 20 and December 1."
+ * `startDates` picks the departures; all of them when left out.
+ */
+export function howTheRestIsPaid(startDates: string[] = Object.keys(INSTALLMENT_DATES_BY_START)): string {
+  const month = (iso: string) =>
+    new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
+  const day = (iso: string) =>
+    new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
+  const lines = [...startDates].sort().map((start) => {
+    const dates = balanceDueDates(start);
+    return dates.length === 1
+      ? `For ${month(start)}, the rest comes off in one payment on ${day(dates[0])}.`
+      : `For ${month(start)}, it’s split into ${dates.length === 2 ? "two" : dates.length} payments, ${dates.map(day).join(" and ")}.`;
+  });
+  return lines.length > 0 ? lines.join(" ") : "The rest is split into payments before the trip.";
+}
+
+/**
+ * The dates the December departure's bookings agreed to before 27 October
+ * 2026. A booking still holding an installment on one of them is on the old
+ * schedule (oldDecemberSchedule, /admin/ambassadors).
+ */
+export const OLD_DECEMBER_DATES: readonly string[] = ["2026-11-10", "2026-12-01"];
 
 // A trip with no dates above pays the balance in one payment this many days
 // before it starts, the rule in force from 8 to 13 October 2026.
@@ -417,6 +470,84 @@ export async function installmentInFlight(admin: SupabaseClient<Database>, booki
     if (await isInFlight(row)) return true;
   }
   return false;
+}
+
+/**
+ * Moves a December booking made on the old schedule (10 November and 1
+ * December) to the new one: everything still scheduled becomes one payment on
+ * the signup deadline, SIGNUP_DEADLINE_DAY. Run from /admin/ambassadors once
+ * the traveler has agreed, never on its own, since their terms named the old
+ * dates.
+ *
+ * Only `scheduled` rows move. One the cron is charging, or one that failed or
+ * is waiting on 3D Secure, needs a person, so the move is refused and nothing
+ * changes. The other rows are cancelled first and the first row then takes
+ * their amounts, each write conditional on the row still being untouched. In
+ * that order the worst a race can leave is less scheduled than is owed, a gap
+ * for a person (as reconcileInstallments leaves one), never the same money
+ * scheduled twice.
+ */
+export async function moveToSingleBalance(
+  admin: SupabaseClient<Database>,
+  bookingId: string,
+): Promise<{ ok: true; amount: number } | { ok: false; message: string }> {
+  const { data: booking } = await admin
+    .from("bookings")
+    .select("status, payments(id, status, amount, scheduled_date, stripe_payment_intent_id, last_attempted_at)")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (!booking || booking.status !== "deposit_paid") {
+    return { ok: false, message: "Only a booking on the deposit with a balance still to pay can be moved." };
+  }
+
+  const open = booking.payments.filter(
+    (p) => OPEN_STATUSES.includes(p.status) && p.scheduled_date !== null,
+  ) as ScheduleRow[];
+  if (open.length === 0) return { ok: false, message: "Nothing is scheduled on this booking." };
+  if (open.some((p) => p.status !== "scheduled")) {
+    return { ok: false, message: "A payment on this booking failed or is waiting on the traveler. Sort that out first." };
+  }
+  for (const row of open) {
+    if (await isInFlight(row)) return { ok: false, message: "A payment on this booking is being charged right now. Try again in 15 minutes." };
+  }
+  if (open.length === 1 && open[0].scheduled_date === SIGNUP_DEADLINE_DAY) {
+    return { ok: false, message: "This booking is already on the new schedule." };
+  }
+
+  open.sort((a, b) => (a.scheduled_date ?? "").localeCompare(b.scheduled_date ?? ""));
+  const [keep, ...rest] = open;
+  let movedCents = toCents(keep.amount);
+  for (const row of rest) {
+    const { data: cancelled } = await admin
+      .from("payments")
+      .update({ status: "canceled" })
+      .eq("id", row.id)
+      .eq("status", "scheduled")
+      .is("last_attempted_at", null)
+      .select("id");
+    if (cancelled && cancelled.length > 0) movedCents += toCents(row.amount);
+  }
+
+  // The deadline itself, or tomorrow once it has passed, as installmentDates
+  // does for a date already gone.
+  const tomorrow = tomorrowUtc(new Date());
+  const date = SIGNUP_DEADLINE_DAY < tomorrow ? tomorrow : SIGNUP_DEADLINE_DAY;
+  const { data: updated } = await admin
+    .from("payments")
+    .update({ amount: movedCents / 100, scheduled_date: date })
+    .eq("id", keep.id)
+    .eq("status", "scheduled")
+    .is("last_attempted_at", null)
+    .select("id");
+  if (!updated || updated.length === 0) {
+    const gap = (movedCents - toCents(keep.amount)) / 100;
+    console.error(`moveToSingleBalance(${bookingId}): installment ${keep.id} changed under the move; $${gap} cancelled and not rescheduled`);
+    return {
+      ok: false,
+      message: `The schedule changed while moving it, and $${gap.toFixed(2)} is no longer scheduled. Check the booking's payments before doing anything else.`,
+    };
+  }
+  return { ok: true, amount: movedCents / 100 };
 }
 
 // How long an early payment the traveler started but has not finished holds

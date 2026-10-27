@@ -1,5 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requiresAuth, updateSession } from "@/lib/supabase/middleware";
+import {
+  REFERRAL_COOKIE,
+  REFERRAL_COOKIE_OPTIONS,
+  isLiveAttributionCode,
+  normalizeReferralCode,
+} from "@/lib/referral-cookie";
 
 /*
  * The styleguide (/style) is an internal reference and is not part of the
@@ -18,7 +24,55 @@ import { requiresAuth, updateSession } from "@/lib/supabase/middleware";
 const STYLEGUIDE_ENABLED =
   process.env.NODE_ENV !== "production" || process.env.ENABLE_STYLEGUIDE === "1";
 
+/*
+ * The session paths: everything the matcher below listed before referral
+ * links. Any other page reaches the middleware only because it carries
+ * ?ref=, and needs no session refreshed for that.
+ */
+const SESSION_PATHS = ["/style", "/bookings", "/admin", "/auth", "/login", "/signup", "/forgot-password", "/reset-password"];
+
+function isSessionPath(pathname: string): boolean {
+  return SESSION_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
+/**
+ * The ambassador code in ?ref=, if it is live (lib/referral-cookie.ts), read
+ * straight from PostgREST with the service role: the admin client module is
+ * server-only and cannot load here. The code is letters and digits only once
+ * normalized, so it is safe in the query string as it stands. Any failure is
+ * a "no": the visitor simply is not credited, and the page is never held up.
+ */
+async function liveReferral(raw: string | null): Promise<string | null> {
+  const code = normalizeReferralCode(raw);
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!code || !url || !key) return null;
+  try {
+    const res = await fetch(
+      `${url}/rest/v1/discount_codes?select=amount,percent_off,active,expires_at&code=eq.${code}`,
+      { headers: { apikey: key, Authorization: `Bearer ${key}` }, cache: "no-store", signal: AbortSignal.timeout(2000) },
+    );
+    if (!res.ok) return null;
+    const rows = (await res.json()) as Parameters<typeof isLiveAttributionCode>[0][];
+    return rows[0] && isLiveAttributionCode(rows[0]) ? code : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function middleware(request: NextRequest) {
+  // A referral link (?ref=, lib/referral-cookie.ts). Set on the request as
+  // well as the response, so the page rendering now already sees it: a
+  // visitor who lands straight on checkout with ?ref= has the box filled.
+  const referral = await liveReferral(request.nextUrl.searchParams.get("ref"));
+  if (referral) request.cookies.set(REFERRAL_COOKIE, referral);
+
+  const response = await route(request);
+  if (referral) response.cookies.set(REFERRAL_COOKIE, referral, REFERRAL_COOKIE_OPTIONS);
+  return response;
+}
+
+async function route(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (!STYLEGUIDE_ENABLED && (pathname === "/style" || pathname.startsWith("/style/"))) {
@@ -26,6 +80,8 @@ export async function middleware(request: NextRequest) {
     // 404 status, rather than handing back a bare empty response.
     return NextResponse.rewrite(new URL("/404", request.url), { status: 404 });
   }
+
+  if (!isSessionPath(pathname)) return NextResponse.next({ request });
 
   /*
    * updateSession() calls supabase.auth.getUser(), a network round trip to
@@ -71,9 +127,15 @@ export const config = {
    * pages need no session, so they are no longer matched.
    *
    * What remains: the authenticated areas, the auth routes themselves, and
-   * /style (whose 404 gate above has to run).
+   * /style (whose 404 gate above has to run). Plus any page at all that
+   * carries ?ref=, an ambassador's referral link, which is answered without
+   * a session round trip (isSessionPath). Not API routes or build assets.
    */
   matcher: [
+    {
+      source: "/((?!api/|_next/|.*\\.[a-z0-9]+$).*)",
+      has: [{ type: "query", key: "ref" }],
+    },
     "/style/:path*",
     "/style",
     "/bookings/:path*",

@@ -4,7 +4,13 @@ import Link from "next/link";
 import { TERMS } from "@/lib/legal";
 import { CONTACT, LEGAL_NAME } from "@/lib/site-content";
 import { DEPOSIT_AMOUNT, PAY_IN_FULL_DISCOUNT } from "@/lib/deposit";
-import { BALANCE_PAYMENT_HOLD_HOURS, FALLBACK_OFFSET_DAYS, INSTALLMENT_DATES_BY_START } from "@/lib/installments";
+import {
+  BALANCE_PAYMENT_HOLD_HOURS,
+  FALLBACK_OFFSET_DAYS,
+  INSTALLMENT_DATES_BY_START,
+  OLD_DECEMBER_DATES,
+  PAY_IN_FULL_FROM_BY_START,
+} from "@/lib/installments";
 import { MAX_INSTALLMENT_ATTEMPTS, INSTALLMENT_RETRY_AFTER_DAYS } from "@/lib/payments";
 import { MIN_BALANCE_PAYMENT, formatAmount } from "@/lib/balance";
 import { PENTHOUSE_DISCLAIMER } from "@/lib/penthouse";
@@ -35,11 +41,14 @@ export const metadata: Metadata = pageMetadata({
 });
 
 const deposit = formatAmount(DEPOSIT_AMOUNT);
-// Two installments on fixed dates per departure since 5.0.0
-// (lib/installments.ts), listed in section 5 straight from that table, so a
-// departure added there is listed here too. Section 5 is written for two; a
-// departure with a different count needs that section reread.
+// Installments on fixed dates per departure since 5.0.0 (lib/installments.ts),
+// listed in section 5 straight from that table, so a departure added there is
+// listed here too. Since 6.0.0 a departure has one or two: December is one,
+// on the signup deadline, and is paid in full at booking from
+// PAY_IN_FULL_FROM_BY_START. Section 5 is written for one or two; a departure
+// with more needs that section reread.
 const departureSchedules = Object.entries(INSTALLMENT_DATES_BY_START).sort(([a], [b]) => a.localeCompare(b));
+const payInFullFrom = Object.entries(PAY_IN_FULL_FROM_BY_START).sort(([a], [b]) => a.localeCompare(b));
 const longDate = (iso: string) =>
   new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", {
     month: "long",
@@ -244,15 +253,17 @@ export default function TermsPage() {
         <p>
           The balance is the price of your booking, after any discount code,
           less the deposit. It is collected in{" "}
-          <strong>two equal installments, on fixed dates set for each departure</strong>
-          , with any odd cent added to the second:
+          <strong>installments on fixed dates set for each departure</strong>:
+          one installment of the whole balance, or two equal installments with
+          any odd cent added to the second:
         </p>
         <LegalList
           items={[
             ...departureSchedules.map(([start, dates]) => (
               <>
                 For the trip starting {longDate(start)}:{" "}
-                <strong>{dates.map(longDate).join(" and ")}</strong>.
+                <strong>{dates.map(longDate).join(" and ")}</strong>
+                {dates.length === 1 ? ", the whole balance" : ""}.
               </>
             )),
             <>
@@ -271,6 +282,21 @@ export default function TermsPage() {
           ahead (see below). The payment page shows the dates and amounts before
           you pay.
         </p>
+        {payInFullFrom.length > 0 && (
+          <p>
+            {payInFullFrom.map(([start, from], i) => (
+              <span key={start}>
+                {i > 0 && " "}A booking on the trip starting {longDate(start)} made on or
+                after <strong>{longDate(from)}</strong> is paid in full at booking:
+                the deposit plan is not offered for it.
+              </span>
+            ))}{" "}
+            A booking on the trip starting December 14, 2026 made before October 27,
+            2026 keeps the installments it was booked with,{" "}
+            {OLD_DECEMBER_DATES.map(longDate).join(" and ")}, unless you agree with
+            us to move its balance to the single installment above.
+          </p>
+        )}
 
         <h3>Automatic charges</h3>
         <p>

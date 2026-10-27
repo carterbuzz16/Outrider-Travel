@@ -55,6 +55,7 @@ model Trip {
 
   tiers    Tier[]
   bookings Booking[]
+  ambassadors Ambassador[]
 
   @@map("trips")
 }
@@ -119,6 +120,10 @@ model Booking {
   // migration; lib/email/penthouse.ts).
   penthouseFullEmailSentAt     DateTime? @map("penthouse_full_email_sent_at") @db.Timestamptz
   penthouseReminderEmailSentAt DateTime? @map("penthouse_reminder_email_sent_at") @db.Timestamptz
+  /// A Four to a Room place held for an ambassador, nothing paid on it
+  /// (referrals_and_ambassadors migration, /admin/ambassadors). Never counts
+  /// toward anyone's five.
+  ambassadorHold Boolean @default(false) @map("ambassador_hold")
 
   user             User              @relation(fields: [userId], references: [id])
   trip             Trip              @relation(fields: [tripId], references: [id])
@@ -127,7 +132,8 @@ model Booking {
   legalAcceptances LegalAcceptance[]
   roomingRequest   RoomingRequest?
   travelerDetails  TravelerDetails?
-  discountRedemption DiscountRedemption?
+  discountRedemptions DiscountRedemption[]
+  heldFor             Ambassador?
 
   @@index([userId])
   @@index([tripId])
@@ -250,25 +256,59 @@ model DiscountCode {
   redemptions DiscountRedemption[]
   offeredTo   WaitlistSignup?
   tier        Tier?                @relation(fields: [tierId], references: [id])
+  ambassador  Ambassador?
 
   @@map("discount_codes")
 }
 
-/// Which code took what off which booking. One per booking; deleted with an
-/// abandoned pending booking, which frees the code. Claimed only through the
-/// claim_discount_code function, which locks the code row.
+/// Which code took what off which booking. One of each kind per booking
+/// (referrals_and_ambassadors migration): a discount, and an attribution, an
+/// ambassador's $0 code that credits the booking to them. Deleted with an
+/// abandoned pending booking, which frees the code. Claimed through the
+/// claim_discount_code function, which locks the code row, or written by
+/// /admin/ambassadors with source "admin".
 model DiscountRedemption {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   code      String
-  bookingId String   @unique @map("booking_id") @db.Uuid
+  bookingId String   @map("booking_id") @db.Uuid
   amount    Decimal  @db.Decimal(10, 2)
+  /// "discount" or "attribution".
+  kind      String   @default("discount")
+  /// How an attribution arrived: "typed", "link" (?ref=) or "admin". Null on a discount.
+  source    String?
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   discountCode DiscountCode @relation(fields: [code], references: [code])
   booking      Booking      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
+  @@unique([bookingId, kind])
   @@index([code])
   @@map("discount_redemptions")
+}
+
+/// A campus ambassador (referrals_and_ambassadors migration, lib/ambassadors.ts):
+/// keyed by their $0 code, with their held Four to a Room spot and its
+/// status (held, free, paying, released). Service role only.
+model Ambassador {
+  code           String    @id
+  name           String
+  school         String?
+  email          String?
+  phone          String?
+  instagram      String?
+  tripId         String?   @map("trip_id") @db.Uuid
+  holdStatus     String?   @map("hold_status")
+  holdBookingId  String?   @unique @map("hold_booking_id") @db.Uuid
+  paymentLinkId  String?   @map("payment_link_id")
+  paymentLinkUrl String?   @map("payment_link_url")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime  @default(now()) @map("updated_at") @db.Timestamptz
+
+  discountCode DiscountCode @relation(fields: [code], references: [code])
+  trip         Trip?        @relation(fields: [tripId], references: [id])
+  holdBooking  Booking?     @relation(fields: [holdBookingId], references: [id], onDelete: SetNull)
+
+  @@map("ambassadors")
 }
 
 model Payment {

@@ -21,7 +21,9 @@ import {
   type PaymentPlan,
 } from "@/lib/balance";
 import type Stripe from "stripe";
-import { installmentInFlight } from "@/lib/installments";
+import { installmentInFlight, mustPayInFull } from "@/lib/installments";
+import { lookupReferral, referralCodeFromCookie } from "@/lib/referral";
+import { signupsClosed } from "@/lib/signup-deadline";
 import { paymentKindOf, settleFreeBooking } from "@/lib/payments";
 import { syncPaymentFromStripe } from "@/lib/stripe-sync";
 import { getOrCreateStripeCustomerId } from "@/lib/customers";
@@ -53,13 +55,16 @@ export async function createBooking(formData: FormData) {
   const requestedGroupCode = String(formData.get("group_code") ?? "").trim() || null;
   // A giveaway code (lib/discount-codes.ts). Only the code is taken from the
   // form; what it takes off is looked up below, like every other figure.
-  const discountCode = normalizeDiscountCode(formData.get("discount_code"));
+  const postedCode = normalizeDiscountCode(formData.get("discount_code"));
+  // The Referred by box: an ambassador's $0 code (lib/referral.ts), which
+  // goes on the booking beside any discount code.
+  const postedReferral = normalizeDiscountCode(formData.get("referral_code"));
   // Where a failure sends the traveler back to: the same trip, package, group
-  // code and discount code, so they land where they were rather than on a
-  // blank start. A failure about the code itself leaves the code out (noCode),
-  // or the page would repeat the same complaint beside the error.
-  const back = { tripId, tierId, groupCode: requestedGroupCode, discountCode };
-  const noCode = { tripId, tierId, groupCode: requestedGroupCode };
+  // code, discount code and referral, so they land where they were rather
+  // than on a blank start. A failure about the code itself leaves the code
+  // out (noCode), or the page would repeat the same complaint beside the error.
+  const back = { tripId, tierId, groupCode: requestedGroupCode, discountCode: postedCode, referralCode: postedReferral };
+  const noCode = { tripId, tierId, groupCode: requestedGroupCode, referralCode: postedReferral };
   // Neither the terms nor the text-message opt-in is asked for here any more.
   // The terms are agreed to in the one box on the payment step, recorded by
   // acceptTermsForBooking before the card is confirmed; texts are opted into
@@ -116,8 +121,16 @@ export async function createBooking(formData: FormData) {
   // soon" state whenever this is false, so that is where this goes. During the
   // list's head start, a list member's early-access cookie counts as open, and
   // so does a live discount code (a giveaway winner, lib/early-access.ts).
-  if (!(await bookingsOpenForViewer(discountCode, user.id))) {
+  if (!(await bookingsOpenForViewer(postedCode, user.id))) {
     redirect("/bookings/new?error=closed");
+  }
+
+  // Past the signup deadline (lib/signup-deadline.ts) nothing new is booked,
+  // on any departure. The pages say so too; this is the control, for a form
+  // left open across the deadline or a direct POST. Existing bookings, their
+  // balances and installments are untouched.
+  if (signupsClosed()) {
+    checkoutError("signups_closed", { tripId });
   }
 
   // Re-fetch the tier server-side rather than trusting a client-supplied
@@ -153,6 +166,13 @@ export async function createBooking(formData: FormData) {
     checkoutError("departed", { tripId });
   }
 
+  // Close to its balance date a departure is paid in full at booking
+  // (PAY_IN_FULL_FROM_BY_START, lib/installments.ts): December from 11
+  // November. The page offers only that plan by then; a form rendered before
+  // midnight that still says deposit is charged in full, which the payment
+  // step states plainly before the card is confirmed.
+  const chosenPlan: PaymentPlan = mustPayInFull(tier.trips.start_date) ? "full" : requestedPlan;
+
   /*
    * Paying in full takes PAY_IN_FULL_DISCOUNT off the price, and the
    * discounted figure becomes the booking's total_amount: that is the price
@@ -184,11 +204,41 @@ export async function createBooking(formData: FormData) {
     checkoutError("payment_moving", back);
   }
 
+  /*
+   * Who referred this booking (lib/referral.ts). An ambassador's code typed
+   * into the discount box is moved to Referred by rather than refused, since
+   * the ambassador playbook told friends to use that box; the page moves it
+   * the same way when the code is applied there. With both boxes holding one,
+   * Referred by wins and the discount box's ambassador code is dropped.
+   *
+   * A code in Referred by that is not a live ambassador code sends the
+   * traveler back to fix or clear it, before anything is made. It came from a
+   * ?ref= link when the box says it was filled from one and the cookie holds
+   * the same code; anything else was typed. The cookie keeps a page from
+   * claiming a link it never had; the box keeps a code typed by someone who
+   * once followed the same link from being called a link.
+   */
+  let discountCode = postedCode;
+  let referralCode = postedReferral;
+  if (discountCode && (await lookupReferral(admin, discountCode))) {
+    referralCode = referralCode ?? discountCode;
+    discountCode = null;
+  }
+  const referral = referralCode ? await lookupReferral(admin, referralCode) : null;
+  if (referralCode && !referral) {
+    checkoutError("referral_invalid", { ...back, referralCode: "" });
+  }
+  const referralSource =
+    referral && formData.get("referral_from") === "link" && referral.code === (await referralCodeFromCookie())
+      ? "link"
+      : "typed";
+
   let discount = 0;
-  // A code that checks out but takes nothing off: an ambassador's $0 code, or
-  // one whose discount has ended (discount_ends_at, lib/discount-codes.ts). It
-  // is still claimed below, at $0, because the claim is what credits the
-  // booking to the ambassador whose code it is. Nothing else sees it: the
+  // A code that checks out but takes nothing off: one whose discount has
+  // ended (discount_ends_at, lib/discount-codes.ts). It is still claimed
+  // below, at $0, because the claim is what credits the booking to the
+  // ambassador whose code it is. (An ambassador's own $0 code never gets
+  // here: it was moved to Referred by above.) Nothing else sees it: the
   // total, the deposit, the installments and the card form are the same as
   // with no code, and the PaymentIntent carries it only in its metadata.
   let creditsOnly = false;
@@ -231,13 +281,13 @@ export async function createBooking(formData: FormData) {
   discount = applied.code;
   const claimCode = discount > 0 || creditsOnly ? discountCode : null;
 
-  const listTotal = requestedPlan === "full" ? computePayInFullAmount(tier.price) : tier.price;
+  const listTotal = chosenPlan === "full" ? computePayInFullAmount(tier.price) : tier.price;
   const totalAmount = applyDiscount(listTotal, discount + credit);
   const depositAmount = computeDepositAmount(totalAmount);
   // A code that leaves no more than the $100 deposit to pay makes the deposit
   // the whole price, with nothing to schedule after it, and the booking would
   // sit at deposit_paid owing nothing. That checkout is a payment in full.
-  const plan: PaymentPlan = requestedPlan === "deposit" && depositAmount >= totalAmount ? "full" : requestedPlan;
+  const plan: PaymentPlan = chosenPlan === "deposit" && depositAmount >= totalAmount ? "full" : chosenPlan;
   const chargeAmount = plan === "full" ? totalAmount : depositAmount;
   const chargeCents = Math.round(chargeAmount * 100);
 
@@ -457,7 +507,21 @@ export async function createBooking(formData: FormData) {
       checkoutError(claim.ok || claim.reason === "invalid" ? "discount_code_invalid" : "discount_code_used", noCode);
     }
   } else if (carried) {
-    await dropDiscountCode(admin, bookingId);
+    await dropDiscountCode(admin, bookingId, "discount");
+  }
+
+  // The referral, beside the discount: its own redemption row, of kind
+  // attribution (lib/referral.ts). It takes nothing off, so a claim that
+  // fails here (the code switched off in the last moment) costs the traveler
+  // nothing and is not worth undoing their booking for. It is logged, and the
+  // team can add it from /admin/ambassadors.
+  if (referral) {
+    const claim = await claimDiscountCode(admin, referral.code, bookingId, referralSource);
+    if (!claim.ok) {
+      console.error(`createBooking: booking ${bookingId} could not be credited to ${referral.code} (${claim.reason})`);
+    }
+  } else if (carried) {
+    await dropDiscountCode(admin, bookingId, "attribution");
   }
 
   // Nothing to charge: straight to the payment step, which asks for the terms
@@ -526,6 +590,7 @@ export async function createBooking(formData: FormData) {
           kind: plan,
           bookingStatus: "pending",
           ...(claimCode ? { discountCode: claimCode } : {}),
+          ...(referral ? { referralCode: referral.code } : {}),
           ...(credit > 0 ? { newAccountCredit: String(credit) } : {}),
         },
       },
@@ -968,13 +1033,21 @@ const BALANCE_IDEMPOTENCY_BUCKET_MS = 2 * 60 * 1000;
  */
 function checkoutError(
   code: CheckoutErrorCode,
-  where: { tripId?: string; tierId?: string; groupCode?: string | null; discountCode?: string | null } = {},
+  where: {
+    tripId?: string;
+    tierId?: string;
+    groupCode?: string | null;
+    discountCode?: string | null;
+    /** The Referred by box: a code to put back, or "" to come back with it cleared. */
+    referralCode?: string | null;
+  } = {},
 ): never {
   const params = new URLSearchParams();
   if (where.tripId) params.set("trip", where.tripId);
   if (where.tierId) params.set("package", where.tierId);
   if (where.groupCode) params.set("group", where.groupCode);
   if (where.discountCode) params.set("code", where.discountCode);
+  if (where.referralCode !== undefined && where.referralCode !== null) params.set("referred", where.referralCode);
   params.set("error", code);
   redirect(`/bookings/new?${params.toString()}`);
 }

@@ -161,6 +161,8 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
     .from("discount_redemptions")
     .select("code, amount")
     .eq("booking_id", booking.id)
+    // The discount only: an ambassador's $0 code beside it takes nothing off.
+    .eq("kind", "discount")
     .maybeSingle();
   const codeOff = redemption ? Number(redemption.amount) : 0;
   // The new-account credit (lib/welcome-credit.ts), also already off the
@@ -418,6 +420,8 @@ async function FreeBooking({ booking }: { booking: FreeBookingRow }) {
     .from("discount_redemptions")
     .select("code, amount")
     .eq("booking_id", booking.id)
+    // The discount only: an ambassador's $0 code beside it takes nothing off.
+    .eq("kind", "discount")
     .maybeSingle();
 
   return (

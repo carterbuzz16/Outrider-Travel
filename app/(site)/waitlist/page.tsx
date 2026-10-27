@@ -54,7 +54,7 @@ const STEPS = [
   },
   {
     title: "Book your spot",
-    body: "Put down $100 to hold it and pay the rest in two payments before the trip. Share a group code and you'll room with your friends.",
+    body: "Put down $100 to hold it and pay the rest before the trip. Share a group code and you'll room with your friends.",
   },
 ];
 

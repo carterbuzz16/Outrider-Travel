@@ -109,9 +109,27 @@ export async function discountCodeAmount(
 
 export type DiscountClaim = { ok: true; amount: number } | { ok: false; reason: "used" | "invalid" };
 
-/** Puts the code on the booking, race-safely. See claim_discount_code. */
-export async function claimDiscountCode(admin: Admin, code: string, bookingId: string): Promise<DiscountClaim> {
-  const { data, error } = await admin.rpc("claim_discount_code", { p_code: code, p_booking: bookingId });
+/** How an ambassador's code reached the booking (lib/referral.ts). */
+export type AttributionSource = "typed" | "link" | "admin";
+
+/**
+ * Puts the code on the booking, race-safely. See claim_discount_code. A
+ * booking holds one code of each kind, so claiming a discount code replaces
+ * only an earlier discount code, and an ambassador's $0 code only an earlier
+ * ambassador's code (referrals_and_ambassadors migration). `source` is
+ * recorded on an ambassador's code, and ignored on a discount.
+ */
+export async function claimDiscountCode(
+  admin: Admin,
+  code: string,
+  bookingId: string,
+  source?: AttributionSource,
+): Promise<DiscountClaim> {
+  const { data, error } = await admin.rpc("claim_discount_code", {
+    p_code: code,
+    p_booking: bookingId,
+    ...(source ? { p_source: source } : {}),
+  });
   if (error) {
     if (error.message.includes("discount_code_used")) return { ok: false, reason: "used" };
     if (!error.message.includes("discount_code_invalid")) {
@@ -144,8 +162,11 @@ export async function confirmFreeBookingRow(admin: Admin, bookingId: string): Pr
   return { ok: true, confirmed: data === true };
 }
 
-/** Takes any code off a booking that is being re-priced without one. */
-export async function dropDiscountCode(admin: Admin, bookingId: string) {
-  const { error } = await admin.from("discount_redemptions").delete().eq("booking_id", bookingId);
-  if (error) console.error(`dropDiscountCode(${bookingId}) failed: ${error.code} ${error.message}`);
+/**
+ * Takes a code of one kind off a booking that is being re-priced without
+ * one: its discount, or its ambassador's code. The other kind stays.
+ */
+export async function dropDiscountCode(admin: Admin, bookingId: string, kind: "discount" | "attribution") {
+  const { error } = await admin.from("discount_redemptions").delete().eq("booking_id", bookingId).eq("kind", kind);
+  if (error) console.error(`dropDiscountCode(${bookingId}, ${kind}) failed: ${error.code} ${error.message}`);
 }

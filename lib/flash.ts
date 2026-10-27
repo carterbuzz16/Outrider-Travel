@@ -65,6 +65,12 @@ export const CHECKOUT_ERRORS = {
     "That discount code didn't work. Check it and try again, or get in touch and we'll sort it out. Nothing was charged.",
   discount_code_used:
     "That discount code has already been used. Nothing was charged. If it was yours, get in touch and we'll sort it out.",
+  // lib/referral.ts: what was in the Referred by box is not a live
+  // ambassador code. Nothing was booked, so the traveler can fix it or clear it.
+  referral_invalid:
+    "We couldn't find that ambassador code. Check it with whoever sent you, or leave Referred by empty. Nothing was charged.",
+  // lib/signup-deadline.ts: the deadline passed while the form was open.
+  signups_closed: "Signups for these trips have closed. Nothing was charged.",
 } as const;
 
 export type CheckoutErrorCode = keyof typeof CHECKOUT_ERRORS | "tier_claimed";

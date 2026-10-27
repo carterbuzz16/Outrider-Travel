@@ -79,7 +79,8 @@ const SAMPLE_TRIP = {
   logistics: null,
 };
 
-// "Two to a Room" at $2,099: the $100 deposit today, then two payments of $999.50.
+// "Two to a Room" at $2,099: the $100 deposit today, then the December
+// balance in one payment of $1,999 on the signup deadline (lib/installments.ts).
 const SAMPLE_BOOKING: BookingForEmail = {
   id: SAMPLE_BOOKING_ID,
   user_id: "sample-user",
@@ -97,8 +98,7 @@ const SAMPLE_BOOKING: BookingForEmail = {
   tiers: { name: "MID" },
   payments: [
     { status: "succeeded", amount: 100, scheduled_date: null },
-    { status: "scheduled", amount: 999.5, scheduled_date: "2026-11-10" },
-    { status: "scheduled", amount: 999.5, scheduled_date: "2026-12-01" },
+    { status: "scheduled", amount: 1999, scheduled_date: "2026-11-14" },
   ],
 };
 

@@ -36,7 +36,7 @@ export function bookingOpenHtml(p: BookingOpenParts): string {
     rows: [
       ...TELLURIDE_ROWS,
       ["Price", p.fromPrice ? `From ${p.fromPrice} per person, all in` : "All in, one price per person"],
-      ["Paying", "$100 holds your spot. The rest is split into two payments before the trip, or pay it all at once."],
+      ["Paying", "$100 holds your spot. The rest is paid before the trip, or pay it all at once."],
     ],
     button: { label: "Pick your dates", href: `${p.origin}/telluride#departures` },
     panel: {

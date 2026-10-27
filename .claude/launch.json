@@ -35,6 +35,18 @@
       "port": 3107
     },
     {
+      "name": "dev-signups-closed",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "SIGNUPS_CLOSED_PREVIEW=1",
+        "npm",
+        "run",
+        "dev"
+      ],
+      "port": 3000,
+      "autoPort": true
+    },
+    {
       "name": "dev-list-first",
       "runtimeExecutable": "env",
       "runtimeArgs": [

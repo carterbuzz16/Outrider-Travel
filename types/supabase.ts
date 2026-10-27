@@ -93,8 +93,79 @@ export type Database = {
         }
         Relationships: []
       }
+      ambassadors: {
+        Row: {
+          code: string
+          created_at: string
+          email: string | null
+          hold_booking_id: string | null
+          hold_status: string | null
+          instagram: string | null
+          name: string
+          payment_link_id: string | null
+          payment_link_url: string | null
+          phone: string | null
+          school: string | null
+          trip_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          email?: string | null
+          hold_booking_id?: string | null
+          hold_status?: string | null
+          instagram?: string | null
+          name: string
+          payment_link_id?: string | null
+          payment_link_url?: string | null
+          phone?: string | null
+          school?: string | null
+          trip_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          email?: string | null
+          hold_booking_id?: string | null
+          hold_status?: string | null
+          instagram?: string | null
+          name?: string
+          payment_link_id?: string | null
+          payment_link_url?: string | null
+          phone?: string | null
+          school?: string | null
+          trip_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ambassadors_code_fkey"
+            columns: ["code"]
+            isOneToOne: true
+            referencedRelation: "discount_codes"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "ambassadors_hold_booking_id_fkey"
+            columns: ["hold_booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ambassadors_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
+          ambassador_hold: boolean
           chase_email_sent_at: string | null
           confirmation_email_sent_at: string | null
           created_at: string
@@ -118,6 +189,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ambassador_hold?: boolean
           chase_email_sent_at?: string | null
           confirmation_email_sent_at?: string | null
           created_at?: string
@@ -141,6 +213,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ambassador_hold?: boolean
           chase_email_sent_at?: string | null
           confirmation_email_sent_at?: string | null
           created_at?: string
@@ -247,6 +320,8 @@ export type Database = {
           code: string
           created_at: string
           id: string
+          kind: string
+          source: string | null
         }
         Insert: {
           amount: number
@@ -254,6 +329,8 @@ export type Database = {
           code: string
           created_at?: string
           id?: string
+          kind?: string
+          source?: string | null
         }
         Update: {
           amount?: number
@@ -261,12 +338,14 @@ export type Database = {
           code?: string
           created_at?: string
           id?: string
+          kind?: string
+          source?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "discount_redemptions_booking_id_fkey"
             columns: ["booking_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
@@ -696,6 +775,7 @@ export type Database = {
         Args: {
           p_booking: string
           p_code: string
+          p_source?: string
         }
         Returns: number
       }

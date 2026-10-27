@@ -118,10 +118,20 @@ export const TERMS: LegalDocumentMeta = {
   // clause repeats the second. The only booking on the day it took effect
   // (checked 13 October 2026) was a $0 comp paid in full, so nobody on a
   // payment plan needed notice; counsel sign-off is still owed.
-  version: "5.0.0",
+  // 6.0.0: MAJOR, because it changes when a December traveler pays: the
+  // December departure's balance is one installment on 14 November 2026, the
+  // signup deadline (lib/signup-deadline.ts), in place of 10 November and 1
+  // December, and a December booking made from 11 November is paid in full
+  // at booking (PAY_IN_FULL_FROM_BY_START). January is unchanged. December
+  // bookings made before this keep the two dates they agreed to unless the
+  // traveler agrees to move (/admin/ambassadors). The refund scale is
+  // untouched. On 27 October 2026 the only December booking was the $0 comp
+  // paid in full, so nobody on a payment plan needed notice; counsel
+  // sign-off is still owed.
+  version: "6.0.0",
   status: "in-force",
-  effectiveDate: "2026-10-13",
-  lastUpdated: "2026-10-13",
+  effectiveDate: "2026-10-27",
+  lastUpdated: "2026-10-27",
   sections: [
     { id: "about", title: "Who these terms are between" },
     { id: "eligibility", title: "Eligibility and your account" },

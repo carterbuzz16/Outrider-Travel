@@ -6,6 +6,7 @@ import { CONTACT } from "@/lib/site-content";
 import { BOOKINGS_OPEN, TRIP_DETAILS_OPEN } from "@/lib/booking-window";
 import { DEPOSIT_AMOUNT, KLARNA_PAY_IN_4_MAX, PAY_IN_FULL_DISCOUNT } from "@/lib/deposit";
 import { flightTimesPublished } from "@/lib/trip-logistics";
+import { howTheRestIsPaid } from "@/lib/installments";
 
 export const metadata: Metadata = pageMetadata({
   title: "FAQ",
@@ -22,8 +23,10 @@ export const metadata: Metadata = pageMetadata({
  * in it links to the clause instead. The exceptions are read from the same
  * constants checkout uses, so they cannot drift from it: the deposit
  * (DEPOSIT_AMOUNT), Klarna's Pay in 4 cap (KLARNA_PAY_IN_4_MAX) and the
- * pay-in-full discount. "Two payments" is the count for every departure on
- * sale (lib/installments.ts). Carter's two sentences about deposits and missed
+ * pay-in-full discount, and since 27 October 2026 (Carter's brief) each
+ * departure's balance dates, which howTheRestIsPaid reads from
+ * INSTALLMENT_DATES_BY_START (lib/installments.ts), so December's single
+ * payment on the signup deadline is named. Carter's two sentences about deposits and missed
  * installments (13 October 2026) are quoted as he wrote them. The group sizes
  * restate each departure's capacity (lib/trip-logistics.ts). */
 type QA = { q: string; a: React.ReactNode };
@@ -52,10 +55,10 @@ const GROUPS: Group[] = [
         q: "How does paying work?",
         a: (
           <>
-            ${DEPOSIT_AMOUNT} holds your spot. The rest is split into two
-            payments before the trip, and they come off the card you booked
-            with automatically. You can pay toward them early from your bookings
-            page any time, which brings the next one down. Or pay for the whole
+            ${DEPOSIT_AMOUNT} holds your spot. The rest comes off the card you
+            booked with automatically, before the trip. {howTheRestIsPaid()} You
+            can pay toward it early from your bookings page any time, which
+            brings the next payment down. Or pay for the whole
             trip when you book
             {PAY_IN_FULL_DISCOUNT > 0 && `, take $${PAY_IN_FULL_DISCOUNT} off,`} and
             nothing is charged later. Klarna works for either one payment: the

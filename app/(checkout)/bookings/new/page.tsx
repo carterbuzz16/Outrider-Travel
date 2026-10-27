@@ -14,6 +14,8 @@ import {
   payInFullSaving,
 } from "@/lib/deposit";
 import { discountCodeAmount, normalizeDiscountCode } from "@/lib/discount-codes";
+import { lookupReferral, referralCodeFromCookie, type Referral } from "@/lib/referral";
+import { signupsClosed, SIGNUP_DEADLINE_LABEL } from "@/lib/signup-deadline";
 import { offerCodeFromCookie } from "@/lib/code-offer-server";
 import {
   WELCOME_CREDIT,
@@ -25,7 +27,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatAmount } from "@/lib/balance";
-import { installmentSchedule, latePaymentNote } from "@/lib/installments";
+import { balanceDueDates, installmentSchedule, latePaymentNote, mustPayInFull } from "@/lib/installments";
 import { formatDay } from "@/app/(protected)/dates";
 import { countPenthouses, getRoomMedia, tierDisplayName, tierGrouping } from "@/lib/room-media";
 import { CONTACT } from "@/lib/site-content";
@@ -62,9 +64,31 @@ import {
  * asked for and is not open says so, then offers the rest.
  */
 export default async function NewBookingPage(props: {
-  searchParams: Promise<{ error?: string; trip?: string; package?: string; group?: string; code?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    trip?: string;
+    package?: string;
+    group?: string;
+    code?: string;
+    /** The Referred by box, applied: a code, or "" when it was cleared. */
+    referred?: string;
+    /** A referral link that lands here directly (middleware.ts also keeps it in the cookie). */
+    ref?: string;
+  }>;
 }) {
   const searchParams = await props.searchParams;
+
+  // Past the signup deadline nothing is booked (lib/signup-deadline.ts), so
+  // there is nothing to choose. createBooking refuses too.
+  if (signupsClosed()) {
+    return (
+      <main>
+        <div className="shell max-w-[76rem] pb-20 pt-8 md:pb-28 md:pt-12">
+          <SignupsClosed />
+        </div>
+      </main>
+    );
+  }
 
   // Who is looking, if anyone. Signed in with a confirmed email means the
   // form's Continue goes straight to createBooking; otherwise it asks for an
@@ -97,7 +121,13 @@ export default async function NewBookingPage(props: {
   // that no longer works is simply left off, with no "didn't work" line:
   // nobody typed it here. It is not counted against the per-IP cap below,
   // which is for codes worth guessing (lib/code-offer-server.ts says why).
-  const linkCode = normalizeDiscountCode(searchParams.code);
+  //
+  // An ambassador's $0 code in the discount box is not a discount: it moves
+  // to Referred by (below), as createBooking moves it, and the discount box
+  // comes up empty. The playbook told friends to use the discount box.
+  const typedCode = normalizeDiscountCode(searchParams.code);
+  const movedReferral = typedCode ? await lookupReferral(createAdminClient(), typedCode) : null;
+  const linkCode = movedReferral ? null : typedCode;
   const cookieCode = searchParams.code === undefined ? await offerCodeFromCookie() : null;
   const discountCode = linkCode ?? cookieCode;
   const codeChecked =
@@ -142,6 +172,37 @@ export default async function NewBookingPage(props: {
     if (Object.keys(amounts).length > 0) discount = { code: discountCode, amounts };
   }
   const discountRejected = Boolean(linkCode) && discount === null;
+
+  /*
+   * Referred by (lib/referral.ts): the ambassador this booking will be
+   * credited to. In order, whichever is there first:
+   *
+   *   - a code applied in the box itself (?referred=);
+   *   - an ambassador's code moved over from the discount box, which also
+   *     beats a box emptied earlier;
+   *   - nothing, when the box was emptied on purpose (?referred= empty);
+   *   - a referral link, landing here (?ref=) or remembered (the cookie
+   *     middleware.ts set from any page's ?ref=, for 30 days).
+   *
+   * Only a typed code that does not match says so; a stale cookie or link is
+   * simply left out. Each lookup only ever answers for an ambassador's code,
+   * so the box cannot be used to test discount codes, and is not counted
+   * against the per-IP cap above.
+   */
+  const admin = createAdminClient();
+  let referral: ReferralBox | null = null;
+  let referralRejected: string | null = null;
+  const typedReferral = normalizeDiscountCode(searchParams.referred);
+  if (typedReferral) {
+    const found = await lookupReferral(admin, typedReferral);
+    if (found) referral = { ...found, from: "typed" };
+    else referralRejected = typedReferral;
+  } else if (movedReferral) {
+    referral = { ...movedReferral, from: "moved" };
+  } else if (searchParams.referred === undefined) {
+    const fromLink = (await lookupReferral(admin, searchParams.ref)) ?? (await lookupReferral(admin, await referralCodeFromCookie()));
+    if (fromLink) referral = { ...fromLink, from: "link" };
+  }
 
   // ?group=CODE, from a friend's invite link or the JoinGroup form. Checked on
   // the server against the penthouse claims; the page only ever learns which
@@ -223,6 +284,9 @@ export default async function NewBookingPage(props: {
                 groupCode={group?.knownOnTrip ? (group.code ?? undefined) : undefined}
                 discount={discount}
                 rejectedCode={discountRejected ? discountCode : null}
+                referral={referral}
+                rejectedReferral={referralRejected}
+                referralCleared={searchParams.referred === "" && !referral}
                 signedIn={signedIn}
                 credit={credit}
               />
@@ -251,6 +315,7 @@ export default async function NewBookingPage(props: {
               requestedPackage={searchParams.package}
               group={searchParams.group}
               code={normalizeDiscountCode(searchParams.code) ?? undefined}
+              referred={referral?.from === "typed" ? referral.code : undefined}
             />
           </>
         )}
@@ -292,6 +357,12 @@ function TripHeader({ trip, showAll }: { trip: PublicTrip; showAll: boolean }) {
 /** A discount code that checked out, and what it takes off each package it works on, by tier id. */
 type Discount = { code: string; amounts: Record<string, number> };
 
+/**
+ * The Referred by box: the ambassador, and how the code got there. "moved"
+ * is one typed into the discount box; "link" came from a ?ref= link.
+ */
+type ReferralBox = Referral & { from: "typed" | "moved" | "link" };
+
 function Packages({
   trip,
   requestedPackage,
@@ -299,6 +370,9 @@ function Packages({
   groupCode,
   discount,
   rejectedCode,
+  referral,
+  rejectedReferral,
+  referralCleared,
   signedIn,
   credit,
 }: {
@@ -312,6 +386,12 @@ function Packages({
   discount: Discount | null;
   /** A ?code= that did not, to show in the box with a line saying so. */
   rejectedCode: string | null;
+  /** The ambassador this booking will be credited to, and how the box got it. */
+  referral: ReferralBox | null;
+  /** A code typed into Referred by that is not an ambassador's. */
+  rejectedReferral: string | null;
+  /** Referred by was emptied on purpose, so a link's code stays out. */
+  referralCleared: boolean;
   signedIn: boolean;
   /** The account's new-account credit, if it still has it. */
   credit: WelcomeCredit | null;
@@ -370,6 +450,13 @@ function Packages({
       // createBooking takes that checkout as a payment in full.
       holdLine: schedule.length > 0 ? holdSpotLine(schedule.length, full) : null,
       klarnaLabel: klarnaPhrase(full),
+      // One balance payment (December, on the signup deadline): Klarna gets
+      // its own line under the deposit, since a single larger charge is the
+      // one a traveler most wants to spread out.
+      balanceKlarnaNote:
+        schedule.length === 1
+          ? `Or ${klarnaPhrase(Math.round((price - deposit) * 100) / 100)} from your bookings page any time before then.`
+          : null,
       savingLabel: saving > 0 ? formatAmount(saving) : null,
       codeLabel: here.code > 0 ? formatAmount(here.code) : null,
       // Nothing to pay on either plan: createBooking makes no card form.
@@ -417,6 +504,16 @@ function Packages({
       initialGroupCode={groupCode}
       discount={discount && (applied.code > 0 || attributionOnly) ? { code: discount.code, attributionOnly } : null}
       rejectedCode={rejectedCode}
+      referral={referral}
+      rejectedReferral={rejectedReferral}
+      referralCleared={referralCleared}
+      // From PAY_IN_FULL_FROM_BY_START (December from 11 November) there is
+      // no deposit to offer: the balance date is days away.
+      fullOnlyNote={
+        mustPayInFull(trip.startDate)
+          ? `The rest of this trip is due ${formatDay(balanceDueDates(trip.startDate)[0])}, so it's paid in full when you book.`
+          : null
+      }
       signedIn={signedIn}
       credit={credit && applied.credit > 0 ? { label: formatAmount(credit.amount), expiresAt: credit.expiresAt } : null}
       setAside={
@@ -446,17 +543,21 @@ function Departures({
   requestedPackage,
   group,
   code,
+  referred,
 }: {
   trips: PublicTrip[];
   requestedPackage?: string;
   group?: string;
   /** A ?code= from a winner's link, carried on so choosing the dates keeps it. */
   code?: string;
+  /** A Referred by code typed before the dates were chosen. A link's is in the cookie. */
+  referred?: string;
 }) {
   const packageParam =
     (requestedPackage ? `&package=${encodeURIComponent(requestedPackage)}` : "") +
     (group ? `&group=${encodeURIComponent(group)}` : "") +
-    (code ? `&code=${encodeURIComponent(code)}` : "");
+    (code ? `&code=${encodeURIComponent(code)}` : "") +
+    (referred ? `&referred=${encodeURIComponent(referred)}` : "");
   return (
     <ul className="m-0 mt-8 flex list-none flex-col gap-3 p-0">
       {trips.map((trip) => {
@@ -519,6 +620,30 @@ function NothingOpen() {
       <Button href="/contact" variant="primary" size="md">
         Get in touch
       </Button>
+    </div>
+  );
+}
+
+/**
+ * After the signup deadline (lib/signup-deadline.ts): said plainly, with the
+ * waitlist for the next trip. The same words as the trip pages.
+ */
+function SignupsClosed() {
+  return (
+    <div className="mt-10 flex flex-col items-start gap-6 bg-[--surface-raised] px-6 py-14 md:px-10 md:py-16">
+      <h1 className="t-heading max-w-[22ch] text-[--text]">Signups are closed</h1>
+      <p className="max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
+        Signups for Telluride closed on {SIGNUP_DEADLINE_LABEL}. Join the waitlist to hear about the next trip
+        first.
+      </p>
+      <div className="flex flex-wrap gap-3">
+        <Button href="/waitlist" variant="primary" size="md">
+          Join the waitlist
+        </Button>
+        <Button href="/bookings" variant="secondary" size="md">
+          Your bookings
+        </Button>
+      </div>
     </div>
   );
 }

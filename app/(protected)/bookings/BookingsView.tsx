@@ -9,6 +9,7 @@ import { createPortalUrl } from "@/lib/portal-token";
 import { confirmationNumber } from "@/lib/confirmation-number";
 import { tierDisplayName } from "@/lib/tier-display";
 import { BOOKINGS_OPEN } from "@/lib/booking-window";
+import { SIGNUP_DEADLINE_LABEL, signupsClosed } from "@/lib/signup-deadline";
 import type { Database } from "@/types/supabase";
 import PenthouseProgress from "@/components/PenthouseProgress";
 import { Countdown } from "@/components/WelcomeCredit";
@@ -137,7 +138,7 @@ export default function BookingsView({
                 <Countdown expiresAt={credit.expiresAt} className="text-[--text]" /> left to use it.
               </p>
             </div>
-            {canBook && (
+            {canBook && !signupsClosed() && (
               <Button href="/bookings/new" variant="primary" size="md">
                 Use it now
               </Button>
@@ -396,6 +397,23 @@ function BookingCard({ booking }: { booking: BookingRow }) {
 /* -- nothing booked -------------------------------------------------------- */
 
 function EmptyState({ canBook }: { canBook: boolean }) {
+  // After the signup deadline (lib/signup-deadline.ts) the trips are closed,
+  // not coming: the waitlist is the one way on.
+  if (signupsClosed()) {
+    return (
+      <div className="flex flex-col items-start gap-6 border border-[--rule] bg-[--surface-raised] px-6 py-14 md:items-center md:px-8 md:py-20 md:text-center">
+        <p className="stamp-type text-[--text-muted]">Nothing booked yet</p>
+        <h2 className="t-subheading max-w-[20ch] text-[--text]">Signups are closed</h2>
+        <p className="max-w-measure-tight font-body text-body leading-[1.7] text-[--text-secondary]">
+          Signups for Telluride closed on {SIGNUP_DEADLINE_LABEL}. Join the waitlist to hear about the next trip
+          first.
+        </p>
+        <Button href="/waitlist" variant="primary" size="md">
+          Join the waitlist
+        </Button>
+      </div>
+    );
+  }
   // Before launch there is nothing to book, so the empty account points at
   // the trip and the list rather than promising a checkout that isn't open.
   if (!canBook) {
@@ -423,8 +441,8 @@ function EmptyState({ canBook }: { canBook: boolean }) {
       <p className="stamp-type text-[--text-muted]">Nothing booked yet</p>
       <h2 className="t-subheading max-w-[20ch] text-[--text]">No trips here yet</h2>
       <p className="max-w-measure-tight font-body text-body leading-[1.7] text-[--text-secondary]">
-        Telluride is open for December and January. $100 holds your spot, and the rest is split
-        into two payments before the trip.
+        Telluride is open for December and January until {SIGNUP_DEADLINE_LABEL}. $100 holds your
+        spot, and the rest is paid before the trip.
       </p>
       {/* During the list's head start the public trip pages still say
           "coming soon", so a list member goes straight to the booking page. */}

@@ -90,6 +90,12 @@ export type CheckoutTier = {
   holdLine: string | null;
   /** "pay in 4 with Klarna" up to Klarna's Pay in 4 cap, "pay over time with Klarna" above it. */
   klarnaLabel: string;
+  /**
+   * Under the deposit, when the balance is one payment (December, on the
+   * signup deadline): that Klarna can pay it off instead, said on its own line
+   * so a single larger charge does not read as the only way. Null otherwise.
+   */
+  balanceKlarnaNote: string | null;
   /** What paying in full saves, or null when there is no discount. */
   savingLabel: string | null;
   /** What the discount code takes off this package, or null when it does not come off here. */
@@ -112,6 +118,10 @@ export default function BookingForm({
   initialGroupCode,
   discount = null,
   rejectedCode = null,
+  referral = null,
+  rejectedReferral = null,
+  referralCleared = false,
+  fullOnlyNote = null,
   signedIn,
   credit = null,
   setAside = null,
@@ -139,6 +149,20 @@ export default function BookingForm({
   discount?: { code: string; attributionOnly?: boolean } | null;
   /** A ?code= that did not check out: shown in its box with a line saying so. */
   rejectedCode?: string | null;
+  /**
+   * Referred by (lib/referral.ts): the ambassador the booking goes to, and how
+   * the box got the code: typed, moved from the discount box, or a ?ref= link.
+   */
+  referral?: { code: string; name: string; from: "typed" | "moved" | "link" } | null;
+  /** A code typed into Referred by that is not an ambassador's. */
+  rejectedReferral?: string | null;
+  /** The box was emptied on purpose (?referred=), so a link's code stays out. */
+  referralCleared?: boolean;
+  /**
+   * Why only paying in full is offered, when it is (mustPayInFull,
+   * lib/installments.ts): the deposit plan is not shown at all.
+   */
+  fullOnlyNote?: string | null;
   /** A session with a confirmed email. Without one, Continue asks for an email and a code first. */
   signedIn: boolean;
   /** The account's new-account credit, already off the tier figures, and when it runs out. */
@@ -155,7 +179,16 @@ export default function BookingForm({
   );
   // The code in the box, when it is the one set aside for the credit.
   const codeSetAside = setAside?.kind === "code" ? setAside.code : null;
-  const [plan, setPlan] = useState<Plan>("deposit");
+  const [plan, setPlan] = useState<Plan>(fullOnlyNote ? "full" : "deposit");
+  const [referralInput, setReferralInput] = useState(referral?.code ?? rejectedReferral ?? "");
+  // The form keeps its state across the reload a box's Apply does, but the
+  // page decides what each box holds afterwards: an ambassador's code applied
+  // in the discount box comes back in Referred by, and a ?ref= link fills it.
+  // So both boxes follow the page's answer whenever it changes.
+  useEffect(() => {
+    setReferralInput(referral?.code ?? rejectedReferral ?? "");
+    if (referral?.from === "moved") setCodeInput("");
+  }, [referral?.code, referral?.from, rejectedReferral]);
   const selected = tiers.find((t) => t.id === tierId) ?? tiers[0];
   const packagesLegend = useId();
   const planLegend = useId();
@@ -194,10 +227,36 @@ export default function BookingForm({
     // reload, and the box is posted with the booking, so a code left sitting in
     // it would come off at createBooking after all.
     if (!code.trim()) setCodeInput("");
+    go({ code: code.trim(), referred: currentReferred() });
+  }
+
+  // The same for Referred by, keeping whatever discount is on.
+  function goWithReferral(code: string) {
+    if (!code.trim()) setReferralInput("");
+    go({ code: discount?.code ?? codeSetAside ?? undefined, referred: code.trim() });
+  }
+
+  // What Referred by holds now, to carry through a reload of the discount
+  // box: a typed or moved code, or "" when it was emptied (so a link's code
+  // does not come back). A link's code needs nothing: the cookie brings it.
+  function currentReferred(): string | undefined {
+    if (referral && referral.from !== "link") return referral.code;
+    if (!referral && referralCleared) return "";
+    return undefined;
+  }
+
+  function go({ code, referred }: { code?: string; referred?: string }) {
     const params = new URLSearchParams({ trip: tripId, package: tierId });
     if (initialGroupCode) params.set("group", initialGroupCode);
-    params.set("code", code.trim());
+    if (code !== undefined) params.set("code", code);
+    if (referred !== undefined) params.set("referred", referred);
     router.push(`/bookings/new?${params.toString()}`, { scroll: false });
+  }
+
+  // Whether Referred by holds the code the page already matched, so its button removes it.
+  function referralApplied(input: string) {
+    const typed = input.trim().toUpperCase();
+    return Boolean(typed) && typed === referral?.code;
   }
 
   return (
@@ -301,20 +360,28 @@ export default function BookingForm({
             How you pay
           </legend>
           <div className="clear-both flex flex-col gap-2.5 pt-3">
-            <PlanOption
-              value="deposit"
-              defaultChecked
-              onSelect={() => setPlan("deposit")}
-              title="Deposit today"
-              amount={selected.depositLabel}
-              detail={
-                selected.scheduleLabel
-                  ? `Then ${selected.scheduleLabel}, off the same card, or pay it off with Klarna from your bookings page.${lateNote ? ` ${lateNote}` : ""}`
-                  : "That covers the whole trip."
-              }
-            />
+            {fullOnlyNote ? (
+              <p className="m-0 font-body text-body-s leading-[1.55] text-[--text-secondary]">{fullOnlyNote}</p>
+            ) : (
+              <PlanOption
+                value="deposit"
+                defaultChecked
+                onSelect={() => setPlan("deposit")}
+                title="Deposit today"
+                amount={selected.depositLabel}
+                detail={
+                  selected.scheduleLabel
+                    ? selected.balanceKlarnaNote
+                      ? `Then ${selected.scheduleLabel}, off the same card.${lateNote ? ` ${lateNote}` : ""}`
+                      : `Then ${selected.scheduleLabel}, off the same card, or pay it off with Klarna from your bookings page.${lateNote ? ` ${lateNote}` : ""}`
+                    : "That covers the whole trip."
+                }
+                note={selected.scheduleLabel ? selected.balanceKlarnaNote : null}
+              />
+            )}
             <PlanOption
               value="full"
+              defaultChecked={Boolean(fullOnlyNote)}
               onSelect={() => setPlan("full")}
               title="Pay in full"
               amount={selected.fullLabel}
@@ -405,6 +472,73 @@ export default function BookingForm({
                     className="min-h-11 shrink-0 border border-[--rule-strong] px-4 font-body text-body-s text-[--text] transition-colors duration-fast hover:border-[--accent-solid]"
                   >
                     {applied(codeInput) ? "Remove" : "Apply"}
+                  </button>
+                </div>
+              )}
+            </Field>
+          </div>
+        </details>
+
+        {/* Referred by (lib/referral.ts): the ambassador who sent them. It
+            takes nothing off and sits beside any discount code, so a code of
+            each kind can go on one booking. Open whenever it holds something,
+            which a ?ref= link sees to. */}
+        <details
+          className="group border-b border-[--rule] px-5 sm:px-6"
+          open={Boolean(referral || rejectedReferral)}
+        >
+          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 font-body text-body-s text-[--text] [&::-webkit-details-marker]:hidden">
+            {referral ? `Referred by ${referral.name}` : "Referred by an ambassador?"}
+            <Chevron />
+          </summary>
+          <div className="pb-5">
+            <Field
+              label="Referred by"
+              hint={
+                referral?.from === "moved"
+                  ? `${referral.code} is an ambassador's code, so it goes here. Referred by ${referral.name}.`
+                  : referral
+                    ? `Referred by ${referral.name}.`
+                    : "Their code, if an ambassador sent you. It doesn't change the price."
+              }
+              error={rejectedReferral ? "We couldn't find that ambassador code. Check it with whoever sent you." : undefined}
+            >
+              {(field) => (
+                <div className="flex gap-2">
+                  {/* How the box got its code, so the booking records "link"
+                      only when it really came from one (createBooking checks
+                      the cookie as well). Typed over, it is typed. */}
+                  <input
+                    type="hidden"
+                    name="referral_from"
+                    value={referral?.from === "link" && referralApplied(referralInput) ? "link" : "typed"}
+                  />
+                  <Input
+                    {...field}
+                    name="referral_code"
+                    type="text"
+                    maxLength={32}
+                    value={referralInput}
+                    onChange={(e) => setReferralInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      // As in the discount box: Enter checks the code, it never
+                      // submits the booking.
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        goWithReferral(referralInput);
+                      }
+                    }}
+                    autoComplete="off"
+                    autoCapitalize="characters"
+                    spellCheck={false}
+                    className="min-w-0 flex-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => goWithReferral(referralApplied(referralInput) ? "" : referralInput)}
+                    className="min-h-11 shrink-0 border border-[--rule-strong] px-4 font-body text-body-s text-[--text] transition-colors duration-fast hover:border-[--accent-solid]"
+                  >
+                    {referralApplied(referralInput) ? "Remove" : "Apply"}
                   </button>
                 </div>
               )}
@@ -712,6 +846,7 @@ function PlanOption({
   title,
   amount,
   detail,
+  note = null,
 }: {
   value: Plan;
   defaultChecked?: boolean;
@@ -719,6 +854,8 @@ function PlanOption({
   title: string;
   amount: string;
   detail: string;
+  /** A second line, in the accent, for the thing this plan most needs seen. */
+  note?: string | null;
 }) {
   return (
     <label
@@ -744,6 +881,7 @@ function PlanOption({
           <span className="font-body text-body font-medium tabular-nums text-[--text]">{amount}</span>
         </span>
         <span className="mt-1 font-body text-body-s leading-[1.5] text-[--text-secondary]">{detail}</span>
+        {note && <span className="mt-1.5 font-body text-body-s font-medium leading-[1.5] text-[--accent]">{note}</span>}
       </span>
     </label>
   );

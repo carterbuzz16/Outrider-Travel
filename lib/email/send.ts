@@ -20,7 +20,7 @@ import {
   type CodeOfferParts,
 } from "@/lib/email/templates/code-offer";
 import { formatOfferDeadline, formatOfferWeekday, offerDaysLeft } from "@/lib/code-offer";
-import { PAY_IN_FULL_DISCOUNT } from "@/lib/deposit";
+import { KLARNA_PAY_IN_4_MAX, PAY_IN_FULL_DISCOUNT } from "@/lib/deposit";
 
 // resend.emails.send() resolves with { data, error } rather than throwing
 // on an API-level failure (e.g. an unverified domain) — it only throws on
@@ -357,6 +357,51 @@ export function renderActionRequiredEmail(opts: ActionRequiredInput): RenderedEm
 }
 
 /**
+ * An ambassador's held spot, settled as not free (/admin/ambassadors): the
+ * link to pay for it, and the day it has to be paid by. The link is a Stripe
+ * payment link whose payment lands like any balance payment (lib/payments.ts,
+ * kind "balance"), so the booking moves to paid in full on its own. Says only
+ * what happens: no count, no reason, which the team gives in person.
+ */
+export type AmbassadorSpotInput = {
+  name: string | null;
+  tripName: string;
+  amount: number;
+  /** "November 14", the end of which is when the link has to be paid by. */
+  payBy: string;
+  url: string;
+};
+
+export async function sendAmbassadorSpotEmail(opts: AmbassadorSpotInput & { to: string }) {
+  const { subject, html } = renderAmbassadorSpotEmail(opts);
+  await sendEmail({ from: getFromAddress(), to: opts.to, subject, html });
+}
+
+export function renderAmbassadorSpotEmail(opts: AmbassadorSpotInput): RenderedEmail & { html: string } {
+  const { name, tripName, amount, payBy, url } = opts;
+  const greeting = name ? `Hi ${escapeHtml(name.split(" ")[0])},` : "Hi there,";
+
+  const bodyHtml = `
+    <p>${greeting}</p>
+    <p>Your Four to a Room spot on <strong>${escapeHtml(tripName)}</strong> is held for you. Here&rsquo;s your link to pay for it: <strong>${formatCurrency(amount)}</strong>, by the end of ${escapeHtml(payBy)}, Central time.</p>
+    <p>Pay by card, or ${amount <= KLARNA_PAY_IN_4_MAX ? "pay in 4" : "pay over time"} with Klarna. If it isn&rsquo;t paid by then, the spot is released.</p>
+    <p>Questions? Write to ${CONTACT.email}.</p>
+  `;
+
+  return {
+    subject: `Your spot on ${tripName}: pay by ${payBy}`,
+    html: renderEmailLayout({
+      eyebrow: tripName,
+      headline: "Your spot is held for you",
+      preheader: `${formatCurrency(amount)} by the end of ${payBy} keeps it.`,
+      bodyHtml,
+      ctaLabel: "Pay for your spot",
+      ctaUrl: url,
+    }),
+  };
+}
+
+/**
  * Sent when lib/overpayment.ts refunds money on its own: a payment took the
  * booking past its price, or arrived on a booking that was already cancelled.
  * Nobody at Outrider decided this refund, so the email is the only way the
@@ -544,7 +589,7 @@ export function renderEarlyAccess(opts: {
       "Telluride: December 14-18, 2026 or January 4-8, 2027",
       "The Peaks, Mountain Village. Four to a room, two to a room, or a whole penthouse for your eight.",
       opts.fromPrice ? `From ${opts.fromPrice} per person, all in.` : "One price per person, all in.",
-      "$100 holds your spot. The rest is split into two payments before the trip, or pay it all at once.",
+      "$100 holds your spot. The rest is paid before the trip, or pay it all at once.",
       "",
       "Forward this to the friends you're rooming with. The link works for them too, so you can all book before it opens to everyone.",
       "",
@@ -589,7 +634,7 @@ export function renderBookingOpenReminder(opts: {
       "Telluride: December 14-18, 2026 or January 4-8, 2027",
       "The Peaks, Mountain Village. Ski-in, ski-out. Four to a room, two to a room, or a whole penthouse for your eight.",
       opts.fromPrice ? `From ${opts.fromPrice} per person, all in.` : "One price per person, all in.",
-      "$100 holds your spot. The rest is split into two payments before the trip, or pay it all at once.",
+      "$100 holds your spot. The rest is paid before the trip, or pay it all at once.",
       "",
       "Going with friends? Each of you books your own spot, then tells us who you're rooming with. The earlier those come in, the better the odds we keep your group together.",
       "",

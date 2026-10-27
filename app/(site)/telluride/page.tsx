@@ -50,7 +50,8 @@ import {
 } from "@/lib/trips";
 import { getRoomMedia, isTaken, tierDisplayName, type RoomMedia } from "@/lib/room-media";
 import { DEPOSIT_AMOUNT, KLARNA_PAY_IN_4_MAX, PAY_IN_FULL_DISCOUNT, holdSpotLine } from "@/lib/deposit";
-import { balanceDueDates, latePaymentNote } from "@/lib/installments";
+import { balanceDueDates, howTheRestIsPaid, latePaymentNote } from "@/lib/installments";
+import { SIGNUP_DEADLINE_DAY, SIGNUP_DEADLINE_LABEL, signupsClosed } from "@/lib/signup-deadline";
 import { formatAmount } from "@/lib/balance";
 import { flightTimesPublished } from "@/lib/trip-logistics";
 
@@ -151,30 +152,26 @@ function holdLineFor(trips: PublicTrip[]): string {
 }
 
 /**
- * "The rest doesn’t come out until November." Said under the $100 in the
- * masthead, and only while it is true of every open departure: none has a
- * payment date already passed (latePaymentNote), and their first payments fall
- * in one month that has not started yet. With a single departure left it names
- * the day. Otherwise it is left out rather than said wrong; the page is
- * regenerated every few minutes, so it drops off on its own.
+ * The line under the $100 in the masthead: when signups close, and that the
+ * rest is not due before then (Carter, 27 October 2026, in place of "The
+ * rest doesn’t come out until November"). December's balance is due on the
+ * signup deadline itself and January's first payment after it, so "the rest
+ * isn't due until then" holds for both. Said only while it is true of every
+ * open departure: if a payment date already came before the deadline, or one
+ * has passed (latePaymentNote), the line names the deadline alone. The page is
+ * regenerated every few minutes, so it changes on its own.
  */
-function restNotUntil(trips: PublicTrip[], now = new Date()): string | null {
-  if (trips.length === 0 || trips.some((trip) => latePaymentNote(trip.startDate, now))) return null;
-  const firsts = trips.map((trip) => balanceDueDates(trip.startDate)[0]).sort();
-  const month = (iso: string) =>
-    new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
-  if (new Set(firsts.map((d) => d.slice(0, 7))).size === 1 && firsts[0].slice(0, 7) > now.toISOString().slice(0, 7)) {
-    return `The rest doesn’t come out until ${month(firsts[0])}.`;
-  }
-  if (trips.length === 1) {
-    const day = new Date(`${firsts[0]}T00:00:00Z`).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      timeZone: "UTC",
-    });
-    return `The rest doesn’t come out until ${day}.`;
-  }
-  return null;
+function restAndDeadline(trips: PublicTrip[], now = new Date()): string | null {
+  if (trips.length === 0) return null;
+  const closes = `Signups close ${SIGNUP_DEADLINE_LABEL}`;
+  if (trips.some((trip) => latePaymentNote(trip.startDate, now))) return `${closes}.`;
+  const earliest = trips.map((trip) => balanceDueDates(trip.startDate)[0]).sort()[0];
+  return earliest >= SIGNUP_DEADLINE_DAY ? `${closes}, and the rest isn’t due until then.` : `${closes}.`;
+}
+
+/** Reserve buttons show only while booking is open and signups have not closed (lib/signup-deadline.ts). */
+function reservable(): boolean {
+  return BOOKINGS_OPEN && !signupsClosed();
 }
 
 function isTelluride(trip: PublicTrip): boolean {
@@ -279,7 +276,8 @@ function offerOpen({ trip, tier }: { trip: PublicTrip; tier: PublicTier }): bool
 export default async function TelluridePage() {
   const trips = (await getPublishedTrips()).filter(isTelluride);
   const openTrips = trips.filter((trip) => trip.status !== "soldOut");
-  const bookable = BOOKINGS_OPEN && openTrips.length > 0;
+  const closed = BOOKINGS_OPEN && signupsClosed();
+  const bookable = reservable() && openTrips.length > 0;
 
   const nights = shared(trips, (trip) => nightCount(trip.startDate, trip.endDate));
   const firstDay = shared(trips, (trip) => weekday(trip.startDate));
@@ -287,7 +285,7 @@ export default async function TelluridePage() {
   const packages = TRIP_DETAILS_OPEN ? packageOptions(trips) : [];
   const priceFrom = Math.min(...openTrips.map((trip) => trip.priceFrom).filter((p) => p > 0));
   const datesLine = orList((openTrips.length > 0 ? openTrips : trips).map(shortRange));
-  const restLine = bookable ? restNotUntil(openTrips) : null;
+  const restLine = bookable ? restAndDeadline(openTrips) : null;
   const nightsLabel = nights !== null ? `${spelled(nights)} nights` : "Every night";
 
   // In page order: the trip first, then the week, then the place.
@@ -423,6 +421,15 @@ export default async function TelluridePage() {
                 <Button href="/bookings/new" variant="primary" size="lg" block>
                   Reserve for {formatAmount(DEPOSIT_AMOUNT)}
                 </Button>
+              ) : closed ? (
+                <>
+                  <p className="m-0 font-display text-display-s font-extrabold uppercase tracking-title text-[--text]">
+                    Signups are closed
+                  </p>
+                  <Button href="/waitlist" variant="primary" size="lg" block>
+                    Join the waitlist
+                  </Button>
+                </>
               ) : !BOOKINGS_OPEN && TRIP_DETAILS_OPEN ? (
                 // Paying is list-only: the emailed link is the way in.
                 <WaitlistButton label={LIST_BOOKING_CTA} variant="primary" size="lg" placement="telluride-hero" />
@@ -576,7 +583,9 @@ export default async function TelluridePage() {
                 </p>
               )}
               <p className="t-micro mt-5 text-[--text-secondary]">
-                {BOOKINGS_OPEN
+                {closed
+                  ? `Signups closed on ${SIGNUP_DEADLINE_LABEL}.`
+                  : BOOKINGS_OPEN
                   ? "Same trip, same hotel, same days on the mountain. Pick the week that works for your crew."
                   : TRIP_DETAILS_OPEN
                     ? COMING_SOON_NOTE
@@ -801,7 +810,7 @@ export default async function TelluridePage() {
                 </Button>
               </div>
               <div className="mt-6 border-b border-[--rule]">
-                {ANSWERS.map((qa) => (
+                {answers(trips).map((qa) => (
                   <details key={qa.q} className="group border-t border-[--rule]">
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-5 font-body text-body font-medium text-[--text] [&::-webkit-details-marker]:hidden">
                       {qa.q}
@@ -827,7 +836,29 @@ export default async function TelluridePage() {
           into the espresso footer. Short copy only: see .scheme-club. Before
           launch the close is the waitlist instead, because there is nothing
           to reserve. data-reserve-bar-hide: it has its own Reserve. */}
-      {BOOKINGS_OPEN ? (
+      {closed ? (
+        // After the signup deadline: said plainly, with the waitlist.
+        <section className="scheme-club scheme-paint" aria-labelledby="close-heading">
+          <div className="shell flex flex-col items-start gap-8 py-20 md:py-28">
+            <Reveal>
+              <h2 id="close-heading" className="t-title max-w-[20ch] text-[--text]">
+                Signups are closed
+              </h2>
+            </Reveal>
+            <Reveal delay={90}>
+              <p className="t-lede text-[--text-secondary]">
+                Signups for Telluride closed on {SIGNUP_DEADLINE_LABEL}. Join the waitlist to hear about the next trip
+                first.
+              </p>
+            </Reveal>
+            <Reveal delay={180}>
+              <Button href="/waitlist" variant="primary" size="lg">
+                Join the waitlist
+              </Button>
+            </Reveal>
+          </div>
+        </section>
+      ) : BOOKINGS_OPEN ? (
         <section data-reserve-bar-hide className="scheme-club scheme-paint" aria-labelledby="close-heading">
           <div className="shell flex flex-col items-start gap-8 py-20 md:py-28">
             <Reveal>
@@ -1016,7 +1047,7 @@ function RoomCard({ option, tripCount }: { option: PackageOption; tripCount: num
           )}
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-            {BOOKINGS_OPEN && open.length > 0 ? (
+            {reservable() && open.length > 0 ? (
               <Button href={href} variant="primary" size="md">
                 Reserve for {formatAmount(DEPOSIT_AMOUNT)}
               </Button>
@@ -1105,8 +1136,14 @@ function DateRow({ trip }: { trip: PublicTrip }) {
       </div>
       <div className="flex flex-wrap items-center gap-4 [&>span]:whitespace-nowrap">
         {/* Same rule as TripCard: before launch the badge says so, once. */}
-        {BOOKINGS_OPEN ? <StatusBadge status={trip.status} /> : <Badge tone="neutral">{COMING_SOON_LABEL}</Badge>}
-        {BOOKINGS_OPEN && !soldOut && (
+        {BOOKINGS_OPEN && signupsClosed() ? (
+          <Badge tone="closed">Signups closed</Badge>
+        ) : BOOKINGS_OPEN ? (
+          <StatusBadge status={trip.status} />
+        ) : (
+          <Badge tone="neutral">{COMING_SOON_LABEL}</Badge>
+        )}
+        {reservable() && !soldOut && (
           // Same deep link the trip page builds, so a signed-out visitor
           // comes back from /login to this departure.
           <Button href={`/bookings/new?trip=${trip.id}`} variant="primary" size="md">
@@ -1126,7 +1163,7 @@ function DateRow({ trip }: { trip: PublicTrip }) {
  * liability detail links to the Terms rather than quoting numbers that live
  * there.
  */
-const ANSWERS: { q: string; a: React.ReactNode }[] = [
+const answers = (trips: PublicTrip[]): { q: string; a: React.ReactNode }[] => [
   {
     q: "I've never skied. Is that a problem?",
     a: "Not at all. The front side is gentle enough for a great first day. Lessons are available at the resort's rate: tell us when you book and we'll set one up before you land.",
@@ -1143,9 +1180,8 @@ const ANSWERS: { q: string; a: React.ReactNode }[] = [
     q: "How does paying work?",
     a: (
       <>
-        {formatAmount(DEPOSIT_AMOUNT)} holds your spot. The rest is split into two payments before
-        the trip, off the same card, or pay it off with Klarna from your bookings page. Or pay it
-        all now
+        {formatAmount(DEPOSIT_AMOUNT)} holds your spot. {howTheRestIsPaid(trips.map((trip) => trip.startDate))} It comes off
+        the same card, or pay it off with Klarna from your bookings page. Or pay it all now
         {PAY_IN_FULL_DISCOUNT > 0 && ` and take $${PAY_IN_FULL_DISCOUNT} off`}, by card or with Klarna.
         Klarna splits it into 4 on packages up to {formatAmount(KLARNA_PAY_IN_4_MAX)} and over time
         above that. Each of you books your own, so nobody fronts money for friends. Deposits are
