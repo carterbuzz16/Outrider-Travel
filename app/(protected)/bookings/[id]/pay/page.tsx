@@ -479,7 +479,10 @@ async function FreeBooking({ booking }: { booking: FreeBookingRow }) {
             <div className="p-5 sm:p-6">
               <dl className="m-0 flex flex-col gap-2.5 font-body text-body-s">
                 {booking.tiers && <Line label="Trip price" value={formatAmount(Number(booking.tiers.price))} />}
-                {redemption && <Line label={`Code ${redemption.code}`} value={`−${formatAmount(Number(redemption.amount))}`} />}
+                {/* Never a "−$0.00" line, as on the paid checkout above. */}
+                {redemption && Number(redemption.amount) > 0 && (
+                  <Line label={`Code ${redemption.code}`} value={`−${formatAmount(Number(redemption.amount))}`} />
+                )}
                 <div className="mt-2 flex items-baseline justify-between gap-4 border-t border-[--rule-strong] pt-4">
                   <dt className="font-body text-body font-medium text-[--text]">Due today</dt>
                   <dd className="m-0 font-display text-display-s font-medium tabular-nums tracking-title text-[--text]">

@@ -325,11 +325,12 @@ function Packages({
   // everywhere, which every code but a one-package one is, that is the same.
   const bestCode = discount ? Math.max(...Object.values(discount.amounts)) : 0;
   const applied = creditOrCode(bestCode, credit?.amount ?? 0);
-  // A code whose discount has ended (discount_ends_at, lib/discount-codes.ts)
-  // is worth nothing on every package, but it still goes on the booking,
-  // which is what credits its ambassador. So it shows as added, and is never
-  // the one set aside for the credit.
-  const ended = discount !== null && bestCode === 0;
+  // A code worth nothing on every package: an ambassador's $0 code, made only
+  // to record who sent the booking, or one whose discount has ended
+  // (discount_ends_at). Either way it still goes on the booking, which is what
+  // credits the ambassador (lib/discount-codes.ts). So it shows as applied,
+  // with no line taking $0 off, and is never the one set aside for the credit.
+  const attributionOnly = discount !== null && bestCode === 0;
   const tiers: CheckoutTier[] = trip.tiers.map((tier) => {
     // A penthouse another group holds is taken, unless the code in the link is
     // that group's. Then it is theirs to join, capacity permitting.
@@ -414,12 +415,12 @@ function Packages({
       lateNote={latePaymentNote(trip.startDate)}
       contactEmail={CONTACT.email}
       initialGroupCode={groupCode}
-      discount={discount && (applied.code > 0 || ended) ? { code: discount.code, ended } : null}
+      discount={discount && (applied.code > 0 || attributionOnly) ? { code: discount.code, attributionOnly } : null}
       rejectedCode={rejectedCode}
       signedIn={signedIn}
       credit={credit && applied.credit > 0 ? { label: formatAmount(credit.amount), expiresAt: credit.expiresAt } : null}
       setAside={
-        discount && !ended && applied.code === 0
+        discount && !attributionOnly && applied.code === 0
           ? { kind: "code", code: discount.code }
           : credit && applied.credit === 0
             ? { kind: "credit", label: formatAmount(credit.amount) }

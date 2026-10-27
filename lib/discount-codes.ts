@@ -34,15 +34,23 @@ type Admin = SupabaseClient<Database>;
  *   values ('PHIDELT', 100, 1000, 'Phi Delt chapter code',
  *           timestamptz '2026-10-04 00:00 America/Chicago');
  *
- * An ambassador's code is the same, but ends with discount_ends_at instead
- * (discount_ends_at migration): after it the code takes nothing off but still
- * checks out and is still claimed, at $0, so every booking made with it keeps
- * crediting the ambassador. expires_at would end the code outright, and the
- * ambassador's later sales with it. For example:
+ * An ambassador's code takes nothing off: amount 0 (tracking_only_codes
+ * migration). It checks out like any other and is claimed onto the booking at
+ * $0, and that redemption row is what credits the booking to the ambassador.
+ * Checkout shows it as "Code applied" with no line for it, and the price, the
+ * deposit and the installments are the same as with no code. Its expires_at
+ * is the ambassador deadline, after which it is refused like any expired
+ * code. For example (scripts/ambassador-codes.sql has the full set):
  *
- *   insert into discount_codes (code, amount, max_uses, note, discount_ends_at)
- *   values ('CAMILLE', 100, 1000, 'Ambassador code',
- *           timestamptz '2026-10-23 00:00 America/Chicago');
+ *   insert into discount_codes (code, amount, max_uses, note, expires_at)
+ *   values ('STEIN', 0, 1000, 'Ambassador attribution code ($0) for ...',
+ *           timestamptz '2026-11-15 05:59:59+00')
+ *   on conflict (code) do nothing;
+ *
+ * A code can also lose its discount and keep crediting (discount_ends_at
+ * migration, written for CAMILLE on 8 October but not applied to the live
+ * database as of 27 October): after discount_ends_at it is worth $0 and
+ * behaves exactly like the ambassador codes above.
  *
  * The discounted figure becomes bookings.total_amount (createBooking), the same
  * way the pay-in-full discount does, so nothing downstream needs to know.

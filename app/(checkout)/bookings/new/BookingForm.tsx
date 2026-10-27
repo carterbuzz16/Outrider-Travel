@@ -133,9 +133,10 @@ export default function BookingForm({
   /**
    * A discount code the page checked (?code=). The tier figures already have
    * it off, and each tier's codeLabel says how much: a code can be for one
-   * package only, or worth a share of each.
+   * package only, or worth a share of each. `attributionOnly` is a code worth
+   * $0 everywhere (an ambassador's code): it is applied, and nothing changes.
    */
-  discount?: { code: string; ended?: boolean } | null;
+  discount?: { code: string; attributionOnly?: boolean } | null;
   /** A ?code= that did not check out: shown in its box with a line saying so. */
   rejectedCode?: string | null;
   /** A session with a confirmed email. Without one, Continue asks for an email and a code first. */
@@ -364,8 +365,8 @@ export default function BookingForm({
               hint={
                 codeSetAside
                   ? `${codeSetAside} doesn't combine with your account credit, and the credit is worth more, so the credit comes off instead.`
-                  : discount?.ended
-                    ? `${discount.code} is added. Its discount has ended, so the prices stay the same.`
+                  : discount?.attributionOnly
+                    ? "Code applied."
                     : discount && selected.free
                       ? `${discount.code} covers ${tierDisplayName(selected.name)} in full, deposit included.`
                       : discount && selected.codeLabel

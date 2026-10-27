@@ -185,10 +185,12 @@ export async function createBooking(formData: FormData) {
   }
 
   let discount = 0;
-  // A code that checks out but takes nothing off: its discount has ended
-  // (discount_ends_at, lib/discount-codes.ts). It is still claimed below, at
-  // $0, because the claim is what credits the booking to the ambassador whose
-  // code it is.
+  // A code that checks out but takes nothing off: an ambassador's $0 code, or
+  // one whose discount has ended (discount_ends_at, lib/discount-codes.ts). It
+  // is still claimed below, at $0, because the claim is what credits the
+  // booking to the ambassador whose code it is. Nothing else sees it: the
+  // total, the deposit, the installments and the card form are the same as
+  // with no code, and the PaymentIntent carries it only in its metadata.
   let creditsOnly = false;
   if (discountCode) {
     // Codes are checked per IP on the booking page; this caps guessing through
