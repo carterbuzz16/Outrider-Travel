@@ -378,6 +378,8 @@ model WaitlistSignup {
 model AmbassadorApplication {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name      String
+  /// Lowercased. Null on applications from before 27 Oct 2026.
+  email     String?
   school    String
   /// The chapter they're a part of, as typed.
   chapter   String

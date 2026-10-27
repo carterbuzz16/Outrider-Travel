@@ -1,4 +1,7 @@
 import { normalizeUsPhone } from "@/lib/phone";
+// The waitlist's own rule for an address mail can be delivered to, so the two
+// forms accept and refuse the same addresses.
+import { isDeliverableEmail } from "@/lib/waitlist-signup";
 
 /**
  * The /ambassador application's fields and the rules for them, once.
@@ -11,6 +14,7 @@ import { normalizeUsPhone } from "@/lib/phone";
 
 export type AmbassadorInput = {
   name: string;
+  email: string;
   school: string;
   year: string;
   chapter: string;
@@ -61,6 +65,8 @@ export const ANSWER_MAX = 300;
 
 export type CleanAmbassadorInput = {
   name: string;
+  /** Lowercased. Added 27 October 2026 (Carter: "I need to get emails"). */
+  email: string;
   school: string;
   year: Year;
   chapter: string;
@@ -77,6 +83,7 @@ export type CleanAmbassadorInput = {
 
 export const EMPTY_AMBASSADOR_INPUT: AmbassadorInput = {
   name: "",
+  email: "",
   school: "",
   year: "",
   chapter: "",
@@ -90,6 +97,7 @@ export const EMPTY_AMBASSADOR_INPUT: AmbassadorInput = {
 // Error copy lives here so the browser and the server say the same thing.
 export const AMBASSADOR_ERRORS = {
   name: "Enter your name.",
+  email: "Enter a valid email.",
   nameChars: "Use letters, spaces, hyphens or apostrophes.",
   school: "Enter your school.",
   year: "Pick your year.",
@@ -189,6 +197,7 @@ export function validateAmbassador(
   raw: Partial<Record<AmbassadorField, unknown>>,
 ): { ok: true; data: CleanAmbassadorInput } | { ok: false; errors: AmbassadorFieldErrors } {
   const name = clean(raw.name);
+  const email = String(raw.email ?? "").trim().toLowerCase();
   const school = clean(raw.school);
   const year = String(raw.year ?? "");
   const chapter = clean(raw.chapter);
@@ -201,6 +210,9 @@ export function validateAmbassador(
   const errors: AmbassadorFieldErrors = {};
 
   if (!name) errors.name = AMBASSADOR_ERRORS.name;
+  // Refused when too long, never cut down: a truncated address is a different,
+  // wrong one.
+  if (!isDeliverableEmail(email)) errors.email = AMBASSADOR_ERRORS.email;
   else if (name.length > TEXT_MAX || !NAME_PATTERN.test(name)) errors.name = AMBASSADOR_ERRORS.nameChars;
 
   const schoolError = checkFreeText(school, AMBASSADOR_ERRORS.school);
@@ -224,7 +236,7 @@ export function validateAmbassador(
     return { ok: false, errors };
   }
 
-  return { ok: true, data: { name, school, year, chapter, instagram, phone, reach, why, fit } };
+  return { ok: true, data: { name, email, school, year, chapter, instagram, phone, reach, why, fit } };
 }
 
 /** "5-10" -> "5–10", for anything a person reads. */

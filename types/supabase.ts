@@ -55,6 +55,7 @@ export type Database = {
         Row: {
           chapter: string
           created_at: string
+          email: string | null
           fit: string | null
           id: string
           instagram: string
@@ -68,6 +69,7 @@ export type Database = {
         Insert: {
           chapter: string
           created_at?: string
+          email?: string | null
           fit?: string | null
           id?: string
           instagram: string
@@ -81,6 +83,7 @@ export type Database = {
         Update: {
           chapter?: string
           created_at?: string
+          email?: string | null
           fit?: string | null
           id?: string
           instagram?: string

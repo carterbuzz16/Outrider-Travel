@@ -57,8 +57,9 @@ export const CONTACT = {
  * be simple, few words, enough to pique interest, about Outrider the brand,
  * and without clubs. What the best of them share, and this follows:
  *   - the first screen is a film of people, with almost no words on it;
- *   - one loud line per page (ours: the brand book's "We host. You show up."),
- *     everything else quiet;
+ *   - one loud line per page (ours was the brand book's "We host. You show
+ *     up." until 26 October 2026, now "Go somewhere great."), everything else
+ *     quiet;
  *   - the trip arrives on screen two with hard facts (the hotel by name, the
  *     dates, what's in it, the price), not adjectives;
  *   - a seasonal pair (Surf Lodge's "Summer in Montauk / Winter in Aspen");
@@ -67,7 +68,10 @@ export const CONTACT = {
  * claimed. The stock friend groups are never captioned as Outrider guests.
  * ------------------------------------------------------------------------- */
 export const HOME = {
-  headline: "We host. You show up.",
+  // Carter, 26 October 2026, over "We host. You show up.": the headline says
+  // where you go (anywhere good, any season); the tagline under it says what
+  // kind of trip it is.
+  headline: "Go somewhere great.",
   // Carter, 1 October 2026: "the exclusive, elevated college trip. It's like
   // luxury." His words, and the one place the home page says what we are.
   tagline: "The exclusive, elevated college trip.",

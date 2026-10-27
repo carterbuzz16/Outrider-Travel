@@ -22,8 +22,9 @@ const FIELD_ORDER: AmbassadorField[] = [
   "school",
   "year",
   "chapter",
-  "instagram",
+  "email",
   "phone",
+  "instagram",
   "reach",
   "why",
   "fit",
@@ -224,22 +225,23 @@ export default function ApplicationForm({
           )}
         </Field>
 
+        {/* How to reach them, together: email and phone side by side, the
+            handle on its own row under them. */}
         <div className="grid gap-6 sm:grid-cols-2">
-          <Field label="Instagram handle" required error={errors.instagram}>
+          <Field label="Email" required error={errors.email}>
             {(p) => (
               <Input
                 {...p}
-                name="instagram"
-                value={values.instagram}
-                onChange={(e) => update("instagram", e.target.value)}
-                onBlur={() => checkOnLeave("instagram")}
-                // A handle is not a word: no capital first letter, no
-                // autocorrect turning "jordan.t" into something else.
+                name="email"
+                type="email"
+                inputMode="email"
+                value={values.email}
+                onChange={(e) => update("email", e.target.value)}
+                onBlur={() => checkOnLeave("email")}
+                autoComplete="email"
                 autoCapitalize="none"
-                autoCorrect="off"
                 spellCheck={false}
-                autoComplete="off"
-                maxLength={100}
+                maxLength={254}
                 disabled={busy}
                 required
               />
@@ -264,6 +266,27 @@ export default function ApplicationForm({
             )}
           </Field>
         </div>
+
+        <Field label="Instagram handle" required error={errors.instagram}>
+          {(p) => (
+            <Input
+              {...p}
+              name="instagram"
+              value={values.instagram}
+              onChange={(e) => update("instagram", e.target.value)}
+              onBlur={() => checkOnLeave("instagram")}
+              // A handle is not a word: no capital first letter, no
+              // autocorrect turning "jordan.t" into something else.
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              autoComplete="off"
+              maxLength={100}
+              disabled={busy}
+              required
+            />
+          )}
+        </Field>
 
         <TileChoice
           name="reach"

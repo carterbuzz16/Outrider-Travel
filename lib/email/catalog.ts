@@ -634,11 +634,13 @@ export function emailCatalog(): EmailEntry[] {
       sandbox: "Apply on /ambassador. The application is saved to the live table, so delete the row afterwards.",
       notes: [
         "The phone number stays in the ambassador_applications table. It is only in the email when the save failed, and the email then says so at the top.",
+        "Reply-to is the applicant's own address, so replying answers them directly.",
       ],
       render: () =>
         renderAmbassadorApplication(
           {
             name: SAMPLE_NAME,
+            email: SAMPLE_EMAIL,
             school: "Auburn University",
             year: "junior",
             chapter: "Alpha Delta Pi",

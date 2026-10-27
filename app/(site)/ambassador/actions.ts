@@ -7,6 +7,7 @@ import { clientIp } from "@/lib/client-ip";
 import { sendEmail, getFromAddress } from "@/lib/email/send";
 import { renderAmbassadorApplication } from "@/lib/email/ambassador";
 import { CONTACT } from "@/lib/site-content";
+import type { Database } from "@/types/supabase";
 import {
   AMBASSADOR_ERRORS,
   validateAmbassador,
@@ -83,7 +84,10 @@ export async function applyForAmbassador(
   return { ok: true };
 }
 
-type Stored = { saved: boolean; answersSaved: boolean };
+/** Whether the row went in, and which fields could only go in the email. */
+type Stored = { saved: boolean; unsaved: string[] };
+
+type Row = Database["public"]["Tables"]["ambassador_applications"]["Insert"];
 
 // PostgREST's "column not in the schema cache", and Postgres's own
 // undefined_column: the database is behind the code.
@@ -91,7 +95,7 @@ const MISSING_COLUMN = "PGRST204";
 const UNKNOWN_COLUMN = "42703";
 
 async function storeApplication(input: CleanAmbassadorInput): Promise<Stored> {
-  const core = {
+  const core: Row = {
     name: input.name,
     school: input.school,
     chapter: input.chapter,
@@ -99,35 +103,46 @@ async function storeApplication(input: CleanAmbassadorInput): Promise<Stored> {
     phone: input.phone,
     reach: input.reach,
   };
+  const answers = { year: input.year, why: input.why, fit: input.fit };
+
+  // The columns arrived in stages: year/why/fit in
+  // 20261026120000_ambassador_application_answers, email in
+  // 20261027120000_ambassador_application_email. If this runs before a stage's
+  // SQL has, the application is kept rather than lost: the newest columns are
+  // dropped first and the insert tried again, and the team email (which always
+  // carries everything) says which fields are only there. Newest first, so a
+  // missing email column never also costs the answers.
+  const attempts: { row: Row; unsaved: string[] }[] = [
+    { row: { ...core, ...answers, email: input.email }, unsaved: [] },
+    { row: { ...core, ...answers }, unsaved: ["email"] },
+    { row: core, unsaved: ["email", "year", "why", "fit"] },
+  ];
+
   try {
     // Service-role: the table has RLS on, no policies and no grants for the
     // API roles (prisma/migrations/20261019120000_ambassador_applications).
     const admin = createAdminClient();
-    const { error } = await admin
-      .from("ambassador_applications")
-      .insert({ ...core, year: input.year, why: input.why, fit: input.fit });
-    if (!error) return { saved: true, answersSaved: true };
-
-    // year, why and fit arrived in 20261026120000_ambassador_application_answers.
-    // If this runs before that SQL has, keep the application rather than lose
-    // it: the row without them, and the email (which always carries the
-    // answers) says they are only there.
-    if (error.code === MISSING_COLUMN || error.code === UNKNOWN_COLUMN) {
-      console.error(
-        `AMBASSADOR ANSWERS NOT STORED: ambassador_applications is missing year/why/fit (${error.message}). Saved the rest; the answers are in the team email only. Run the ambassador_application_answers SQL.`,
-      );
-      const fallback = await admin.from("ambassador_applications").insert(core);
-      if (!fallback.error) return { saved: true, answersSaved: false };
-      console.error(`AMBASSADOR APPLICATION NOT SAVED: ${fallback.error.code} ${fallback.error.message}`);
-      return { saved: false, answersSaved: false };
+    for (const attempt of attempts) {
+      const { error } = await admin.from("ambassador_applications").insert(attempt.row);
+      if (!error) {
+        if (attempt.unsaved.length > 0) {
+          console.error(
+            `AMBASSADOR APPLICATION PARTLY STORED: ambassador_applications has no ${attempt.unsaved.join("/")} column yet, so those are in the team email only. Run the pending ambassador_application SQL.`,
+          );
+        }
+        return { saved: true, unsaved: attempt.unsaved };
+      }
+      if (error.code !== MISSING_COLUMN && error.code !== UNKNOWN_COLUMN) {
+        // 42P01 / PGRST205 here would mean the table itself is missing.
+        console.error(`AMBASSADOR APPLICATION NOT SAVED: ${error.code} ${error.message}`);
+        return { saved: false, unsaved: [] };
+      }
     }
-
-    // 42P01 / PGRST205 here would mean the table itself is missing.
-    console.error(`AMBASSADOR APPLICATION NOT SAVED: ${error.code} ${error.message}`);
-    return { saved: false, answersSaved: false };
+    console.error("AMBASSADOR APPLICATION NOT SAVED: even the original columns were refused as missing.");
+    return { saved: false, unsaved: [] };
   } catch (err) {
     console.error("AMBASSADOR APPLICATION NOT SAVED: the insert threw.", err);
-    return { saved: false, answersSaved: false };
+    return { saved: false, unsaved: [] };
   }
 }
 
@@ -142,10 +157,13 @@ function inbox(): string {
   );
 }
 
-async function notifyTeam(input: CleanAmbassadorInput, { saved, answersSaved }: Stored): Promise<boolean> {
+async function notifyTeam(input: CleanAmbassadorInput, { saved, unsaved }: Stored): Promise<boolean> {
   try {
-    const { subject, text } = renderAmbassadorApplication(input, { saved, answersSaved });
-    await sendEmail({ from: getFromAddress(), to: inbox(), subject, text });
+    const { subject, text } = renderAmbassadorApplication(input, { saved, unsaved });
+    // The applicant's address goes in reply-to, never in `from` (sending as
+    // them would fail SPF on our domain), so the team can answer with Reply,
+    // the way the contact form works.
+    await sendEmail({ from: getFromAddress(), to: inbox(), replyTo: input.email, subject, text });
     return true;
   } catch (err) {
     // Loud and specific: when the row was saved the application is safe and
