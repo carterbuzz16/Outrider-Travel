@@ -22,7 +22,6 @@ export type AmbassadorInput = {
   phone: string;
   reach: string;
   why: string;
-  fit: string;
 };
 
 export type AmbassadorField = keyof AmbassadorInput;
@@ -69,16 +68,20 @@ export type CleanAmbassadorInput = {
   email: string;
   school: string;
   year: Year;
-  chapter: string;
+  /** "Chapter or org", optional since 27 October 2026: null when left blank. */
+  chapter: string | null;
   /** Without the "@", lowercased. */
   instagram: string;
   /** +1XXXXXXXXXX */
   phone: string;
   reach: Reach;
-  /** Why they want to do it. Line breaks kept, at most ANSWER_MAX. */
+  /**
+   * The answer to "Why you?". Since 27 October 2026 the form's only written
+   * question (Carter: cut to one, for people coming from Instagram); it
+   * replaced "Why do you want to do this?" and "What makes you a good fit?".
+   * Line breaks kept, at most ANSWER_MAX.
+   */
   why: string;
-  /** Why they'd be a good fit. Same rules. */
-  fit: string;
 };
 
 export const EMPTY_AMBASSADOR_INPUT: AmbassadorInput = {
@@ -91,7 +94,6 @@ export const EMPTY_AMBASSADOR_INPUT: AmbassadorInput = {
   phone: "",
   reach: "",
   why: "",
-  fit: "",
 };
 
 // Error copy lives here so the browser and the server say the same thing.
@@ -101,14 +103,12 @@ export const AMBASSADOR_ERRORS = {
   nameChars: "Use letters, spaces, hyphens or apostrophes.",
   school: "Enter your school.",
   year: "Pick your year.",
-  chapter: "Enter the chapter you’re a part of.",
   text: "Keep it to letters, numbers and ordinary punctuation.",
   instagram: "Enter your Instagram handle.",
   instagramChars: "Instagram handles use letters, numbers, periods and underscores, up to 30.",
   phone: "Enter a 10-digit US phone number, like 205 555 0123.",
   reach: "Pick how many friends you could bring.",
-  why: "Tell us why you want to do this.",
-  fit: "Tell us what makes you a good fit.",
+  why: "Tell us why you.",
   answerLong: `Keep it under ${ANSWER_MAX} characters.`,
   /** The brief's wording for anything that is not a field's fault. */
   failed: "Something went wrong. Try again in a moment.",
@@ -205,21 +205,24 @@ export function validateAmbassador(
   const phone = normalizeUsPhone(String(raw.phone ?? ""));
   const reach = String(raw.reach ?? "");
   const why = cleanAnswer(raw.why);
-  const fit = cleanAnswer(raw.fit);
 
   const errors: AmbassadorFieldErrors = {};
 
   if (!name) errors.name = AMBASSADOR_ERRORS.name;
+  else if (name.length > TEXT_MAX || !NAME_PATTERN.test(name)) errors.name = AMBASSADOR_ERRORS.nameChars;
+
   // Refused when too long, never cut down: a truncated address is a different,
   // wrong one.
   if (!isDeliverableEmail(email)) errors.email = AMBASSADOR_ERRORS.email;
-  else if (name.length > TEXT_MAX || !NAME_PATTERN.test(name)) errors.name = AMBASSADOR_ERRORS.nameChars;
 
   const schoolError = checkFreeText(school, AMBASSADOR_ERRORS.school);
   if (schoolError) errors.school = schoolError;
   if (!isYear(year)) errors.year = AMBASSADOR_ERRORS.year;
-  const chapterError = checkFreeText(chapter, AMBASSADOR_ERRORS.chapter);
-  if (chapterError) errors.chapter = chapterError;
+  // Optional: checked only when something was typed.
+  if (chapter) {
+    const chapterError = checkFreeText(chapter, AMBASSADOR_ERRORS.text);
+    if (chapterError) errors.chapter = chapterError;
+  }
 
   if (!instagram) errors.instagram = AMBASSADOR_ERRORS.instagram;
   else if (!INSTAGRAM_PATTERN.test(instagram)) errors.instagram = AMBASSADOR_ERRORS.instagramChars;
@@ -229,14 +232,15 @@ export function validateAmbassador(
 
   const whyError = checkAnswer(why, AMBASSADOR_ERRORS.why);
   if (whyError) errors.why = whyError;
-  const fitError = checkAnswer(fit, AMBASSADOR_ERRORS.fit);
-  if (fitError) errors.fit = fitError;
 
   if (Object.keys(errors).length > 0 || !phone || !isYear(year) || !isReach(reach)) {
     return { ok: false, errors };
   }
 
-  return { ok: true, data: { name, email, school, year, chapter, instagram, phone, reach, why, fit } };
+  return {
+    ok: true,
+    data: { name, email, school, year, chapter: chapter || null, instagram, phone, reach, why },
+  };
 }
 
 /** "5-10" -> "5–10", for anything a person reads. */

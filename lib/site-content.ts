@@ -126,35 +126,42 @@ export const SPRING_BREAK = {
  * "Chptr" off the form's chapter question: it asks for the chapter the
  * applicant is part of, whoever their chapter is with.
  *
- * The program's terms (what an ambassador earns per friend, the free-trip
- * threshold) are deliberately not here: the brief says "Full details are
- * shared once you're selected", and the terms are still being settled. But
- * the page says that a free trip has to be earned (Carter, 26 October 2026:
- * "make it clear they have to hit a goal"), and that rewards come for friends
- * who book, not for every friend. It names no number.
+ * Made concrete on 27 October 2026 (Carter: people come from Instagram and
+ * should "know exactly what they have to do and what they get"). The page now
+ * states the program's one rule: bring AMBASSADOR_GOAL friends who book through
+ * your link and pay in full by the signup deadline, and your trip is free. The
+ * number and the date are passed in by the page from lib/ambassadors.ts and
+ * lib/signup-deadline.ts, the same values /admin/ambassadors counts with, so
+ * the promise and the count can never disagree. This file stays client-safe
+ * (app/team imports it), which is why they arrive as arguments. The rest of
+ * the terms (the held spot, what happens short of the goal) are still for
+ * once someone is selected.
  * ------------------------------------------------------------------------- */
 export const AMBASSADOR = {
   headline: "Travel for free",
+  // The offer in one line, right under the headline (Carter's form fixes,
+  // 27 October 2026: "Bring X friends, your trip is free").
+  perk: (goal: number) => `Bring ${goal} friends. Your trip is free.`,
   subhead: "Outrider is selecting a small team of Campus Leads and Ambassadors.",
   apply: "Apply",
-  // Was "What Outrider is", a problem-and-answer pitch. Carter, 26 October
-  // 2026: less like a business pitch; "it's high end awesome locations, not
-  // the normal. You're cool for going on Outrider." So it shows the place
-  // and says little. Trips are open to anyone who books, so nothing here
-  // suggests you have to be picked to go (only to be an ambassador).
-  aboutTitle: "Where we go",
-  about: [
-    "High-end places the usual college trip never gets near.",
-    "Fair warning: everyone will ask where you went.",
-    // Non-breaking spaces, so a date never wraps away from its month.
-    "First up: Telluride, December 14–18 and January 4–8.",
+  // What to do, in order: a real sequence, so it is numbered.
+  stepsTitle: "How it works",
+  steps: (goal: number, deadline: string) => [
+    { title: "Apply", line: "It takes two minutes, right here." },
+    { title: "Get your link", line: "If you’re selected, you get your own link to share." },
+    {
+      title: `Bring ${goal} friends`,
+      line: `When ${goal} friends book through your link and pay in full by ${deadline}, your trip is free.`,
+    },
   ],
   getTitle: "What you get",
   // Labels are set as capitals headings (26 Oct 2026 polish), so they carry
-  // no full stop; the lines under them are sentences and keep theirs.
-  get: [
-    { label: "Free travel", line: "Hit your goal and your trip is on us." },
-    { label: "Rewards", line: "For friends who book." },
+  // no full stop; the lines under them are sentences and keep theirs. "Rewards
+  // for friends who book" went on 27 October 2026: the program as built pays
+  // in the free trip, so the list says exactly that.
+  get: (goal: number) => [
+    { label: "A free trip", line: "Your spot on the trip, on us." },
+    { label: "Your own link", line: `Every friend who books through it counts toward your ${goal}.` },
     { label: "First access", line: "Every trip opens to you before anyone else." },
     { label: "A direct line to the founders", line: "Your input shapes where we go next." },
   ],

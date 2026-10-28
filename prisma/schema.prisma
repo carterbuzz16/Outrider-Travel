@@ -381,8 +381,8 @@ model AmbassadorApplication {
   /// Lowercased. Null on applications from before 27 Oct 2026.
   email     String?
   school    String
-  /// The chapter they're a part of, as typed.
-  chapter   String
+  /// "Chapter or org", as typed. Optional since 27 Oct 2026, so null when blank.
+  chapter   String?
   /// Without the "@", lowercased (checked by ambassador_applications_instagram).
   instagram String
   /// E.164, US only: +1XXXXXXXXXX (checked by ambassador_applications_phone_us).

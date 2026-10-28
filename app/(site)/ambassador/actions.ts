@@ -103,7 +103,9 @@ async function storeApplication(input: CleanAmbassadorInput): Promise<Stored> {
     phone: input.phone,
     reach: input.reach,
   };
-  const answers = { year: input.year, why: input.why, fit: input.fit };
+  // fit (the old second question) is no longer asked; its column keeps the
+  // answers from before 27 October 2026.
+  const answers = { year: input.year, why: input.why };
 
   // The columns arrived in stages: year/why/fit in
   // 20261026120000_ambassador_application_answers, email in
@@ -115,7 +117,7 @@ async function storeApplication(input: CleanAmbassadorInput): Promise<Stored> {
   const attempts: { row: Row; unsaved: string[] }[] = [
     { row: { ...core, ...answers, email: input.email }, unsaved: [] },
     { row: { ...core, ...answers }, unsaved: ["email"] },
-    { row: core, unsaved: ["email", "year", "why", "fit"] },
+    { row: core, unsaved: ["email", "year", "why"] },
   ];
 
   try {

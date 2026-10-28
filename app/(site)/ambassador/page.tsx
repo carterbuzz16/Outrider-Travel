@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { Button, HeroSlideshow, Reveal, SplitHeading } from "@/components/ui";
 import { pageMetadata } from "@/lib/metadata";
 import { AMBASSADOR } from "@/lib/site-content";
+// The program's own numbers, the ones /admin/ambassadors counts with, so the
+// page's promise and the count can never disagree.
+import { AMBASSADOR_GOAL } from "@/lib/ambassadors";
+import { SIGNUP_DEADLINE_LABEL } from "@/lib/signup-deadline";
 import ApplicationForm from "./ApplicationForm";
 
 export const metadata: Metadata = pageMetadata({
@@ -9,8 +13,7 @@ export const metadata: Metadata = pageMetadata({
   // The whole tab title as given; the template would make it "... | Outrider".
   absoluteTitle: true,
   path: "/ambassador",
-  description:
-    "Travel for free. Outrider is selecting a small team of Campus Leads and Ambassadors. Limited spots per campus.",
+  description: `Travel for free. ${AMBASSADOR.perk(AMBASSADOR_GOAL)} ${AMBASSADOR.subhead} Limited spots per campus.`,
   // The share card is ./opengraph-image.tsx: the hero photograph and the
   // headline, because this link travels by text message.
   ownImage: true,
@@ -33,7 +36,7 @@ export const metadata: Metadata = pageMetadata({
  *     is a single flat wash, not the fades the other mastheads use;
  *   - the subhead and the button sit right under it on paper (small text
  *     goes on solid ground, never on the picture), and that one paper ground
- *     carries where we go and what you get, each in a warm gray block;
+ *     carries how it works and what you get, each in a warm gray block;
  *   - "Who we're looking for" is one espresso band, the beat before the ask.
  *     It holds no control, because a button on espresso is club blue;
  *   - the form is on warm gray, the book's single-moment panel. Its scheme
@@ -46,8 +49,13 @@ export const metadata: Metadata = pageMetadata({
  * section shares one grid, heading left and content right from md, so the
  * page reads as one system rather than four stacked blocks.
  *
- * The program's terms stay off the page: "Full details are shared once
- * you're selected."
+ * Made concrete on 27 October 2026 for visitors from Instagram, on phones
+ * (Carter: "so people know exactly what they have to do and what they get"):
+ * the offer in one line under the headline, then How it works as three
+ * numbered steps (a real sequence), then what you get. "Where we go" was
+ * taken off the same day (Carter). The bar has no button here (SiteNav). The finer terms
+ * (the held spot, what happens short of the goal) are still for once someone
+ * is selected: "Full details are shared once you're selected."
  */
 
 const HEADING =
@@ -102,43 +110,53 @@ export default function AmbassadorPage() {
 
       <main>
         <div className="scheme-light scheme-paint">
-          {/* Above the fold on a phone, so plain rather than in a Reveal. */}
+          {/* The offer, then the ask. Above the fold on a phone, so plain
+              rather than in a Reveal. */}
           <section className="shell flex flex-col gap-7 pb-20 pt-8 md:flex-row md:items-end md:justify-between md:gap-16 md:pb-28 md:pt-12">
-            <p className="m-0 max-w-[30ch] font-body text-lede font-medium leading-snug text-[--text]">
-              {AMBASSADOR.subhead}
-            </p>
+            <div>
+              <p className="m-0 max-w-[15ch] text-balance font-display text-display-m font-extrabold uppercase leading-[1.02] tracking-display text-[--text]">
+                {AMBASSADOR.perk(AMBASSADOR_GOAL)}
+              </p>
+              <p className="m-0 mt-4 max-w-[34ch] font-body text-lede leading-snug text-[--text-secondary]">
+                {AMBASSADOR.subhead}
+              </p>
+            </div>
             <div className="shrink-0">
-              <Button href="#apply" variant="primary" size="lg" className="min-w-[10rem]">
+              {/* Full width on a phone: the one thing on this screen to tap. */}
+              <Button href="#apply" variant="primary" size="lg" block className="sm:w-auto sm:min-w-[12rem]">
                 {AMBASSADOR.apply}
               </Button>
             </div>
           </section>
 
-          <section className="shell pb-20 md:pb-28" aria-labelledby="ambassador-about">
+          <section className="shell pb-20 md:pb-28" aria-labelledby="ambassador-steps">
             <div className={GRID}>
-              <h2 id="ambassador-about" className={HEADING}>
-                {AMBASSADOR.aboutTitle}
+              <h2 id="ambassador-steps" className={HEADING}>
+                {AMBASSADOR.stepsTitle}
               </h2>
               <Reveal delay={80}>
                 <div className={BLOCK}>
-                  <div className="flex flex-col gap-4 text-pretty">
-                    {AMBASSADOR.about.map((paragraph, i) =>
-                      // The two lines are the voice, set at subhead size; the
-                      // last is the one hard fact (where, when), at text size.
-                      i === AMBASSADOR.about.length - 1 ? (
-                        <p key={paragraph} className="m-0 mt-2 font-body text-lede font-medium text-[--text]">
-                          {paragraph}
-                        </p>
-                      ) : (
-                        <p
-                          key={paragraph}
-                          className="m-0 font-display text-display-s font-medium leading-snug tracking-title text-[--text]"
+                  {/* role="list": Safari drops a styled-off list's semantics,
+                      and the order here is the point. The digits are drawn
+                      for the eye; the list itself says first, second, third. */}
+                  <ol role="list" className="m-0 flex list-none flex-col gap-8 p-0 lg:gap-10">
+                    {AMBASSADOR.steps(AMBASSADOR_GOAL, SIGNUP_DEADLINE_LABEL).map((step, i) => (
+                      <li key={step.title} className="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-4 sm:grid-cols-[3rem_minmax(0,1fr)] sm:gap-5">
+                        <span
+                          aria-hidden="true"
+                          className="font-display text-display-l font-extrabold leading-[0.82] tracking-display text-[--text]"
                         >
-                          {paragraph}
-                        </p>
-                      ),
-                    )}
-                  </div>
+                          {i + 1}
+                        </span>
+                        <div>
+                          <h3 className="m-0 font-display text-display-s font-extrabold uppercase leading-[1.05] tracking-display text-[--text]">
+                            {step.title}
+                          </h3>
+                          <p className="m-0 mt-2 max-w-[34ch] text-pretty font-body text-lede text-[--text]">{step.line}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
                 </div>
               </Reveal>
             </div>
@@ -155,7 +173,7 @@ export default function AmbassadorPage() {
                       "A direct line to the founders" in a half: the full
                       shell from sm, the right column again from lg. */}
                   <ul className="m-0 grid list-none gap-8 p-0 sm:grid-cols-2 sm:gap-x-10 md:grid-cols-1 lg:grid-cols-2 lg:gap-y-10">
-                    {AMBASSADOR.get.map((item) => (
+                    {AMBASSADOR.get(AMBASSADOR_GOAL).map((item) => (
                       <li key={item.label}>
                         {/* The book's HEADLINE at label size: Extrabold
                             capitals, so each benefit reads as a headline,

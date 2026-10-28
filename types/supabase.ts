@@ -53,7 +53,7 @@ export type Database = {
       }
       ambassador_applications: {
         Row: {
-          chapter: string
+          chapter: string | null
           created_at: string
           email: string | null
           fit: string | null
@@ -67,7 +67,7 @@ export type Database = {
           year: string | null
         }
         Insert: {
-          chapter: string
+          chapter?: string | null
           created_at?: string
           email?: string | null
           fit?: string | null
@@ -81,7 +81,7 @@ export type Database = {
           year?: string | null
         }
         Update: {
-          chapter?: string
+          chapter?: string | null
           created_at?: string
           email?: string | null
           fit?: string | null

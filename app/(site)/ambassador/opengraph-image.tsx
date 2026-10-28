@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { MARK } from "@/components/ui/Logo";
 import { AMBASSADOR } from "@/lib/site-content";
+import { AMBASSADOR_GOAL } from "@/lib/ambassadors";
 
 /*
  * The card for /ambassador, which travels by text message and group chat from
@@ -92,7 +93,8 @@ export default async function AmbassadorOpengraphImage() {
               <div style={{ display: "flex" }}>FOR FREE</div>
             </div>
             <div style={{ display: "flex", marginTop: 30, fontSize: 30, maxWidth: 780, lineHeight: 1.3, letterSpacing: -0.3 }}>
-              {AMBASSADOR.subhead}
+              {/* The offer itself, the most useful thing a preview can say. */}
+              {AMBASSADOR.perk(AMBASSADOR_GOAL)}
             </div>
           </div>
         </div>

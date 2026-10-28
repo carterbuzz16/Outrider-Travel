@@ -27,18 +27,19 @@ const FIELD_ORDER: AmbassadorField[] = [
   "instagram",
   "reach",
   "why",
-  "fit",
 ];
 
 // A group's title: the brand book's Subhead (Medium, sentence case), one step
-// under the page's capitals, so the form reads as two parts and not a list.
+// under the page’s capitals, so the form opens with a name and not a field.
 const GROUP_TITLE = "m-0 font-display text-display-s font-medium tracking-title text-[--text]";
 
 /**
- * The /ambassador application. Every field is required.
+ * The /ambassador application. Every field is required except "Chapter or
+ * org".
  *
- * Two parts since 26 October 2026: the facts about the applicant, then two
- * short answers in their own words. Inline validation without nagging: a
+ * Cut down on 27 October 2026 for people arriving from Instagram on a phone
+ * (Carter): one written question, "Why you?", in place of two, and the
+ * chapter made optional, since not everyone is in one. Inline validation without nagging: a
  * field is checked when it is left with something in it, every field is
  * checked on submit, and a field already showing an error re-checks as it is
  * typed in, so the message clears the moment it is fixed. The rules are
@@ -61,7 +62,6 @@ export default function ApplicationForm({
   const formRef = useRef<HTMLFormElement>(null);
   const receivedRef = useRef<HTMLDivElement>(null);
   const aboutId = useId();
-  const wordsId = useId();
 
   // The form is gone once it is sent, so focus moves to what replaced it;
   // otherwise a keyboard or screen reader user is left on nothing.
@@ -208,9 +208,8 @@ export default function ApplicationForm({
           tileClassName="h-12 text-body font-medium"
         />
 
-        {/* A row of its own: the label is long enough to wrap in half a
-            column, which would push its box out of line with its neighbour's. */}
-        <Field label="Chapter you’re a part of" required error={errors.chapter}>
+        {/* Optional, and says so: no asterisk, and the hint under the box. */}
+        <Field label="Chapter or org" hint="Optional" error={errors.chapter}>
           {(p) => (
             <Input
               {...p}
@@ -220,7 +219,6 @@ export default function ApplicationForm({
               onBlur={() => checkOnLeave("chapter")}
               maxLength={120}
               disabled={busy}
-              required
             />
           )}
         </Field>
@@ -299,31 +297,15 @@ export default function ApplicationForm({
           className="grid-cols-3"
           tileClassName="h-14 text-display-s font-medium tracking-title"
         />
-      </div>
-
-      <div role="group" aria-labelledby={wordsId} className="flex flex-col gap-6">
-        <h3 id={wordsId} className={GROUP_TITLE}>
-          In your words
-        </h3>
 
         <ShortAnswer
           name="why"
-          label="Why do you want to do this?"
+          label="Why you?"
           value={values.why}
           error={errors.why}
           disabled={busy}
           onChange={(value) => update("why", value)}
           onBlur={() => checkOnLeave("why")}
-        />
-
-        <ShortAnswer
-          name="fit"
-          label="What makes you a good fit?"
-          value={values.fit}
-          error={errors.fit}
-          disabled={busy}
-          onChange={(value) => update("fit", value)}
-          onBlur={() => checkOnLeave("fit")}
         />
       </div>
 

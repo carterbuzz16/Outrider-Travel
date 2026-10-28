@@ -4,8 +4,8 @@ import { reachLabel, yearLabel, type CleanAmbassadorInput } from "@/lib/ambassad
 /**
  * The team's note about a new /ambassador application
  * (app/(site)/ambassador/actions.ts sends it). Plain text, the facts one per
- * line so they can be read from a phone lock screen, then the two short
- * answers, which are what the team actually decides on. Pure, so the admin
+ * line so they can be read from a phone lock screen, then the answer to
+ * "Why you?", which is what the team actually decides on. Pure, so the admin
  * preview page (app/admin/emails) shows exactly what lands in the inbox.
  *
  * The applicant's email is in it (and in reply-to, so Reply answers them).
@@ -45,16 +45,14 @@ export function renderAmbassadorApplication(
     `Email: ${input.email}`,
     `School: ${input.school}`,
     `Year: ${yearLabel(input.year)}`,
-    `Chapter: ${input.chapter}`,
+    // Optional since 27 October 2026: no line when it was left blank.
+    ...(input.chapter ? [`Chapter or org: ${input.chapter}`] : []),
     `Instagram: @${input.instagram} (https://www.instagram.com/${input.instagram}/)`,
     `Friends they could bring: ${reachLabel(input.reach)}`,
     saved ? "Phone: in the ambassador_applications table in Supabase" : `Phone: ${formatUsPhone(input.phone)}`,
     "",
-    "Why they want to do it:",
+    "Why you?",
     input.why,
-    "",
-    "What makes them a good fit:",
-    input.fit,
   ];
 
   return {

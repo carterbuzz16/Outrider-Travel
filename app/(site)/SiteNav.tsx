@@ -19,5 +19,14 @@ const PHONE_PHOTO_HEROES = new Set<string>([]);
 
 export default function SiteNav() {
   const pathname = usePathname();
-  return <NavBar overHero={PHOTO_HEROES.has(pathname) || (PHONE_PHOTO_HEROES.has(pathname) && "phone")} />;
+  return (
+    <NavBar
+      overHero={PHOTO_HEROES.has(pathname) || (PHONE_PHOTO_HEROES.has(pathname) && "phone")}
+      // /ambassador's bar has no button at all (Carter, 27 October 2026: not
+      // "Reserve your spot", and no "Apply" in the bar either); the page's own
+      // Apply, full width under the offer, is its one ask. undefined leaves
+      // NavBar's default button on every other page.
+      cta={pathname === "/ambassador" ? null : undefined}
+    />
+  );
 }
