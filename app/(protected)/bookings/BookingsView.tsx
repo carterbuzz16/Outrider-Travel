@@ -109,6 +109,7 @@ export default function BookingsView({
   error,
   canBook = BOOKINGS_OPEN,
   credit = null,
+  ambassador = false,
 }: {
   email: string;
   name: string | null;
@@ -118,6 +119,8 @@ export default function BookingsView({
   canBook?: boolean;
   /** The account's new-account credit while it is live (lib/welcome-credit.ts). */
   credit?: WelcomeCredit | null;
+  /** This account is an Outrider ambassador: show the way to their dashboard. */
+  ambassador?: boolean;
 }) {
   return (
     <main>
@@ -138,6 +141,21 @@ export default function BookingsView({
             Browse trips
           </Button>
         </div>
+
+        {/* Ambassadors land here after signing in like everyone else; their
+            dashboard (count, link, friends) is one tap away. Espresso, so the
+            one club blue panel on the page stays the credit's. */}
+        {ambassador && (
+          <div className="scheme-espresso scheme-paint mt-8 flex flex-wrap items-center justify-between gap-x-10 gap-y-5 px-5 py-6 sm:px-7">
+            <div className="min-w-0">
+              <p className="t-micro text-[--text-secondary]">Outrider ambassador</p>
+              <p className="mt-2 font-body text-body text-[--text]">Your link, your count and your friends.</p>
+            </div>
+            <Button href="/ambassador/dashboard" variant="primary" size="md">
+              Open your dashboard
+            </Button>
+          </div>
+        )}
 
         {/* The credit the /telluride pop-up puts in the account, in the one
             club blue panel on the page, until it is used or runs out.

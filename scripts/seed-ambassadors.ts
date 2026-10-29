@@ -10,7 +10,9 @@
  * checks for itself). It holds people's names and handles, so it stays out of
  * the repo: pass its path.
  *
- * What the SQL does, in one transaction, safe to run any number of times:
+ * What the SQL does, safe to run any number of times (in one transaction
+ * where the client honours BEGIN; the Supabase SQL editor runs statement by
+ * statement, which is fine because each step is idempotent):
  *
  *   1. refuses to go on if any listed code already exists as a code that
  *      takes money off: a discount code can never double as an ambassador's;
@@ -111,7 +113,11 @@ function seedTable(rows: Row[]): string {
   const values = rows
     .map((r) => `  (${[r.code, r.name, r.school || null, r.chapter, r.instagram, r.status].map(lit).join(", ")})`)
     .join(",\n");
-  return `CREATE TEMP TABLE seed_ambassadors (code TEXT PRIMARY KEY, name TEXT NOT NULL, school TEXT, chapter TEXT, instagram TEXT NOT NULL, status TEXT NOT NULL) ON COMMIT DROP;
+  // A plain session temp table, dropped at the end: the Supabase SQL editor
+  // runs each statement on its own, so ON COMMIT DROP would lose the table
+  // before the inserts below ever read it.
+  return `DROP TABLE IF EXISTS seed_ambassadors;
+CREATE TEMP TABLE seed_ambassadors (code TEXT PRIMARY KEY, name TEXT NOT NULL, school TEXT, chapter TEXT, instagram TEXT NOT NULL, status TEXT NOT NULL);
 INSERT INTO seed_ambassadors (code, name, school, chapter, instagram, status) VALUES
 ${values};`;
 }
@@ -179,6 +185,7 @@ ON CONFLICT (code) DO UPDATE SET
   updated_at = now();
 
 COMMIT;
+DROP TABLE IF EXISTS seed_ambassadors;
 
 -- Check: every listed code now has a row; how many can sign in.
 SELECT count(*) AS ambassadors, count(email) AS with_email, count(*) FILTER (WHERE email IS NULL) AS need_email

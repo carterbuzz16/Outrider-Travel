@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button, Logo } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/auth/actions";
+import { isAmbassadorAccount } from "@/lib/ambassador-portal";
 
 /**
  * Chrome for the signed-in areas of the site (the booking flow and admin).
@@ -38,7 +39,11 @@ export default async function UserNav() {
     );
   }
 
-  const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
+  const [{ data: profile }, ambassador] = await Promise.all([
+    supabase.from("users").select("role").eq("id", user.id).single(),
+    // Ambassadors get a way back to their dashboard from anywhere in the account.
+    isAmbassadorAccount(user),
+  ]);
 
   return (
     <header className="scheme-light scheme-paint border-b border-[--rule]">
@@ -66,6 +71,14 @@ export default async function UserNav() {
           >
             Bookings
           </Link>
+          {ambassador && (
+            <Link
+              href="/ambassador/dashboard"
+              className="t-micro text-[--text-secondary] no-underline transition-colors duration-fast hover:text-[--text]"
+            >
+              Ambassador
+            </Link>
+          )}
           {profile?.role === "admin" && (
             <Link
               href="/admin"

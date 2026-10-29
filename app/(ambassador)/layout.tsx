@@ -45,11 +45,20 @@ export default function AmbassadorLayout({ children }: { children: React.ReactNo
           <Link href="/" className="no-underline" aria-label="Outrider, home">
             <Logo variant="inline" className="text-[--text]" />
           </Link>
-          <form action={logout}>
-            <Button type="submit" variant="ghost" size="sm" className="min-h-11">
-              Log out
-            </Button>
-          </form>
+          <div className="flex items-center gap-x-5">
+            {/* Their own trip and payments live on the bookings page. */}
+            <Link
+              href="/bookings"
+              className="t-micro inline-flex min-h-11 items-center text-[--text-secondary] no-underline transition-colors duration-fast hover:text-[--text]"
+            >
+              Bookings
+            </Link>
+            <form action={logout}>
+              <Button type="submit" variant="ghost" size="sm" className="min-h-11">
+                Log out
+              </Button>
+            </form>
+          </div>
         </nav>
       </header>
       <div className="flex-1">{children}</div>

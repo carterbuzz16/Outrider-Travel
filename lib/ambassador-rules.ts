@@ -1,4 +1,4 @@
-import { countByFor, departureLabel, type AmbassadorProgram } from "@/lib/ambassador-program";
+import { countByFor, departureLabel, friendCredit, type AmbassadorProgram } from "@/lib/ambassador-program";
 
 /*
  * The ambassador program's decisions, as pure functions (29 October 2026), so
@@ -233,6 +233,8 @@ export type PortalView = {
   paid: number;
   onTheWay: number;
   toGo: number;
+  /** What the friends who count take off their own spot so far (0 at the goal: it is free). */
+  credit: number;
   friends: PortalFriend[];
   leaderboard: {
     top: LeaderboardEntry[];
@@ -319,6 +321,7 @@ export function buildPortalView(
     paid: self.paidInFull,
     onTheWay: self.depositOnly,
     toGo: Math.max(0, program.goal - self.paidInFull),
+    credit: friendCredit(program, self.paidInFull),
     friends,
     leaderboard: {
       top: ranked.filter((r) => r.paid + r.onTheWay > 0).slice(0, LEADERBOARD_SIZE),

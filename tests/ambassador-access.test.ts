@@ -220,3 +220,9 @@ test("a database fault is a 503, never a wrong answer about who you are", async 
     console.error = original;
   }
 });
+
+test("the view carries the ambassador's own credit so far", () => {
+  assert.equal(buildPortalView("STEIN", ALL, TELLURIDE_2026)!.credit, 100);
+  assert.equal(buildPortalView("DUNKLE", ALL, TELLURIDE_2026)!.credit, 200);
+  assert.equal(buildPortalView("ZERO", ALL, TELLURIDE_2026)!.credit, 0);
+});

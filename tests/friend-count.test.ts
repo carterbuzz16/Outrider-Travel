@@ -80,3 +80,16 @@ test("cancelled, refunded, held and pending bookings are neither counted nor on 
 test("paid in full with no payment time on record never counts", () => {
   assert.equal(classifyFriend(facts({ paidInFullMs: null }), TELLURIDE_2026).counts, false);
 });
+
+test("short of five, each friend who counts takes $100 off the ambassador's spot; five makes it free", async () => {
+  const { friendCredit, spotPrice } = await import("@/lib/ambassador-program");
+  assert.equal(friendCredit(TELLURIDE_2026, 0), 0);
+  assert.equal(friendCredit(TELLURIDE_2026, 1), 100);
+  assert.equal(friendCredit(TELLURIDE_2026, 4), 400);
+  assert.equal(friendCredit(TELLURIDE_2026, 5), 0);
+  assert.equal(spotPrice(TELLURIDE_2026, 1400, 3), 1100);
+  assert.equal(spotPrice(TELLURIDE_2026, 1700, 4), 1300);
+  assert.equal(spotPrice(TELLURIDE_2026, 1400, 5), 0);
+  assert.equal(spotPrice(TELLURIDE_2026, 1400, 7), 0);
+  assert.equal(spotPrice(TELLURIDE_2026, 50, 4), 0);
+});

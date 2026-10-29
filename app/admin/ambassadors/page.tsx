@@ -159,7 +159,7 @@ export default async function AmbassadorsPage(props: {
       <div className="mt-10 grid gap-8 lg:grid-cols-2">
         <Panel
           title="Settle held spots"
-          description={`For each held spot: ${AMBASSADOR_GOAL} or more paid in full by the deadline makes it free. Anyone short is emailed a Stripe link to pay for it by the date below, and the link shows on their row to text as well. Safe to run again: links are never sent twice, and anyone who reaches ${AMBASSADOR_GOAL} later is made free.`}
+          description={`For each held spot: ${AMBASSADOR_GOAL} or more paid in full by the deadline makes it free. Anyone short pays the spot less $100 for each friend who paid in full, by a Stripe link emailed to them for the date below (it shows on their row to text as well). Run it after ${LAST_SIGNUP_DEADLINE_LABEL}, when every count is final. Safe to run again: links are never sent twice, and anyone who reaches ${AMBASSADOR_GOAL} later is made free.`}
         >
           <p className="font-body text-body-s text-[--text-secondary]">
             {holds.length === 0

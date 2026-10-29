@@ -102,6 +102,35 @@ export const getPortalAccess = cache(async (): Promise<PortalAccess> => {
   };
 });
 
+/**
+ * Whether a signed-in account is an ambassador, for the links that lead to
+ * the portal (the account nav, the bookings page). Linked by user_id, or not
+ * yet linked but with a confirmed email that matches, exactly as the portal
+ * itself decides (getPortalAccess). Dropped ambassadors are not. Never throws:
+ * a link is a convenience, and the portal checks again on arrival.
+ */
+export async function isAmbassadorAccount(user: {
+  id: string;
+  email?: string | null;
+  email_confirmed_at?: string | null;
+}): Promise<boolean> {
+  try {
+    const admin = createAdminClient();
+    const email = user.email?.trim().toLowerCase();
+    const [byId, byEmail] = await Promise.all([
+      admin.from("ambassadors").select("status, program").eq("user_id", user.id).maybeSingle(),
+      email && user.email_confirmed_at
+        ? admin.from("ambassadors").select("status, program").eq("email", email).is("user_id", null).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
+    const row = byId.data ?? byEmail.data;
+    return Boolean(row && statusHasAccess(row.status, programFor(row.program)));
+  } catch (err) {
+    console.error(`isAmbassadorAccount: ${err instanceof Error ? err.message : err}`);
+    return false;
+  }
+}
+
 /** An ambassador as buildPortalView reads them. Traveler names only, never an email in their place. */
 function forView(a: Ambassador): AmbassadorForView {
   return {

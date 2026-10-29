@@ -285,6 +285,12 @@ function Progress({
               : `${view.toGo} more and your trip is free.`}
         </p>
 
+        {!reached && view.credit > 0 && (
+          <p className="mt-2 font-body text-body text-[--accent]">
+            ${view.credit.toLocaleString("en-US")} off your trip so far.
+          </p>
+        )}
+
         {!reached && (
           <CopyValue
             value={shareUrl}

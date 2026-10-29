@@ -62,6 +62,12 @@ export type AmbassadorProgram = {
   name: string;
   /** Friends who count, for the free trip. */
   goal: number;
+  /**
+   * Short of the goal, what each friend who counts takes off the ambassador's
+   * own spot (Carter, 29 October 2026: "$100 discount per person booked",
+   * counted like the free trip, paid in full by the deadline).
+   */
+  perFriendCredit: number;
   /** The last booking close, when the codes expire (lib/signup-deadline.ts). */
   signupDeadline: Date;
   signupDeadlineLabel: string;
@@ -94,6 +100,7 @@ export const TELLURIDE_2026: AmbassadorProgram = {
   id: "telluride-2026",
   name: "Telluride",
   goal: 5,
+  perFriendCredit: 100,
   signupDeadline: LAST_SIGNUP_DEADLINE,
   signupDeadlineLabel: labelFor(LAST_SIGNUP_DEADLINE),
   departures: {
@@ -114,7 +121,7 @@ export const TELLURIDE_2026: AmbassadorProgram = {
   releasedKeepAccess: true,
   freeTrip: {
     earned: "Your trip is free. Pick your week.",
-    locked: (goal) => `Bring ${goal} friends who pay in full and your trip is on us.`,
+    locked: (goal) => `Bring ${goal} friends who pay in full and your trip is on us. Until then, each one takes $100 off.`,
     picked: (departure) => `Your trip is free. You picked ${departure}. We’ll be in touch.`,
   },
   perks: [
@@ -135,7 +142,8 @@ export const TELLURIDE_2026: AmbassadorProgram = {
   ],
   agreement: {
     slug: "ambassador-agreement",
-    version: "telluride-2026.1",
+    // .2 (29 Oct 2026): $100 off your spot per friend who counts, short of 5.
+    version: "telluride-2026.2",
     title: "Ambassador agreement, Telluride",
     // Plain language, and only what Carter's brief says. Not reviewed by a
     // lawyer; bump the version whenever a word here changes, so every
@@ -145,7 +153,8 @@ export const TELLURIDE_2026: AmbassadorProgram = {
       `A friend counts toward your 5 when they book with your code or your link and their trip is paid in full by the end of ${SIGNUP_DEADLINE_LABEL} (December trip) or ${labelFor(JANUARY_DEADLINE)} (January trip), Central time. Bookings close on the same dates.`,
       "Cancelled and refunded bookings don’t count.",
       "Bring 5 friends who count and your trip is free. You pick the December or the January trip.",
-      "Your spot is held for you with no deposit. If you’re short of 5 when the count closes, you pay for your spot or release it.",
+      "Short of 5, every friend who counts takes $100 off your own spot.",
+      "Your spot is held for you with no deposit. If you’re short of 5 when the count closes, you pay what’s left on it or release it.",
       "Spring break has its own terms, shared when it opens.",
     ],
   },
@@ -175,4 +184,19 @@ export function departureLabel(program: AmbassadorProgram, tripStart: string | n
 /** The last instant anything can still change for this program's counts. */
 export function countClosesAt(program: AmbassadorProgram): Date {
   return new Date(Math.max(program.signupDeadline.getTime(), ...Object.values(program.departures).map((d) => d.countBy.getTime())));
+}
+
+/**
+ * What the friends who count take off an ambassador's own spot: nothing at
+ * the goal or past it (the spot is free then), otherwise perFriendCredit each.
+ */
+export function friendCredit(program: AmbassadorProgram, friendsWhoCount: number): number {
+  const n = Math.max(0, Math.floor(friendsWhoCount));
+  return n >= program.goal ? 0 : n * program.perFriendCredit;
+}
+
+/** An ambassador's own spot, priced: free at the goal, otherwise the price less the credit, never below zero. */
+export function spotPrice(program: AmbassadorProgram, listPrice: number, friendsWhoCount: number): number {
+  if (friendsWhoCount >= program.goal) return 0;
+  return Math.max(0, listPrice - friendCredit(program, friendsWhoCount));
 }

@@ -21,6 +21,7 @@ import {
   type HoldStatus,
 } from "@/lib/ambassadors";
 import { ANNOUNCEMENT_MAX, TOOLKIT_BUCKET } from "@/lib/ambassador-rules";
+import { friendCredit, programFor, spotPrice } from "@/lib/ambassador-program";
 import { isToolkitObjectPath } from "@/lib/toolkit-upload";
 import { LAST_SIGNUP_DEADLINE, LAST_SIGNUP_DEADLINE_DAY, signupsClosed } from "@/lib/signup-deadline";
 
@@ -349,12 +350,44 @@ export async function settleHolds(formData: FormData) {
       continue;
     }
 
-    const { data: holder } = await admin.from("bookings").select("user_id").eq("id", a.hold.bookingId).single();
+    // Short of the goal, each friend who counts takes $100 off the spot
+    // (lib/ambassador-program.ts, friendCredit). The spot's price is set
+    // outright, the package price less the credit, so running this again
+    // never takes the credit twice, and everything downstream (the link, the
+    // receipt, paid in full) reads the price actually owed.
+    const { data: holder } = await admin
+      .from("bookings")
+      .select("user_id, tiers(price)")
+      .eq("id", a.hold.bookingId)
+      .single();
+    const listPrice = Number(holder?.tiers?.price ?? Number.NaN);
+    if (!Number.isFinite(listPrice)) {
+      skipped += 1;
+      continue;
+    }
+    const program = programFor(a.program);
+    const newTotal = spotPrice(program, listPrice, a.paidInFull);
+    const { error: priceError } = await admin
+      .from("bookings")
+      .update({ total_amount: newTotal })
+      .eq("id", a.hold.bookingId)
+      .eq("status", "deposit_paid");
+    if (priceError) {
+      console.error(`settleHolds: price ${a.code}: ${priceError.code} ${priceError.message}`);
+      skipped += 1;
+      continue;
+    }
+    const owedCents = Math.round(newTotal * 100) - a.hold.paidCents;
+    // Stripe charges 50 cents at least; anything less is a person's call.
+    if (owedCents < 50) {
+      skipped += 1;
+      continue;
+    }
     try {
       const stripe = getStripe();
       const price = await stripe.prices.create({
         currency: "usd",
-        unit_amount: a.hold.remainingCents,
+        unit_amount: owedCents,
         product_data: { name: `${a.trip.name}, Four to a Room` },
       });
       const metadata = { bookingId: a.hold.bookingId, userId: holder?.user_id ?? "", kind: "balance", ambassadorHold: a.code };
@@ -378,9 +411,11 @@ export async function settleHolds(formData: FormData) {
         to: a.email,
         name: a.name,
         tripName: a.trip.name,
-        amount: a.hold.remainingCents / 100,
+        amount: owedCents / 100,
         payBy,
         url: link.url,
+        friends: a.paidInFull,
+        credit: friendCredit(program, a.paidInFull),
       }).catch((err) => console.error(`settleHolds: email to ${a.code} failed: ${err instanceof Error ? err.message : err}`));
       sent += 1;
     } catch (err) {

@@ -253,7 +253,7 @@ export const AMBASSADOR_PORTAL = {
     },
     {
       q: `What if I’m short of ${goal}?`,
-      a: "Your spot is held with no deposit. When the count closes, you pay for it or release it.",
+      a: "Every friend who pays in full still takes $100 off your own spot. Your spot is held with no deposit; when the count closes, you pay what’s left or release it.",
     },
   ],
 };

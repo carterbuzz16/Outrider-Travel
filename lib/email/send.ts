@@ -370,6 +370,9 @@ export type AmbassadorSpotInput = {
   /** "November 14", the end of which is when the link has to be paid by. */
   payBy: string;
   url: string;
+  /** Friends who paid in full, and what they took off the spot ($100 each, short of 5). */
+  friends?: number;
+  credit?: number;
 };
 
 export async function sendAmbassadorSpotEmail(opts: AmbassadorSpotInput & { to: string }) {
@@ -378,12 +381,17 @@ export async function sendAmbassadorSpotEmail(opts: AmbassadorSpotInput & { to: 
 }
 
 export function renderAmbassadorSpotEmail(opts: AmbassadorSpotInput): RenderedEmail & { html: string } {
-  const { name, tripName, amount, payBy, url } = opts;
+  const { name, tripName, amount, payBy, url, friends = 0, credit = 0 } = opts;
   const greeting = name ? `Hi ${escapeHtml(name.split(" ")[0])},` : "Hi there,";
+  const creditLine =
+    credit > 0
+      ? `<p>That&rsquo;s ${formatCurrency(credit)} off for the ${friends === 1 ? "friend" : `${friends} friends`} who paid in full with your code.</p>`
+      : "";
 
   const bodyHtml = `
     <p>${greeting}</p>
     <p>Your Four to a Room spot on <strong>${escapeHtml(tripName)}</strong> is held for you. Here&rsquo;s your link to pay for it: <strong>${formatCurrency(amount)}</strong>, by the end of ${escapeHtml(payBy)}, Central time.</p>
+    ${creditLine}
     <p>Pay by card, or ${amount <= KLARNA_PAY_IN_4_MAX ? "pay in 4" : "pay over time"} with Klarna. If it isn&rsquo;t paid by then, the spot is released.</p>
     <p>Questions? Write to ${CONTACT.email}.</p>
   `;
