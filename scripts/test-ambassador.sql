@@ -10,7 +10,7 @@
 -- ADD ---------------------------------------------------------------------------
 BEGIN;
 INSERT INTO public.discount_codes (code, amount, max_uses, once_per_person, active, expires_at, note)
-VALUES ('TESTCARTER', 0, 1000, false, true, timestamptz '2026-11-15 05:59:59+00',
+VALUES ('TESTCARTER', 0, 1000, false, true, timestamptz '2026-12-05 05:59:59+00',
         'Test ambassador code ($0) for Carter. Remove after testing (scripts/test-ambassador.sql).')
 ON CONFLICT (code) DO NOTHING;
 

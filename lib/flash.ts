@@ -70,7 +70,7 @@ export const CHECKOUT_ERRORS = {
   referral_invalid:
     "We couldn't find that ambassador code. Check it with whoever sent you, or leave Referred by empty. Nothing was charged.",
   // lib/signup-deadline.ts: the deadline passed while the form was open.
-  signups_closed: "Signups for these trips have closed. Nothing was charged.",
+  signups_closed: "Booking for that week has closed. Nothing was charged.",
 } as const;
 
 export type CheckoutErrorCode = keyof typeof CHECKOUT_ERRORS | "tier_claimed";

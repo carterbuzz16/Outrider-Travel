@@ -51,7 +51,13 @@ import {
 import { getRoomMedia, isTaken, tierDisplayName, type RoomMedia } from "@/lib/room-media";
 import { DEPOSIT_AMOUNT, KLARNA_PAY_IN_4_MAX, PAY_IN_FULL_DISCOUNT, holdSpotLine } from "@/lib/deposit";
 import { balanceDueDates, howTheRestIsPaid, latePaymentNote } from "@/lib/installments";
-import { SIGNUP_DEADLINE_DAY, SIGNUP_DEADLINE_LABEL, signupsClosed } from "@/lib/signup-deadline";
+import {
+  LAST_SIGNUP_DEADLINE_LABEL,
+  bookingsCloseAt,
+  closeLabel,
+  dayInCentral,
+  signupsClosed,
+} from "@/lib/signup-deadline";
 import { formatAmount } from "@/lib/balance";
 import { flightTimesPublished } from "@/lib/trip-logistics";
 
@@ -163,10 +169,22 @@ function holdLineFor(trips: PublicTrip[]): string {
  */
 function restAndDeadline(trips: PublicTrip[], now = new Date()): string | null {
   if (trips.length === 0) return null;
-  const closes = `Signups close ${SIGNUP_DEADLINE_LABEL}`;
+  // Since 29 October 2026 each week closes on its own date (lib/signup-deadline.ts).
+  // Two open weeks with two dates: name both, nothing more.
+  const labels = [...new Set(trips.map((trip) => closeLabel(trip.startDate)))];
+  if (labels.length > 1) {
+    const byStart = [...trips].sort((a, b) => a.startDate.localeCompare(b.startDate));
+    return `${byStart.map((trip) => `${monthOf(trip.startDate)} closes ${closeLabel(trip.startDate)}`).join(", ")}.`;
+  }
+  const closes = `Signups close ${labels[0]}`;
   if (trips.some((trip) => latePaymentNote(trip.startDate, now))) return `${closes}.`;
+  const closeDay = dayInCentral(bookingsCloseAt(trips[0].startDate));
   const earliest = trips.map((trip) => balanceDueDates(trip.startDate)[0]).sort()[0];
-  return earliest >= SIGNUP_DEADLINE_DAY ? `${closes}, and the rest isn’t due until then.` : `${closes}.`;
+  return earliest >= closeDay ? `${closes}, and the rest isn’t due until then.` : `${closes}.`;
+}
+
+function monthOf(startDate: string): string {
+  return new Date(`${startDate}T12:00:00Z`).toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
 }
 
 /** Reserve buttons show only while booking is open and signups have not closed (lib/signup-deadline.ts). */
@@ -584,7 +602,7 @@ export default async function TelluridePage() {
               )}
               <p className="t-micro mt-5 text-[--text-secondary]">
                 {closed
-                  ? `Signups closed on ${SIGNUP_DEADLINE_LABEL}.`
+                  ? `Signups closed on ${LAST_SIGNUP_DEADLINE_LABEL}.`
                   : BOOKINGS_OPEN
                   ? "Same trip, same hotel, same days on the mountain. Pick the week that works for your crew."
                   : TRIP_DETAILS_OPEN
@@ -847,7 +865,7 @@ export default async function TelluridePage() {
             </Reveal>
             <Reveal delay={90}>
               <p className="t-lede text-[--text-secondary]">
-                Signups for Telluride closed on {SIGNUP_DEADLINE_LABEL}. Join the waitlist to hear about the next trip
+                Signups for Telluride closed on {LAST_SIGNUP_DEADLINE_LABEL}. Join the waitlist to hear about the next trip
                 first.
               </p>
             </Reveal>

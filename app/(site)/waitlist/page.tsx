@@ -140,7 +140,7 @@ export default async function WaitlistPage() {
       destination: trip.destination.split(",")[0],
       name: trip.name,
       when: formatDateRange(trip.startDate, trip.endDate),
-      status: BOOKINGS_OPEN ? availabilityLabel(trip.status) : "List first",
+      status: BOOKINGS_OPEN ? availabilityLabel(trip.status, trip.bookingClosed) : "List first",
       live: true,
     })),
     ...UPCOMING_CATEGORIES.map((category) => ({

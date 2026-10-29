@@ -15,8 +15,8 @@
  *   1. refuses to go on if any listed code already exists as a code that
  *      takes money off: a discount code can never double as an ambassador's;
  *   2. creates each missing code the way scripts/ambassador-codes.sql made the
- *      first 25: amount 0, 1,000 uses, expiring at the end of November 14
- *      Central, noted "Ambassador attribution code ($0) for <Name>, <School>.";
+ *      first 25: amount 0, 1,000 uses, expiring at the end of December 4
+ *      Central (January's close), noted "Ambassador attribution code ($0) for <Name>, <School>.";
  *   3. upserts public.ambassadors: name, school, chapter, Instagram and status
  *      from the list, and the phone and email from their newest
  *      /ambassador application with the same Instagram handle. An email or
@@ -33,7 +33,7 @@
 
 import { readFileSync } from "node:fs";
 
-const EXPIRES_AT = "2026-11-15 05:59:59+00";
+const EXPIRES_AT = "2026-12-05 05:59:59+00";
 const PROGRAM = "telluride-2026";
 
 type Row = { code: string; name: string; school: string; chapter: string | null; instagram: string; status: "onboarded" | "accepted" };

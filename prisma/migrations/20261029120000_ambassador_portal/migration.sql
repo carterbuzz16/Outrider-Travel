@@ -86,6 +86,14 @@ CREATE INDEX IF NOT EXISTS ambassadors_reward_trip_id_idx ON public.ambassadors 
 -- rest from Carter's list).
 UPDATE public.ambassadors SET status = 'onboarded' WHERE status = 'accepted' AND created_at < timestamptz '2026-10-29 00:00+00';
 
+-- Bookings close per week since 29 October 2026: December at the end of 14
+-- November, January at the end of 4 December, Central. The ambassador codes
+-- keep crediting January bookings until January closes, so the $0 codes that
+-- expired with the old single deadline move to the end of 4 December.
+UPDATE public.discount_codes
+SET expires_at = timestamptz '2026-12-05 05:59:59+00'
+WHERE amount = 0 AND percent_off IS NULL AND expires_at = timestamptz '2026-11-15 05:59:59+00';
+
 REVOKE ALL ON public.ambassadors FROM anon, authenticated;
 DO $$
 BEGIN

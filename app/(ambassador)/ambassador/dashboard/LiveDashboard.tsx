@@ -4,19 +4,26 @@ import { useEffect, useRef, useState } from "react";
 import { Button, cn } from "@/components/ui";
 import type { PortalView } from "@/lib/ambassador-rules";
 import { AMBASSADOR_PORTAL as COPY } from "@/lib/site-content";
+import CopyValue from "./CopyValue";
 import Countdown from "./Countdown";
+import LeaderboardSwitch from "./LeaderboardSwitch";
 
 /*
- * The parts of the dashboard that move with every booking and payment: the
- * meter, the friends, the rewards and the leaderboard. The server renders
- * them first (page.tsx); this then asks /api/ambassador/dashboard for fresh
- * numbers every 60 seconds while the tab is visible, and again whenever the
- * tab comes back into view, so a payment shows within about a minute without
- * a refresh. Realtime is not used: the tables are service-role only, by
- * design, so there is no row-level subscription to give a browser.
+ * The dashboard as four tabs, the way an app on a phone works (Carter, 29
+ * October 2026: "super easily navigated and sleek"): Home (the count, the
+ * link, the perks), Friends, Rankings and Toolkit. On a phone the tabs sit
+ * in a bar along the bottom, under the thumb; from md up they sit along the
+ * top. The open tab is in the address (#friends), so a link or a refresh
+ * lands on it, and the arrow keys move between tabs.
  *
- * A 401 or 403 means the session or the access changed under the page; it
- * reloads, and the server decides what to show.
+ * The numbers move with every booking and payment: the server renders them
+ * first (page.tsx), then this asks /api/ambassador/dashboard for fresh ones
+ * every 60 seconds while the tab is visible, and again whenever the tab comes
+ * back into view, so a payment shows within about a minute without a
+ * refresh. Realtime is not used: the tables are service-role only, by design,
+ * so there is no row-level subscription to give a browser. A 401 or 403 means
+ * the session or the access changed under the page; it reloads, and the
+ * server decides what to show.
  */
 
 const POLL_MS = 60_000;
@@ -25,39 +32,69 @@ export type ProgramFacts = {
   goal: number;
   deadlineIso: string;
   deadlineLabel: string;
-  /** "Bookings close November 14 at 11:59 PM Central." */
+  /** The week the countdown is for: "December", then "January". */
+  closingName: string;
+  /** "December closes November 14 at 11:59 PM Central." */
   deadlineSpoken: string;
   /** The departures, for the free-trip pick: trip id, "December", "December 14 to 18", and its count deadline. */
   departures: { tripId: string; label: string; dates: string; countByLabel: string }[];
-  rewards: {
-    first: { title: string; earned: string; locked: string };
-    goal: { title: string; earned: string; locked: string; picked: string };
-    next: { title: string; line: string };
-  };
+  freeTrip: { earned: string; locked: string; picked: string };
 };
+
+const TABS = [
+  { id: "home", label: "Home" },
+  { id: "friends", label: "Friends" },
+  { id: "rankings", label: "Rankings" },
+  { id: "toolkit", label: "Toolkit" },
+] as const;
+type TabId = (typeof TABS)[number]["id"];
+
+function tabFromHash(hash: string): TabId | null {
+  const id = hash.replace(/^#/, "");
+  return TABS.find((t) => t.id === id)?.id ?? null;
+}
 
 export default function LiveDashboard({
   initial,
   facts,
   claimFreeTrip,
-  setLeaderboardHidden,
-  children,
-  after,
+  announcement,
+  notice,
+  shareUrl,
+  share,
+  perks,
+  toolkit,
 }: {
   initial: PortalView;
   facts: ProgramFacts;
   claimFreeTrip: (formData: FormData) => Promise<void>;
-  setLeaderboardHidden: (formData: FormData) => Promise<void>;
-  /** Server-rendered, right under the meter: the link, code and QR. */
-  children?: React.ReactNode;
-  /** Server-rendered, after the leaderboard: the toolkit. */
-  after?: React.ReactNode;
+  /** Server-rendered: the team's latest note, at the top of Home. */
+  announcement?: React.ReactNode;
+  /** Server-rendered: the result of the last action, above whichever tab is open. */
+  notice?: React.ReactNode;
+  /** Their referral link, for the Share button at the top of Home. */
+  shareUrl: string;
+  /** Server-rendered: the link, code and QR, on Home under the count. */
+  share: React.ReactNode;
+  /** Server-rendered: the perk cards, on Home under the link. */
+  perks: React.ReactNode;
+  /** Server-rendered: graphics, scripts, questions and the agreement. */
+  toolkit: React.ReactNode;
 }) {
   const [view, setView] = useState(initial);
+  const [tab, setTab] = useState<TabId>("home");
   const reloading = useRef(false);
+  const tabRefs = useRef<Partial<Record<TabId, HTMLButtonElement | null>>>({});
 
   // A server action redirects back here with fresh props; take them.
   useEffect(() => setView(initial), [initial]);
+
+  useEffect(() => {
+    const sync = () => setTab(tabFromHash(window.location.hash) ?? "home");
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
 
   useEffect(() => {
     let stopped = false;
@@ -91,165 +128,215 @@ export default function LiveDashboard({
     };
   }, []);
 
+  function select(next: TabId, focus = false) {
+    setTab(next);
+    const { pathname, search } = window.location;
+    window.history.replaceState(null, "", `${pathname}${search}${next === "home" ? "" : `#${next}`}`);
+    window.scrollTo({ top: 0, behavior: "instant" });
+    if (focus) tabRefs.current[next]?.focus();
+  }
+
+  function onTabKey(event: React.KeyboardEvent, index: number) {
+    const to =
+      event.key === "ArrowRight"
+        ? (index + 1) % TABS.length
+        : event.key === "ArrowLeft"
+          ? (index - 1 + TABS.length) % TABS.length
+          : event.key === "Home"
+            ? 0
+            : event.key === "End"
+              ? TABS.length - 1
+              : null;
+    if (to === null) return;
+    event.preventDefault();
+    select(TABS[to].id, true);
+  }
+
   return (
-    <>
-      <Meter view={view} facts={facts} />
-      <div className="shell-narrow flex flex-col gap-16 py-14 md:gap-20 md:py-20">
-        {children}
+    // Room at the foot on a phone, so the bar (and the home indicator under
+    // it) never covers the last thing on the page. No grey flash on tap: every
+    // control here draws its own pressed state.
+    <div className="pb-[calc(5rem+env(safe-area-inset-bottom))] [-webkit-tap-highlight-color:transparent] md:pb-0">
+      <nav
+        aria-label="Dashboard"
+        // Deep espresso with a soft shadow, so the bar stays its own surface over
+        // the espresso count on Home as well as over paper.
+        className="scheme-espresso fixed inset-x-0 bottom-0 z-40 bg-[--surface-inset] pb-[env(safe-area-inset-bottom)] text-[--text] shadow-[0_-6px_24px_rgb(0_0_0/0.22)] md:sticky md:top-0 md:bottom-auto md:pb-0 md:shadow-none"
+      >
+        <div role="tablist" aria-label="Dashboard" className="shell-narrow grid grid-cols-4">
+          {TABS.map((t, i) => {
+            const on = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                ref={(el) => {
+                  tabRefs.current[t.id] = el;
+                }}
+                type="button"
+                role="tab"
+                id={`tab-${t.id}`}
+                aria-selected={on}
+                aria-controls={`panel-${t.id}`}
+                tabIndex={on ? 0 : -1}
+                onClick={() => select(t.id)}
+                onKeyDown={(e) => onTabKey(e, i)}
+                className={cn(
+                  "t-micro flex min-h-16 flex-col items-center justify-center gap-2 transition-[color,transform] duration-fast active:scale-[0.96]",
+                  on ? "text-[--text]" : "text-[--text-muted] hover:text-[--text]",
+                )}
+              >
+                <span aria-hidden="true" className={cn("h-1.5 w-1.5", on ? "bg-[--accent-solid]" : "bg-transparent")} />
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      {notice}
+
+      <Panel id="home" open={tab === "home"}>
+        {announcement}
+        <Progress view={view} facts={facts} claimFreeTrip={claimFreeTrip} go={select} shareUrl={shareUrl} />
+        <div className="shell-narrow flex flex-col gap-10 py-10 md:py-14">
+          {share}
+          {perks}
+        </div>
+      </Panel>
+
+      <Panel id="friends" open={tab === "friends"}>
         <Friends view={view} />
-        <Rewards view={view} facts={facts} claimFreeTrip={claimFreeTrip} />
-        <Leaderboard view={view} setLeaderboardHidden={setLeaderboardHidden} />
-        {after}
-      </div>
-    </>
+      </Panel>
+
+      <Panel id="rankings" open={tab === "rankings"}>
+        <Rankings view={view} />
+      </Panel>
+
+      <Panel id="toolkit" open={tab === "toolkit"}>
+        {toolkit}
+      </Panel>
+    </div>
   );
 }
 
-/* -- progress toward the free trip -------------------------------------------- */
+function Panel({ id, open, children }: { id: TabId; open: boolean; children: React.ReactNode }) {
+  return (
+    <div role="tabpanel" id={`panel-${id}`} aria-labelledby={`tab-${id}`} hidden={!open}>
+      {children}
+    </div>
+  );
+}
 
-function Meter({ view, facts }: { view: PortalView; facts: ProgramFacts }) {
-  const reached = view.paid >= view.goal;
+/* -- Home: the count ------------------------------------------------------------ */
+
+function Progress({
+  view,
+  facts,
+  claimFreeTrip,
+  go,
+  shareUrl,
+}: {
+  view: PortalView;
+  facts: ProgramFacts;
+  claimFreeTrip: (formData: FormData) => Promise<void>;
+  go: (tab: TabId) => void;
+  shareUrl: string;
+}) {
+  const reached = view.rewards.goal;
+  const picked = view.rewards.picked;
   const segments = Array.from({ length: view.goal }, (_, i) => i < view.paid);
   return (
     <section aria-labelledby="progress-title" className="scheme-espresso scheme-paint">
-      <div className="shell-narrow py-12 md:py-16">
+      <div className="shell-narrow pb-10 pt-8 md:pb-14 md:pt-12">
         <p className="t-rule-label text-[--text-secondary]">Hi, {view.firstName}</p>
         <h1 id="progress-title" className="sr-only">
-          Your progress
+          Your progress toward a free trip
         </h1>
         <p
-          className="t-display mt-5 leading-[0.86]"
+          className="mt-4 flex items-baseline gap-3"
           aria-live="polite"
           aria-label={`${view.paid} of ${view.goal} friends paid in full`}
         >
-          <span className="block text-[length:clamp(5.5rem,4rem+10vw,10rem)]">{view.paid}</span>
-          <span className="mt-2 block text-display-m">of {view.goal}</span>
+          <span className="t-display text-[length:clamp(5rem,3.5rem+9vw,8.5rem)] leading-[0.8]">{view.paid}</span>
+          <span className="t-display text-display-s">of {view.goal} paid</span>
         </p>
 
-        <div aria-hidden="true" className="mt-8 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${view.goal}, minmax(0, 1fr))` }}>
+        <div
+          aria-hidden="true"
+          className="mt-6 grid gap-1.5"
+          style={{ gridTemplateColumns: `repeat(${view.goal}, minmax(0, 1fr))` }}
+        >
           {segments.map((on, i) => (
             <span
               key={i}
               className={cn(
-                "h-3 transition-colors duration-[--dur]",
+                "h-2.5 transition-colors duration-[--dur]",
                 on ? "bg-[--accent-solid]" : "bg-[rgb(var(--rgb-paper)/0.14)]",
               )}
             />
           ))}
         </div>
 
-        <p className="t-subheading mt-7">
-          {reached ? "Your trip is free." : `${view.toGo} more by ${facts.deadlineLabel}.`}
+        <p className="t-subheading mt-6">
+          {picked
+            ? facts.freeTrip.picked.replace("{departure}", picked)
+            : reached
+              ? facts.freeTrip.earned
+              : `${view.toGo} more and your trip is free.`}
         </p>
+
         {!reached && (
-          <p className="mt-2 font-body text-body-s text-[--text-secondary]">
-            Bookings close in <Countdown to={facts.deadlineIso} spoken={facts.deadlineSpoken} closed="Bookings are closed." />
+          <CopyValue
+            value={shareUrl}
+            label="Copy your link"
+            copiedLabel="Link copied"
+            shareFirst
+            shareLabel="Share your link"
+            asUrl
+            primary
+            block
+            className="mt-5"
+          />
+        )}
+
+        {reached && !picked && facts.departures.length > 0 && (
+          <form action={claimFreeTrip} className="mt-5 grid gap-2 sm:grid-cols-2">
+            {facts.departures.map((d) => (
+              <Button key={d.tripId} type="submit" name="trip_id" value={d.tripId} variant="primary" size="md" block>
+                {d.dates}
+              </Button>
+            ))}
+          </form>
+        )}
+
+        {!reached && (
+          <div className="mt-6">
+            <p className="t-micro mb-2 text-[--text-muted]">{facts.closingName} closes in</p>
+            <Countdown to={facts.deadlineIso} spoken={facts.deadlineSpoken} closed="Bookings are closed." />
+          </div>
+        )}
+
+        {/* Tight under the countdown, so the six tiles read as one block. */}
+        <div className={cn("grid grid-cols-2 gap-1.5", reached ? "mt-8" : "mt-1.5")}>
+          <Shortcut onClick={() => go("friends")} value={String(view.onTheWay)} label="On the way" />
+          <Shortcut
+            onClick={() => go("rankings")}
+            value={`#${view.leaderboard.you.rank} of ${view.leaderboard.you.of}`}
+            label="Rankings"
+          />
+        </div>
+
+        {view.hold && (
+          <p className="mt-6 font-body text-body-s text-[--text-secondary]">
+            Your spot: {HOLD_WORDS[view.hold] ?? "held"}.
           </p>
         )}
-        <p className="mt-6 font-body text-body text-[--text-secondary]">
-          {view.onTheWay === 0
-            ? "No deposits on the way yet."
-            : `On the way: ${view.onTheWay} ${view.onTheWay === 1 ? "friend" : "friends"} on a deposit. They count once paid in full.`}
-        </p>
         {facts.departures.some((d) => d.countByLabel !== facts.deadlineLabel) && (
           <p className="mt-2 font-body text-body-s text-[--text-muted]">
-            {facts.departures.map((d) => `${d.label} friends count if paid in full by ${d.countByLabel}.`).join(" ")}
+            {facts.departures.map((d) => `${d.label} friends count once paid in full by ${d.countByLabel}.`).join(" ")}
           </p>
         )}
       </div>
-    </section>
-  );
-}
-
-/* -- their friends --------------------------------------------------------------- */
-
-function SectionTitle({ id, children }: { id: string; children: React.ReactNode }) {
-  return (
-    <h2 id={id} className="t-heading text-[--text]">
-      {children}
-    </h2>
-  );
-}
-
-function Friends({ view }: { view: PortalView }) {
-  return (
-    <section aria-labelledby="friends-title">
-      <SectionTitle id="friends-title">{COPY.friendsTitle}</SectionTitle>
-      {view.friends.length === 0 ? (
-        <p className="t-body mt-4 text-[--text-secondary]">{COPY.friendsEmpty}</p>
-      ) : (
-        <ul className="mt-6 flex flex-col gap-2">
-          {view.friends.map((f, i) => (
-            <li key={i} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 bg-[--surface-raised] px-4 py-3.5">
-              <span className="font-body text-body text-[--text]">
-                {f.name}
-                <span className="ml-2 font-body text-body-s text-[--text-secondary]">{f.trip}</span>
-              </span>
-              <span className={cn("t-micro", f.counts ? "text-[--accent]" : "text-[--text-secondary]")}>
-                {f.note ?? f.status}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
-
-/* -- rewards ------------------------------------------------------------------------ */
-
-function RewardRow({ title, line, earned, children }: { title: string; line: string; earned: boolean; children?: React.ReactNode }) {
-  return (
-    <li className={cn("px-4 py-5 sm:px-6", earned ? "scheme-emphasis scheme-paint" : "bg-[--surface-raised]")}>
-      <p className="t-label flex items-center gap-2.5 text-[--text]">
-        <span aria-hidden="true" className={cn("h-2 w-2", earned ? "bg-[--accent-solid]" : "border border-[--control-rule]")} />
-        {title}
-        <span className="sr-only">{earned ? ", earned" : ", not yet"}</span>
-      </p>
-      <p className="mt-2.5 font-body text-body text-[--text-secondary]">{line}</p>
-      {children}
-    </li>
-  );
-}
-
-function Rewards({
-  view,
-  facts,
-  claimFreeTrip,
-}: {
-  view: PortalView;
-  facts: ProgramFacts;
-  claimFreeTrip: (formData: FormData) => Promise<void>;
-}) {
-  const { first, goal, next } = facts.rewards;
-  const pickNow = view.rewards.goal && !view.rewards.picked;
-  return (
-    <section id="rewards" aria-labelledby="rewards-title" className="scroll-mt-24">
-      <SectionTitle id="rewards-title">{COPY.rewardsTitle}</SectionTitle>
-      <ul className="mt-6 flex flex-col gap-2">
-        <RewardRow title={first.title} line={view.rewards.first ? first.earned : first.locked} earned={view.rewards.first} />
-        <RewardRow
-          title={goal.title}
-          line={view.rewards.picked ? goal.picked.replace("{departure}", view.rewards.picked) : view.rewards.goal ? goal.earned : goal.locked}
-          earned={view.rewards.goal}
-        >
-          {pickNow && facts.departures.length > 0 && (
-            <form action={claimFreeTrip} className="mt-5 flex flex-wrap gap-3">
-              {facts.departures.map((d) => (
-                <Button key={d.tripId} type="submit" name="trip_id" value={d.tripId} variant="primary" size="md">
-                  {d.dates}
-                </Button>
-              ))}
-            </form>
-          )}
-        </RewardRow>
-        <RewardRow title={next.title} line={next.line} earned={false} />
-      </ul>
-      {view.hold && (
-        <p className="mt-4 font-body text-body-s text-[--text-secondary]">
-          Your spot: {HOLD_WORDS[view.hold] ?? "held"}.
-        </p>
-      )}
     </section>
   );
 }
@@ -261,27 +348,83 @@ const HOLD_WORDS: Record<string, string> = {
   released: "released",
 };
 
-/* -- leaderboard ---------------------------------------------------------------------- */
+/** A number on Home that opens the tab it summarizes. */
+function Shortcut({ value, label, onClick }: { value: string; label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex min-h-16 items-center justify-between gap-3 bg-[rgb(var(--rgb-paper)/0.08)] px-4 py-3 text-left transition-[background-color,transform] duration-fast hover:bg-[rgb(var(--rgb-paper)/0.14)] active:scale-[0.98]"
+    >
+      <span>
+        <span className="t-subheading block tabular-nums">{value}</span>
+        <span className="t-micro mt-1 block text-[--text-secondary]">{label}</span>
+      </span>
+      <span aria-hidden="true" className="text-[--accent] transition-transform duration-fast group-hover:translate-x-0.5">
+        &rarr;
+      </span>
+    </button>
+  );
+}
 
-function Leaderboard({
-  view,
-  setLeaderboardHidden,
-}: {
-  view: PortalView;
-  setLeaderboardHidden: (formData: FormData) => Promise<void>;
-}) {
+/* -- Friends ----------------------------------------------------------------------- */
+
+function TabHeader({ title, line }: { title: string; line: string }) {
+  return (
+    <>
+      <h2 className="t-title text-[--text]">{title}</h2>
+      <p className="mt-3 font-body text-body text-[--text-secondary]">{line}</p>
+    </>
+  );
+}
+
+function Friends({ view }: { view: PortalView }) {
+  return (
+    <div className="shell-narrow py-10 md:py-14">
+      <TabHeader
+        title={COPY.friendsTitle}
+        line={`${view.paid} paid in full, ${view.onTheWay} on the way. A friend counts once their trip is paid in full.`}
+      />
+      {view.friends.length === 0 ? (
+        <p className="t-body mt-8 text-[--text-secondary]">{COPY.friendsEmpty}</p>
+      ) : (
+        <ul className="mt-8 flex flex-col gap-1.5">
+          {view.friends.map((f, i) => (
+            <li key={i} className="flex items-center justify-between gap-4 bg-[--surface-raised] px-4 py-4">
+              <span className="min-w-0">
+                <span className="block truncate font-body text-body text-[--text]">{f.name}</span>
+                <span className="block font-body text-body-s text-[--text-secondary]">{f.trip}</span>
+              </span>
+              <span
+                className={cn("t-micro shrink-0 text-right", f.counts ? "text-[--accent]" : "text-[--text-secondary]")}
+              >
+                {f.note ?? f.status}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/* -- Rankings -------------------------------------------------------------------------- */
+
+function Rankings({ view }: { view: PortalView }) {
   const { top, you, hidden } = view.leaderboard;
   const youInTop = top.some((r) => r.isYou);
   return (
-    <section id="leaderboard" aria-labelledby="leaderboard-title" className="scroll-mt-24">
-      <SectionTitle id="leaderboard-title">{COPY.leaderboardTitle}</SectionTitle>
-      <p className="mt-3 font-body text-body-s text-[--text-secondary]">
-        Friends paid in full, then friends on a deposit. You&rsquo;re #{you.rank} of {you.of}.
+    <div className="shell-narrow py-10 md:py-14">
+      <TabHeader title={COPY.leaderboardTitle} line="Friends paid in full, then friends on a deposit." />
+      <p className="mt-6 flex items-baseline gap-3">
+        <span className="t-display text-display-l">#{you.rank}</span>
+        <span className="font-body text-body text-[--text-secondary]">of {you.of} ambassadors</span>
       </p>
+
       {top.length === 0 ? (
-        <p className="t-body mt-5 text-[--text-secondary]">{COPY.leaderboardEmpty}</p>
+        <p className="t-body mt-8 text-[--text-secondary]">{COPY.leaderboardEmpty}</p>
       ) : (
-        <ol className="mt-6 flex flex-col gap-1.5">
+        <ol className="mt-8 flex flex-col gap-1.5">
           {top.map((r, i) => (
             <LeaderRow key={i} {...r} />
           ))}
@@ -291,14 +434,10 @@ function Leaderboard({
         </ol>
       )}
 
-      <form action={setLeaderboardHidden} className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
-        <input type="hidden" name="hidden" value={hidden ? "no" : "yes"} />
-        <Button type="submit" variant="ghost" size="sm">
-          {hidden ? "Show my name on the leaderboard" : COPY.leaderboardHide}
-        </Button>
-        {hidden && <span className="font-body text-body-s text-[--text-secondary]">{COPY.leaderboardHiddenNote}</span>}
-      </form>
-    </section>
+      <div className="mt-8">
+        <LeaderboardSwitch hidden={hidden} />
+      </div>
+    </div>
   );
 }
 
@@ -320,7 +459,7 @@ function LeaderRow({
   return (
     <li
       className={cn(
-        "grid grid-cols-[2.5rem_1fr_auto] items-baseline gap-3 px-4 py-3",
+        "grid grid-cols-[2.5rem_1fr_auto] items-center gap-3 px-4 py-3.5",
         isYou ? "scheme-emphasis scheme-paint" : "bg-[--surface-raised]",
       )}
       aria-current={isYou ? "true" : undefined}

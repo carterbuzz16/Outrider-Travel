@@ -12,6 +12,7 @@ import {
 } from "@/lib/tier-claims";
 import { toSnapshot, type PenthouseSnapshot } from "@/lib/penthouse";
 import { hasDeparted } from "@/lib/mountain-time";
+import { departureClosed } from "@/lib/signup-deadline";
 
 /**
  * Public trip data.
@@ -66,6 +67,12 @@ export type PublicTrip = {
   /** Summed across capped tiers, a claimed penthouse counting as none left; null when every tier is uncapped. */
   spotsLeft: number | null;
   status: TripStatus;
+  /**
+   * Past this departure's booking close (lib/signup-deadline.ts): its status
+   * reads soldOut, so every Reserve and checkout gate already treats it as
+   * unavailable, and this says why, for the words.
+   */
+  bookingClosed: boolean;
 };
 
 // One unbroken literal on purpose: supabase-js infers the result type by
@@ -273,6 +280,7 @@ function toPublicTrip(row: TripRow, taken: Map<string, number>, claims: Map<stri
     priceFrom: tiers.length > 0 ? tiers[0].price : 0,
     spotsLeft,
     status: deriveStatus(spotsLeft, row.start_date),
+    bookingClosed: departureClosed(row.start_date),
   };
 }
 
@@ -283,8 +291,9 @@ function toPublicTrip(row: TripRow, taken: Map<string, number>, claims: Map<stri
  */
 function deriveStatus(spotsLeft: number | null, startDate: string): TripStatus {
   // A departure that leaves today or has left takes no more bookings
-  // (createBooking refuses it too), so it reads as closed everywhere.
-  if (hasDeparted(startDate)) return "soldOut";
+  // (createBooking refuses it too), so it reads as closed everywhere. So does
+  // one past its booking close (December from 15 November).
+  if (hasDeparted(startDate) || departureClosed(startDate)) return "soldOut";
   if (spotsLeft === null) return "open";
   if (spotsLeft <= 0) return "soldOut";
   if (spotsLeft <= 6) return "few";
@@ -299,7 +308,8 @@ function deriveStatus(spotsLeft: number | null, startDate: string): TripStatus {
  * exactly how a departure is selling. The underlying number still drives which
  * phrase is shown; it just never reaches the page.
  */
-export function availabilityLabel(status: TripStatus): string {
+export function availabilityLabel(status: TripStatus, bookingClosed = false): string {
+  if (bookingClosed) return "Booking closed";
   switch (status) {
     case "soldOut":
       return "Sold out";

@@ -20,7 +20,12 @@ import {
 import { ANNOUNCEMENT_MAX, TOOLKIT_BUCKET, TOOLKIT_SHARED, schoolSlug } from "@/lib/ambassador-rules";
 import { programFor } from "@/lib/ambassador-program";
 import { isToolkitObjectPath, MAX_UPLOAD_BYTES } from "@/lib/toolkit-upload";
-import { SIGNUP_DEADLINE_DAY, SIGNUP_DEADLINE_LABEL, signupsClosed } from "@/lib/signup-deadline";
+import {
+  LAST_SIGNUP_DEADLINE_DAY,
+  LAST_SIGNUP_DEADLINE_LABEL,
+  SIGNUP_DEADLINE_LABEL,
+  signupsClosed,
+} from "@/lib/signup-deadline";
 import {
   AdminField,
   EmptyState,
@@ -160,11 +165,11 @@ export default async function AmbassadorsPage(props: {
             {holds.length === 0
               ? "No spots are held right now."
               : `${holds.length} held ${holds.length === 1 ? "spot" : "spots"} to settle.`}{" "}
-            {!closed && `Counts can still change until the end of ${SIGNUP_DEADLINE_LABEL}.`}
+            {!closed && `Counts can still change until the end of ${LAST_SIGNUP_DEADLINE_LABEL}.`}
           </p>
           <form action={settleHolds} className="mt-4 flex flex-wrap items-end gap-3">
             <AdminField label="Pay by" htmlFor="pay_by">
-              <Input id="pay_by" name="pay_by" type="date" defaultValue={SIGNUP_DEADLINE_DAY} className="py-2" />
+              <Input id="pay_by" name="pay_by" type="date" defaultValue={LAST_SIGNUP_DEADLINE_DAY} className="py-2" />
             </AdminField>
             <Button type="submit" variant="primary" size="sm">
               Settle held spots
@@ -180,7 +185,7 @@ export default async function AmbassadorsPage(props: {
             </Button>
             {!closed && (
               <p className="mt-2 font-body text-body-s text-[--text-muted]">
-                Available after the deadline, {SIGNUP_DEADLINE_LABEL}.
+                Available after the last booking close, {LAST_SIGNUP_DEADLINE_LABEL}.
               </p>
             )}
           </form>

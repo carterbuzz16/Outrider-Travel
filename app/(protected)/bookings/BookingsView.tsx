@@ -9,7 +9,23 @@ import { createPortalUrl } from "@/lib/portal-token";
 import { confirmationNumber } from "@/lib/confirmation-number";
 import { tierDisplayName } from "@/lib/tier-display";
 import { BOOKINGS_OPEN } from "@/lib/booking-window";
-import { SIGNUP_DEADLINE_LABEL, signupsClosed } from "@/lib/signup-deadline";
+import {
+  BOOKINGS_CLOSE_BY_START,
+  LAST_SIGNUP_DEADLINE_LABEL,
+  closeLabel,
+  departureClosed,
+  signupsClosed,
+} from "@/lib/signup-deadline";
+
+const MONTH = (start: string) =>
+  new Date(`${start}T12:00:00Z`).toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
+
+/** "Telluride is open: December until November 14, January until December 4." Only the weeks still open. */
+function openUntil(): string {
+  const open = Object.keys(BOOKINGS_CLOSE_BY_START).filter((start) => !departureClosed(start)).sort();
+  if (open.length === 0) return "";
+  return `Telluride is open: ${open.map((start) => `${MONTH(start)} until ${closeLabel(start)}`).join(", ")}.`;
+}
 import type { Database } from "@/types/supabase";
 import PenthouseProgress from "@/components/PenthouseProgress";
 import { Countdown } from "@/components/WelcomeCredit";
@@ -405,7 +421,7 @@ function EmptyState({ canBook }: { canBook: boolean }) {
         <p className="stamp-type text-[--text-muted]">Nothing booked yet</p>
         <h2 className="t-subheading max-w-[20ch] text-[--text]">Signups are closed</h2>
         <p className="max-w-measure-tight font-body text-body leading-[1.7] text-[--text-secondary]">
-          Signups for Telluride closed on {SIGNUP_DEADLINE_LABEL}. Join the waitlist to hear about the next trip
+          Signups for Telluride closed on {LAST_SIGNUP_DEADLINE_LABEL}. Join the waitlist to hear about the next trip
           first.
         </p>
         <Button href="/waitlist" variant="primary" size="md">
@@ -441,8 +457,7 @@ function EmptyState({ canBook }: { canBook: boolean }) {
       <p className="stamp-type text-[--text-muted]">Nothing booked yet</p>
       <h2 className="t-subheading max-w-[20ch] text-[--text]">No trips here yet</h2>
       <p className="max-w-measure-tight font-body text-body leading-[1.7] text-[--text-secondary]">
-        Telluride is open for December and January until {SIGNUP_DEADLINE_LABEL}. $100 holds your
-        spot, and the rest is paid before the trip.
+        {openUntil()} $100 holds your spot, and the rest is paid before the trip.
       </p>
       {/* During the list's head start the public trip pages still say
           "coming soon", so a list member goes straight to the booking page. */}

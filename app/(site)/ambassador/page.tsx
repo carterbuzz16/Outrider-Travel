@@ -6,7 +6,7 @@ import { AMBASSADOR } from "@/lib/site-content";
 // The program's own numbers, the ones /admin/ambassadors counts with, so the
 // page's promise and the count can never disagree.
 import { AMBASSADOR_GOAL } from "@/lib/ambassadors";
-import { SIGNUP_DEADLINE_LABEL } from "@/lib/signup-deadline";
+import { LAST_SIGNUP_DEADLINE_LABEL, SIGNUP_DEADLINE_LABEL } from "@/lib/signup-deadline";
 import ApplicationForm from "./ApplicationForm";
 
 export const metadata: Metadata = pageMetadata({
@@ -153,7 +153,7 @@ export default function AmbassadorPage() {
                       and the order here is the point. The digits are drawn
                       for the eye; the list itself says first, second, third. */}
                   <ol role="list" className="m-0 flex list-none flex-col gap-8 p-0 lg:gap-10">
-                    {AMBASSADOR.steps(AMBASSADOR_GOAL, SIGNUP_DEADLINE_LABEL).map((step, i) => (
+                    {AMBASSADOR.steps(AMBASSADOR_GOAL, `${SIGNUP_DEADLINE_LABEL} (December) or ${LAST_SIGNUP_DEADLINE_LABEL} (January)`).map((step, i) => (
                       <li key={step.title} className="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-4 sm:grid-cols-[3rem_minmax(0,1fr)] sm:gap-5">
                         <span
                           aria-hidden="true"

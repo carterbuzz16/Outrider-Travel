@@ -22,7 +22,7 @@ import {
 } from "@/lib/ambassadors";
 import { ANNOUNCEMENT_MAX, TOOLKIT_BUCKET } from "@/lib/ambassador-rules";
 import { isToolkitObjectPath } from "@/lib/toolkit-upload";
-import { SIGNUP_DEADLINE, SIGNUP_DEADLINE_DAY, signupsClosed } from "@/lib/signup-deadline";
+import { LAST_SIGNUP_DEADLINE, LAST_SIGNUP_DEADLINE_DAY, signupsClosed } from "@/lib/signup-deadline";
 
 /*
  * The back office's ambassador actions (/admin/ambassadors).
@@ -91,7 +91,7 @@ export async function saveAmbassador(formData: FormData) {
         max_uses: 1000,
         once_per_person: false,
         active: true,
-        expires_at: SIGNUP_DEADLINE.toISOString(),
+        expires_at: LAST_SIGNUP_DEADLINE.toISOString(),
         note: `Ambassador attribution code ($0) for ${name}${school ? `, ${school}` : ""}. Created ${new Date().toISOString().slice(0, 10)}.`,
       });
       if (error) {
@@ -300,7 +300,7 @@ async function deactivateLink(linkId: string | null) {
 export async function settleHolds(formData: FormData) {
   await requireAdmin();
   const path = "/admin/ambassadors";
-  const payByDay = text(formData, "pay_by") ?? SIGNUP_DEADLINE_DAY;
+  const payByDay = text(formData, "pay_by") ?? LAST_SIGNUP_DEADLINE_DAY;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(payByDay)) back(path, { error: "bad_date" });
   const payBy = new Date(`${payByDay}T12:00:00Z`).toLocaleDateString("en-US", {
     month: "long",

@@ -240,7 +240,6 @@ export type PortalView = {
     hidden: boolean;
   };
   rewards: {
-    first: boolean;
     goal: boolean;
     /** The departure they picked for the free trip, if they have. */
     picked: string | null;
@@ -327,7 +326,6 @@ export function buildPortalView(
       hidden: self.leaderboardHidden,
     },
     rewards: {
-      first: self.paidInFull + self.depositOnly > 0,
       goal: self.paidInFull >= program.goal,
       picked: self.rewardClaimedAt ? departureLabel(program, self.rewardTripStart) : null,
     },

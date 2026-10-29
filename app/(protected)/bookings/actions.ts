@@ -24,7 +24,7 @@ import type Stripe from "stripe";
 import { installmentInFlight, mustPayInFull } from "@/lib/installments";
 import { lookupReferral, referralCodeFromCookie } from "@/lib/referral";
 import { attributionSource } from "@/lib/referral-cookie";
-import { signupsClosed } from "@/lib/signup-deadline";
+import { departureClosed, signupsClosed } from "@/lib/signup-deadline";
 import { paymentKindOf, settleFreeBooking } from "@/lib/payments";
 import { syncPaymentFromStripe } from "@/lib/stripe-sync";
 import { getOrCreateStripeCustomerId } from "@/lib/customers";
@@ -126,10 +126,11 @@ export async function createBooking(formData: FormData) {
     redirect("/bookings/new?error=closed");
   }
 
-  // Past the signup deadline (lib/signup-deadline.ts) nothing new is booked,
-  // on any departure. The pages say so too; this is the control, for a form
-  // left open across the deadline or a direct POST. Existing bookings, their
-  // balances and installments are untouched.
+  // Past the last booking close (lib/signup-deadline.ts) nothing new is
+  // booked, on any departure; a departure past its own close is refused once
+  // its date is read, below. The pages say so too; this is the control, for a
+  // form left open across the deadline or a direct POST. Existing bookings,
+  // their balances and installments are untouched.
   if (signupsClosed()) {
     checkoutError("signups_closed", { tripId });
   }
@@ -149,6 +150,12 @@ export async function createBooking(formData: FormData) {
   if (tierError || !tier) {
     checkoutError("unavailable", { tripId, groupCode: requestedGroupCode });
   }
+  // This departure's own close: December's on 14 November, January's on 4
+  // December (Carter, 29 October 2026).
+  if (departureClosed(tier.trips.start_date)) {
+    checkoutError("signups_closed", { tripId });
+  }
+
 
   // Test trips are published so the sandbox can book them, and hidden
   // everywhere else. Hiding them is the page's job; this is the control, since

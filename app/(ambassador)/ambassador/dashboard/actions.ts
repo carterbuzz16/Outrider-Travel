@@ -79,19 +79,31 @@ export async function acceptAgreement(formData: FormData) {
   back();
 }
 
-export async function setLeaderboardHidden(formData: FormData) {
-  const { ambassador } = await ambassadorOrBack();
-  if (!ambassador.agreedAt) back();
-  const hidden = formData.get("hidden") === "yes";
+export type ToggleResult = { ok: true; hidden: boolean } | { ok: false; message: string };
+
+/**
+ * The leaderboard switch: show or hide this ambassador's name, as often as
+ * they like. Called from the switch itself rather than a form, so it answers
+ * with a result the switch can show instead of redirecting; the switch has
+ * already moved, and moves back if this says no.
+ */
+export async function setLeaderboardVisibility(hidden: boolean): Promise<ToggleResult> {
+  const access = await getPortalAccess();
+  if (access.kind !== "ambassador" || !access.ambassador.agreedAt) {
+    return { ok: false, message: "Sign in again to change this." };
+  }
+  if (!(await checkRateLimit(`amb-write:${access.userId}`, 20, 10 * 60, FAIL_CLOSED))) {
+    return { ok: false, message: "That's a lot of switching. Try again in a few minutes." };
+  }
   const { error } = await createAdminClient()
     .from("ambassadors")
-    .update({ leaderboard_hidden: hidden, updated_at: new Date().toISOString() })
-    .eq("code", ambassador.code);
+    .update({ leaderboard_hidden: hidden === true, updated_at: new Date().toISOString() })
+    .eq("code", access.ambassador.code);
   if (error) {
-    console.error(`setLeaderboardHidden ${ambassador.code}: ${error.code} ${error.message}`);
-    back({ error: "save" }, "#leaderboard");
+    console.error(`setLeaderboardVisibility ${access.ambassador.code}: ${error.code} ${error.message}`);
+    return { ok: false, message: "That didn't save. Try again." };
   }
-  back({ done: hidden ? "hidden" : "shown" }, "#leaderboard");
+  return { ok: true, hidden: hidden === true };
 }
 
 /**
@@ -106,11 +118,11 @@ export async function claimFreeTrip(formData: FormData) {
   const program = programFor(ambassador.program);
 
   const view = await loadPortalView(ambassador.code);
-  if (!view?.rewards.goal) back({ error: "not_yet" }, "#rewards");
-  if (view.rewards.picked) back(undefined, "#rewards");
+  if (!view?.rewards.goal) back({ error: "not_yet" });
+  if (view.rewards.picked) back();
 
   const tripId = String(formData.get("trip_id") ?? "");
-  if (!/^[0-9a-f-]{36}$/i.test(tripId)) back({ error: "trip" }, "#rewards");
+  if (!/^[0-9a-f-]{36}$/i.test(tripId)) back({ error: "trip" });
   const admin = createAdminClient();
   const { data: trip } = await admin
     .from("trips")
@@ -118,7 +130,7 @@ export async function claimFreeTrip(formData: FormData) {
     .eq("id", tripId)
     .maybeSingle();
   if (!trip || trip.status !== "published" || isTestTrip(trip.name) || !program.departures[trip.start_date]) {
-    back({ error: "trip" }, "#rewards");
+    back({ error: "trip" });
   }
 
   const now = new Date().toISOString();
@@ -131,7 +143,7 @@ export async function claimFreeTrip(formData: FormData) {
     .maybeSingle();
   if (error) {
     console.error(`claimFreeTrip ${ambassador.code}: ${error.code} ${error.message}`);
-    back({ error: "save" }, "#rewards");
+    back({ error: "save" });
   }
 
   const to = process.env.ADMIN_NOTIFY_TO?.trim();
@@ -152,5 +164,5 @@ export async function claimFreeTrip(formData: FormData) {
       console.error(`claimFreeTrip ${ambassador.code}: alert not sent: ${err instanceof Error ? err.message : err}`);
     }
   }
-  back({ done: "picked" }, "#rewards");
+  back({ done: "picked" });
 }

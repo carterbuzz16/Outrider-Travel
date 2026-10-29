@@ -60,11 +60,21 @@ test("every admin server action and route handler checks the role itself", () =>
   }
 });
 
+/*
+ * Routes under the portal that are public on purpose, each the same for
+ * everyone and carrying no ambassador's data. Adding one here is a decision,
+ * not a fix for a failing test.
+ */
+const PUBLIC_PORTAL_ROUTES = [
+  // The home-screen app manifest: names, colors and icons only.
+  "app/(ambassador)/ambassador/app.webmanifest/route.ts",
+];
+
 test("every ambassador portal action and route decides who is asking from the session", () => {
   const targets = [
     ...files(join(ROOT, "app/(ambassador)"), (n) => n === "actions.ts" || n === "route.ts"),
     ...files(join(ROOT, "app/api/ambassador"), (n) => n === "route.ts"),
-  ];
+  ].filter((file) => !PUBLIC_PORTAL_ROUTES.some((p) => file.endsWith(p)));
   assert.ok(targets.length >= 3);
   for (const file of targets) {
     const source = readFileSync(file, "utf8");

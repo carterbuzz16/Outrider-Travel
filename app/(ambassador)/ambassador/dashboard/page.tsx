@@ -36,8 +36,6 @@ const ERRORS: Readonly<Record<string, string>> = {
   trip: "Pick December or January.",
 };
 const DONE: Readonly<Record<string, string>> = {
-  hidden: "Your name is hidden on the leaderboard.",
-  shown: "Your name is back on the leaderboard.",
   picked: "Got it. We'll be in touch about your free trip.",
 };
 

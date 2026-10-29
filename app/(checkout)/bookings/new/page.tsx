@@ -15,7 +15,7 @@ import {
 } from "@/lib/deposit";
 import { discountCodeAmount, normalizeDiscountCode } from "@/lib/discount-codes";
 import { lookupReferral, referralCodeFromCookie, type Referral } from "@/lib/referral";
-import { signupsClosed, SIGNUP_DEADLINE_LABEL } from "@/lib/signup-deadline";
+import { closeLabel, signupsClosed, LAST_SIGNUP_DEADLINE_LABEL } from "@/lib/signup-deadline";
 import { offerCodeFromCookie } from "@/lib/code-offer-server";
 import {
   WELCOME_CREDIT,
@@ -149,9 +149,13 @@ export default async function NewBookingPage(props: {
   }
 
   const requestedId = searchParams.trip;
-  const requested = requestedId ? await getPublishedTrip(requestedId) : null;
-  const trips: PublicTrip[] = requested ? [requested] : await getPublishedTrips();
-  const requestMissed = Boolean(requestedId) && requested === null;
+  // A departure past its own booking close (December from 15 November) is
+  // not offered: a link straight to it says so and lists what is still open.
+  const requestedRaw = requestedId ? await getPublishedTrip(requestedId) : null;
+  const requestClosedOn = requestedRaw?.bookingClosed ? closeLabel(requestedRaw.startDate) : null;
+  const requested = requestClosedOn ? null : requestedRaw;
+  const trips: PublicTrip[] = (requested ? [requested] : await getPublishedTrips()).filter((t) => !t.bookingClosed);
+  const requestMissed = Boolean(requestedId) && requested === null && !requestClosedOn;
   const trip = trips.length === 1 ? trips[0] : null;
 
   // What the code takes off each package of this trip, since a code can be for
@@ -231,7 +235,7 @@ export default async function NewBookingPage(props: {
   const namedTier = trip?.tiers.find((t) => t.id === wantedPackage || t.name.trim().toLowerCase() === wantedPackage);
   const errorText = checkoutErrorText(searchParams.error, namedTier?.name);
 
-  const alerts = (errorText || requestMissed) && (
+  const alerts = (errorText || requestMissed || requestClosedOn) && (
     <div className="mt-8 flex flex-col gap-4">
       {errorText && (
         <Alert tone="warning" title="That did not go through">
@@ -241,6 +245,11 @@ export default async function NewBookingPage(props: {
       {requestMissed && (
         <Alert tone="info" title="That trip is closed">
           The departure you followed is no longer taking bookings. Everything still open is below.
+        </Alert>
+      )}
+      {requestClosedOn && (
+        <Alert tone="info" title="That week has closed">
+          Booking for that week closed on {requestClosedOn}. Everything still open is below.
         </Alert>
       )}
     </div>
@@ -633,7 +642,7 @@ function SignupsClosed() {
     <div className="mt-10 flex flex-col items-start gap-6 bg-[--surface-raised] px-6 py-14 md:px-10 md:py-16">
       <h1 className="t-heading max-w-[22ch] text-[--text]">Signups are closed</h1>
       <p className="max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
-        Signups for Telluride closed on {SIGNUP_DEADLINE_LABEL}. Join the waitlist to hear about the next trip
+        Signups for Telluride closed on {LAST_SIGNUP_DEADLINE_LABEL}. Join the waitlist to hear about the next trip
         first.
       </p>
       <div className="flex flex-wrap gap-3">

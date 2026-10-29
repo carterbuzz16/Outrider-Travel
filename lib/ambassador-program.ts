@@ -1,4 +1,11 @@
-import { SIGNUP_DEADLINE, SIGNUP_DEADLINE_LABEL } from "@/lib/signup-deadline";
+import {
+  JANUARY_DEADLINE,
+  LAST_SIGNUP_DEADLINE,
+  SIGNUP_DEADLINE,
+  SIGNUP_DEADLINE_LABEL,
+  bookingsCloseAt,
+  labelFor,
+} from "@/lib/signup-deadline";
 
 /*
  * The ambassador program's rules, in one place (29 October 2026).
@@ -16,8 +23,8 @@ import { SIGNUP_DEADLINE, SIGNUP_DEADLINE_LABEL } from "@/lib/signup-deadline";
  * it or release it. On 29 October Carter also said January money "isn't due
  * till December 4", so a friend on the January departure counts if they are
  * paid in full by the end of December 4, Central; a December friend by the
- * end of November 14. Bookings still close on November 14 for both
- * (lib/signup-deadline.ts).
+ * end of November 14. Bookings close on the same two dates, each week its own
+ * (Carter, 29 October 2026: "split by trip", lib/signup-deadline.ts).
  *
  * Pure and client-safe.
  */
@@ -33,38 +40,62 @@ export type Departure = {
   countByLabel: string;
 };
 
+/**
+ * One perk card on the dashboard. `look` is its panel: club blue, warm gray,
+ * espresso, or a photograph over espresso (small text always sits on the
+ * solid part, never on the picture). `action` is a button on the card.
+ */
+export type Perk = {
+  title: string;
+  line: string;
+  look: "club" | "stone" | "espresso" | "photo";
+  /** For a "photo" card: a path under public/. */
+  image?: string;
+  action?: { label: string; href: string; detail?: string };
+};
+
+/** Carter's own number, for ambassadors only (the portal is sign-in only; the public site publishes no texting number). */
+export const FOUNDER_TEXT = { name: "Carter", display: "(256) 929-9189", sms: "sms:+12569299189" };
+
 export type AmbassadorProgram = {
   id: string;
   name: string;
   /** Friends who count, for the free trip. */
   goal: number;
-  /** Bookings close and the codes expire (lib/signup-deadline.ts). */
+  /** The last booking close, when the codes expire (lib/signup-deadline.ts). */
   signupDeadline: Date;
   signupDeadlineLabel: string;
-  /** Keyed by the trip's start_date. A departure not listed counts by signupDeadline. */
+  /** Keyed by the trip's start_date. A departure not listed counts by its own booking close. */
   departures: Readonly<Record<string, Departure>>;
   /** The page an ambassador's link opens (lib/ambassadors.ts referralLink). */
   landingPath: string;
   /** Whether an ambassador whose held spot was released keeps the portal (Carter, 29 Oct: yes). */
   releasedKeepAccess: boolean;
-  rewards: {
-    first: { title: string; earned: string; locked: string };
-    goal: { title: string; earned: string; locked: (goal: number) => string; picked: (departure: string) => string };
-    next: { title: string; line: string };
+  /** The free trip, the reward for reaching the goal. */
+  freeTrip: {
+    earned: string;
+    locked: (goal: number) => string;
+    picked: (departure: string) => string;
   };
+  /**
+   * What every ambassador gets, whatever their count. No dates, no amounts:
+   * Carter (29 Oct 2026) wants merch, first access and deals named as perks,
+   * without promising when.
+   */
+  perks: readonly Perk[];
   /** Recorded in legal_acceptances as document_slug + document_version. */
   agreement: { slug: "ambassador-agreement"; version: string; title: string; terms: readonly string[] };
 };
 
-/** The end of 4 December 2026, Central (CST, UTC-6): the January count closes. */
-const JANUARY_COUNT_BY = new Date("2026-12-05T05:59:59Z");
+/** January's count closes when January's bookings do (lib/signup-deadline.ts). */
+const JANUARY_COUNT_BY = JANUARY_DEADLINE;
 
 export const TELLURIDE_2026: AmbassadorProgram = {
   id: "telluride-2026",
   name: "Telluride",
   goal: 5,
-  signupDeadline: SIGNUP_DEADLINE,
-  signupDeadlineLabel: SIGNUP_DEADLINE_LABEL,
+  signupDeadline: LAST_SIGNUP_DEADLINE,
+  signupDeadlineLabel: labelFor(LAST_SIGNUP_DEADLINE),
   departures: {
     "2026-12-14": {
       label: "December",
@@ -81,20 +112,27 @@ export const TELLURIDE_2026: AmbassadorProgram = {
   },
   landingPath: "/telluride",
   releasedKeepAccess: true,
-  rewards: {
-    first: {
-      title: "Hat and a note",
-      earned: "Your first friend booked. An Outrider hat and a note are on the way to you.",
-      locked: "When your first friend books, an Outrider hat and a note go out to you.",
-    },
-    goal: {
-      title: "A free trip",
-      earned: "You did it. Your trip is free. Pick your week.",
-      locked: (goal) => `Bring ${goal} friends who pay in full and your trip is on us.`,
-      picked: (departure) => `Your trip is free. You picked ${departure}. We'll be in touch.`,
-    },
-    next: { title: "Spring break", line: "Coming next." },
+  freeTrip: {
+    earned: "Your trip is free. Pick your week.",
+    locked: (goal) => `Bring ${goal} friends who pay in full and your trip is on us.`,
+    picked: (departure) => `Your trip is free. You picked ${departure}. We’ll be in touch.`,
   },
+  perks: [
+    { title: "Merch", line: "Outrider gear, made for the team.", look: "club" },
+    {
+      title: "First access",
+      line: "Every new trip opens to you before anyone else. Spring break is next.",
+      look: "photo",
+      image: "/images/spring/palm-tower.jpg",
+    },
+    { title: "Exclusive deals", line: "Offers only ambassadors get.", look: "stone" },
+    {
+      title: `Text ${FOUNDER_TEXT.name}`,
+      line: `${FOUNDER_TEXT.name} founded Outrider. Ideas, questions, a friend on the fence. Text him.`,
+      look: "espresso",
+      action: { label: `Text ${FOUNDER_TEXT.name}`, href: FOUNDER_TEXT.sms, detail: FOUNDER_TEXT.display },
+    },
+  ],
   agreement: {
     slug: "ambassador-agreement",
     version: "telluride-2026.1",
@@ -104,11 +142,10 @@ export const TELLURIDE_2026: AmbassadorProgram = {
     // acceptance points at the text it agreed to.
     terms: [
       "Your code and your link are yours. Your code takes nothing off for your friends. It tells us they came from you.",
-      `A friend counts toward your 5 when they book with your code or your link and their trip is paid in full by the end of ${SIGNUP_DEADLINE_LABEL} (December trip) or December 4 (January trip), Central time. Bookings close ${SIGNUP_DEADLINE_LABEL}.`,
+      `A friend counts toward your 5 when they book with your code or your link and their trip is paid in full by the end of ${SIGNUP_DEADLINE_LABEL} (December trip) or ${labelFor(JANUARY_DEADLINE)} (January trip), Central time. Bookings close on the same dates.`,
       "Cancelled and refunded bookings don’t count.",
       "Bring 5 friends who count and your trip is free. You pick the December or the January trip.",
       "Your spot is held for you with no deposit. If you’re short of 5 when the count closes, you pay for your spot or release it.",
-      "When your first friend books, an Outrider hat and a note go out to you.",
       "Spring break has its own terms, shared when it opens.",
     ],
   },
@@ -125,7 +162,8 @@ export function programFor(id: string | null | undefined): AmbassadorProgram {
 
 /** The instant a friend on this departure has to be paid in full by. */
 export function countByFor(program: AmbassadorProgram, tripStart: string | null | undefined): Date {
-  return (tripStart && program.departures[tripStart]?.countBy) || program.signupDeadline;
+  // A departure the program does not name counts by its own booking close.
+  return (tripStart && program.departures[tripStart]?.countBy) || bookingsCloseAt(tripStart);
 }
 
 /** "December", or the date itself for a departure the program does not name. */
