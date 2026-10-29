@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Badge, Button, Input } from "@/components/ui";
+import { Badge, Button, Input, Select, Textarea } from "@/components/ui";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { requireAdmin } from "@/lib/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -9,11 +9,17 @@ import { formatDay } from "@/app/(protected)/dates";
 import { CHECKOUT_SANDBOX, isTestTrip } from "@/lib/booking-window";
 import {
   AMBASSADOR_GOAL,
+  AMBASSADOR_STATUS_LABEL,
   HOLD_STATUS_LABEL,
   loadAmbassadors,
   loadOldScheduleBookings,
+  referralPath,
   type Ambassador,
+  type AmbassadorStatus,
 } from "@/lib/ambassadors";
+import { ANNOUNCEMENT_MAX, TOOLKIT_BUCKET, TOOLKIT_SHARED, schoolSlug } from "@/lib/ambassador-rules";
+import { programFor } from "@/lib/ambassador-program";
+import { isToolkitObjectPath, MAX_UPLOAD_BYTES } from "@/lib/toolkit-upload";
 import { SIGNUP_DEADLINE_DAY, SIGNUP_DEADLINE_LABEL, signupsClosed } from "@/lib/signup-deadline";
 import {
   AdminField,
@@ -25,7 +31,16 @@ import {
   Td,
   Th,
 } from "@/app/admin/admin-ui";
-import { createHold, moveToNewSchedule, releaseUnpaidHolds, saveAmbassador, settleHolds } from "./actions";
+import {
+  createHold,
+  deleteToolkitFile,
+  moveToNewSchedule,
+  postAnnouncement,
+  releaseUnpaidHolds,
+  saveAmbassador,
+  setAnnouncementPublished,
+  settleHolds,
+} from "./actions";
 import AmbassadorFields from "./AmbassadorFields";
 import { AMBASSADOR_ERRORS, ambassadorDone } from "./flash";
 
@@ -49,11 +64,24 @@ export default async function AmbassadorsPage(props: {
   await requireAdmin();
   const params = await props.searchParams;
   const admin = createAdminClient();
-  const [ambassadors, oldSchedule, { data: tripRows }] = await Promise.all([
+  const [ambassadors, oldSchedule, { data: tripRows }, lastSignIn, { data: announcements }] = await Promise.all([
     loadAmbassadors(admin),
     loadOldScheduleBookings(admin),
     admin.from("trips").select("id, name, start_date").eq("status", "published").order("start_date"),
+    loadLastSignIns(admin),
+    admin
+      .from("ambassador_announcements")
+      .select("id, body, created_at, published")
+      .order("created_at", { ascending: false })
+      .limit(10),
   ]);
+  // Every school with an ambassador gets a folder to upload into.
+  const schools = [...new Map(
+    (ambassadors ?? [])
+      .map((a) => [schoolSlug(a.school), a.school] as const)
+      .filter((pair): pair is readonly [string, string] => pair[0] !== null && pair[1] !== null),
+  ).entries()].sort((x, y) => x[1].localeCompare(y[1]));
+  const toolkit = await loadToolkitFiles(admin, schools.map(([slug]) => slug));
   const trips = (tripRows ?? []).filter((t) => CHECKOUT_SANDBOX || !isTestTrip(t.name));
   const done = ambassadorDone(params);
   const error = params.error ? (AMBASSADOR_ERRORS[params.error] ?? "That didn't go through.") : null;
@@ -65,7 +93,7 @@ export default async function AmbassadorsPage(props: {
       <PageHeader
         eyebrow="Back office"
         title="Ambassadors"
-        lede={`A booking counts toward an ambassador's ${AMBASSADOR_GOAL} once it carries their code and is paid in full by the end of ${SIGNUP_DEADLINE_LABEL}, Central. Cancelled and refunded bookings, held spots and test bookings never count.`}
+        lede={`A booking counts toward an ambassador's ${AMBASSADOR_GOAL} once it carries their code and is paid in full by the end of ${countByWords()}, Central. Cancelled and refunded bookings, held spots and test bookings never count. Ambassadors see the same count at /ambassador/dashboard.`}
         back={{ href: "/admin", label: "Overview" }}
         actions={
           <Button href="/admin/ambassadors/export" variant="secondary" size="sm">
@@ -103,6 +131,8 @@ export default async function AmbassadorsPage(props: {
                   <tr>
                     <Th>Ambassador</Th>
                     <Th>Code and link</Th>
+                    <Th>Status</Th>
+                    <Th>Portal</Th>
                     <Th>Trip</Th>
                     <Th align="right">Deposit only</Th>
                     <Th align="right">Paid in full</Th>
@@ -112,7 +142,7 @@ export default async function AmbassadorsPage(props: {
                 </thead>
                 <tbody>
                   {ambassadors.map((a) => (
-                    <AmbassadorRow key={a.code} a={a} />
+                    <AmbassadorRow key={a.code} a={a} lastSignIn={a.userId ? (lastSignIn.get(a.userId) ?? null) : null} />
                   ))}
                 </tbody>
               </Table>
@@ -168,6 +198,100 @@ export default async function AmbassadorsPage(props: {
         </Panel>
       </div>
 
+      <div className="mt-10 grid gap-8 lg:grid-cols-2">
+        <Panel
+          title="Announcements"
+          description="The newest published one sits at the top of every ambassador's dashboard. Plain text, up to 600 characters."
+        >
+          <form action={postAnnouncement} className="flex flex-col gap-3">
+            <AdminField label="Announcement" htmlFor="announcement">
+              <Textarea id="announcement" name="body" required maxLength={ANNOUNCEMENT_MAX} rows={3} />
+            </AdminField>
+            <div>
+              <Button type="submit" variant="primary" size="sm">
+                Post
+              </Button>
+            </div>
+          </form>
+          {(announcements ?? []).length > 0 && (
+            <ul className="mt-6 flex flex-col gap-3">
+              {(announcements ?? []).map((n) => (
+                <li key={n.id} className="border-t border-[--rule] pt-3">
+                  {/* Rendered as text, never as markup. */}
+                  <p className="whitespace-pre-line font-body text-body-s text-[--text]">{n.body}</p>
+                  <form action={setAnnouncementPublished} className="mt-2 flex items-center gap-3">
+                    <input type="hidden" name="id" value={n.id} />
+                    <input type="hidden" name="published" value={n.published ? "no" : "yes"} />
+                    <span className="font-body text-body-s text-[--text-secondary]">
+                      {formatDay(n.created_at.slice(0, 10))}, {n.published ? "published" : "hidden"}
+                    </span>
+                    <Button type="submit" variant="ghost" size="sm">
+                      {n.published ? "Hide" : "Publish"}
+                    </Button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+
+        <div id="toolkit" className="scroll-mt-24">
+          <Panel
+            title="Toolkit graphics"
+            description="Story graphics for the ambassador toolkit. Shared shows to everyone; a school's folder shows only to that school's ambassadors. PNG, JPG or WebP, under 4 MB each."
+          >
+            <form
+              action="/admin/ambassadors/toolkit"
+              method="post"
+              encType="multipart/form-data"
+              className="flex flex-wrap items-end gap-3"
+            >
+              <AdminField label="Folder" htmlFor="toolkit_folder">
+                <Select id="toolkit_folder" name="folder" defaultValue={TOOLKIT_SHARED} className="py-2">
+                  <option value={TOOLKIT_SHARED}>Shared, every school</option>
+                  {schools.map(([slug, name]) => (
+                    <option key={slug} value={`schools/${slug}`}>
+                      {name}
+                    </option>
+                  ))}
+                </Select>
+              </AdminField>
+              <AdminField label="Image" htmlFor="toolkit_file">
+                <Input
+                  id="toolkit_file"
+                  name="file"
+                  type="file"
+                  required
+                  accept="image/png,image/jpeg,image/webp"
+                  data-max-bytes={MAX_UPLOAD_BYTES}
+                  className="py-2"
+                />
+              </AdminField>
+              <Button type="submit" variant="primary" size="sm">
+                Upload
+              </Button>
+            </form>
+            {toolkit.length === 0 ? (
+              <p className="mt-5 font-body text-body-s text-[--text-secondary]">No graphics yet.</p>
+            ) : (
+              <ul className="mt-5 flex flex-col gap-1">
+                {toolkit.map((path) => (
+                  <li key={path} className="flex items-center justify-between gap-3">
+                    <span className="min-w-0 truncate font-body text-body-s text-[--text]">{path}</span>
+                    <form action={deleteToolkitFile}>
+                      <input type="hidden" name="path" value={path} />
+                      <Button type="submit" variant="ghost" size="sm">
+                        Remove
+                      </Button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+        </div>
+      </div>
+
       <div className="mt-10">
         <Panel
           title="December bookings on the old schedule"
@@ -220,7 +344,37 @@ export default async function AmbassadorsPage(props: {
   );
 }
 
-function AmbassadorRow({ a }: { a: Ambassador }) {
+/** "November 14 (December), December 4 (January)", from the program config. */
+function countByWords(): string {
+  const parts = Object.values(programFor(null).departures).map((d) => `${d.countByLabel} (${d.label})`);
+  return parts.length > 0 ? parts.join(", ") : SIGNUP_DEADLINE_LABEL;
+}
+
+/** When each linked portal account last signed in, by user id. One call: the accounts are few. */
+async function loadLastSignIns(admin: ReturnType<typeof createAdminClient>): Promise<Map<string, string | null>> {
+  const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  if (error) {
+    console.error(`loadLastSignIns: ${error.message}`);
+    return new Map();
+  }
+  return new Map(data.users.map((u) => [u.id, u.last_sign_in_at ?? null]));
+}
+
+/** Every graphic in the toolkit bucket: shared/, then each school's folder. */
+async function loadToolkitFiles(admin: ReturnType<typeof createAdminClient>, slugs: string[]): Promise<string[]> {
+  const storage = admin.storage.from(TOOLKIT_BUCKET);
+  const folders = [TOOLKIT_SHARED, ...slugs.map((s) => `schools/${s}`)];
+  const lists = await Promise.all(
+    folders.map(async (folder) => {
+      const { data, error } = await storage.list(folder, { limit: 100, sortBy: { column: "name", order: "asc" } });
+      if (error) return [];
+      return (data ?? []).map((f) => `${folder}/${f.name}`).filter((p) => isToolkitObjectPath(p));
+    }),
+  );
+  return lists.flat();
+}
+
+function AmbassadorRow({ a, lastSignIn }: { a: Ambassador; lastSignIn: string | null }) {
   const reached = a.toGoal === 0;
   return (
     <tr>
@@ -233,10 +387,31 @@ function AmbassadorRow({ a }: { a: Ambassador }) {
       <Td>
         <span className="block font-medium">{a.code}</span>
         <CopyLinkButton
-          path={`/telluride?ref=${a.code.toLowerCase()}`}
+          path={referralPath(a.code, programFor(a.program))}
           label="Copy link"
           className="mt-1.5 min-h-9 px-3"
         />
+      </Td>
+      <Td>
+        {AMBASSADOR_STATUS_LABEL[a.status as AmbassadorStatus] ?? a.status}
+        {a.chapter && <span className="block text-[--text-secondary]">{a.chapter}</span>}
+      </Td>
+      <Td>
+        {!a.email ? (
+          <span className="text-[--text-muted]">No email</span>
+        ) : !a.userId ? (
+          <span className="text-[--text-secondary]">Not signed in</span>
+        ) : (
+          <span className="flex flex-col">
+            <span>{a.agreedAt ? `Agreed ${formatDay(a.agreedAt.slice(0, 10))}` : "Not agreed"}</span>
+            <span className="text-[--text-secondary]">
+              {lastSignIn ? `Last in ${formatDay(lastSignIn.slice(0, 10))}` : "Linked"}
+            </span>
+          </span>
+        )}
+        {a.rewardClaimedAt && a.rewardTrip && (
+          <span className="block text-[--text-secondary]">Free trip: {formatDay(a.rewardTrip.start_date)}</span>
+        )}
       </Td>
       <Td>{a.trip ? formatDay(a.trip.start_date) : <span className="text-[--text-muted]">Not set</span>}</Td>
       <Td align="right">{a.depositOnly}</Td>

@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getAppUrl } from "@/lib/site-url";
 import { toCsv } from "@/app/admin/csv";
 import { AMBASSADOR_GOAL, HOLD_STATUS_LABEL, SOURCE_LABEL, loadAmbassadors, referralLink } from "@/lib/ambassadors";
+import { programFor } from "@/lib/ambassador-program";
 
 /*
  * Everything on /admin/ambassadors as one CSV: a line per credited booking,
@@ -41,6 +42,9 @@ export async function GET() {
   const header = [
     "Ambassador",
     "School",
+    "Chapter",
+    "Status",
+    "Agreed",
     "Code",
     "Referral link",
     "Phone",
@@ -69,8 +73,11 @@ export async function GET() {
     const base = [
       a.name,
       a.school,
+      a.chapter,
+      a.status,
+      a.agreedAt,
       a.code,
-      referralLink(site, a.code),
+      referralLink(site, a.code, programFor(a.program)),
       a.phone,
       a.instagram ? `@${a.instagram}` : null,
       a.email,
@@ -81,7 +88,7 @@ export async function GET() {
       a.holdStatus ? HOLD_STATUS_LABEL[a.holdStatus] : null,
       a.paymentLinkUrl,
     ];
-    if (a.bookings.length === 0) return [[...base, null, null, null, null, null, null, null, null, null, null, null, null]];
+    if (a.bookings.length === 0) return [[...base, ...Array<null>(12).fill(null)]];
     return a.bookings.map((b) => [
       ...base,
       b.traveler,

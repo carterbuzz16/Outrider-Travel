@@ -1,6 +1,7 @@
 import "server-only";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { viewerFrom, type RoleClient, type Viewer } from "@/lib/admin-role";
 
 /*
  * The back office's one role check.
@@ -13,25 +14,12 @@ import { createClient } from "@/lib/supabase/server";
  *
  * The role is read from public.users through the signed-in user's own
  * Supabase client, relying on the "Users can view own profile" RLS policy.
- * No service-role key is involved in deciding who is an admin.
+ * No service-role key is involved in deciding who is an admin. The decision
+ * is lib/admin-role.ts, kept apart so it can be tested.
  */
 
-type Viewer = { userId: string | null; isAdmin: boolean };
-
 async function readViewer(): Promise<Viewer> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { userId: null, isAdmin: false };
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  return { userId: user.id, isAdmin: profile?.role === "admin" };
+  return viewerFrom((await createClient()) as unknown as RoleClient);
 }
 
 /** The signed-in admin's user id, or null for anyone else (signed out, or not an admin). */

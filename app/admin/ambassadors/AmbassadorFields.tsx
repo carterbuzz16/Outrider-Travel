@@ -1,7 +1,7 @@
 import { Input, Select } from "@/components/ui";
 import { formatDay } from "@/app/(protected)/dates";
 import { AdminField } from "@/app/admin/admin-ui";
-import type { Ambassador } from "@/lib/ambassadors";
+import { AMBASSADOR_STATUSES, AMBASSADOR_STATUS_LABEL, type Ambassador } from "@/lib/ambassadors";
 
 /** The ambassador form's fields, shared by adding (here) and editing (the detail page). */
 export default function AmbassadorFields({
@@ -9,7 +9,9 @@ export default function AmbassadorFields({
   values,
 }: {
   trips: { id: string; name: string; start_date: string }[];
-  values?: Partial<Pick<Ambassador, "code" | "name" | "school" | "email" | "phone" | "instagram">> & { tripId?: string | null };
+  values?: Partial<Pick<Ambassador, "code" | "name" | "school" | "chapter" | "status" | "email" | "phone" | "instagram">> & {
+    tripId?: string | null;
+  };
 }) {
   const editing = Boolean(values?.code);
   return (
@@ -25,7 +27,23 @@ export default function AmbassadorFields({
       <AdminField label="School" htmlFor="school">
         <Input id="school" name="school" defaultValue={values?.school ?? ""} className="py-2" />
       </AdminField>
-      <AdminField label="Email" htmlFor="email" hint="The account their held spot goes on.">
+      <AdminField label="Chapter or org" htmlFor="chapter">
+        <Input id="chapter" name="chapter" defaultValue={values?.chapter ?? ""} className="py-2" />
+      </AdminField>
+      <AdminField label="Status" htmlFor="status" hint="Dropped closes their portal. Agreeing moves them to Active.">
+        <Select id="status" name="status" defaultValue={values?.status ?? "accepted"} className="py-2">
+          {AMBASSADOR_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {AMBASSADOR_STATUS_LABEL[s]}
+            </option>
+          ))}
+        </Select>
+      </AdminField>
+      <AdminField
+        label="Email"
+        htmlFor="email"
+        hint="The email they applied with. It signs them in to the portal and is the account their held spot goes on."
+      >
         <Input id="email" name="email" type="email" defaultValue={values?.email ?? ""} className="py-2" />
       </AdminField>
       <AdminField label="Phone" htmlFor="phone">

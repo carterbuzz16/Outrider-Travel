@@ -23,6 +23,7 @@ import {
 import type Stripe from "stripe";
 import { installmentInFlight, mustPayInFull } from "@/lib/installments";
 import { lookupReferral, referralCodeFromCookie } from "@/lib/referral";
+import { attributionSource } from "@/lib/referral-cookie";
 import { signupsClosed } from "@/lib/signup-deadline";
 import { paymentKindOf, settleFreeBooking } from "@/lib/payments";
 import { syncPaymentFromStripe } from "@/lib/stripe-sync";
@@ -228,10 +229,9 @@ export async function createBooking(formData: FormData) {
   if (referralCode && !referral) {
     checkoutError("referral_invalid", { ...back, referralCode: "" });
   }
-  const referralSource =
-    referral && formData.get("referral_from") === "link" && referral.code === (await referralCodeFromCookie())
-      ? "link"
-      : "typed";
+  const referralSource = referral
+    ? attributionSource(referral.code, formData.get("referral_from"), await referralCodeFromCookie())
+    : "typed";
 
   let discount = 0;
   // A code that checks out but takes nothing off: one whose discount has

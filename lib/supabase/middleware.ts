@@ -5,7 +5,9 @@ import { NextResponse, type NextRequest } from "next/server";
 // edge-runtime gate (redirect-if-logged-out only) — role-based checks like
 // the admin gate live in the relevant layout, close to the data, since
 // middleware here can't reach the database.
-export const PROTECTED_PREFIXES = ["/bookings"];
+// /ambassador/dashboard is the ambassador portal; the public application page
+// at /ambassador stays open.
+export const PROTECTED_PREFIXES = ["/bookings", "/ambassador/dashboard"];
 export const ADMIN_PREFIX = "/admin";
 
 // Exact paths under a protected prefix that anyone may open. /bookings/new is

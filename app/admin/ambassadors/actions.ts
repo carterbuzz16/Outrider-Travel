@@ -12,7 +12,16 @@ import { resolveGroupCode } from "@/lib/group-code";
 import { moveToSingleBalance } from "@/lib/installments";
 import { tierDisplayName } from "@/lib/tier-display";
 import { sendAmbassadorSpotEmail } from "@/lib/email/send";
-import { AMBASSADOR_GOAL, HOLD_STATUSES, loadAmbassadors, type HoldStatus } from "@/lib/ambassadors";
+import {
+  AMBASSADOR_GOAL,
+  AMBASSADOR_STATUSES,
+  HOLD_STATUSES,
+  loadAmbassadors,
+  type AmbassadorStatus,
+  type HoldStatus,
+} from "@/lib/ambassadors";
+import { ANNOUNCEMENT_MAX, TOOLKIT_BUCKET } from "@/lib/ambassador-rules";
+import { isToolkitObjectPath } from "@/lib/toolkit-upload";
 import { SIGNUP_DEADLINE, SIGNUP_DEADLINE_DAY, signupsClosed } from "@/lib/signup-deadline";
 
 /*
@@ -59,6 +68,10 @@ export async function saveAmbassador(formData: FormData) {
   const tripId = text(formData, "trip_id");
   const holdStatus = text(formData, "hold_status");
   if (holdStatus && !HOLD_STATUSES.includes(holdStatus as HoldStatus)) back(path, { error: "bad_status" });
+  const status = text(formData, "status") ?? "accepted";
+  if (!AMBASSADOR_STATUSES.includes(status as AmbassadorStatus)) back(path, { error: "bad_status" });
+  const email = text(formData, "email")?.toLowerCase() ?? null;
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) back(path, { error: "bad_email" });
 
   const admin = createAdminClient();
   if (!editing) {
@@ -88,16 +101,28 @@ export async function saveAmbassador(formData: FormData) {
     }
   }
 
+  // A new email means a different person signs in: the account linked to the
+  // old one loses the portal, and the new address links on its first sign-in
+  // (lib/ambassador-portal.ts).
+  let unlink = false;
+  if (editing) {
+    const { data: current } = await admin.from("ambassadors").select("email").eq("code", editing).maybeSingle();
+    unlink = (current?.email ?? null) !== email;
+  }
+
   const row = {
     code,
     name,
     school: text(formData, "school"),
-    email: text(formData, "email")?.toLowerCase() ?? null,
+    chapter: text(formData, "chapter"),
+    status,
+    email,
     phone: text(formData, "phone"),
     instagram: text(formData, "instagram")?.replace(/^@/, "") ?? null,
     trip_id: tripId,
     updated_at: new Date().toISOString(),
     ...(editing && formData.has("hold_status") ? { hold_status: holdStatus } : {}),
+    ...(unlink ? { user_id: null } : {}),
   };
   const { error } = editing
     ? await admin.from("ambassadors").update(row).eq("code", editing)
@@ -406,7 +431,13 @@ export async function releaseUnpaidHolds() {
     await deactivateLink(a.paymentLinkId);
     await admin
       .from("ambassadors")
-      .update({ hold_status: "released", updated_at: new Date().toISOString() })
+      // Their program status follows, unless the team has already dropped
+      // them. Released ambassadors keep the portal (lib/ambassador-program.ts).
+      .update({
+        hold_status: "released",
+        status: a.status === "dropped" ? "dropped" : "released",
+        updated_at: new Date().toISOString(),
+      })
       .eq("code", a.code);
     released += 1;
   }
@@ -429,4 +460,62 @@ export async function moveToNewSchedule(formData: FormData) {
     back(path, { error: "move_failed" });
   }
   back(path, { done: "moved" });
+}
+
+/* -- announcements ---------------------------------------------------------------- */
+
+/**
+ * Posts a short plain-text note to the top of every ambassador's dashboard.
+ * Stored as typed and always rendered as text, so markup in it is shown, not
+ * run. Control characters other than line breaks are dropped.
+ */
+export async function postAnnouncement(formData: FormData) {
+  await requireAdmin();
+  const body = String(formData.get("body") ?? "")
+    .replace(/\r\n?/g, "\n")
+    .replace(/[\u0000-\u0009\u000B-\u001F\u007F]/g, "")
+    .trim();
+  if (body.length === 0 || body.length > ANNOUNCEMENT_MAX) back("/admin/ambassadors", { error: "bad_announcement" });
+  const { error } = await createAdminClient()
+    .from("ambassador_announcements")
+    .insert({ body, published: formData.get("published") !== "no" });
+  if (error) {
+    console.error(`postAnnouncement: ${error.code} ${error.message}`);
+    back("/admin/ambassadors", { error: "save_failed" });
+  }
+  revalidatePath("/admin/ambassadors");
+  back("/admin/ambassadors", { done: "announced" });
+}
+
+/** Shows or hides one announcement. */
+export async function setAnnouncementPublished(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!/^[0-9a-f-]{36}$/i.test(id)) back("/admin/ambassadors", { error: "save_failed" });
+  const { error } = await createAdminClient()
+    .from("ambassador_announcements")
+    .update({ published: formData.get("published") === "yes" })
+    .eq("id", id);
+  if (error) {
+    console.error(`setAnnouncementPublished: ${error.code} ${error.message}`);
+    back("/admin/ambassadors", { error: "save_failed" });
+  }
+  revalidatePath("/admin/ambassadors");
+  back("/admin/ambassadors", { done: "announcement_saved" });
+}
+
+/* -- toolkit graphics -------------------------------------------------------------- */
+
+/** Removes one graphic from the toolkit bucket. Uploads go through ./toolkit/route.ts. */
+export async function deleteToolkitFile(formData: FormData) {
+  await requireAdmin();
+  const path = String(formData.get("path") ?? "");
+  if (!isToolkitObjectPath(path)) back("/admin/ambassadors", { error: "bad_file" });
+  const { error } = await createAdminClient().storage.from(TOOLKIT_BUCKET).remove([path]);
+  if (error) {
+    console.error(`deleteToolkitFile(${path}): ${error.message}`);
+    back("/admin/ambassadors", { error: "save_failed" });
+  }
+  revalidatePath("/admin/ambassadors");
+  back("/admin/ambassadors", { done: "file_deleted" });
 }

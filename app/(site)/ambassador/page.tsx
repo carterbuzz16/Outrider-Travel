@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Button, HeroSlideshow, Reveal, SplitHeading } from "@/components/ui";
 import { pageMetadata } from "@/lib/metadata";
 import { AMBASSADOR } from "@/lib/site-content";
@@ -126,6 +127,18 @@ export default function AmbassadorPage() {
               <Button href="#apply" variant="primary" size="lg" block className="sm:w-auto sm:min-w-[12rem]">
                 {AMBASSADOR.apply}
               </Button>
+              {/* For the ones already in (29 October 2026): their dashboard,
+                  through the emailed-code sign-in. A text link, not a second
+                  button, so Apply stays the one ask on this screen. */}
+              <p className="m-0 mt-4 text-center font-body text-body-s text-[--text-secondary] sm:text-left">
+                {AMBASSADOR.signInLead}{" "}
+                <Link
+                  href="/login?next=%2Fambassador%2Fdashboard"
+                  className="text-[--accent] underline decoration-[--accent] underline-offset-4"
+                >
+                  {AMBASSADOR.signIn}
+                </Link>
+              </p>
             </div>
           </section>
 

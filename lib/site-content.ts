@@ -173,6 +173,84 @@ export const AMBASSADOR = {
   submit: "Submit",
   receivedTitle: "Application received.",
   receivedBody: "We’ll be in touch.",
+  signInLead: "Already an ambassador?",
+  signIn: "Sign in",
+};
+
+/* -- the ambassador portal (/ambassador/dashboard) ---------------------------
+ * Short declaratives, specifics over adjectives, no exclamation marks (Carter's
+ * portal brief, 29 October 2026). The program's numbers and dates come from
+ * lib/ambassador-program.ts, so they are passed in rather than written here.
+ *
+ * NEEDS REAL COPY: the scripts are drafted from /telluride's own facts (the
+ * dates, The Peaks, ski-in ski-out, "$100 holds your spot"). Swap in the
+ * messages from the ambassador doc if Carter prefers those. {link} and {code}
+ * are filled in per ambassador.
+ * ------------------------------------------------------------------------- */
+export const AMBASSADOR_PORTAL = {
+  notAmbassadorTitle: "This portal is for Outrider ambassadors",
+  notAmbassadorBody:
+    "It opens for the email you applied with, once you’re selected. If you applied with a different email, log out and sign in with that one.",
+  notAmbassadorApply: "Apply to be an ambassador",
+  agreementLead: "Read this once. It’s the whole deal, in plain words.",
+  agreementCheck: "I agree to these terms.",
+  agreementSubmit: "Agree and open my dashboard",
+  linkTitle: "Your link",
+  linkNote: "It remembers you for 30 days on their phone or laptop. A code typed at checkout wins over a link.",
+  codeTitle: "Your code",
+  codeNote: "Friends type it in Referred by at checkout. It takes nothing off.",
+  qrTitle: "Scan to book",
+  qrNote: "For in person. Screenshot it or hold up your phone.",
+  friendsTitle: "Your friends",
+  friendsEmpty: "No one has booked with your code yet. Send your link to the group chat that decides where you go.",
+  leaderboardTitle: "Leaderboard",
+  leaderboardEmpty: "No friends booked yet. The first one puts you on the board.",
+  leaderboardHide: "Hide my name on the leaderboard",
+  leaderboardHiddenNote: "Others see you as “An ambassador”. You still have a rank.",
+  rewardsTitle: "Rewards",
+  toolkitTitle: "Toolkit",
+  graphicsTitle: "Story graphics",
+  graphicsEmpty: "Graphics for your school are on the way.",
+  scriptsTitle: "Scripts",
+  faqTitle: "Questions",
+  help: "Anything else, message us in the GroupMe.",
+  scripts: [
+    {
+      title: "Text a friend",
+      body: "Come to Telluride with me. Outrider has us ski-in, ski-out at The Peaks, December 14 to 18 or January 4 to 8. They book the hotel, the lifts, the rides and the nights out. $100 holds your spot: {link}",
+    },
+    {
+      title: "Group chat",
+      body: "Telluride this winter, four nights at The Peaks, ski-in, ski-out. December 14 to 18 or January 4 to 8. Bookings close November 14. Book through my link so we’re on the same trip: {link}",
+    },
+    {
+      title: "Story caption",
+      body: "Telluride with Outrider. Link’s in my bio, or put {code} in Referred by at checkout.",
+    },
+  ],
+  /** `countBy` reads like "the end of November 14 for December, December 4 for January". */
+  faq: (countBy: string, goal: number) => [
+    {
+      q: "Does my friend get a discount?",
+      a: "No. Your code takes nothing off. It tells us your friend came from you.",
+    },
+    {
+      q: "When does a friend count?",
+      a: `When they’ve booked with your code or link and their trip is paid in full by ${countBy}. A friend on a deposit shows as on the way.`,
+    },
+    {
+      q: "What if they forget my code?",
+      a: "Your link remembers you for 30 days on the device they opened it on. If a friend booked without it, message us in the GroupMe and we’ll add it.",
+    },
+    {
+      q: "Two ambassadors sent the same friend. Who gets it?",
+      a: "The code typed at checkout. With no code typed, the most recent link they opened.",
+    },
+    {
+      q: `What if I’m short of ${goal}?`,
+      a: "Your spot is held with no deposit. When the count closes, you pay for it or release it.",
+    },
+  ],
 };
 
 /* -- what makes Outrider different ------------------------------------------

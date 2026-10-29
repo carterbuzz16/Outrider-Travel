@@ -7,7 +7,11 @@
 export const AMBASSADOR_ERRORS: Readonly<Record<string, string>> = {
   bad_code: "A code is 3 to 32 letters and digits.",
   missing_name: "Give the ambassador a name.",
-  bad_status: "That isn't a held-spot status.",
+  bad_status: "That isn't a status this form knows.",
+  bad_email: "That email doesn't look right.",
+  bad_announcement: "An announcement is 1 to 600 characters.",
+  bad_file: "Upload a PNG, JPG or WebP image under 4 MB, into Shared or a school's folder.",
+  upload_failed: "That upload didn't go through. Try again; a file with the same name gets a number added.",
   code_is_discount: "That code already takes money off, so it can't be someone's referral code. Pick another.",
   already_ambassador: "That code already belongs to an ambassador.",
   save_failed: "That didn't save. Try again, and check the logs if it keeps happening.",
@@ -46,6 +50,14 @@ export function ambassadorDone(params: Record<string, string | undefined>): stri
       return "Credit removed from that booking.";
     case "held":
       return "Spot held on Four to a Room.";
+    case "announced":
+      return "Announcement posted. It shows at the top of every dashboard.";
+    case "announcement_saved":
+      return "Announcement updated.";
+    case "uploaded":
+      return "Graphic uploaded. Ambassadors see it in their toolkit now.";
+    case "file_deleted":
+      return "Graphic removed.";
     case "moved":
       return "Moved to the new schedule: one payment on the signup deadline.";
     case "settled":

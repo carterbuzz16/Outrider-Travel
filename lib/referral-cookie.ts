@@ -54,3 +54,19 @@ export function isLiveAttributionCode(
     (row.expires_at === null || Date.parse(row.expires_at) > now.getTime())
   );
 }
+
+/**
+ * How the code on a booking got there, for discount_redemptions.source: "link"
+ * only when checkout's box says it was filled from a ?ref= link AND this
+ * browser's cookie holds that same code; anything else was typed. So a code
+ * typed at checkout always beats the cookie (it is a different code, or the
+ * box was not filled from the link), and a page cannot claim a link it never
+ * had (createBooking).
+ */
+export function attributionSource(
+  claimed: string,
+  boxFilledFrom: unknown,
+  cookieCode: string | null,
+): "link" | "typed" {
+  return boxFilledFrom === "link" && cookieCode !== null && claimed === cookieCode ? "link" : "typed";
+}

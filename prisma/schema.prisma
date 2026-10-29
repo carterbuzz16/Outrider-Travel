@@ -31,6 +31,7 @@ model User {
 
   bookings         Booking[]
   legalAcceptances LegalAcceptance[]
+  ambassador       Ambassador?
 
   @@map("users")
 }
@@ -55,7 +56,8 @@ model Trip {
 
   tiers    Tier[]
   bookings Booking[]
-  ambassadors Ambassador[]
+  ambassadors       Ambassador[] @relation("AmbassadorTrip")
+  ambassadorRewards Ambassador[] @relation("AmbassadorRewardTrip")
 
   @@map("trips")
 }
@@ -159,7 +161,10 @@ enum BookingStatus {
 /// RLS lets a traveler read their own and nothing else.
 model LegalAcceptance {
   id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  bookingId       String   @map("booking_id") @db.Uuid
+  /// Null only on an "ambassador-agreement" row (ambassador_portal migration,
+  /// CHECK legal_acceptances_booking_or_ambassador): that agreement belongs to
+  /// an account, not a booking. Unique per account and version when null.
+  bookingId       String?  @map("booking_id") @db.Uuid
   userId          String   @map("user_id") @db.Uuid
   /// "terms" | "assumption-of-risk", matching the slugs in lib/legal.ts
   documentSlug    String   @map("document_slug")
@@ -169,8 +174,8 @@ model LegalAcceptance {
   ipAddress       String?  @map("ip_address")
   userAgent       String?  @map("user_agent")
 
-  booking Booking @relation(fields: [bookingId], references: [id])
-  user    User    @relation(fields: [userId], references: [id])
+  booking Booking? @relation(fields: [bookingId], references: [id])
+  user    User     @relation(fields: [userId], references: [id])
 
   @@unique([bookingId, documentSlug])
   @@index([bookingId])
@@ -293,6 +298,8 @@ model Ambassador {
   code           String    @id
   name           String
   school         String?
+  /// Lowercased (CHECK ambassadors_email_lower) and unique when set: the portal
+  /// links an account whose verified email is exactly this.
   email          String?
   phone          String?
   instagram      String?
@@ -304,11 +311,41 @@ model Ambassador {
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime  @default(now()) @map("updated_at") @db.Timestamptz
 
-  discountCode DiscountCode @relation(fields: [code], references: [code])
-  trip         Trip?        @relation(fields: [tripId], references: [id])
-  holdBooking  Booking?     @relation(fields: [holdBookingId], references: [id], onDelete: SetNull)
+  /// The portal account (ambassador_portal migration), linked on first sign-in.
+  userId            String?   @unique @map("user_id") @db.Uuid
+  chapter           String?
+  /// onboarded | accepted | active | earned | released | dropped (CHECK ambassadors_status_check)
+  status            String    @default("accepted")
+  /// When they accepted the ambassador agreement (also in legal_acceptances).
+  agreedAt          DateTime? @map("agreed_at") @db.Timestamptz
+  /// Whose rules apply: a key of PROGRAMS in lib/ambassador-program.ts.
+  program           String    @default("telluride-2026")
+  leaderboardHidden Boolean   @default(false) @map("leaderboard_hidden")
+  /// The departure picked for an earned free trip.
+  rewardTripId      String?   @map("reward_trip_id") @db.Uuid
+  rewardClaimedAt   DateTime? @map("reward_claimed_at") @db.Timestamptz
 
+  discountCode DiscountCode @relation(fields: [code], references: [code])
+  trip         Trip?        @relation("AmbassadorTrip", fields: [tripId], references: [id])
+  rewardTrip   Trip?        @relation("AmbassadorRewardTrip", fields: [rewardTripId], references: [id])
+  holdBooking  Booking?     @relation(fields: [holdBookingId], references: [id], onDelete: SetNull)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tripId])
+  @@index([rewardTripId])
   @@map("ambassadors")
+}
+
+/// A short post from the team, shown at the top of the ambassador dashboard
+/// (ambassador_portal migration). Plain text only; rendered escaped.
+model AmbassadorAnnouncement {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  /// 1 to 600 characters (CHECK in the migration).
+  body      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  published Boolean  @default(true)
+
+  @@map("ambassador_announcements")
 }
 
 model Payment {

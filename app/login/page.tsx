@@ -69,6 +69,9 @@ export default function LoginPage(
   // Someone who clicked "Reserve your spot" needs to know why a form appeared
   // between them and the trip they picked.
   const fromBooking = next.startsWith("/bookings/new");
+  // An ambassador opening the portal from a text: they have no password, and
+  // only the email they applied with opens it.
+  const forAmbassador = next.startsWith("/ambassador/dashboard");
 
   return (
     <main className="scheme-light scheme-paint flex min-h-screen flex-col justify-center py-14 md:py-20">
@@ -78,12 +81,14 @@ export default function LoginPage(
         </Link>
 
         <div className="mt-12 flex flex-col gap-4 md:mt-16">
-          <p className="stamp-type text-[--text-muted]">Outrider account</p>
-          <h1 className="t-title text-[--text]">Log in</h1>
+          <p className="stamp-type text-[--text-muted]">{forAmbassador ? "Outrider ambassadors" : "Outrider account"}</p>
+          <h1 className="t-title text-[--text]">{forAmbassador ? "Sign in" : "Log in"}</h1>
           <p className="font-body text-body leading-[1.7] text-[--text-secondary]">
-            {fromBooking
-              ? "We'll take you straight back to the trip you picked."
-              : "Your trips, deposits and payment dates all sit here."}
+            {forAmbassador
+              ? "Use the email you applied with. We'll send you a 6-digit code."
+              : fromBooking
+                ? "We'll take you straight back to the trip you picked."
+                : "Your trips, deposits and payment dates all sit here."}
           </p>
         </div>
 

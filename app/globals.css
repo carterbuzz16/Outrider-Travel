@@ -265,6 +265,95 @@
   --focus-ring: var(--color-espresso-deep);
 }
 
+/*
+ * Paper by day, espresso by night: the one scheme that follows the reader's
+ * light or dark setting, for the ambassador portal (29 October 2026), which
+ * is opened on phones at all hours from a text. Light is .scheme-light
+ * exactly. Dark grounds the page in deep espresso and raises cards to
+ * espresso, so an espresso panel still reads as a panel; text and accents are
+ * .scheme-espresso's (paper 14:1 on the deep ground, club blue light 7:1).
+ * The rest of the site stays on fixed schemes, as designed.
+ */
+.scheme-auto {
+  --surface: var(--color-paper);
+  --surface-raised: var(--color-chalk);
+  --surface-inset: var(--color-warm-gray);
+  --text: var(--color-espresso);
+  --text-secondary: var(--color-taupe);
+  --text-muted: var(--color-taupe);
+  --rule: rgb(var(--rgb-espresso) / 0.18);
+  --rule-strong: rgb(var(--rgb-espresso) / 0.5);
+  --rule-faint: rgb(var(--rgb-espresso) / 0.09);
+  --control-rule: rgb(var(--rgb-espresso) / 0.5);
+  --control-rule-soft: rgb(var(--rgb-espresso) / 0.18);
+  --accent: var(--color-club-ink);
+  --accent-solid: var(--color-espresso);
+  --accent-solid-hover: var(--color-black);
+  --accent-contrast: var(--color-paper);
+  --flag: var(--color-clay);
+  --flag-ink: var(--color-clay-ink);
+  --focus-ring: var(--color-espresso);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  .scheme-auto {
+    --surface: var(--color-espresso-deep);
+    --surface-raised: var(--color-espresso);
+    --surface-inset: #4a3f39;
+    --text: var(--color-paper);
+    --text-secondary: rgb(var(--rgb-paper) / 0.74);
+    --text-muted: rgb(var(--rgb-paper) / 0.66);
+    --rule: rgb(var(--rgb-paper) / 0.2);
+    --rule-strong: rgb(var(--rgb-paper) / 0.5);
+    --rule-faint: rgb(var(--rgb-paper) / 0.1);
+    --control-rule: rgb(var(--rgb-paper) / 0.5);
+    --control-rule-soft: rgb(var(--rgb-paper) / 0.2);
+    --accent: var(--color-club-light);
+    --accent-solid: var(--color-club);
+    --accent-solid-hover: var(--color-club-light);
+    --accent-contrast: var(--color-espresso-deep);
+    --flag: var(--color-clay-light);
+    --flag-ink: var(--color-clay-light);
+    --focus-ring: var(--color-club-light);
+    color-scheme: dark;
+  }
+}
+
+/*
+ * The one highlighted row inside .scheme-auto (an earned reward, your own
+ * place on the leaderboard): .scheme-espresso by day. By night the cards
+ * around it are espresso already, so it becomes the club blue panel instead
+ * (.scheme-club's values: deep espresso text at 6.8:1).
+ */
+.scheme-auto .scheme-emphasis {
+  --surface: var(--color-espresso);
+  --surface-raised: #4a3f39;
+  --text: var(--color-paper);
+  --text-secondary: rgb(var(--rgb-paper) / 0.74);
+  --text-muted: rgb(var(--rgb-paper) / 0.62);
+  --accent: var(--color-club-light);
+  --accent-solid: var(--color-club);
+  --accent-solid-hover: var(--color-club-light);
+  --accent-contrast: var(--color-espresso-deep);
+  --control-rule: rgb(var(--rgb-paper) / 0.5);
+  --focus-ring: var(--color-club-light);
+}
+@media (prefers-color-scheme: dark) {
+  .scheme-auto .scheme-emphasis {
+    --surface: var(--color-club);
+    --surface-raised: #97bccc;
+    --text: var(--color-espresso-deep);
+    --text-secondary: rgb(var(--rgb-espresso-deep) / 0.88);
+    --text-muted: rgb(var(--rgb-espresso-deep) / 0.88);
+    --accent: var(--color-espresso-deep);
+    --accent-solid: var(--color-espresso-deep);
+    --accent-solid-hover: var(--color-black);
+    --accent-contrast: var(--color-paper);
+    --control-rule: rgb(var(--rgb-espresso-deep) / 0.58);
+    --focus-ring: var(--color-espresso-deep);
+  }
+}
+
 /* No hairlines on the public site (Carter, 1 October 2026: the lines between
    words and sections "make it feel super AI"). Inside .site-quiet, which the
    (site) layout wraps around every marketing page, the decorative rules are
@@ -273,7 +362,7 @@
    a visible edge, so they draw it from --control-rule, which this leaves
    alone. The booking flow and admin are outside (site) and keep their rules. */
 .site-quiet,
-.site-quiet :is(.scheme-light, .scheme-stone, .scheme-espresso, .scheme-club) {
+.site-quiet :is(.scheme-light, .scheme-stone, .scheme-espresso, .scheme-club, .scheme-auto) {
   --rule: transparent;
   --rule-strong: transparent;
   --rule-faint: transparent;

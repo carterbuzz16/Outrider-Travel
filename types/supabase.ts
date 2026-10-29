@@ -96,51 +96,96 @@ export type Database = {
         }
         Relationships: []
       }
+      ambassador_announcements: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          published: boolean
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          published?: boolean
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          published?: boolean
+        }
+        Relationships: []
+      }
       ambassadors: {
         Row: {
+          agreed_at: string | null
+          chapter: string | null
           code: string
           created_at: string
           email: string | null
           hold_booking_id: string | null
           hold_status: string | null
           instagram: string | null
+          leaderboard_hidden: boolean
           name: string
           payment_link_id: string | null
           payment_link_url: string | null
           phone: string | null
+          program: string
+          reward_claimed_at: string | null
+          reward_trip_id: string | null
           school: string | null
+          status: string
           trip_id: string | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
+          agreed_at?: string | null
+          chapter?: string | null
           code: string
           created_at?: string
           email?: string | null
           hold_booking_id?: string | null
           hold_status?: string | null
           instagram?: string | null
+          leaderboard_hidden?: boolean
           name: string
           payment_link_id?: string | null
           payment_link_url?: string | null
           phone?: string | null
+          program?: string
+          reward_claimed_at?: string | null
+          reward_trip_id?: string | null
           school?: string | null
+          status?: string
           trip_id?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
+          agreed_at?: string | null
+          chapter?: string | null
           code?: string
           created_at?: string
           email?: string | null
           hold_booking_id?: string | null
           hold_status?: string | null
           instagram?: string | null
+          leaderboard_hidden?: boolean
           name?: string
           payment_link_id?: string | null
           payment_link_url?: string | null
           phone?: string | null
+          program?: string
+          reward_claimed_at?: string | null
+          reward_trip_id?: string | null
           school?: string | null
+          status?: string
           trip_id?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -158,10 +203,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ambassadors_reward_trip_id_fkey"
+            columns: ["reward_trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ambassadors_trip_id_fkey"
             columns: ["trip_id"]
             isOneToOne: false
             referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ambassadors_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -364,7 +423,7 @@ export type Database = {
       legal_acceptances: {
         Row: {
           accepted_at: string
-          booking_id: string
+          booking_id: string | null
           document_slug: string
           document_version: string
           id: string
@@ -374,7 +433,7 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string
-          booking_id: string
+          booking_id?: string | null
           document_slug: string
           document_version: string
           id?: string
@@ -384,7 +443,7 @@ export type Database = {
         }
         Update: {
           accepted_at?: string
-          booking_id?: string
+          booking_id?: string | null
           document_slug?: string
           document_version?: string
           id?: string

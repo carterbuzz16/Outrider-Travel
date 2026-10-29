@@ -12,7 +12,8 @@
     "db:migrate": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "db:test": "tsx scripts/test-db-connection.ts",
-    "db:seed": "tsx scripts/seed.ts"
+    "db:seed": "tsx scripts/seed.ts",
+    "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
@@ -26,6 +27,7 @@
     "dotenv": "^17.4.2",
     "next": "^15.5.25",
     "pg": "^8.23.0",
+    "qrcode": "1.5.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "resend": "^6.25.0",
@@ -34,6 +36,7 @@
   "devDependencies": {
     "@types/node": "^20",
     "@types/pg": "^8.23.1",
+    "@types/qrcode": "1.5.5",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "eslint": "^8",

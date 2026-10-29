@@ -9,7 +9,17 @@ import { formatAmount } from "@/lib/balance";
 import { formatDay } from "@/app/(protected)/dates";
 import { CHECKOUT_SANDBOX, isTestTrip } from "@/lib/booking-window";
 import { normalizeDiscountCode } from "@/lib/discount-codes";
-import { AMBASSADOR_GOAL, HOLD_STATUSES, HOLD_STATUS_LABEL, SOURCE_LABEL, loadAmbassadors } from "@/lib/ambassadors";
+import {
+  AMBASSADOR_GOAL,
+  AMBASSADOR_STATUS_LABEL,
+  HOLD_STATUSES,
+  HOLD_STATUS_LABEL,
+  SOURCE_LABEL,
+  loadAmbassadors,
+  referralPath,
+  type AmbassadorStatus,
+} from "@/lib/ambassadors";
+import { programFor } from "@/lib/ambassador-program";
 import {
   AdminField,
   BookingStatusBadge,
@@ -64,7 +74,7 @@ export default async function AmbassadorPage(props: {
         title={a.name}
         lede={`${a.paidInFull} paid in full, ${a.depositOnly} on the deposit. ${a.toGoal === 0 ? `Reached ${AMBASSADOR_GOAL}.` : `${a.toGoal} more paid in full to reach ${AMBASSADOR_GOAL}.`}`}
         back={{ href: "/admin/ambassadors", label: "Ambassadors" }}
-        actions={<CopyLinkButton path={`/telluride?ref=${a.code.toLowerCase()}`} label="Copy referral link" />}
+        actions={<CopyLinkButton path={referralPath(a.code, programFor(a.program))} label="Copy referral link" />}
       />
 
       {(done || error) && (
@@ -152,6 +162,23 @@ export default async function AmbassadorPage(props: {
           <Panel title="Details">
             <dl className="m-0">
               <DetailRow label="Code">{a.code}</DetailRow>
+              <DetailRow label="Status">{AMBASSADOR_STATUS_LABEL[a.status as AmbassadorStatus] ?? a.status}</DetailRow>
+              <DetailRow label="Chapter">{a.chapter ?? "Not set"}</DetailRow>
+              <DetailRow label="Portal">
+                {!a.email
+                  ? "Needs their email to sign in"
+                  : !a.userId
+                    ? "Hasn't signed in yet"
+                    : a.agreedAt
+                      ? `Agreed ${formatDay(a.agreedAt.slice(0, 10))}`
+                      : "Signed in, hasn't agreed yet"}
+                {a.leaderboardHidden && <span className="block text-[--text-secondary]">Hidden on the leaderboard</span>}
+              </DetailRow>
+              {a.rewardClaimedAt && (
+                <DetailRow label="Free trip">
+                  {a.rewardTrip ? `${a.rewardTrip.name}, ${formatDay(a.rewardTrip.start_date)}` : "Picked"}
+                </DetailRow>
+              )}
               <DetailRow label="Trip">{a.trip ? `${a.trip.name}, ${formatDay(a.trip.start_date)}` : "Not set"}</DetailRow>
               <DetailRow label="Email">{a.email ?? "Not set"}</DetailRow>
               <DetailRow label="Phone">{a.phone ?? "Not set"}</DetailRow>
@@ -224,7 +251,17 @@ export default async function AmbassadorPage(props: {
             <input type="hidden" name="existing_code" value={a.code} />
             <AmbassadorFields
               trips={trips}
-              values={{ code: a.code, name: a.name, school: a.school, email: a.email, phone: a.phone, instagram: a.instagram, tripId: a.trip?.id ?? null }}
+              values={{
+                code: a.code,
+                name: a.name,
+                school: a.school,
+                chapter: a.chapter,
+                status: a.status,
+                email: a.email,
+                phone: a.phone,
+                instagram: a.instagram,
+                tripId: a.trip?.id ?? null,
+              }}
             />
             <AdminField
               label="Held spot status"
