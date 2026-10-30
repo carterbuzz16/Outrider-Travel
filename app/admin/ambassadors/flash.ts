@@ -9,6 +9,9 @@ export const AMBASSADOR_ERRORS: Readonly<Record<string, string>> = {
   missing_name: "Give the ambassador a name.",
   bad_status: "That isn't a status this form knows.",
   bad_email: "That email doesn't look right.",
+  none_selected: "Tick at least one ambassador first.",
+  too_many: "That's more than 100 at once. Send them in two goes.",
+  send_failed: "The welcome email didn't send, so nobody was marked as sent. Try again in a moment.",
   bad_announcement: "An announcement is 1 to 600 characters.",
   bad_file: "Upload a PNG, JPG or WebP image under 4 MB, into Shared or a school's folder.",
   upload_failed: "That upload didn't go through. Try again; a file with the same name gets a number added.",
@@ -50,6 +53,8 @@ export function ambassadorDone(params: Record<string, string | undefined>): stri
       return "Credit removed from that booking.";
     case "held":
       return "Spot held on Four to a Room.";
+    case "welcomed":
+      return `Welcome email sent to ${plural(n("sent"), "ambassador")}${n("skipped") ? `. ${n("skipped")} skipped: already sent, no email on file, or dropped` : ""}.`;
     case "announced":
       return "Announcement posted. It shows at the top of every dashboard.";
     case "announcement_saved":

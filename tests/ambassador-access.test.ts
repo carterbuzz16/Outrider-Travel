@@ -42,8 +42,10 @@ test("a row linked to another account is never taken over, and duplicates are re
   assert.deepEqual(decideLink(verified, [row(), row({ code: "STEIN2" })]), { link: false, reason: "ambiguous" });
 });
 
-test("dropped ambassadors lose the portal; released keep it (Carter, 29 Oct)", () => {
+test("dropped and code-only ambassadors lose the portal; released keep it (Carter, 29 Oct)", () => {
   assert.equal(statusHasAccess("dropped", TELLURIDE_2026), false);
+  assert.equal(statusHasAccess("code_only", TELLURIDE_2026), false);
+  assert.equal(statusHasAccess("accepted", TELLURIDE_2026), true);
   assert.equal(statusHasAccess("released", TELLURIDE_2026), true);
   assert.equal(statusHasAccess("onboarded", TELLURIDE_2026), true);
 });
@@ -87,6 +89,7 @@ const ALL: AmbassadorForView[] = [
   }),
   amb("HIDDEN", "Private Person", "TCU", { leaderboardHidden: true, paidInFull: 1, depositOnly: 1 }),
   amb("DROPPED", "Gone Away", "SMU", { status: "dropped", paidInFull: 9 }),
+  amb("CODEONLY", "Earlier Ambassador", "Rutgers", { status: "code_only", paidInFull: 7 }),
   amb("ZERO", "No Friends", "UGA"),
 ];
 
@@ -122,7 +125,8 @@ test("the leaderboard carries rank, short name, school and counts, and nothing a
       [2, "Steven S.", "Miami"],
     ],
   );
-  // Dropped ambassadors are off the board; ambassadors with no friends rank but aren't listed.
+  // Dropped and code-only ambassadors are off the board (CODEONLY's 7 would
+  // lead it); ambassadors with no friends rank but aren't listed.
   assert.equal(view.leaderboard.you.rank, 2);
   assert.equal(view.leaderboard.you.of, 4);
   assert.equal(JSON.stringify(view.leaderboard).includes("Gone"), false);

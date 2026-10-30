@@ -18,7 +18,7 @@ const POSTAL_LINE = CONTACT.postalAddress
   ? `${LEGAL_NAME}, ${CONTACT.postalAddress.join(", ")}`
   : "";
 
-const BRAND = {
+export const BRAND = {
   espresso: "#3E342F", // dark ground, type on light, the filled button
   paper: "#F2EFEA", // page background, type on espresso
   chalk: "#FAF8F4", // the card
@@ -73,6 +73,20 @@ const DEFAULT_FOOTER_NOTE = "You're getting this because you have a booking with
  * Same rules as the shell: tables and inline styles only, 600px, absolute
  * image URLs, nothing essential inside an image.
  */
+/**
+ * The espresso button, for placing inside a body (the layout's own CTA sits
+ * after the body). `label` and `url` are put in as given: pass trusted values.
+ */
+export function emailButton(label: string, url: string): string {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td bgcolor="${BRAND.espresso}" style="background-color:${BRAND.espresso};">
+              <a href="${url}" target="_blank" style="display:inline-block; padding:16px 32px; font-family:${FONT}; font-size:12px; font-weight:600; letter-spacing:1.8px; text-transform:uppercase; color:${BRAND.paper}; text-decoration:none;">${label}</a>
+            </td>
+          </tr>
+        </table>`;
+}
+
 export function renderEmailLayout(opts: {
   preheader: string;
   bodyHtml: string;
@@ -109,13 +123,7 @@ export function renderEmailLayout(opts: {
       ? `
     <tr>
       <td class="gutter" style="padding:8px 48px 8px 48px;">
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-          <tr>
-            <td bgcolor="${BRAND.espresso}" style="background-color:${BRAND.espresso};">
-              <a href="${ctaUrl}" target="_blank" style="display:inline-block; padding:16px 32px; font-family:${FONT}; font-size:12px; font-weight:600; letter-spacing:1.8px; text-transform:uppercase; color:${BRAND.paper}; text-decoration:none;">${ctaLabel}</a>
-            </td>
-          </tr>
-        </table>
+        ${emailButton(ctaLabel, ctaUrl)}
       </td>
     </tr>`
       : "";

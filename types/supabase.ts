@@ -140,6 +140,7 @@ export type Database = {
           trip_id: string | null
           updated_at: string
           user_id: string | null
+          welcome_email_sent_at: string | null
         }
         Insert: {
           agreed_at?: string | null
@@ -163,6 +164,7 @@ export type Database = {
           trip_id?: string | null
           updated_at?: string
           user_id?: string | null
+          welcome_email_sent_at?: string | null
         }
         Update: {
           agreed_at?: string | null
@@ -186,6 +188,7 @@ export type Database = {
           trip_id?: string | null
           updated_at?: string
           user_id?: string | null
+          welcome_email_sent_at?: string | null
         }
         Relationships: [
           {

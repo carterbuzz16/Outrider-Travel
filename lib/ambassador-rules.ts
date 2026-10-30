@@ -176,9 +176,17 @@ export type PortalAccess =
   | { kind: "not-ambassador"; email: string | null }
   | { kind: "ambassador"; userId: string; ambassador: PortalAmbassador };
 
-/** Whether a row's status still opens the portal. Dropped never does; released does if the program says so. */
+/**
+ * Statuses that never open the portal, appear on the leaderboard or get the
+ * welcome email. code_only is an earlier ambassador who keeps their $0 code,
+ * so their bookings are still counted on /admin/ambassadors, but is not on
+ * the final roster (Carter, 29 October 2026).
+ */
+export const NO_PORTAL_STATUSES: readonly string[] = ["dropped", "code_only"];
+
+/** Whether a row's status still opens the portal. Dropped and code-only never do; released does if the program says so. */
 export function statusHasAccess(status: string, program: AmbassadorProgram): boolean {
-  if (status === "dropped") return false;
+  if (NO_PORTAL_STATUSES.includes(status)) return false;
   if (status === "released") return program.releasedKeepAccess;
   return true;
 }
@@ -292,7 +300,7 @@ export function buildPortalView(
     }));
 
   const board = all
-    .filter((a) => a.program === self.program && a.status !== "dropped")
+    .filter((a) => a.program === self.program && !NO_PORTAL_STATUSES.includes(a.status))
     .map((a) => ({ a, paid: a.paidInFull, onTheWay: a.depositOnly }))
     .sort((x, y) => y.paid - x.paid || y.onTheWay - x.onTheWay || x.a.name.localeCompare(y.a.name));
 

@@ -28,6 +28,7 @@ import { renderPortalLinkEmail } from "@/lib/email/portal-link";
 import { renderStaleCheckoutRefundEmail } from "@/lib/email/stale-checkout";
 import { renderContactMessage } from "@/lib/email/contact";
 import { renderAmbassadorApplication } from "@/lib/email/ambassador";
+import { WELCOME_REPLY_TO, renderAmbassadorWelcome } from "@/lib/email/ambassador-welcome";
 import { TemplateRenderError } from "@/lib/email/render-template";
 import { createPortalUrl } from "@/lib/portal-token";
 import { getAppUrl } from "@/lib/site-url";
@@ -651,6 +652,28 @@ export function emailCatalog(): EmailEntry[] {
           },
           { saved: true },
         ),
+    },
+
+    {
+      id: "ambassador-welcome",
+      section: "The list and the contact form",
+      name: "Welcome to Outrider (to an ambassador)",
+      trigger:
+        "Only when you send it from /admin/ambassadors: a row's Send button, or Send welcome email to selected. Once per ambassador; the date it went shows in the Welcome column.",
+      recipient: "The ambassador, at the email on their row",
+      sandbox: "Add the TESTCARTER row with scripts/test-ambassador.sql (put your own address on it), then press Send on that row.",
+      notes: [
+        `Replies go to ${WELCOME_REPLY_TO}, since Carter signs it.`,
+        "The button opens /ambassador/dashboard, which signs in with an emailed code for that address. The email carries no sign-in link of its own.",
+        "The preview uses the sample name; the real send uses the name, school and code on the ambassador's row.",
+      ],
+      render: () =>
+        renderAmbassadorWelcome({
+          name: SAMPLE_NAME,
+          school: "Auburn",
+          code: SAMPLE_GROUP_CODE,
+          dashboardUrl: `${getAppUrl()}/ambassador/dashboard`,
+        }),
     },
 
     /* -- Supabase ------------------------------------------------------------ */

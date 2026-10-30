@@ -195,6 +195,14 @@ export const AMBASSADOR_PORTAL = {
   agreementLead: "Read this once. It’s the whole deal, in plain words.",
   agreementCheck: "I agree to these terms.",
   agreementSubmit: "Agree and open my dashboard",
+  // "Post today", at the top of Home until their first friend books (Carter,
+  // 29 October 2026). Same ask as the welcome email's "First thing today".
+  postTodayTitle: "Post today",
+  postTodayLine: (code: string) =>
+    `Share an @outridertravel post or a graphic from your Toolkit. Add your code, ${code}, and tag @outridertravel.`,
+  postTodayGraphic: "Get a graphic",
+  postTodayInstagram: "Open Instagram",
+  instagramUrl: "https://www.instagram.com/outridertravel/",
   shareTitle: "Share your link",
   codeTitle: "Your code",
   codeNote: "Friends type it in Referred by at checkout. It takes nothing off.",

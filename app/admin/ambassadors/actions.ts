@@ -11,7 +11,8 @@ import { normalizeDiscountCode } from "@/lib/discount-codes";
 import { resolveGroupCode } from "@/lib/group-code";
 import { moveToSingleBalance } from "@/lib/installments";
 import { tierDisplayName } from "@/lib/tier-display";
-import { sendAmbassadorSpotEmail } from "@/lib/email/send";
+import { getFromAddress, sendAmbassadorSpotEmail, sendEmailBatch } from "@/lib/email/send";
+import { WELCOME_REPLY_TO, renderAmbassadorWelcome } from "@/lib/email/ambassador-welcome";
 import {
   AMBASSADOR_GOAL,
   AMBASSADOR_STATUSES,
@@ -20,7 +21,7 @@ import {
   type AmbassadorStatus,
   type HoldStatus,
 } from "@/lib/ambassadors";
-import { ANNOUNCEMENT_MAX, TOOLKIT_BUCKET } from "@/lib/ambassador-rules";
+import { ANNOUNCEMENT_MAX, NO_PORTAL_STATUSES, TOOLKIT_BUCKET } from "@/lib/ambassador-rules";
 import { friendCredit, programFor, spotPrice } from "@/lib/ambassador-program";
 import { isToolkitObjectPath } from "@/lib/toolkit-upload";
 import { LAST_SIGNUP_DEADLINE, LAST_SIGNUP_DEADLINE_DAY, signupsClosed } from "@/lib/signup-deadline";
@@ -467,10 +468,11 @@ export async function releaseUnpaidHolds() {
     await admin
       .from("ambassadors")
       // Their program status follows, unless the team has already dropped
-      // them. Released ambassadors keep the portal (lib/ambassador-program.ts).
+      // them or they are code-only. Released ambassadors keep the portal
+      // (lib/ambassador-program.ts).
       .update({
         hold_status: "released",
-        status: a.status === "dropped" ? "dropped" : "released",
+        status: NO_PORTAL_STATUSES.includes(a.status) ? a.status : "released",
         updated_at: new Date().toISOString(),
       })
       .eq("code", a.code);
@@ -553,4 +555,67 @@ export async function deleteToolkitFile(formData: FormData) {
   }
   revalidatePath("/admin/ambassadors");
   back("/admin/ambassadors", { done: "file_deleted" });
+}
+
+/* -- the welcome email --------------------------------------------------------------- */
+
+/** At most this many in one send: Resend's batch limit. */
+const WELCOME_BATCH = 100;
+
+/**
+ * Sends "Welcome to Outrider" (lib/email/ambassador-welcome.ts) to the
+ * ambassadors named by `code` (one from a row's button, several from "Send to
+ * selected"). Never twice: each is claimed by setting welcome_email_sent_at
+ * where it is still null, and only the claimed are sent. Skips anyone without
+ * an email, and anyone dropped or code-only (no portal to welcome them to).
+ * If the send fails, the claims are put back so it can be tried again.
+ */
+export async function sendWelcomeEmails(formData: FormData) {
+  await requireAdmin();
+  const path = "/admin/ambassadors";
+  const codes = [...new Set(formData.getAll("code").map((c) => normalizeDiscountCode(c)).filter((c): c is string => Boolean(c)))];
+  if (codes.length === 0) back(path, { error: "none_selected" });
+  if (codes.length > WELCOME_BATCH) back(path, { error: "too_many" });
+
+  const admin = createAdminClient();
+  const now = new Date().toISOString();
+  const { data: claimed, error } = await admin
+    .from("ambassadors")
+    .update({ welcome_email_sent_at: now })
+    .in("code", codes)
+    .is("welcome_email_sent_at", null)
+    .not("email", "is", null)
+    .not("status", "in", `(${NO_PORTAL_STATUSES.join(",")})`)
+    .select("code, name, school, email");
+  if (error) {
+    console.error(`sendWelcomeEmails: claim: ${error.code} ${error.message}`);
+    back(path, { error: "save_failed" });
+  }
+  const rows = (claimed ?? []).filter((r): r is typeof r & { email: string } => Boolean(r.email));
+  const skipped = codes.length - rows.length;
+  if (rows.length === 0) back(path, { done: "welcomed", sent: 0, skipped });
+
+  const dashboardUrl = `${getAppUrl()}/ambassador/dashboard`;
+  const from = getFromAddress();
+  try {
+    await sendEmailBatch(
+      rows.map((r) => {
+        const email = renderAmbassadorWelcome({ name: r.name, school: r.school, code: r.code, dashboardUrl });
+        return { from, to: r.email, replyTo: WELCOME_REPLY_TO, subject: email.subject, html: email.html, text: email.text };
+      }),
+      // Resend drops a repeat of the same batch for a day: a retry after a
+      // timeout that actually went through sends nothing twice.
+      `ambassador-welcome:${rows.map((r) => r.code).sort().join(",")}`.slice(0, 256),
+    );
+  } catch (err) {
+    console.error(`sendWelcomeEmails: send failed: ${err instanceof Error ? err.message : err}`);
+    await admin
+      .from("ambassadors")
+      .update({ welcome_email_sent_at: null })
+      .in("code", rows.map((r) => r.code))
+      .eq("welcome_email_sent_at", now);
+    back(path, { error: "send_failed" });
+  }
+  revalidatePath(path);
+  back(path, { done: "welcomed", sent: rows.length, skipped });
 }

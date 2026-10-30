@@ -17,7 +17,7 @@ import {
   type Ambassador,
   type AmbassadorStatus,
 } from "@/lib/ambassadors";
-import { ANNOUNCEMENT_MAX, TOOLKIT_BUCKET, TOOLKIT_SHARED, schoolSlug } from "@/lib/ambassador-rules";
+import { ANNOUNCEMENT_MAX, NO_PORTAL_STATUSES, TOOLKIT_BUCKET, TOOLKIT_SHARED, schoolSlug } from "@/lib/ambassador-rules";
 import { programFor } from "@/lib/ambassador-program";
 import { isToolkitObjectPath, MAX_UPLOAD_BYTES } from "@/lib/toolkit-upload";
 import {
@@ -37,6 +37,7 @@ import {
   Th,
 } from "@/app/admin/admin-ui";
 import {
+  sendWelcomeEmails,
   createHold,
   deleteToolkitFile,
   moveToNewSchedule,
@@ -92,6 +93,10 @@ export default async function AmbassadorsPage(props: {
   const error = params.error ? (AMBASSADOR_ERRORS[params.error] ?? "That didn't go through.") : null;
   const closed = signupsClosed();
   const holds = (ambassadors ?? []).filter((a) => a.holdStatus === "held" || a.holdStatus === "paying");
+  // The final roster has the portal; code-only and dropped rows are listed
+  // apart, with nothing to send them.
+  const inPortal = (ambassadors ?? []).filter((a) => !NO_PORTAL_STATUSES.includes(a.status));
+  const noPortal = (ambassadors ?? []).filter((a) => NO_PORTAL_STATUSES.includes(a.status));
 
   return (
     <main className="shell pb-16">
@@ -129,30 +134,32 @@ export default async function AmbassadorsPage(props: {
         ) : ambassadors.length === 0 ? (
           <EmptyState title="No ambassadors yet">Add the first one below. Their $0 code is made with them.</EmptyState>
         ) : (
-          <Panel title={`${ambassadors.length} ambassadors`} bleed>
-            <TableScroll label="Ambassadors">
-              <Table>
-                <thead>
-                  <tr>
-                    <Th>Ambassador</Th>
-                    <Th>Code and link</Th>
-                    <Th>Status</Th>
-                    <Th>Portal</Th>
-                    <Th>Trip</Th>
-                    <Th align="right">Deposit only</Th>
-                    <Th align="right">Paid in full</Th>
-                    <Th align="right">To {AMBASSADOR_GOAL}</Th>
-                    <Th>Held spot</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ambassadors.map((a) => (
-                    <AmbassadorRow key={a.code} a={a} lastSignIn={a.userId ? (lastSignIn.get(a.userId) ?? null) : null} />
-                  ))}
-                </tbody>
-              </Table>
-            </TableScroll>
-          </Panel>
+          <div className="flex flex-col gap-8">
+            <Panel title={`${inPortal.length} ambassadors with the portal`} bleed>
+              {/* "Welcome to Outrider" goes only when you send it: tick the rows
+                  and send them together, or use a row's own button. Each is
+                  sent once (welcome_email_sent_at); rows already sent, or with
+                  no email, are skipped and counted. */}
+              <form id="welcome-bulk" action={sendWelcomeEmails} className="flex flex-wrap items-center gap-3 px-4 pb-4 sm:px-6">
+                <Button type="submit" variant="secondary" size="sm">
+                  Send welcome email to selected
+                </Button>
+                <span className="font-body text-body-s text-[--text-secondary]">
+                  {inPortal.filter((a) => a.welcomeEmailSentAt).length} of {inPortal.length} sent.
+                </span>
+              </form>
+              <AmbassadorTable rows={inPortal} label="Ambassadors with the portal" lastSignIn={lastSignIn} />
+            </Panel>
+            {noPortal.length > 0 && (
+              <Panel
+                title={`${noPortal.length} codes only, no portal`}
+                description="Earlier ambassadors who keep their $0 code, and anyone dropped. Bookings with their codes still count here. They can't open the portal and never get the welcome email."
+                bleed
+              >
+                <AmbassadorTable rows={noPortal} label="Codes only, no portal" lastSignIn={lastSignIn} />
+              </Panel>
+            )}
+          </div>
         )}
       </div>
 
@@ -379,10 +386,65 @@ async function loadToolkitFiles(admin: ReturnType<typeof createAdminClient>, slu
   return lists.flat();
 }
 
+function AmbassadorTable({
+  rows,
+  label,
+  lastSignIn,
+}: {
+  rows: Ambassador[];
+  label: string;
+  lastSignIn: Map<string, string | null>;
+}) {
+  return (
+    <TableScroll label={label}>
+      <Table>
+        <thead>
+          <tr>
+            <Th>
+              <span className="sr-only">Select</span>
+            </Th>
+            <Th>Ambassador</Th>
+            <Th>Code and link</Th>
+            <Th>Status</Th>
+            <Th>Portal</Th>
+            <Th>Welcome</Th>
+            <Th>Trip</Th>
+            <Th align="right">Deposit only</Th>
+            <Th align="right">Paid in full</Th>
+            <Th align="right">To {AMBASSADOR_GOAL}</Th>
+            <Th>Held spot</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((a) => (
+            <AmbassadorRow key={a.code} a={a} lastSignIn={a.userId ? (lastSignIn.get(a.userId) ?? null) : null} />
+          ))}
+        </tbody>
+      </Table>
+    </TableScroll>
+  );
+}
+
 function AmbassadorRow({ a, lastSignIn }: { a: Ambassador; lastSignIn: string | null }) {
   const reached = a.toGoal === 0;
+  const portal = !NO_PORTAL_STATUSES.includes(a.status);
+  const canWelcome = portal && !a.welcomeEmailSentAt && Boolean(a.email);
   return (
     <tr>
+      <Td>
+        {/* Belongs to the "Send to selected" form above the table. */}
+        {portal && (
+          <input
+            type="checkbox"
+            name="code"
+            value={a.code}
+            form="welcome-bulk"
+            disabled={!canWelcome}
+            aria-label={`Select ${a.name} for the welcome email`}
+            className="h-4 w-4"
+          />
+        )}
+      </Td>
       <Td>
         <Link href={`/admin/ambassadors/${a.code}`} className="font-medium text-[--text] underline underline-offset-4">
           {a.name}
@@ -402,7 +464,9 @@ function AmbassadorRow({ a, lastSignIn }: { a: Ambassador; lastSignIn: string | 
         {a.chapter && <span className="block text-[--text-secondary]">{a.chapter}</span>}
       </Td>
       <Td>
-        {!a.email ? (
+        {!portal ? (
+          <span className="text-[--text-muted]">No portal</span>
+        ) : !a.email ? (
           <span className="text-[--text-muted]">No email</span>
         ) : !a.userId ? (
           <span className="text-[--text-secondary]">Not signed in</span>
@@ -416,6 +480,22 @@ function AmbassadorRow({ a, lastSignIn }: { a: Ambassador; lastSignIn: string | 
         )}
         {a.rewardClaimedAt && a.rewardTrip && (
           <span className="block text-[--text-secondary]">Free trip: {formatDay(a.rewardTrip.start_date)}</span>
+        )}
+      </Td>
+      <Td>
+        {a.welcomeEmailSentAt ? (
+          <span className="text-[--text-secondary]">Sent {formatDay(a.welcomeEmailSentAt.slice(0, 10))}</span>
+        ) : !portal ? (
+          <span className="text-[--text-muted]">Not sent</span>
+        ) : !a.email ? (
+          <span className="text-[--text-muted]">Needs email</span>
+        ) : (
+          <form action={sendWelcomeEmails}>
+            <input type="hidden" name="code" value={a.code} />
+            <Button type="submit" variant="ghost" size="sm">
+              Send
+            </Button>
+          </form>
         )}
       </Td>
       <Td>{a.trip ? formatDay(a.trip.start_date) : <span className="text-[--text-muted]">Not set</span>}</Td>

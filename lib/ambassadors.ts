@@ -39,7 +39,7 @@ type BookingStatus = Database["public"]["Enums"]["booking_status"];
 export const AMBASSADOR_GOAL = TELLURIDE_2026.goal;
 
 /** ambassadors.status (ambassador_portal migration). Dropped loses the portal; released keeps it (lib/ambassador-program.ts). */
-export const AMBASSADOR_STATUSES = ["onboarded", "accepted", "active", "earned", "released", "dropped"] as const;
+export const AMBASSADOR_STATUSES = ["onboarded", "accepted", "active", "earned", "released", "dropped", "code_only"] as const;
 export type AmbassadorStatus = (typeof AMBASSADOR_STATUSES)[number];
 
 export const AMBASSADOR_STATUS_LABEL: Record<AmbassadorStatus, string> = {
@@ -49,6 +49,7 @@ export const AMBASSADOR_STATUS_LABEL: Record<AmbassadorStatus, string> = {
   earned: "Earned",
   released: "Released",
   dropped: "Dropped",
+  code_only: "Code only, no portal",
 };
 
 export const HOLD_STATUSES = ["held", "free", "paying", "released"] as const;
@@ -135,6 +136,8 @@ export type Ambassador = {
   /** The departure picked for an earned free trip. */
   rewardTrip: { id: string; name: string; start_date: string } | null;
   rewardClaimedAt: string | null;
+  /** When "Welcome to Outrider" went out, or null (lib/email/ambassador-welcome.ts). */
+  welcomeEmailSentAt: string | null;
   email: string | null;
   phone: string | null;
   instagram: string | null;
@@ -210,7 +213,7 @@ export async function loadAmbassadors(admin: Admin, code?: string): Promise<Amba
   let query = admin
     .from("ambassadors")
     .select(
-      "code, name, school, chapter, status, program, user_id, agreed_at, leaderboard_hidden, reward_claimed_at, email, phone, instagram, hold_status, hold_booking_id, payment_link_id, payment_link_url, trips!ambassadors_trip_id_fkey(id, name, start_date), reward:trips!ambassadors_reward_trip_id_fkey(id, name, start_date)",
+      "code, name, school, chapter, status, program, user_id, agreed_at, leaderboard_hidden, reward_claimed_at, welcome_email_sent_at, email, phone, instagram, hold_status, hold_booking_id, payment_link_id, payment_link_url, trips!ambassadors_trip_id_fkey(id, name, start_date), reward:trips!ambassadors_reward_trip_id_fkey(id, name, start_date)",
     )
     .order("name");
   if (code) query = query.eq("code", code);
@@ -270,6 +273,7 @@ export async function loadAmbassadors(admin: Admin, code?: string): Promise<Amba
       leaderboardHidden: r.leaderboard_hidden,
       rewardTrip: r.reward,
       rewardClaimedAt: r.reward_claimed_at,
+      welcomeEmailSentAt: r.welcome_email_sent_at,
       email: r.email,
       phone: r.phone,
       instagram: r.instagram,

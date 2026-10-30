@@ -314,7 +314,7 @@ model Ambassador {
   /// The portal account (ambassador_portal migration), linked on first sign-in.
   userId            String?   @unique @map("user_id") @db.Uuid
   chapter           String?
-  /// onboarded | accepted | active | earned | released | dropped (CHECK ambassadors_status_check)
+  /// onboarded | accepted | active | earned | released | dropped | code_only (CHECK ambassadors_status_check)
   status            String    @default("accepted")
   /// When they accepted the ambassador agreement (also in legal_acceptances).
   agreedAt          DateTime? @map("agreed_at") @db.Timestamptz
@@ -324,6 +324,8 @@ model Ambassador {
   /// The departure picked for an earned free trip.
   rewardTripId      String?   @map("reward_trip_id") @db.Uuid
   rewardClaimedAt   DateTime? @map("reward_claimed_at") @db.Timestamptz
+  /// When "Welcome to Outrider" went out (ambassador_welcome_email migration); claimed before the send.
+  welcomeEmailSentAt DateTime? @map("welcome_email_sent_at") @db.Timestamptz
 
   discountCode DiscountCode @relation(fields: [code], references: [code])
   trip         Trip?        @relation("AmbassadorTrip", fields: [tripId], references: [id])

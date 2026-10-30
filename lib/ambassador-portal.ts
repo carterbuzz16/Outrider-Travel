@@ -106,7 +106,7 @@ export const getPortalAccess = cache(async (): Promise<PortalAccess> => {
  * Whether a signed-in account is an ambassador, for the links that lead to
  * the portal (the account nav, the bookings page). Linked by user_id, or not
  * yet linked but with a confirmed email that matches, exactly as the portal
- * itself decides (getPortalAccess). Dropped ambassadors are not. Never throws:
+ * itself decides (getPortalAccess). Dropped and code-only ambassadors are not. Never throws:
  * a link is a convenience, and the portal checks again on arrival.
  */
 export async function isAmbassadorAccount(user: {
