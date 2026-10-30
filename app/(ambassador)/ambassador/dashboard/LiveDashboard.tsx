@@ -248,22 +248,40 @@ function Progress({
   return (
     <section aria-labelledby="progress-title" className="scheme-espresso scheme-paint">
       <div className="shell-narrow pb-10 pt-8 md:pb-14 md:pt-12">
-        {/* Until the first friend books, the one thing to do today. It goes
-            the moment a booking shows up in the count. */}
-        {view.friends.length === 0 && (
-          <div className="mb-8 bg-[rgb(var(--rgb-paper)/0.08)] px-4 py-5">
-            <p className="t-rule-label text-[--accent]">{COPY.postTodayTitle}</p>
-            <p className="mt-2 font-body text-body text-[--text]">{COPY.postTodayLine(view.code)}</p>
+        <div className="mb-8 flex flex-col gap-1.5">
+          {/* The playbook, always first so it never moves. The browser opens
+              or saves the PDF itself (Link steps aside for target and
+              download). */}
+          <section aria-label={COPY.playbookTitle} className="bg-[rgb(var(--rgb-paper)/0.08)] px-4 py-5">
+            <p className="t-rule-label text-[--accent]">{COPY.playbookTitle}</p>
+            <p className="mt-2 font-body text-body text-[--text]">{COPY.playbookLine}</p>
             <div className="mt-4 grid grid-cols-2 gap-1.5">
-              <Button type="button" variant="secondary" size="sm" block onClick={() => go("toolkit")}>
-                {COPY.postTodayGraphic}
+              <Button href={COPY.playbookPath} variant="secondary" size="sm" block target="_blank" rel="noopener">
+                {COPY.playbookView}
               </Button>
-              <Button href={COPY.instagramUrl} variant="secondary" size="sm" block target="_blank" rel="noopener noreferrer">
-                {COPY.postTodayInstagram}
+              <Button href={COPY.playbookPath} variant="secondary" size="sm" block download={COPY.playbookFileName}>
+                {COPY.playbookDownload}
               </Button>
             </div>
-          </div>
-        )}
+          </section>
+
+          {/* Until the first friend books, the one thing to do today. It goes
+              the moment a booking shows up in the count. */}
+          {view.friends.length === 0 && (
+            <div className="bg-[rgb(var(--rgb-paper)/0.08)] px-4 py-5">
+              <p className="t-rule-label text-[--accent]">{COPY.postTodayTitle}</p>
+              <p className="mt-2 font-body text-body text-[--text]">{COPY.postTodayLine(view.code)}</p>
+              <div className="mt-4 grid grid-cols-2 gap-1.5">
+                <Button type="button" variant="secondary" size="sm" block onClick={() => go("toolkit")}>
+                  {COPY.postTodayGraphic}
+                </Button>
+                <Button href={COPY.instagramUrl} variant="secondary" size="sm" block target="_blank" rel="noopener noreferrer">
+                  {COPY.postTodayInstagram}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
         <p className="t-rule-label text-[--text-secondary]">Hi, {view.firstName}</p>
         <h1 id="progress-title" className="sr-only">
           Your progress toward a free trip

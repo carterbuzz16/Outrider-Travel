@@ -195,6 +195,15 @@ export const AMBASSADOR_PORTAL = {
   agreementLead: "Read this once. It’s the whole deal, in plain words.",
   agreementCheck: "I agree to these terms.",
   agreementSubmit: "Agree and open my dashboard",
+  // The playbook PDF, at the top of Home (Carter, 30 October 2026). The file
+  // is public/outrider-ambassador-playbook.pdf, so anyone with the link can
+  // open it; the line is the playbook's own.
+  playbookTitle: "Playbook",
+  playbookLine: "Everything you need, in one PDF. Read it once, then keep it open while you text.",
+  playbookView: "View playbook",
+  playbookDownload: "Download PDF",
+  playbookPath: "/outrider-ambassador-playbook.pdf",
+  playbookFileName: "outrider-ambassador-playbook.pdf",
   // "Post today", at the top of Home until their first friend books (Carter,
   // 29 October 2026). Same ask as the welcome email's "First thing today".
   postTodayTitle: "Post today",
