@@ -41,9 +41,11 @@ export async function sendTestEmail(_prev: TestSendResult | null, formData: Form
 
   try {
     const email = entry.render();
-    const from = getFromAddress();
+    // The entry's own sender where it has one (the welcome email is from
+    // Carter), so the test shows the same name and photo as the real send.
+    const from = entry.from ?? getFromAddress();
     const subject = `[TEST] ${email.subject}`;
-    const base = { from, to, subject, ...(entry.replyToBookings ? { replyTo: from } : {}) };
+    const base = { from, to, subject, ...(entry.replyToBookings ? { replyTo: getFromAddress() } : {}) };
     // No List-Unsubscribe header on a test: it would point at a sample token.
     if (email.html) {
       await sendEmail({ ...base, html: email.html, ...(email.text ? { text: email.text } : {}) });

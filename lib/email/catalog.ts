@@ -28,7 +28,7 @@ import { renderPortalLinkEmail } from "@/lib/email/portal-link";
 import { renderStaleCheckoutRefundEmail } from "@/lib/email/stale-checkout";
 import { renderContactMessage } from "@/lib/email/contact";
 import { renderAmbassadorApplication } from "@/lib/email/ambassador";
-import { WELCOME_REPLY_TO, renderAmbassadorWelcome } from "@/lib/email/ambassador-welcome";
+import { WELCOME_FROM, renderAmbassadorWelcome } from "@/lib/email/ambassador-welcome";
 import { TemplateRenderError } from "@/lib/email/render-template";
 import { createPortalUrl } from "@/lib/portal-token";
 import { getAppUrl } from "@/lib/site-url";
@@ -193,6 +193,8 @@ export type EmailEntry = {
   supabase?: boolean;
   /** Reply-to on the real send: the bookings inbox. */
   replyToBookings?: boolean;
+  /** The real send's From, where it isn't EMAIL_FROM_ADDRESS. The test send uses it too. */
+  from?: string;
   notes?: string[];
   /**
    * Designed templates only: the real values production still lacks (so it
@@ -661,9 +663,10 @@ export function emailCatalog(): EmailEntry[] {
       trigger:
         "Only when you send it from /admin/ambassadors: a row's Send button, or Send welcome email to selected. Once per ambassador; the date it went shows in the Welcome column.",
       recipient: "The ambassador, at the email on their row",
+      from: WELCOME_FROM,
       sandbox: "Add the TESTCARTER row with scripts/test-ambassador.sql (put your own address on it), then press Send on that row.",
       notes: [
-        `Replies go to ${WELCOME_REPLY_TO}, since Carter signs it.`,
+        `Sent from ${WELCOME_FROM}, not the booking address, so Gmail shows Carter's Google photo beside it and replies go to him.`,
         "The button opens /ambassador/dashboard, which signs in with an emailed code for that address. The email carries no sign-in link of its own.",
         "The preview uses the sample name; the real send uses the name, school and code on the ambassador's row.",
       ],

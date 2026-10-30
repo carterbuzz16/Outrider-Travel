@@ -20,8 +20,14 @@ import { BRAND, emailButton, renderEmailLayout } from "@/lib/email/layout";
 export const KICKOFF_URL =
   "https://calendar.google.com/calendar/event?action=TEMPLATE&tmeid=NGMzZ3VtcWdnY284OHIzb3JnZGtvMnV2NmggY2FydGVyQG91dHJpZGVyLnRyYXZlbA&tmsrc=carter%40outrider.travel";
 
-/** Replies go to Carter, who signs it. */
-export const WELCOME_REPLY_TO = "carter@outrider.travel";
+/**
+ * From Carter himself, who signs it, rather than the site's booking@ address
+ * (Carter, 30 October 2026). The picture beside a sender in Gmail is that
+ * address's Google account photo; booking@ is an alias of his, so it has none
+ * and showed a blank person. His own address shows his photo, and replies
+ * come straight to him.
+ */
+export const WELCOME_FROM = "Carter Busby <carter@outrider.travel>";
 
 export type AmbassadorWelcomeInput = {
   name: string;

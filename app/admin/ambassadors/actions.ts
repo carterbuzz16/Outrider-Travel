@@ -11,8 +11,8 @@ import { normalizeDiscountCode } from "@/lib/discount-codes";
 import { resolveGroupCode } from "@/lib/group-code";
 import { moveToSingleBalance } from "@/lib/installments";
 import { tierDisplayName } from "@/lib/tier-display";
-import { getFromAddress, sendAmbassadorSpotEmail, sendEmailBatch } from "@/lib/email/send";
-import { WELCOME_REPLY_TO, renderAmbassadorWelcome } from "@/lib/email/ambassador-welcome";
+import { sendAmbassadorSpotEmail, sendEmailBatch } from "@/lib/email/send";
+import { WELCOME_FROM, renderAmbassadorWelcome } from "@/lib/email/ambassador-welcome";
 import {
   AMBASSADOR_GOAL,
   AMBASSADOR_STATUSES,
@@ -596,12 +596,11 @@ export async function sendWelcomeEmails(formData: FormData) {
   if (rows.length === 0) back(path, { done: "welcomed", sent: 0, skipped });
 
   const dashboardUrl = `${getAppUrl()}/ambassador/dashboard`;
-  const from = getFromAddress();
   try {
     await sendEmailBatch(
       rows.map((r) => {
         const email = renderAmbassadorWelcome({ name: r.name, school: r.school, code: r.code, dashboardUrl });
-        return { from, to: r.email, replyTo: WELCOME_REPLY_TO, subject: email.subject, html: email.html, text: email.text };
+        return { from: WELCOME_FROM, to: r.email, subject: email.subject, html: email.html, text: email.text };
       }),
       // Resend drops a repeat of the same batch for a day: a retry after a
       // timeout that actually went through sends nothing twice.
