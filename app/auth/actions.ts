@@ -489,12 +489,10 @@ export async function verifySignInCode(input: {
   // code, so one call works whether or not the address had an account.
   const { data, error } = await supabase.auth.verifyOtp({ email, token: code, type: "email" });
   if (error || !data.session) {
-    return {
-      ok: false,
-      message: /expired/i.test(error?.message ?? "")
-        ? "That code has expired. Ask for a new one."
-        : "That code didn't work. Check it, or ask for a new one.",
-    };
+    // Supabase says "Token has expired or is invalid" for a mistyped code and an old
+    // one alike, so it cannot tell us which this was. Saying "expired" for both sent
+    // someone with a typo off to ask for a new code (Carter, 3 November 2026).
+    return { ok: false, message: "That code didn't work. Check the digits, or ask for a new one." };
   }
 
   if (input?.emailUpdates === true) {
