@@ -4,7 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { FaqSchema, Reveal } from "@/components/ui";
 import { BOOKINGS_OPEN } from "@/lib/booking-window";
-import { CONTACT, UPCOMING_CATEGORIES } from "@/lib/site-content";
+import { CONTACT, SPRING_BREAK_WEEKS } from "@/lib/site-content";
+import { SPRING_BREAK_LINE, tripsOnLine } from "@/lib/trip-lines";
 import { availabilityLabel, formatDateRange, getPublishedTrips, nightCount } from "@/lib/trips";
 import BoardingPass from "./BoardingPass";
 import ListSignup from "./ListSignup";
@@ -15,7 +16,7 @@ export const metadata: Metadata = pageMetadata({
   title: "Join the list: early access to college trips",
   path: "/waitlist",
   description:
-    "Outrider hosts small-group trips for college students: Telluride ski weeks now, spring break next. The list hears about every trip before it goes on sale.",
+    "Outrider hosts small-group trips for college students: ski in Telluride, spring break in Punta Cana. The list hears about every trip before it goes on sale.",
   shareTitle: "Join the Outrider list",
   ownImage: true,
 });
@@ -79,11 +80,12 @@ const QUESTIONS: { q: string; a: React.ReactNode }[] = [
     q: "When do trips go on sale?",
     a: BOOKINGS_OPEN ? (
       <>
-        They&rsquo;re open now. Dates, packages and pricing are on the{" "}
+        When the rooms are held and the price is set. What&rsquo;s on sale now is
+        on the{" "}
         <Link href="/trips" className="text-[--accent] underline underline-offset-4">
           trips page
         </Link>
-        .
+        , with dates, packages and pricing.
       </>
     ) : (
       <>
@@ -132,7 +134,9 @@ const rise = (step: number) =>
 
 export default async function WaitlistPage() {
   const trips = await getPublishedTrips();
-  const next = trips[0];
+  // The next one still on sale: a departure past its close reads soldOut, and a
+  // pass counting down to a trip nobody can join is no reason to sign up.
+  const next = trips.find((trip) => trip.status !== "soldOut");
 
   const board = [
     ...trips.map((trip) => ({
@@ -143,14 +147,20 @@ export default async function WaitlistPage() {
       status: BOOKINGS_OPEN ? availabilityLabel(trip.status, trip.bookingClosed) : "List first",
       live: true,
     })),
-    ...UPCOMING_CATEGORIES.map((category) => ({
-      key: category.name,
-      destination: category.destination.startsWith("Destination") ? "TBA" : category.destination,
-      name: category.name,
-      when: category.window,
-      status: "Scouting",
-      live: false,
-    })),
+    // Spring break's dates are announced before its trips are published, so it
+    // has a row either way. Not live: nothing is on sale until they are.
+    ...(tripsOnLine(trips, SPRING_BREAK_LINE).length === 0
+      ? [
+          {
+            key: SPRING_BREAK_LINE.id,
+            destination: SPRING_BREAK_LINE.place,
+            name: SPRING_BREAK_LINE.name,
+            when: SPRING_BREAK_WEEKS.map((week) => formatDateRange(week.startDate, week.endDate)).join(" or "),
+            status: "List first",
+            live: false,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -197,12 +207,13 @@ export default async function WaitlistPage() {
               className="mt-8 max-w-[44ch] font-body text-lede leading-[1.7] text-[--text] motion-safe:animate-rise"
               style={rise(2)}
             >
-              {/* The two published Telluride departures, written out by hand
-                  for the launch QR code. If a date moves in /admin/trips,
-                  change it here too. */}
-              Join the list for first access to Telluride, December 14 to 18
-              and January 4 to 8, and to every Outrider trip after it.
-              It&rsquo;s free, and it commits you to nothing.
+              {/* No trip or date here since 3 November 2026: this is the link in
+                  the Instagram bio and on the launch QR code, so it should still
+                  be true whatever is on sale the day someone scans it. The board
+                  below names them. */}
+              Join the list for first access to every Outrider trip, from ski
+              weeks to spring break. It&rsquo;s free, and it commits you to
+              nothing.
             </p>
             <div className="mt-10 motion-safe:animate-rise" style={rise(3)}>
               <ListSignup placement="waitlist-hero" />
@@ -343,12 +354,12 @@ export default async function WaitlistPage() {
         <div className="shell">
           <Reveal>
             <div className="flex flex-wrap items-end justify-between gap-6 border-t border-[--rule] pt-20 md:pt-28">
-              <h2 className="t-heading max-w-[20ch] text-[--text]">Telluride, before everyone else</h2>
+              <h2 className="t-heading max-w-[20ch] text-[--text]">Telluride and Punta Cana, before everyone else</h2>
               <Link
                 href="/destinations"
                 className="t-label -my-2.5 py-2.5 text-[--text] underline decoration-[--rule-strong] underline-offset-[0.5em] transition-colors duration-fast hover:text-[--accent]"
               >
-                The destination
+                The destinations
               </Link>
             </div>
           </Reveal>

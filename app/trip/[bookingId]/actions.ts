@@ -8,6 +8,7 @@ import { createPortalUrl, isBookingId, verifyPortalToken } from "@/lib/portal-to
 import { sendPortalLinkEmail } from "@/lib/email/portal-link";
 import { SMS_CONSENT_FIELD, SMS_CONSENT_VERSION } from "@/lib/sms-consent";
 import { MAX_LENGTHS, formText, parseIdentity } from "@/lib/traveler-details";
+import { lineForDestination, type TripLine } from "@/lib/trip-lines";
 import {
   ABILITY_LEVELS,
   MAX_NAME_LENGTH,
@@ -41,7 +42,7 @@ const OPEN_STATUSES = ["deposit_paid", "paid_in_full"] as const;
 const LINK_PROBLEM =
   "This link has expired or isn't valid. Reload the page and ask for a fresh link.";
 
-type Authorized = { ok: true; bookingId: string } | { ok: false; result: PortalActionResult };
+type Authorized = { ok: true; bookingId: string; line: TripLine } | { ok: false; result: PortalActionResult };
 
 async function authorize(formData: FormData): Promise<Authorized> {
   const bookingId = String(formData.get("bookingId") ?? "").toLowerCase();
@@ -64,7 +65,7 @@ async function authorize(formData: FormData): Promise<Authorized> {
   const admin = createAdminClient();
   const { data: booking, error } = await admin
     .from("bookings")
-    .select("status")
+    .select("status, trips(destination)")
     .eq("id", bookingId)
     .maybeSingle();
 
@@ -82,7 +83,7 @@ async function authorize(formData: FormData): Promise<Authorized> {
     };
   }
 
-  return { ok: true, bookingId };
+  return { ok: true, bookingId, line: lineForDestination(booking.trips?.destination) };
 }
 
 
@@ -197,7 +198,20 @@ export async function submitRoomingRequest(
  * form has to collect is decided HERE, from the row in the database, and
  * never from anything the browser sends: a post claiming the identity half is
  * already in must not be able to skip it.
+ *
+ * Which trip it is gets decided the same way (authorize, lib/trip-lines.ts). A
+ * trip with no rentals has no gear to ask about, so none of the rental shop's
+ * errors can reach its traveler, and only the dietary line is read.
  */
+function parseDietary(formData: FormData): string | null {
+  // Line breaks are kept here: allergies are often a short list.
+  return (
+    String(formData.get("dietaryRestrictions") ?? "")
+      .trim()
+      .slice(0, MAX_LENGTHS.dietaryRestrictions) || null
+  );
+}
+
 function parseGear(
   formData: FormData,
 ): { ok: true; values: GearValues } | { ok: false; fieldErrors: Record<string, string> } {
@@ -206,10 +220,6 @@ function parseGear(
   const shoeSize = formText(formData, "shoeSize", MAX_LENGTHS.shoeSize);
   const skiOrBoard = formText(formData, "skiOrBoard", 20);
   const abilityLevel = formText(formData, "abilityLevel", 20);
-  // Line breaks are kept here: allergies are often a short list.
-  const dietary = String(formData.get("dietaryRestrictions") ?? "")
-    .trim()
-    .slice(0, MAX_LENGTHS.dietaryRestrictions);
 
   const fieldErrors: Record<string, string> = {};
   if (!height) fieldErrors.height = "The rental shop needs this to fit your gear.";
@@ -228,7 +238,7 @@ function parseGear(
       shoe_size: shoeSize,
       ski_or_board: skiOrBoard,
       ability_level: abilityLevel,
-      dietary_restrictions: dietary || null,
+      dietary_restrictions: parseDietary(formData),
     },
   };
 }
@@ -268,7 +278,8 @@ export async function submitTravelerDetails(
     return { ok: false, message: "That didn't save. Try again." };
   }
 
-  const gear = parseGear(formData);
+  const gear: ReturnType<typeof parseGear> | { ok: true; values: Pick<GearValues, "dietary_restrictions"> } =
+    auth.line.rentals ? parseGear(formData) : { ok: true, values: { dietary_restrictions: parseDietary(formData) } };
   const identity = existing ? null : parseIdentity(formData);
 
   const fieldErrors = {
@@ -314,7 +325,8 @@ export async function submitTravelerDetails(
   }
 
   // Now, and only now, is the task done: the gear half is what the rental
-  // shop was waiting on, and this flag is what stops the 72-hour chase.
+  // shop was waiting on, and this flag is what stops the 72-hour chase. With no
+  // rentals checkout already set it, or this form has just taken what it missed.
   const { error: flagError } = await admin
     .from("bookings")
     .update({ details_submitted: true })
@@ -440,7 +452,7 @@ export async function requestFreshPortalLink(
   const admin = createAdminClient();
   const { data: booking, error } = await admin
     .from("bookings")
-    .select("id, status, users(email, name), trips(name)")
+    .select("id, status, users(email, name), trips(name, destination)")
     .eq("id", bookingId)
     .maybeSingle();
 
@@ -459,6 +471,7 @@ export async function requestFreshPortalLink(
       name: booking.users.name,
       tripName: booking.trips?.name ?? "your trip",
       portalUrl,
+      rentals: lineForDestination(booking.trips?.destination).rentals,
     });
   } catch (err) {
     console.error(

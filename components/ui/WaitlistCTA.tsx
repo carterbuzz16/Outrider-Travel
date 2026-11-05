@@ -21,7 +21,7 @@ import { useWaitlistSignup } from "./useWaitlistSignup";
  */
 export default function WaitlistCTA({
   heading = "Be first to know",
-  body = "First access to Telluride, and to every trip after it.",
+  body = "First access to every trip we run.",
   className,
   tone = "dark",
   /** Anchor target, so /trips#waitlist and /#waitlist land on the form. */

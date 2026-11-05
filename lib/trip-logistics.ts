@@ -61,6 +61,8 @@ const EMPTY: TripLogistics = {
  * site already calls it The Peaks Resort. Both departures stay there.
  */
 const PEAKS = "The Peaks Resort and Spa";
+/* Prints mid-sentence too ("Four nights at ..."), so no leading article. */
+const ZEMI = "Zemi Miches, Curio Collection by Hilton";
 
 const LOGISTICS: Record<string, TripLogistics> = {
   // Telluride, December 14 to 18, 2026.
@@ -81,6 +83,12 @@ const LOGISTICS: Record<string, TripLogistics> = {
     // the holidays rather than inside them.
     roomingLockDate: "2026-12-22",
   },
+  // Spring break, March 8 to 12, 2027. Capacity and the rooming date are
+  // Carter's to give, and stay null until he does (see the note above on what
+  // a null does).
+  "2027-03-08": { ...EMPTY, propertyName: ZEMI },
+  // Spring break, March 15 to 19, 2027.
+  "2027-03-15": { ...EMPTY, propertyName: ZEMI },
 };
 
 /**
@@ -95,10 +103,16 @@ export function getTripLogistics(startDate: string): TripLogistics {
 }
 
 /**
- * True once every departure listed here has both its arrival deadline and its
+ * True once every Telluride departure has both its arrival deadline and its
  * earliest departure. Until then the public pages say the flight guide "will
  * have" the times rather than that it has them.
+ *
+ * Telluride's rows only (3 November 2026): those pages are /telluride and the
+ * FAQ's Montrose answer, and spring break's rows have no times and may never
+ * get any, which would have kept the answer false after Telluride's arrived.
  */
 export function flightTimesPublished(): boolean {
-  return Object.values(LOGISTICS).every((l) => Boolean(l.arrivalDeadline && l.departureEarliest));
+  return Object.values(LOGISTICS)
+    .filter((l) => l.propertyName === PEAKS)
+    .every((l) => Boolean(l.arrivalDeadline && l.departureEarliest));
 }

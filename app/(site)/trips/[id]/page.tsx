@@ -100,10 +100,13 @@ export default async function TripDetailPage(props: {
   // A Telluride departure has no page of its own any more: every link to one
   // goes to /telluride (lib/trips.ts, tripPath), and so does an old one to
   // here, shared in a group chat or saved before the change. Permanent, so
-  // search engines move the page's standing over to /telluride as well.
+  // search engines move the page's standing over to /telluride as well. A
+  // spring break departure does the same, to /spring-break: tripPath asks
+  // lineForDestination (lib/trip-lines.ts), so there is no second check here.
   //
-  // The query string goes along: an ad's utm_* tags and fbclid have to reach
-  // /telluride, where AttributionCapture and the Meta Pixel read them.
+  // The query string goes along: an ad's utm_* tags, fbclid and an ambassador's
+  // ?ref= have to reach the page, where AttributionCapture and the Meta Pixel
+  // read them.
   if (tripPath(trip) !== `/trips/${trip.id}`) {
     const query = new URLSearchParams();
     for (const [key, value] of Object.entries(await props.searchParams)) {

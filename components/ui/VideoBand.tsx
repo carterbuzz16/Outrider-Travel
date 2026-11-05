@@ -17,9 +17,17 @@ import { cn } from "./cn";
  *
  * Unlike the masthead it is below the fold, so nothing is fetched until the
  * band is close to the screen, and the clip pauses again when it scrolls away.
- * The poster paints first and stays for anyone who has asked for reduced
- * motion, and for a browser that refuses to autoplay. Phones get their own
- * portrait cut, a third of the weight.
+ * Further than two screens away the clip is let go altogether (5 November 2026, when
+ * Carter found /spring-break laggy): a page of these must not keep a decoder and
+ * its frames alive for every band it has passed, which is what a phone runs out of.
+ * The gap between one screen and two is there so a reader scrolling back a little
+ * finds the clip still in hand, rather than fetching it again.
+ *
+ * The poster is the photograph behind the video, and the video stays invisible
+ * until it is really playing. It has no poster of its own, because that fetched
+ * each one twice, the original beside the sized one. The picture stays for anyone
+ * who has asked for reduced motion, and for a browser that refuses to autoplay.
+ * Phones get their own portrait cut, a third of the weight.
  *
  * The headline goes at the top, over the night sky in the town clip, and the
  * clip is pinned to its top edge so the sky is never what gets cropped. The
@@ -27,6 +35,9 @@ import { cn } from "./cn";
  * runs down behind the words and clears before the lights of the town, rather
  * than a scrim over the whole frame. Smaller text belongs under the band, on
  * a solid ground.
+ *
+ * `fade="foot"` is for a clip with no sky to write on (spring break's, 5 November
+ * 2026): the words sit at the bottom, on a fade in the page's own espresso.
  */
 const MOBILE = "(max-width: 767px)";
 
@@ -37,6 +48,7 @@ export default function VideoBand({
   mobilePoster,
   position,
   alt,
+  fade = "top",
   children,
   className,
 }: {
@@ -50,6 +62,7 @@ export default function VideoBand({
   position?: string;
   /** What the clip shows. Read once, as the poster's alt text. */
   alt: string;
+  fade?: "top" | "foot";
   children: React.ReactNode;
   className?: string;
 }) {
@@ -58,6 +71,7 @@ export default function VideoBand({
   const [near, setNear] = useState(false);
   const [small, setSmall] = useState(false);
   const [reduced, setReduced] = useState(true);
+  const [rolling, setRolling] = useState(false);
 
   useEffect(() => {
     const mobile = window.matchMedia(MOBILE);
@@ -75,19 +89,30 @@ export default function VideoBand({
     };
   }, []);
 
-  // Mount the clip once the band is within a screen of the viewport.
+  // Mount the clip when the band comes within a screen of the viewport, and let it go
+  // past two.
   useEffect(() => {
     const el = box.current;
-    if (!el || near) return;
-    const io = new IntersectionObserver(
+    if (!el) return;
+    const coming = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) setNear(true);
       },
       { rootMargin: "100% 0px" },
     );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [near]);
+    const going = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) setNear(false);
+      },
+      { rootMargin: "200% 0px" },
+    );
+    coming.observe(el);
+    going.observe(el);
+    return () => {
+      coming.disconnect();
+      going.disconnect();
+    };
+  }, []);
 
   // Play while on screen, pause when not.
   useEffect(() => {
@@ -103,6 +128,11 @@ export default function VideoBand({
   }, [near, small, reduced]);
 
   const showVideo = near && !reduced && Boolean(src);
+
+  // A clip mounted again has to prove itself again.
+  useEffect(() => {
+    if (!showVideo) setRolling(false);
+  }, [showVideo]);
 
   return (
     <div
@@ -126,9 +156,13 @@ export default function VideoBand({
           <video
             key={small && mobileSrc ? mobileSrc : src}
             ref={video}
-            className="absolute inset-0 h-full w-full object-cover object-top"
+            className={cn(
+              "absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-[300ms]",
+              !rolling && "opacity-0",
+            )}
+            style={position ? { objectPosition: position } : undefined}
             src={small && mobileSrc ? mobileSrc : src}
-            poster={small && mobilePoster ? mobilePoster : poster}
+            onPlaying={() => setRolling(true)}
             muted
             loop
             playsInline
@@ -140,7 +174,11 @@ export default function VideoBand({
       </div>
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[88%] bg-gradient-to-b from-[rgb(12_18_34_/_0.86)] via-[rgb(12_18_34_/_0.62)] to-transparent"
+        className={
+          fade === "foot"
+            ? "pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[26rem] bg-gradient-to-t from-[rgb(31_26_23_/_0.9)] via-[rgb(31_26_23_/_0.74)] via-50% to-transparent md:h-[62%]"
+            : "pointer-events-none absolute inset-x-0 top-0 -z-10 h-[88%] bg-gradient-to-b from-[rgb(12_18_34_/_0.86)] via-[rgb(12_18_34_/_0.62)] to-transparent"
+        }
       />
       {children}
     </div>

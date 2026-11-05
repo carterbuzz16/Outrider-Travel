@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getAppUrl } from "@/lib/site-url";
 import { toCsv } from "@/app/admin/csv";
 import { AMBASSADOR_GOAL, HOLD_STATUS_LABEL, SOURCE_LABEL, loadAmbassadors, referralLink } from "@/lib/ambassadors";
-import { programFor } from "@/lib/ambassador-program";
+import { PROGRAMS, TELLURIDE_2026, programFor, type AmbassadorProgram } from "@/lib/ambassador-program";
 
 /*
  * Everything on /admin/ambassadors as one CSV: a line per credited booking,
@@ -30,6 +30,9 @@ const STATUS_LABEL: Record<string, string> = {
   cancelled: "Cancelled",
 };
 
+/** Every program but Telluride, which the sheet's original columns already are. */
+const OTHER_PROGRAMS: readonly AmbassadorProgram[] = Object.values(PROGRAMS).filter((p) => p.id !== TELLURIDE_2026.id);
+
 export async function GET() {
   const adminId = await getAdminUserId();
   if (!adminId) return new NextResponse("Not found", { status: 404, headers: NO_STORE });
@@ -47,13 +50,15 @@ export async function GET() {
     "Agreed",
     "Code",
     "Referral link",
+    ...OTHER_PROGRAMS.map((p) => `${p.name} link`),
     "Phone",
     "Instagram",
     "Email",
     "Trip",
-    "Deposit only",
-    "Paid in full",
+    "Telluride deposit only",
+    "Telluride paid in full",
     `To ${AMBASSADOR_GOAL}`,
+    ...OTHER_PROGRAMS.flatMap((p) => [`${p.name} deposit only`, `${p.name} paid in full`, `To ${p.goal}`]),
     "Held spot",
     "Payment link",
     "Traveler",
@@ -65,6 +70,7 @@ export async function GET() {
     "Balance",
     "Status",
     "Counts",
+    "Counts toward",
     "Note",
     "Attributed by",
     "Credited at",
@@ -77,7 +83,8 @@ export async function GET() {
       a.status,
       a.agreedAt,
       a.code,
-      referralLink(site, a.code, programFor(a.program)),
+      referralLink(site, a.code, TELLURIDE_2026),
+      ...OTHER_PROGRAMS.map((p) => referralLink(site, a.code, p)),
       a.phone,
       a.instagram ? `@${a.instagram}` : null,
       a.email,
@@ -85,10 +92,14 @@ export async function GET() {
       a.depositOnly,
       a.paidInFull,
       a.toGoal,
+      ...OTHER_PROGRAMS.flatMap((p) => {
+        const t = a.byProgram[p.id];
+        return [t.depositOnly, t.paidInFull, t.toGoal];
+      }),
       a.holdStatus ? HOLD_STATUS_LABEL[a.holdStatus] : null,
       a.paymentLinkUrl,
     ];
-    if (a.bookings.length === 0) return [[...base, ...Array<null>(12).fill(null)]];
+    if (a.bookings.length === 0) return [[...base, ...Array<null>(13).fill(null)]];
     return a.bookings.map((b) => [
       ...base,
       b.traveler,
@@ -100,6 +111,7 @@ export async function GET() {
       (b.remainingCents / 100).toFixed(2),
       STATUS_LABEL[b.status] ?? b.status,
       b.counts,
+      programFor(b.programId).name,
       b.note,
       b.source ? SOURCE_LABEL[b.source] : null,
       b.creditedAt,

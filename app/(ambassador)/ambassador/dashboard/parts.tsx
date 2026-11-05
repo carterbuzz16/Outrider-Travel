@@ -1,14 +1,14 @@
 import { Alert, Button, CheckRow, cn } from "@/components/ui";
 import type { Announcement, ToolkitFile } from "@/lib/ambassador-portal";
 import Image from "next/image";
-import type { AmbassadorProgram, Perk } from "@/lib/ambassador-program";
+import { programClosed, type AmbassadorProgram, type Perk } from "@/lib/ambassador-program";
 import { bookingsCloseAt } from "@/lib/signup-deadline";
 import type { PortalView } from "@/lib/ambassador-rules";
 import { AMBASSADOR_PORTAL as COPY } from "@/lib/site-content";
 import { acceptAgreement, claimFreeTrip } from "./actions";
 import AnnouncementBar from "./AnnouncementBar";
 import CopyValue from "./CopyValue";
-import LiveDashboard, { type ProgramFacts } from "./LiveDashboard";
+import LiveDashboard, { type ProgramFacts, type ProgramPanel } from "./LiveDashboard";
 import QrCode from "./QrCode";
 import ToolkitImage from "./ToolkitImage";
 
@@ -31,14 +31,19 @@ export function programFacts(
     .sort((a, b) => a.closes.getTime() - b.closes.getTime())[0];
   const closes = next?.closes ?? program.signupDeadline;
   const label = next ? next.d.countByLabel : program.signupDeadlineLabel;
+  const closingName = next ? (next.d.closingName ?? next.d.label) : "Bookings";
   return {
     goal: program.goal,
     deadlineIso: closes.toISOString(),
     deadlineLabel: label,
-    closingName: next ? next.d.label : "Bookings",
-    deadlineSpoken: `${next ? next.d.label : "Bookings"} closes ${label} at 11:59 PM Central.`,
+    closingName,
+    deadlineSpoken: `${closingName} closes ${label} at 11:59 PM Central.`,
+    closed: programClosed(program, now),
+    playbook: program.playbook,
+    graphics: program.graphics,
     departures,
     freeTrip: {
+      picksWeek: program.freeTrip.picksWeek,
       earned: program.freeTrip.earned,
       locked: program.freeTrip.locked(program.goal),
       picked: program.freeTrip.picked("{departure}"),
@@ -46,33 +51,58 @@ export function programFacts(
   };
 }
 
+/** One program, as page.tsx hands it over: the dashboard, or the agreement until they have accepted it. */
+export type ProgramScreen =
+  | { kind: "agreement"; program: AmbassadorProgram; agreement: React.ReactNode }
+  | {
+      kind: "dashboard";
+      program: AmbassadorProgram;
+      view: PortalView;
+      facts: ProgramFacts;
+      toolkit: ToolkitFile[];
+      /** Their full referral link on this program. */
+      url: string;
+      agreedAt: string;
+    };
+
 export function DashboardBody({
-  view,
-  facts,
-  program,
+  screens,
+  selected,
   announcement,
-  toolkit,
-  url,
-  agreedAt,
   error,
   done,
 }: {
-  view: PortalView;
-  facts: ProgramFacts;
-  program: AmbassadorProgram;
+  screens: ProgramScreen[];
+  /** The id of the program to open on. */
+  selected: string;
   announcement: Announcement | null;
-  toolkit: ToolkitFile[];
-  /** Their full referral link. */
-  url: string;
-  agreedAt: string;
   error: string | null;
   done: string | null;
 }) {
+  const panels = screens.map((s): ProgramPanel => {
+    const { id, name } = s.program;
+    if (s.kind === "agreement") return { kind: "agreement", id, name, agreement: s.agreement };
+    const closed = programClosed(s.program);
+    return {
+      kind: "dashboard",
+      id,
+      name,
+      initial: s.view,
+      facts: s.facts,
+      shareUrl: s.url,
+      // A closed program has nothing left to share.
+      share: closed ? null : <ShareCard url={s.url} code={s.view.code} />,
+      perks: <PerksSection perks={s.program.perks} />,
+      toolkit: (
+        <Toolkit files={s.toolkit} url={s.url} code={s.view.code} program={s.program} closed={closed} agreedAt={s.agreedAt} />
+      ),
+    };
+  });
   return (
     <main>
       <LiveDashboard
-        initial={view}
-        facts={facts}
+        panels={panels}
+        initialProgram={selected}
         claimFreeTrip={claimFreeTrip}
         announcement={announcement && <AnnouncementBar id={announcement.createdAt} body={announcement.body} />}
         notice={
@@ -84,18 +114,17 @@ export function DashboardBody({
             </div>
           )
         }
-        shareUrl={url}
-        share={<ShareCard url={url} code={view.code} />}
-        perks={<PerksSection perks={program.perks} />}
-        toolkit={<Toolkit files={toolkit} url={url} code={view.code} program={program} agreedAt={agreedAt} />}
       />
     </main>
   );
 }
 
-/** "the end of November 14 for December, December 4 for January". */
+/** "the end of November 14 for December, January 15 for the March 8 week". */
 function countByLine(program: AmbassadorProgram): string {
-  const parts = Object.values(program.departures).map((d) => `${d.countByLabel} for ${d.label}`);
+  const parts = Object.values(program.departures).map((d) => {
+    const week = d.closingName ? `the ${d.closingName}` : d.label;
+    return `${d.countByLabel} for ${week}`;
+  });
   return parts.length > 0 ? `the end of ${parts.join(", ")}` : `the end of ${program.signupDeadlineLabel}`;
 }
 
@@ -234,7 +263,8 @@ function AgreementTerms({ program, className }: { program: AmbassadorProgram; cl
 
 export function Agreement({ program, error }: { program: AmbassadorProgram; error: string | null }) {
   return (
-    <main className="shell-narrow py-12 md:py-20">
+    // Inside the page's <main>, under the switch, so the other program stays one tap away.
+    <section className="shell-narrow pb-12 pt-6 md:pb-20 md:pt-10">
       <p className="t-rule-label text-[--text-secondary]">Before you start</p>
       <h1 className="t-title mt-4 text-[--text]">{program.agreement.title}</h1>
       <p className="t-lede mt-4">{COPY.agreementLead}</p>
@@ -242,6 +272,7 @@ export function Agreement({ program, error }: { program: AmbassadorProgram; erro
         <AgreementTerms program={program} />
       </div>
       <form action={acceptAgreement} className="mt-8 flex flex-col gap-5">
+        <input type="hidden" name="program" value={program.id} />
         {error && (
           <Alert tone="error" title="Not yet">
             {error}
@@ -254,7 +285,7 @@ export function Agreement({ program, error }: { program: AmbassadorProgram; erro
           {COPY.agreementSubmit}
         </Button>
       </form>
-    </main>
+    </section>
   );
 }
 
@@ -280,12 +311,15 @@ function Toolkit({
   url,
   code,
   program,
+  closed,
   agreedAt,
 }: {
   files: ToolkitFile[];
   url: string;
   code: string;
   program: AmbassadorProgram;
+  /** Finished selling: the graphics and scripts go, the answers and the agreement stay. */
+  closed: boolean;
   agreedAt: string;
 }) {
   const fill = (s: string) => s.replaceAll("{link}", url).replaceAll("{code}", code);
@@ -298,45 +332,49 @@ function Toolkit({
         <p className="mt-3 font-body text-body text-[--text-secondary]">{COPY.toolkitLine}</p>
       </div>
 
-      <div>
-        <h3 className="t-rule-label text-[--text-secondary]">{COPY.graphicsTitle}</h3>
-        {files.length > 0 && (
-          <p className="mt-2 font-body text-body-s text-[--text-secondary]">{COPY.graphicsNote}</p>
-        )}
-        {files.length === 0 ? (
-          <p className="t-body mt-3 text-[--text-secondary]">{COPY.graphicsEmpty}</p>
-        ) : (
-          <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {files.map((f) => (
-              <li key={f.path}>
-                <ToolkitImage
-                  href={`/ambassador/dashboard/toolkit/${f.path}`}
-                  label={f.label}
-                  fileName={f.path.slice(f.path.lastIndexOf("/") + 1)}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      {!closed && (
+        <>
+          <div>
+            <h3 className="t-rule-label text-[--text-secondary]">{COPY.graphicsTitle}</h3>
+            {files.length > 0 && (
+              <p className="mt-2 font-body text-body-s text-[--text-secondary]">{COPY.graphicsNote}</p>
+            )}
+            {files.length === 0 ? (
+              <p className="t-body mt-3 text-[--text-secondary]">{COPY.graphicsEmpty}</p>
+            ) : (
+              <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {files.map((f) => (
+                  <li key={f.path}>
+                    <ToolkitImage
+                      href={`/ambassador/dashboard/toolkit/${f.path}`}
+                      label={f.label}
+                      fileName={f.path.slice(f.path.lastIndexOf("/") + 1)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
 
-      <div>
-        <h3 className="t-rule-label text-[--text-secondary]">{COPY.scriptsTitle}</h3>
-        <ul className="mt-4 flex flex-col gap-3">
-          {COPY.scripts.map((s) => (
-            <li key={s.title} className="bg-[--surface-raised] px-4 py-4 sm:px-5">
-              <p className="t-label text-[--text]">{s.title}</p>
-              <p className="mt-2.5 font-body text-body text-[--text-secondary]">{fill(s.body)}</p>
-              <CopyValue value={fill(s.body)} label="Copy" shareFirst shareLabel="Send it" primary block className="mt-4" />
-            </li>
-          ))}
-        </ul>
-      </div>
+          <div>
+            <h3 className="t-rule-label text-[--text-secondary]">{COPY.scriptsTitle}</h3>
+            <ul className="mt-4 flex flex-col gap-3">
+              {(COPY.scripts[program.id] ?? []).map((s) => (
+                <li key={s.title} className="bg-[--surface-raised] px-4 py-4 sm:px-5">
+                  <p className="t-label text-[--text]">{s.title}</p>
+                  <p className="mt-2.5 font-body text-body text-[--text-secondary]">{fill(s.body)}</p>
+                  <CopyValue value={fill(s.body)} label="Copy" shareFirst shareLabel="Send it" primary block className="mt-4" />
+                </li>
+              ))}
+            </ul>
+          </div>
+        </>
+      )}
 
       <div>
         <h3 className="t-rule-label text-[--text-secondary]">{COPY.faqTitle}</h3>
         <div className="mt-4 flex flex-col gap-2">
-          {COPY.faq(countByLine(program), program.goal).map(
+          {COPY.faq(countByLine(program), program.goal, program.heldSpots).map(
             (item) => (
               <details key={item.q} className="group bg-[--surface-raised]">
                 <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 font-body text-body text-[--text] sm:px-5 [&::-webkit-details-marker]:hidden">

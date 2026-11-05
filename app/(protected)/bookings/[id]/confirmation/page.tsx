@@ -9,6 +9,7 @@ import { formatDateRange } from "@/lib/trips";
 import { createPortalUrl } from "@/lib/portal-token";
 import { confirmationNumber } from "@/lib/confirmation-number";
 import { tierDisplayName } from "@/lib/tier-display";
+import { lineForDestination, type TripLine } from "@/lib/trip-lines";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPenthouseProgress } from "@/lib/tier-claims";
 import { penthouseInvitePath, toSnapshot } from "@/lib/penthouse";
@@ -152,7 +153,8 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
         ).data,
       )
     : false;
-  const steps = nextSteps(identitySaved);
+  const line = lineForDestination(trip?.destination);
+  const steps = nextSteps(line, identitySaved);
 
   const installments = booking.payments
     .filter((p) => p.scheduled_date && p.status !== "canceled")
@@ -180,9 +182,11 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
             </p>
             <h1 className="t-title mt-5 max-w-[18ch] text-[--text]">
               {settled
-                ? // "Telluride, Colorado" reads as "Telluride" in a headline.
+                ? // "Telluride, Colorado" reads as "Telluride" in a headline. A
+                  // spring break destination may lead with the town, so it
+                  // takes the place everyone knows it by.
                   trip
-                  ? `You're going to ${trip.destination.split(",")[0]}`
+                  ? `You're going to ${line.rentals ? trip.destination.split(",")[0] : line.place}`
                   : "You're going"
                 : fullPlan
                   ? "Confirming your payment"
@@ -201,7 +205,8 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
 
           {settled && trip && (
             <Stamp
-              text={`${trip.destination} / Booked`}
+              // Around a ring that holds about 40 characters (Stamp).
+              text={`${line.rentals ? trip.destination : line.place} / Booked`}
               className="hidden w-28 shrink-0 text-[--accent] sm:block"
             />
           )}
@@ -296,7 +301,7 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
           >
             <p className="t-label text-[--accent]">Next, today</p>
             <h2 id="next-heading" className="t-heading mt-4 max-w-[20ch] text-[--text]">
-              Three things for your trip page
+              {steps.length === 2 ? "Two things" : "Three things"} for your trip page
             </h2>
             <ol className="mt-7 flex list-none flex-col border-t border-[--rule] p-0">
               {steps.map((step, i) => (
@@ -314,7 +319,7 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
               ))}
             </ol>
             <p className="mt-5 font-body text-body-s text-[--text-secondary]">
-              About five minutes, all on one page.
+              {steps.length === 2 ? "About two minutes" : "About five minutes"}, all on one page.
             </p>
             <div className="mt-7">
               <Button href={portalUrl} variant="primary" size="lg" className="w-full sm:w-auto">
@@ -374,11 +379,22 @@ export default async function ConfirmationPage(props: { params: Promise<{ id: st
  * The third one shrinks once checkout has taken the identity half: what is
  * left on the trip page is then the rental shop's questions, and promising
  * "your traveler details" again would read as asking twice for what was just
- * handed over.
+ * handed over. A trip with no rentals has no such questions, so with the
+ * identity half in, there is no third thing at all.
  */
-function nextSteps(identitySaved: boolean) {
+function nextSteps(line: TripLine, identitySaved: boolean) {
+  const flights = { title: "Book your flights", why: line.flightsWhy };
+  if (!line.rentals) {
+    return [
+      flights,
+      { title: "Request your roommate", why: "Rooms are assigned in the order requests arrive." },
+      ...(identitySaved
+        ? []
+        : [{ title: "Add your traveler details", why: `${line.identityUse} The rest is so we can reach you.` }]),
+    ];
+  }
   return [
-    { title: "Book your flights", why: "Montrose has a handful of winter flights a day. Book before they're gone." },
+    flights,
     { title: "Request your roommates", why: "Rooms are assigned in the order requests arrive." },
     identitySaved
       ? {

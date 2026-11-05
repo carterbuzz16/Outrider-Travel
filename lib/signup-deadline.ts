@@ -15,8 +15,9 @@
  *   - a December friend counts toward an ambassador's five only if paid in
  *     full by then (lib/ambassador-program.ts; January friends by 4 December).
  *
- * The ambassador codes now expire at the last close, LAST_SIGNUP_DEADLINE, so
- * they keep crediting January bookings.
+ * The ambassador codes expire at the last close of anything on sale,
+ * LAST_BOOKING_CLOSE, because one code now sells Telluride and spring break
+ * (3 November 2026). A week past its own close still refuses the booking.
  *
  * 05:59:59 UTC is 11:59:59 PM Central Standard Time, which is in force on
  * 14 November (daylight saving ends 1 November 2026).
@@ -53,25 +54,64 @@ export const SIGNUP_DEADLINE_LABEL = new Date(`${SIGNUP_DEADLINE_DAY}T12:00:00Z`
 /** The end of 4 December 2026, Central (CST, UTC-6): January's bookings close. */
 export const JANUARY_DEADLINE = new Date("2026-12-05T05:59:59Z");
 
-/**
- * When each departure stops taking bookings, keyed by the trip's start_date.
- * A departure not listed closes at SIGNUP_DEADLINE. Add a line for any new
- * departure that closes on its own date.
- */
-export const BOOKINGS_CLOSE_BY_START: Readonly<Record<string, Date>> = {
+const TELLURIDE_CLOSES: Readonly<Record<string, Date>> = {
   // Telluride, December 14 to 18, 2026
   "2026-12-14": SIGNUP_DEADLINE,
   // Telluride, January 4 to 8, 2027
   "2027-01-04": JANUARY_DEADLINE,
 };
 
-/** The last departure's close: after it nothing is booked, and the ambassador codes expire. */
-export const LAST_SIGNUP_DEADLINE = new Date(
-  Math.max(SIGNUP_DEADLINE.getTime(), ...Object.values(BOOKINGS_CLOSE_BY_START).map((d) => d.getTime())),
-);
+/*
+ * Spring break, Zemi Miches (3 November 2026).
+ *
+ * CONFIRM WITH CARTER BEFORE EITHER TRIP IS PUBLISHED. He gave the trip dates
+ * and the $100 deposit, not the closes, and the Group Agreement will set the
+ * hotel's real cut-off. These follow December's pattern: a week closes on the
+ * day its last payment is charged (lib/installments.ts). Zemi's proposal takes
+ * "no deviations" within 45 days of arrival, January 22 and January 29, so each
+ * week closes seven days before that and the rooming list has the week between.
+ * The end of the day Central; CST, UTC-6, is in force on both.
+ */
+const SPRING_BREAK_CLOSES: Readonly<Record<string, Date>> = {
+  // March 8 to 12, 2027: the end of January 15.
+  "2027-03-08": new Date("2027-01-16T05:59:59Z"),
+  // March 15 to 19, 2027: the end of January 22.
+  "2027-03-15": new Date("2027-01-23T05:59:59Z"),
+};
+
+/** True once Carter has confirmed spring break's dates. What it holds back: lib/installments.ts. */
+export const SPRING_BREAK_DATES_CONFIRMED = false;
+
+/** The start dates of the spring break departures, for copy that lists them. */
+export const SPRING_BREAK_STARTS: readonly string[] = Object.keys(SPRING_BREAK_CLOSES).sort();
+
+/**
+ * When each departure stops taking bookings, keyed by the trip's start_date.
+ * A departure not listed closes at SIGNUP_DEADLINE, which has already passed
+ * or is about to: a new departure stays shut until someone gives it a date.
+ * Add a line for every new departure.
+ */
+export const BOOKINGS_CLOSE_BY_START: Readonly<Record<string, Date>> = {
+  ...TELLURIDE_CLOSES,
+  ...SPRING_BREAK_CLOSES,
+};
+
+/*
+ * LAST_SIGNUP_DEADLINE is Telluride's last close, and only Telluride's. The
+ * Telluride ambassador program, the settle and release on /admin/ambassadors
+ * and every "Signups closed on" line read it, so spring break's later dates
+ * must not move it (3 November 2026). The close of everything on sale is
+ * LAST_BOOKING_CLOSE, which is also when the ambassador codes expire.
+ */
+export const LAST_SIGNUP_DEADLINE = new Date(Math.max(...Object.values(TELLURIDE_CLOSES).map((d) => d.getTime())));
 export const LAST_SIGNUP_DEADLINE_DAY = dayInCentral(LAST_SIGNUP_DEADLINE);
 /** "December 4". */
 export const LAST_SIGNUP_DEADLINE_LABEL = labelFor(LAST_SIGNUP_DEADLINE);
+
+/** The last close of anything on sale, on any line: after it nothing is booked. */
+export const LAST_BOOKING_CLOSE = new Date(Math.max(...Object.values(BOOKINGS_CLOSE_BY_START).map((d) => d.getTime())));
+/** "January 22". */
+export const LAST_BOOKING_CLOSE_LABEL = labelFor(LAST_BOOKING_CLOSE);
 
 /** "November 14" for an instant, read in Central time. */
 export function labelFor(instant: Date): string {
@@ -107,8 +147,23 @@ export function departureClosed(startDate: string | null | undefined, now: Date 
   return now.getTime() > bookingsCloseAt(startDate).getTime();
 }
 
-/** Whether new bookings are closed on every departure: the last close has passed. */
+/*
+ * The last close of what is actually on sale. Spring break counts only once its
+ * dates are confirmed: until then it cannot be booked, so from 5 December nothing
+ * can, and the pages have to say signups closed rather than "nothing open yet".
+ */
+const LAST_SALE_CLOSE = SPRING_BREAK_DATES_CONFIRMED ? LAST_BOOKING_CLOSE : LAST_SIGNUP_DEADLINE;
+/** The date for "Signups closed on": "December 4" until spring break is on sale. */
+export const SIGNUPS_CLOSED_LABEL = labelFor(LAST_SALE_CLOSE);
+
+/** Whether new bookings are closed on every departure on sale, on any line. */
 export function signupsClosed(now: Date = new Date()): boolean {
+  if (previewClosed()) return true;
+  return now.getTime() > LAST_SALE_CLOSE.getTime();
+}
+
+/** Whether Telluride has finished selling, both weeks. Spring break stays open past this. */
+export function tellurideClosed(now: Date = new Date()): boolean {
   if (previewClosed()) return true;
   return now.getTime() > LAST_SIGNUP_DEADLINE.getTime();
 }

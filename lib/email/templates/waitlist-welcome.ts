@@ -111,33 +111,37 @@ export function waitlistWelcomeHtml(p: WaitlistWelcomeParts): string {
 /*
  * The welcome for someone who joined from /spring-break (1 October 2026).
  * Carter: one list that everyone gets, but spring break branded as its own
- * thing, "Outrider Spring Break Club". Nothing about the trip is announced,
- * so it promises only what the site already does (UPCOMING_CATEGORIES): spring
- * 2027, somewhere warm, hosted the way we host Telluride, and the list hears
- * where first. Telluride is the button, since it is the trip on sale now.
+ * thing, "Outrider Spring Break Club".
+ *
+ * Until 3 November 2026 nothing about the trip was announced, so this promised
+ * "somewhere warm" and sent people to Telluride, the trip then on sale. Now it
+ * says where, and the button goes to the trip it is about. No price and no
+ * payment dates: those are on the page, where they stay current. It is the
+ * Outrider Beach Club now, Carter's name for it (3 November 2026).
  */
 export function springBreakWelcomeHtml(p: WaitlistWelcomeParts): string {
   return listEmailHtml({
     origin: p.origin,
     preheader: p.preheader,
-    title: "You're in the Outrider Spring Break Club",
-    eyebrow: "Outrider Spring Break Club",
-    headlineHtml: "You&rsquo;re in.<br />Spring break is next",
+    title: "You're in the Outrider Beach Club",
+    eyebrow: "Outrider Beach Club",
+    headlineHtml: "You&rsquo;re in.<br />Punta Cana is next",
     leadHtml:
-      "Spring 2027, somewhere warm, hosted the way we host Telluride. When we announce where, you&rsquo;ll hear it here before anyone else.",
+      "Spring break 2027, hosted the way we host Telluride: four nights at Zemi Miches, all-inclusive, on the beach.",
     rows: [
-      ["When", "Spring break 2027"],
-      ["Where", "Somewhere warm. This list hears first."],
-      ["How", "One great place for the whole group, one price, and our team there all week"],
+      ["When", "March 8&ndash;12, 2027<br />March 15&ndash;19, 2027"],
+      ["Where", "Zemi Miches, Curio Collection by Hilton, in Miches, an hour and a half from Punta Cana airport"],
+      ["Included", "Two to a room with two queen beds, airport transfers both ways, a welcome happy hour, a welcome gift, and our team on site the whole trip"],
+      ["Not included", "Flights. You also need a valid passport."],
     ],
-    button: { label: "Ski Telluride this winter", href: `${p.origin}/telluride` },
+    button: { label: "See the trip", href: `${p.origin}/spring-break` },
     panel: {
       label: "Bring your people",
       text: "Send this to the friends you&rsquo;d go with, so the whole group hears at once.",
     },
     addressLine: p.addressLine,
     unsubscribeUrl: p.unsubscribeUrl,
-    hero: { file: "email-hero-spring.jpg", alt: "A palm tree arching over a pink Mediterranean-style tower" },
+    hero: { file: "email-hero-spring.jpg", alt: "Palm trees leaning over clear turquoise water at Zemi Miches" },
   });
 }
 

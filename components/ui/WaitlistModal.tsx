@@ -148,7 +148,7 @@ export function WaitlistModal({
               {/* While paying is list-only, joining is how you book, so say so. */}
               {!BOOKINGS_OPEN && TRIP_DETAILS_OPEN
                 ? "The list books first. Join, and we'll email you a private link to book."
-                : "First access to Telluride, and to every trip after it."}
+                : "First access to every trip we run."}
             </p>
 
             <WaitlistFields signup={signup} tone="light" className="mt-7" />

@@ -44,8 +44,12 @@ export { tierDisplayName } from "@/lib/tier-display";
  * ---------------------------------------------------------------------------
  */
 
-/** "PENTHOUSE" is one penthouse sold as its own package; "TOP" is the old single top package. */
-export type RoomKey = "BASE" | "MID" | "PENTHOUSE" | "TOP";
+/**
+ * "PENTHOUSE" is one penthouse sold as its own package; "TOP" is the old single
+ * top package. "ZEMI" is spring break's room at Zemi Miches, a different hotel,
+ * so it is never one of The Peaks' keys.
+ */
+export type RoomKey = "BASE" | "MID" | "PENTHOUSE" | "TOP" | "ZEMI";
 export type RoomPhoto = { src: string; alt: string };
 export type RoomFact = { label: string; value: string };
 
@@ -273,7 +277,53 @@ function penthousePackage(p: PenthouseSource, summaryTail: string): RoomSource {
   };
 }
 
+/*
+ * Spring break's one package so far (3 November 2026), the tier named "TWO TO A
+ * ROOM" in the database. The rest of this file is The Peaks; this is Zemi Miches,
+ * under its own key, so nothing that asks about The Peaks' rooms picks it up.
+ *
+ * Hilton's standard room with two queen beds (Carter, 3 November 2026), so no view
+ * is claimed. It renders at the `card` and `thumb` sizes, the only ones
+ * checkout, the pay page and /spring-break use. The panel's
+ * larger sizes print "The Peaks Resort", and RoomShowcase, which uses them, only
+ * shows this key's room on a Telluride page, which it never is.
+ *
+ * Upgrades (an ocean view, Club Azure) are new tiers with new names, added below
+ * with their own entries. A photograph goes in `wanted`, from a new folder under
+ * public/images, and that folder then needs tracing into /spring-break,
+ * /bookings/new and /bookings/[id]/pay in next.config.mjs (see the note above).
+ */
+const ZEMI_TWO_TO_A_ROOM: RoomSource = {
+  key: "ZEMI",
+  title: "The Two Queen room",
+  summary: "Two to a Room, in a Two Queen room at Zemi Miches",
+  upgrade: "A Two Queen room at Zemi Miches, shared by two of you.",
+  figure: { value: "2", unit: "to a room" },
+  facts: [
+    { label: "Room", value: "Tropical View" },
+    { label: "Beds", value: "Two queens" },
+    { label: "Sharing", value: "Two to a room" },
+  ],
+  // The resort's own photographs of this room category, from its library (OKed in
+  // writing, 4 November 2026). next.config.mjs traces these for the pages that read them.
+  wanted: [
+    {
+      src: "/images/spring/zemi-room-two-queens.jpg",
+      alt: "A Tropical View room at Zemi Miches with two queen beds, a textured stone feature wall and a balcony door open to the palms.",
+    },
+    {
+      src: "/images/spring/zemi-room-two-queens-2.jpg",
+      alt: "The same room from the door: two queen beds with mustard pillows, a table by the balcony and palms outside.",
+    },
+    {
+      src: "/images/spring/zemi-room-bath.jpg",
+      alt: "The bathroom: two lit oval mirrors over a double vanity, with a textured stone wall behind.",
+    },
+  ],
+};
+
 const ROOMS: Record<string, RoomSource> = {
+  "TWO TO A ROOM": ZEMI_TWO_TO_A_ROOM,
   BASE: {
     key: "BASE",
     title: "The Two King room",

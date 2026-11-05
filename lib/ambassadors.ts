@@ -6,8 +6,8 @@ import { CHECKOUT_SANDBOX, isTestTrip } from "@/lib/booking-window";
 import type { AttributionSource } from "@/lib/discount-codes";
 import { OLD_DECEMBER_DATES } from "@/lib/installments";
 import { tierDisplayName } from "@/lib/tier-display";
-import { TELLURIDE_2026, programFor } from "@/lib/ambassador-program";
-import { classifyFriend, isTestEmail, utcMs } from "@/lib/ambassador-rules";
+import { PROGRAMS, TELLURIDE_2026, programFor, programForDeparture } from "@/lib/ambassador-program";
+import { classifyFriend, isTestEmail, tallyProgram, utcMs, type ProgramTally } from "@/lib/ambassador-rules";
 
 type Admin = SupabaseClient<Database>;
 type BookingStatus = Database["public"]["Enums"]["booking_status"];
@@ -24,6 +24,12 @@ type BookingStatus = Database["public"]["Enums"]["booking_status"];
  * December, December 4 for January), not cancelled or refunded, not a held
  * spot, not test data. A discount code on the booking (CHPTR) does not stop
  * it counting.
+ *
+ * One code runs both programs (3 November 2026). A friend belongs to the program
+ * that names their trip, and counts there and nowhere else. paidInFull,
+ * depositOnly and toGoal stay Telluride's, always, because settling and releasing
+ * held spots read them and those are Telluride only. Every program's numbers are
+ * in byProgram.
  *
  * Test bookings (a [seed] or [test] trip, or Carter's own test accounts) are
  * listed but never counted on the live site; on a checkout sandbox build they
@@ -92,6 +98,8 @@ export type AmbassadorBooking = {
   email: string | null;
   tripName: string;
   tripStart: string | null;
+  /** The program this booking counts under: the one that names its departure. */
+  programId: string;
   packageName: string;
   /** The discount beside the ambassador's code, if any: "CHPTR ($150)". */
   discount: string | null;
@@ -106,7 +114,7 @@ export type AmbassadorBooking = {
   refunded: boolean;
   isHold: boolean;
   isTest: boolean;
-  /** Counts toward the five (see the rule above). */
+  /** Counts toward its own program's goal (see the rule above). */
   counts: boolean;
   /** Live, deposit in, balance still owed. */
   depositOnly: boolean;
@@ -117,6 +125,8 @@ export type AmbassadorBooking = {
 export type AmbassadorHold = {
   bookingId: string;
   status: BookingStatus;
+  /** The held trip's start_date: settling and releasing touch Telluride's only. */
+  tripStart: string | null;
   paidCents: number;
   remainingCents: number;
 };
@@ -147,10 +157,14 @@ export type Ambassador = {
   paymentLinkUrl: string | null;
   paymentLinkId: string | null;
   bookings: AmbassadorBooking[];
+  /** Telluride's: friends on a deposit. */
   depositOnly: number;
+  /** Telluride's: friends who count. Settling a held spot reads this. */
   paidInFull: number;
-  /** Paid-in-full bookings still needed to reach AMBASSADOR_GOAL. */
+  /** Telluride's: paid-in-full bookings still needed to reach AMBASSADOR_GOAL. */
   toGoal: number;
+  /** Every program's numbers, by program id. */
+  byProgram: Readonly<Record<string, ProgramTally>>;
 };
 
 function toBooking(
@@ -158,7 +172,6 @@ function toBooking(
   credit: { source: string | null; created_at: string },
   holdIds: Set<string>,
   today: string,
-  program: ReturnType<typeof programFor>,
 ): AmbassadorBooking {
   const ledger = readLedger(b, today);
   const succeeded = b.payments.filter((p) => p.status === "succeeded");
@@ -173,6 +186,7 @@ function toBooking(
       : null;
   const isHold = b.ambassador_hold || holdIds.has(b.id);
   const isTest = isTestTrip(b.trips?.name ?? "") || isTestEmail(b.users?.email);
+  const program = programForDeparture(b.trips?.start_date);
   const { counts, onTheWay: depositOnly, note } = classifyFriend(
     { status: b.status, isHold, isTest, refunded, paidInFullMs: paidMs, tripStart: b.trips?.start_date ?? null },
     program,
@@ -187,6 +201,7 @@ function toBooking(
     email: b.users?.email ?? null,
     tripName: b.trips?.name ?? "Unknown trip",
     tripStart: b.trips?.start_date ?? null,
+    programId: program.id,
     packageName: b.tiers ? tierDisplayName(b.tiers.name) : "Unknown",
     discount: discount ? `${discount.code} ($${Number(discount.amount).toLocaleString("en-US")})` : null,
     total: Number(b.total_amount),
@@ -225,7 +240,6 @@ export async function loadAmbassadors(admin: Admin, code?: string): Promise<Amba
   if (!rows || rows.length === 0) return [];
 
   const codes = rows.map((r) => r.code);
-  const programByCode = new Map(rows.map((r) => [r.code, programFor(r.program)]));
   const holdIds = new Set(rows.map((r) => r.hold_booking_id).filter((id): id is string => Boolean(id)));
 
   const [{ data: credits, error: creditError }, { data: holds }] = await Promise.all([
@@ -250,24 +264,24 @@ export async function loadAmbassadors(admin: Admin, code?: string): Promise<Amba
   }[]) {
     if (!credit.bookings) continue;
     const list = byCode.get(credit.code) ?? [];
-    list.push(toBooking(credit.bookings, credit, holdIds, today, programByCode.get(credit.code) ?? TELLURIDE_2026));
+    list.push(toBooking(credit.bookings, credit, holdIds, today));
     byCode.set(credit.code, list);
   }
   const holdById = new Map(((holds ?? []) as unknown as BookingJoin[]).map((b) => [b.id, b]));
 
   const ambassadors = rows.map((r): Ambassador => {
     const bookings = (byCode.get(r.code) ?? []).sort((a, b) => b.creditedAt.localeCompare(a.creditedAt));
-    const paidInFull = bookings.filter((b) => b.counts).length;
+    const byProgram = Object.fromEntries(Object.values(PROGRAMS).map((p) => [p.id, tallyProgram(bookings, p)]));
+    const telluride = byProgram[TELLURIDE_2026.id];
     const holdRow = r.hold_booking_id ? holdById.get(r.hold_booking_id) : undefined;
     const holdLedger = holdRow ? readLedger(holdRow, today) : null;
-    const program = programFor(r.program);
     return {
       code: r.code,
       name: r.name,
       school: r.school,
       chapter: r.chapter,
       status: r.status,
-      program: program.id,
+      program: programFor(r.program).id,
       userId: r.user_id,
       agreedAt: r.agreed_at,
       leaderboardHidden: r.leaderboard_hidden,
@@ -284,6 +298,7 @@ export async function loadAmbassadors(admin: Admin, code?: string): Promise<Amba
           ? {
               bookingId: holdRow.id,
               status: holdRow.status,
+              tripStart: holdRow.trips?.start_date ?? null,
               paidCents: holdLedger.paidCents,
               remainingCents: holdLedger.remainingCents,
             }
@@ -291,9 +306,10 @@ export async function loadAmbassadors(admin: Admin, code?: string): Promise<Amba
       paymentLinkUrl: r.payment_link_url,
       paymentLinkId: r.payment_link_id,
       bookings,
-      depositOnly: bookings.filter((b) => b.depositOnly).length,
-      paidInFull,
-      toGoal: Math.max(0, program.goal - paidInFull),
+      depositOnly: telluride.depositOnly,
+      paidInFull: telluride.paidInFull,
+      toGoal: telluride.toGoal,
+      byProgram,
     };
   });
 
@@ -339,12 +355,4 @@ export async function loadOldScheduleBookings(admin: Admin, decemberStart = "202
     .filter((b) => b.scheduled.some((p) => OLD_DECEMBER_DATES.includes(p.date)));
 }
 
-/** The referral link for a code, as ambassadors share it: their program's landing page with ?ref=. */
-export function referralLink(siteUrl: string, code: string, program = TELLURIDE_2026): string {
-  return `${siteUrl.replace(/\/$/, "")}${referralPath(code, program)}`;
-}
-
-/** The same link as a path, for the copy buttons that add the origin themselves. */
-export function referralPath(code: string, program = TELLURIDE_2026): string {
-  return `${program.landingPath}?ref=${code.toLowerCase()}`;
-}
+export { referralLink, referralPath } from "@/lib/ambassador-program";

@@ -29,7 +29,7 @@ export function OrganizationSchema({ siteUrl }: { siteUrl: string }) {
     email: CONTACT.email,
     areaServed: "US",
     description:
-      "Small-group travel for college. Ski weeks and spring break, run end to end.",
+      "Small-group trips for college students: ski weeks in Telluride and spring break in Punta Cana, hosted start to finish.",
     sameAs: [CONTACT.instagram],
     logo: `${siteUrl}/icon.svg`,
   };

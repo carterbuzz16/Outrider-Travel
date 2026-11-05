@@ -28,9 +28,10 @@
  *      about that first), or if a booking has used a code that is about to be
  *      removed;
  *   2. creates each missing final code the way scripts/ambassador-codes.sql
- *      made the first 25: amount 0, 1,000 uses, expiring at the end of
- *      December 4 Central (January's close), noted "Ambassador attribution
- *      code ($0) for <Name>, <School>. Created <date>.";
+ *      made the first 25: amount 0, 1,000 uses, expiring at the last booking
+ *      close of anything on sale (LAST_BOOKING_CLOSE; the code sells spring
+ *      break too since 3 November 2026), noted "Ambassador attribution code
+ *      ($0) for <Name>, <School>. Created <date>.";
  *   3. upserts the final ambassadors: name, school, chapter, Instagram and
  *      status from the list, and the phone and email from their newest
  *      /ambassador application with the same Instagram handle. An email or
@@ -61,8 +62,9 @@
  */
 
 import { readFileSync } from "node:fs";
+import { LAST_BOOKING_CLOSE } from "../lib/signup-deadline";
 
-const EXPIRES_AT = "2026-12-05 05:59:59+00";
+const EXPIRES_AT = LAST_BOOKING_CLOSE.toISOString();
 const PROGRAM = "telluride-2026";
 /** The date a new code's note says it was made, in Central: "Created 2026-10-29." */
 const CREATED = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });

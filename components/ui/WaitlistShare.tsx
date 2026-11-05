@@ -61,7 +61,7 @@ export default function WaitlistShare({
   async function share() {
     const url = `${window.location.origin}${sharePath}?utm_source=share&utm_medium=referral`;
     // Before launch the pitch is getting in ahead of the sale; after it,
-    // there is no "before" left for Telluride, so it points at the next trip.
+    // there is no "before" left, so it points at the next trip.
     const text =
       shareText ??
       (BOOKINGS_OPEN

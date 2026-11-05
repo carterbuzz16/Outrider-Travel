@@ -47,6 +47,42 @@
       "autoPort": true
     },
     {
+      "name": "dev-test-trips",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "NEXT_PUBLIC_SHOW_TEST_TRIPS=1",
+        "PORTAL_TOKEN_SECRET=local-test-trips-only-never-used-on-any-deployment",
+        "npm",
+        "run",
+        "dev"
+      ],
+      "port": 3000,
+      "autoPort": true
+    },
+    {
+      "name": "dev-spring-preview",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "SPRING_BREAK_PREVIEW=1",
+        "npm",
+        "run",
+        "dev"
+      ],
+      "port": 3000,
+      "autoPort": true
+    },
+    {
+      "name": "start-spring-preview",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "SPRING_BREAK_PREVIEW=1",
+        "npm",
+        "run",
+        "start"
+      ],
+      "port": 3000
+    },
+    {
       "name": "dev-list-first",
       "runtimeExecutable": "env",
       "runtimeArgs": [

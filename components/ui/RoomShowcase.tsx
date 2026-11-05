@@ -30,7 +30,7 @@ import { tierDisplayName } from "@/lib/tier-display";
 
 /** Structurally the same as RoomMedia in lib/room-media.ts, which is server-only. */
 export type RoomView = {
-  key: "BASE" | "MID" | "PENTHOUSE" | "TOP";
+  key: "BASE" | "MID" | "PENTHOUSE" | "TOP" | "ZEMI";
   title: string;
   summary: string;
   upgrade: string;
@@ -64,7 +64,8 @@ export type ShowcaseRoom = {
   room: RoomView;
 };
 
-const ORDER = { BASE: 0, MID: 1, PENTHOUSE: 2, TOP: 3 } as const;
+// ZEMI is spring break's room. No Telluride page shows it, so it only needs a place here to type-check.
+const ORDER = { BASE: 0, MID: 1, PENTHOUSE: 2, TOP: 3, ZEMI: 4 } as const;
 
 /** The package promise for a penthouse, as on its checkout card. */
 const WHOLE_PENTHOUSE = "Eight of you, the whole penthouse";

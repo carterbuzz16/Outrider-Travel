@@ -10,6 +10,7 @@ import {
   INSTALLMENT_DATES_BY_START,
   OLD_DECEMBER_DATES,
   PAY_IN_FULL_FROM_BY_START,
+  scheduleConfirmed,
 } from "@/lib/installments";
 import { MAX_INSTALLMENT_ATTEMPTS, INSTALLMENT_RETRY_AFTER_DAYS } from "@/lib/payments";
 import { MIN_BALANCE_PAYMENT, formatAmount } from "@/lib/balance";
@@ -46,9 +47,15 @@ const deposit = formatAmount(DEPOSIT_AMOUNT);
 // listed here too. Since 6.0.0 a departure has one or two: December is one,
 // on the signup deadline, and is paid in full at booking from
 // PAY_IN_FULL_FROM_BY_START. Section 5 is written for one or two; a departure
-// with more needs that section reread.
-const departureSchedules = Object.entries(INSTALLMENT_DATES_BY_START).sort(([a], [b]) => a.localeCompare(b));
-const payInFullFrom = Object.entries(PAY_IN_FULL_FROM_BY_START).sort(([a], [b]) => a.localeCompare(b));
+// with more needs that section reread. A departure whose dates are still
+// placeholders stays out (scheduleConfirmed, lib/installments.ts): deploying
+// must not change the text of a version already in force.
+const departureSchedules = Object.entries(INSTALLMENT_DATES_BY_START)
+  .filter(([start]) => scheduleConfirmed(start))
+  .sort(([a], [b]) => a.localeCompare(b));
+const payInFullFrom = Object.entries(PAY_IN_FULL_FROM_BY_START)
+  .filter(([start]) => scheduleConfirmed(start))
+  .sort(([a], [b]) => a.localeCompare(b));
 const longDate = (iso: string) =>
   new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", {
     month: "long",

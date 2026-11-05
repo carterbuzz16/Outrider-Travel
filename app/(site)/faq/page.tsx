@@ -2,17 +2,18 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/metadata";
 import Link from "next/link";
 import { FaqSchema, Reveal, SectionDivider, WaitlistCTA } from "@/components/ui";
-import { CONTACT } from "@/lib/site-content";
+import { CONTACT, SPRING_BREAK_WHEN } from "@/lib/site-content";
 import { BOOKINGS_OPEN, TRIP_DETAILS_OPEN } from "@/lib/booking-window";
 import { DEPOSIT_AMOUNT, KLARNA_PAY_IN_4_MAX, PAY_IN_FULL_DISCOUNT } from "@/lib/deposit";
 import { flightTimesPublished } from "@/lib/trip-logistics";
-import { howTheRestIsPaid } from "@/lib/installments";
+import { SPRING_BREAK_DATES_CONFIRMED, howTheRestIsPaid } from "@/lib/installments";
+import { SPRING_BREAK_STARTS } from "@/lib/signup-deadline";
 
 export const metadata: Metadata = pageMetadata({
   title: "FAQ",
   path: "/faq",
   description:
-    "How an Outrider college group trip works: what the price covers, deposits and installments, canceling, group size, flights, and who's with you on the trip.",
+    "How an Outrider college trip works: what the price covers, deposits and installments, canceling, flights, and the details of Telluride and spring break.",
   shareTitle: "Questions about Outrider trips",
 });
 
@@ -28,26 +29,34 @@ export const metadata: Metadata = pageMetadata({
  * INSTALLMENT_DATES_BY_START (lib/installments.ts), so December's single
  * payment on the signup deadline is named. Carter's two sentences about deposits and missed
  * installments (13 October 2026) are quoted as he wrote them. The group sizes
- * restate each departure's capacity (lib/trip-logistics.ts). */
+ * restate each departure's capacity (lib/trip-logistics.ts).
+ *
+ * Split on 3 November 2026 into what holds on every trip and what belongs to
+ * one, now that spring break is a trip rather than a teaser. A fact true of one
+ * trip goes in that trip's group. Spring break's price is left to its page, which
+ * reads it from the published trips, and it has no group-size answer because
+ * Carter has not given its capacity. Its payment dates are still to be confirmed,
+ * so they only ever come through howTheRestIsPaid. A question names its trip
+ * where another group asks the same thing, because FaqSchema lists them all as
+ * one page and each has to stand alone in a search result. */
 type QA = { q: string; a: React.ReactNode };
-type Group = { heading: string; items: QA[] };
+type Group = { id: string; heading: string; items: QA[] };
 
 const GROUPS: Group[] = [
   {
-    heading: "Booking and paying",
+    id: "every-trip",
+    heading: "Every trip",
     items: [
       {
         q: "What is actually included in the price?",
         a: (
           <>
-            Your lodging, lift tickets and ski or snowboard rentals, rides
-            from the airport and back, the après party at Gorrono Ranch, and our team
-            on the ground for the whole trip.{" "}
-            {TRIP_DETAILS_OPEN
-              ? "The number on the trip page is what the trip costs: no resort fee at check-in and no separate charge for the shuttle."
-              : "No resort fee at check-in and no separate charge for the shuttle."}{" "}
-            You book your own flights. Travel insurance isn&rsquo;t included.
-            We&rsquo;ll offer it as an optional add-on.
+            On every trip: your room, your rides from the airport and back, and
+            our team on site the whole time. Telluride adds lift tickets, rentals
+            and the après party, and spring break is all-inclusive. Each
+            trip&rsquo;s full list is below. You book your own flights. Travel
+            insurance isn&rsquo;t included. We&rsquo;ll offer it as an optional
+            add-on.
           </>
         ),
       },
@@ -56,10 +65,10 @@ const GROUPS: Group[] = [
         a: (
           <>
             ${DEPOSIT_AMOUNT} holds your spot. The rest comes off the card you
-            booked with automatically, before the trip. {howTheRestIsPaid()} You
-            can pay toward it early from your bookings page any time, which
-            brings the next payment down. Or pay for the whole
-            trip when you book
+            booked with automatically, before the trip, on the dates set for your
+            week (they&rsquo;re under each trip below). You can pay toward it
+            early from your bookings page any time, which brings the next payment
+            down. Or pay for the whole trip when you book
             {PAY_IN_FULL_DISCOUNT > 0 && `, take $${PAY_IN_FULL_DISCOUNT} off,`} and
             nothing is charged later. Klarna works for either one payment: the
             whole trip when you book, or everything left after the deposit,
@@ -114,38 +123,12 @@ const GROUPS: Group[] = [
           </>
         ),
       },
-    ],
-  },
-  {
-    heading: "The trip itself",
-    items: [
-      {
-        q: "How many people are on a trip?",
-        a: (
-          <>
-            Up to 100 in December and 50 in January. The number is set
-            before a trip goes on sale and doesn&rsquo;t move to fit demand.
-            Rooms are shared by four or by two, and a penthouse holds eight.
-          </>
-        ),
-      },
-      {
-        q: "Do I need to know how to ski?",
-        a: (
-          <>
-            Not at all. Telluride has plenty of gentle terrain for a first
-            timer. Lessons are available at the resort&rsquo;s rate: tell us
-            when you book and we&rsquo;ll set one up before you land.
-          </>
-        ),
-      },
       {
         q: "Is somebody from Outrider actually there?",
         a: (
           <>
-            Yes, for the whole trip. Our team is on the ground all week, so if
-            a room needs fixing or a plan changes, someone is right there to
-            sort it out.
+            Yes, for the whole trip. Our team is on site, so if a room needs
+            fixing or a plan changes, someone is right there to sort it out.
           </>
         ),
       },
@@ -154,9 +137,8 @@ const GROUPS: Group[] = [
         a: (
           <>
             It&rsquo;s a fun week, and we plan it that way. It&rsquo;s also
-            built around the place: a hotel you&rsquo;d show your parents, big
-            days on the mountain, dinners on Main Street, and our team on the
-            ground the whole time.
+            built around the place: a hotel you&rsquo;d show your parents,
+            somewhere worth the flight, and our team there the whole time.
           </>
         ),
       },
@@ -164,18 +146,15 @@ const GROUPS: Group[] = [
         q: "What should my parents know?",
         a: (
           <>
-            Our team is on the ground in Telluride all week. You stay at The
-            Peaks, a ski-in, ski-out hotel, and rooms are same-gender. We
-            collect an emergency contact for every traveler before the trip.
+            Our team is on site the whole trip. Everyone stays at one hotel: The
+            Peaks in Telluride, ski-in, ski-out, or Zemi Miches, a Hilton Curio
+            Collection resort, for spring break. At The Peaks, rooms are
+            same-gender. We collect an emergency contact for every traveler
+            before the trip.
             Each traveler books and pays for their own spot.
           </>
         ),
       },
-    ],
-  },
-  {
-    heading: "Getting there",
-    items: [
       {
         q: "Are flights included?",
         a: (
@@ -188,54 +167,35 @@ const GROUPS: Group[] = [
         ),
       },
       {
-        q: "Which airport?",
-        a: (
-          <>
-            For Telluride, fly into Montrose. It&rsquo;s about 65 miles out, roughly
-            an hour and a half of driving, and ground transport in both
-            directions is arranged and included. The{" "}
-            <Link href="/flights" className="text-[--accent] underline underline-offset-4">
-              flight guide
-            </Link>{" "}
-            {flightTimesPublished()
-              ? "has the arrival and departure times and what to do about a bad connection."
-              : "covers what to do about a bad connection, and we\u2019ll post the arrival and departure times there."}
-          </>
-        ),
-      },
-    ],
-  },
-  {
-    heading: "Groups and everything else",
-    items: [
-      {
         q: "Can I book with my friends?",
         a: (
           <>
             Yes. Everyone books their own spot, and a group code keeps you
             together. After you book, you name your roommates on your trip
-            page: up to three people in a Four to a Room package, one in a Two
-            to a Room, and a penthouse group rooms together. Rooms are
-            same-gender.
+            page. At The Peaks, rooms are same-gender.
           </>
         ),
       },
       {
         q: "When do trips go on sale?",
         a: BOOKINGS_OPEN ? (
+          // Not "they're open now": that stops being true of a trip when it
+          // closes, and this page has no read of the trips to know.
           <>
-            They&rsquo;re open now. Dates, packages and pricing are on the{" "}
+            When the rooms are held and the price is set. What&rsquo;s on sale
+            now is on the{" "}
             <Link href="/trips" className="text-[--accent] underline underline-offset-4">
               trips page
             </Link>
-            .
+            , with dates, packages and pricing. Join the list below and
+            you&rsquo;ll hear about the next one first.
           </>
         ) : TRIP_DETAILS_OPEN ? (
           // Details public, paying list-only (lib/booking-window.ts).
           <>
             The list books first. Dates, packages and pricing are all on the{" "}
-            <Link href="/telluride" className="text-[--accent] underline underline-offset-4">
-              Telluride page
+            <Link href="/trips" className="text-[--accent] underline underline-offset-4">
+              trips page
             </Link>
             . Join the list below and we&rsquo;ll email you a private link to book.
           </>
@@ -267,6 +227,135 @@ const GROUPS: Group[] = [
       },
     ],
   },
+  {
+    id: "telluride",
+    heading: "Telluride",
+    items: [
+      {
+        q: "What's included in Telluride?",
+        a: (
+          <>
+            Your lodging at The Peaks, ski-in, ski-out, lift tickets and ski or
+            snowboard rentals, rides from the airport and back, the après party
+            at Gorrono Ranch, and our team on the ground for the whole trip.{" "}
+            {TRIP_DETAILS_OPEN
+              ? "The number on the trip page is what the trip costs: no resort fee at check-in and no separate charge for the shuttle."
+              : "No resort fee at check-in and no separate charge for the shuttle."}
+          </>
+        ),
+      },
+      {
+        q: "When is the rest paid for Telluride?",
+        a: <>{howTheRestIsPaid()}</>,
+      },
+      {
+        q: "How many people are on a Telluride trip?",
+        a: (
+          <>
+            Up to 100 in December and 50 in January. The number is set
+            before a trip goes on sale and doesn&rsquo;t move to fit demand.
+          </>
+        ),
+      },
+      {
+        q: "How do the rooms work in Telluride?",
+        a: (
+          <>
+            Rooms are shared by four or by two, and a penthouse holds eight. You
+            can name up to three people in a Four to a Room package and one in a
+            Two to a Room, and a penthouse group rooms together.
+          </>
+        ),
+      },
+      {
+        q: "Do I need to know how to ski?",
+        a: (
+          <>
+            Not at all. Telluride has plenty of gentle terrain for a first
+            timer. Lessons are available at the resort&rsquo;s rate: tell us
+            when you book and we&rsquo;ll set one up before you land.
+          </>
+        ),
+      },
+      {
+        q: "Which airport for Telluride?",
+        a: (
+          <>
+            Fly into Montrose. It&rsquo;s about 65 miles out, roughly
+            an hour and a half of driving, and ground transport in both
+            directions is arranged and included. The{" "}
+            <Link href="/flights" className="text-[--accent] underline underline-offset-4">
+              flight guide
+            </Link>{" "}
+            {flightTimesPublished()
+              ? "has the arrival and departure times and what to do about a bad connection."
+              : "covers what to do about a bad connection, and we’ll post the arrival and departure times there."}
+          </>
+        ),
+      },
+    ],
+  },
+  {
+    id: "spring-break",
+    heading: "Spring break",
+    items: [
+      {
+        q: "Where is spring break?",
+        a: (
+          <>
+            Punta Cana, in the Dominican Republic, {SPRING_BREAK_WHEN}. We stay at
+            Zemi Miches, a Hilton Curio Collection resort on Playa Esmeralda, in
+            Miches, an hour and a half up the coast. It&rsquo;s all on the{" "}
+            <Link href="/spring-break" className="text-[--accent] underline underline-offset-4">
+              spring break page
+            </Link>
+            .
+          </>
+        ),
+      },
+      {
+        q: "What's included in spring break?",
+        a: (
+          <>
+            Four nights at Zemi Miches, all-inclusive, two to a room with two
+            queen beds. Airport transfers both ways, a welcome happy hour, a welcome
+            gift, and our team on site the whole trip, plus a few Outrider moments
+            along the way. Kayaks, paddleboards, padel and pickleball are
+            included too. ATV tours, catamaran days, whale watching, mini bowling
+            and the spa cost extra, and we can help you book them.
+          </>
+        ),
+      },
+      {
+        q: "When is the rest paid for spring break?",
+        // The dates print only once they are real (lib/installments.ts).
+        a: SPRING_BREAK_DATES_CONFIRMED ? (
+          <>{howTheRestIsPaid(SPRING_BREAK_STARTS)}</>
+        ) : (
+          <>In payments before the trip. You&rsquo;ll see the dates before you pay anything.</>
+        ),
+      },
+      {
+        q: "How do the rooms work for spring break?",
+        a: (
+          <>
+            Two to a room with two queen beds. After you book, you name the person
+            you want to share with on your trip page.
+          </>
+        ),
+      },
+      {
+        q: "Which airport for spring break?",
+        a: (
+          <>
+            Fly into Punta Cana (PUJ). Everyone books their own flight. The
+            transfers from there to the resort and back are included, an hour and
+            a half each way.
+          </>
+        ),
+      },
+    ],
+  },
 ];
 
 export default function FaqPage() {
@@ -287,7 +376,7 @@ export default function FaqPage() {
       <SectionDivider variant="rule" className="shell" />
 
       {GROUPS.map((group) => (
-        <section key={group.heading} className="shell py-14 md:py-16">
+        <section key={group.id} id={group.id} className="shell scroll-mt-24 py-14 md:scroll-mt-32 md:py-16">
           <div className="grid gap-10 md:grid-cols-[minmax(0,0.55fr)_minmax(0,1.45fr)] md:gap-20">
             <Reveal>
               <h2 className="t-heading text-[--accent] md:sticky md:top-32">

@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { isBookingId } from "@/lib/portal-token";
 import { parseIdentity } from "@/lib/traveler-details";
+import { lineForDestination } from "@/lib/trip-lines";
 import type { PortalActionResult } from "@/app/trip/[bookingId]/fields";
 
 /*
@@ -72,7 +73,7 @@ export async function saveIdentityDetails(
   // theirs by construction. No row means not theirs, or not a booking.
   const { data: booking } = await supabase
     .from("bookings")
-    .select("id, status")
+    .select("id, status, trips(destination)")
     .eq("id", bookingId)
     .single();
 
@@ -106,11 +107,27 @@ export async function saveIdentityDetails(
   }
 
   /*
-   * bookings.details_submitted is deliberately NOT set here. It means the
-   * whole task is done, and the gear half is still outstanding; setting it
-   * would tick the trip page's third task and stop the 72-hour chase for
-   * someone the rental shop knows nothing about.
+   * bookings.details_submitted means the whole task is done. On a trip with
+   * rentals it is deliberately NOT set here: the gear half is still
+   * outstanding, and setting it would tick the trip page's third task and stop
+   * the 72-hour chase for someone the rental shop knows nothing about.
+   *
+   * With no rentals (lib/trip-lines.ts), this was the whole task, so it is set
+   * now (3 November 2026). The chase's query reads the flag and would otherwise
+   * pick the booking up every day. It writes nothing a traveler sees if it
+   * fails, so it is logged and the form carries on; the chase reads the row as
+   * well (detailsTaskDone).
    */
+  if (!lineForDestination(booking.trips?.destination).rentals) {
+    const { error: flagError } = await createAdminClient()
+      .from("bookings")
+      .update({ details_submitted: true })
+      .eq("id", booking.id);
+    if (flagError) {
+      console.error(`details flag for ${booking.id} failed: ${flagError.code} ${flagError.message}`);
+    }
+  }
+
   // Mid-checkout, the next thing is the card. redirect() throws, so it stays
   // outside anything that would catch it.
   if (booking.status === "pending") {

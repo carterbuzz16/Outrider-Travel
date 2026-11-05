@@ -9,7 +9,9 @@
  *
  * WHAT THEY RIDE comes later, on the trip portal: ski or board, ability,
  * height, weight, shoe size, dietary. The rental shop does not need any of it
- * until weeks out, and it is the half nobody will stand in a checkout for.
+ * until weeks out, and it is the half nobody will stand in a checkout for. A
+ * trip with no rentals (lib/trip-lines.ts) has no such half: only the optional
+ * dietary line is left of it, and the task ends with the first half.
  *
  * Both halves write the same traveler_details row, so this module holds the
  * rules both callers share. They are here and not in either action because
@@ -170,15 +172,44 @@ export type GearShape = {
 /**
  * Whether the gear half is filled in.
  *
- * This, not "a row exists", is what finishes the traveler-details task: since
- * checkout writes the identity half on its own, a row can exist
- * with every gear column still null, and treating that as done would tick the
- * task off and stop the 72-hour chase for someone the rental shop still knows
- * nothing about.
+ * On a trip with rentals this, not "a row exists", is what finishes the
+ * traveler-details task (detailsTaskComplete, below): since checkout writes the
+ * identity half on its own, a row can exist with every gear column still null,
+ * and treating that as done would tick the task off and stop the 72-hour chase
+ * for someone the rental shop still knows nothing about.
  */
 export function gearComplete(gear: GearShape | null | undefined): boolean {
   if (!gear) return false;
   return Boolean(
     gear.ski_or_board && gear.ability_level && gear.height && gear.weight && gear.shoe_size,
   );
+}
+
+/**
+ * Whether the trip page's details task is done, on the line this booking is on
+ * (3 November 2026). A trip with no gear to fit (lib/trip-lines.ts, `rentals`)
+ * has only the identity half, so a row is the whole task: holding out for sizes
+ * would chase a spring breaker for a shoe size forever.
+ */
+export function detailsTaskComplete(
+  line: { rentals: boolean },
+  details: GearShape | null | undefined,
+): boolean {
+  if (!details) return false;
+  return line.rentals ? gearComplete(details) : true;
+}
+
+/**
+ * Whether the 72-hour chase still has the details task to ask about. On a line
+ * with rentals that is bookings.details_submitted, which the trip page sets when
+ * the sizes arrive; checkout's row does not count, because the rental shop still
+ * knows nothing. Without rentals, checkout's row is the task. It is read here
+ * rather than taking the flag's word: checkout sets the flag too, but a flag
+ * write that failed must not mean an email asking for details already given.
+ */
+export function detailsTaskDone(
+  line: { rentals: boolean },
+  booking: { detailsSubmitted: boolean; hasDetailsRow: boolean },
+): boolean {
+  return line.rentals ? booking.detailsSubmitted : booking.hasDetailsRow;
 }

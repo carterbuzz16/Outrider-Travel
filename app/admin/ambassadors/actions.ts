@@ -22,9 +22,9 @@ import {
   type HoldStatus,
 } from "@/lib/ambassadors";
 import { ANNOUNCEMENT_MAX, NO_PORTAL_STATUSES, TOOLKIT_BUCKET } from "@/lib/ambassador-rules";
-import { friendCredit, programFor, spotPrice } from "@/lib/ambassador-program";
+import { TELLURIDE_2026, friendCredit, programForDeparture, spotPrice } from "@/lib/ambassador-program";
 import { isToolkitObjectPath } from "@/lib/toolkit-upload";
-import { LAST_SIGNUP_DEADLINE, LAST_SIGNUP_DEADLINE_DAY, signupsClosed } from "@/lib/signup-deadline";
+import { LAST_BOOKING_CLOSE, LAST_SIGNUP_DEADLINE_DAY, tellurideClosed } from "@/lib/signup-deadline";
 
 /*
  * The back office's ambassador actions (/admin/ambassadors).
@@ -53,9 +53,11 @@ function text(formData: FormData, key: string): string | null {
 /**
  * Adds an ambassador, making their $0 code, or edits one. A new code is made
  * the way scripts/ambassador-codes.sql makes them: amount 0, 1,000 uses,
- * expiring at the signup deadline. A code that already exists is used as it
- * stands if it is a $0 one, and refused if it takes money off: a discount code
- * cannot double as someone's referral code.
+ * expiring at the last close of anything on sale, since one code sells every
+ * program (3 November 2026). A week past its own close still refuses the booking
+ * whatever the code (departureClosed, createBooking). A code that already
+ * exists is used as it stands if it is a $0 one, and refused if it takes money
+ * off: a discount code cannot double as someone's referral code.
  */
 export async function saveAmbassador(formData: FormData) {
   await requireAdmin();
@@ -93,7 +95,7 @@ export async function saveAmbassador(formData: FormData) {
         max_uses: 1000,
         once_per_person: false,
         active: true,
-        expires_at: LAST_SIGNUP_DEADLINE.toISOString(),
+        expires_at: LAST_BOOKING_CLOSE.toISOString(),
         note: `Ambassador attribution code ($0) for ${name}${school ? `, ${school}` : ""}. Created ${new Date().toISOString().slice(0, 10)}.`,
       });
       if (error) {
@@ -215,7 +217,9 @@ export async function removeAttribution(formData: FormData) {
  * whole price, so check_tier_capacity counts it, and ambassador_hold, so it
  * never counts toward anyone's five. No installments are written, so the cron
  * never charges it. The ambassador needs an account first: one is never made
- * for them from here.
+ * for them from here. Telluride only: spring break holds no spots, and settling
+ * reads Telluride's count, so a spring break hold could be made free by the
+ * wrong goal (3 November 2026).
  */
 export async function createHold(formData: FormData) {
   await requireAdmin();
@@ -233,6 +237,10 @@ export async function createHold(formData: FormData) {
   if (amb.hold_booking_id && amb.hold_status !== "released") back(path, { error: "has_hold" });
   if (!amb.email) back(path, { error: "no_email" });
   if (!amb.trip_id) back(path, { error: "no_trip" });
+  const { data: holdTrip } = await admin.from("trips").select("start_date").eq("id", amb.trip_id).maybeSingle();
+  if (!holdTrip || programForDeparture(holdTrip.start_date).id !== TELLURIDE_2026.id) {
+    back(path, { error: "hold_telluride_only" });
+  }
 
   const { data: user } = await admin.from("users").select("id").ilike("email", amb.email).maybeSingle();
   if (!user) back(path, { error: "no_account" });
@@ -320,6 +328,10 @@ export async function settleHolds(formData: FormData) {
   for (const a of ambassadors) {
     if (!a.hold || (a.holdStatus !== "held" && a.holdStatus !== "paying")) continue;
     if (a.hold.status !== "deposit_paid") continue; // paid in full by now, or cancelled
+    // Telluride's spots, by Telluride's count (a.paidInFull never holds a spring
+    // break friend). createHold refuses any other; this keeps one from being
+    // settled by the wrong goal if a row was ever set by hand.
+    if (programForDeparture(a.hold.tripStart).id !== TELLURIDE_2026.id) continue;
 
     if (a.paidInFull >= AMBASSADOR_GOAL) {
       // Money already on it would need refunding to make it free: a person decides.
@@ -366,7 +378,7 @@ export async function settleHolds(formData: FormData) {
       skipped += 1;
       continue;
     }
-    const program = programFor(a.program);
+    const program = TELLURIDE_2026;
     const newTotal = spotPrice(program, listPrice, a.paidInFull);
     const { error: priceError } = await admin
       .from("bookings")
@@ -439,7 +451,7 @@ export async function settleHolds(formData: FormData) {
 export async function releaseUnpaidHolds() {
   await requireAdmin();
   const path = "/admin/ambassadors";
-  if (!signupsClosed()) back(path, { error: "too_early" });
+  if (!tellurideClosed()) back(path, { error: "too_early" });
 
   const admin = createAdminClient();
   const ambassadors = await loadAmbassadors(admin);
@@ -450,6 +462,7 @@ export async function releaseUnpaidHolds() {
   for (const a of ambassadors) {
     if (!a.hold || (a.holdStatus !== "held" && a.holdStatus !== "paying")) continue;
     if (a.hold.status !== "deposit_paid") continue;
+    if (programForDeparture(a.hold.tripStart).id !== TELLURIDE_2026.id) continue;
     if (a.hold.paidCents > 0) {
       skipped += 1;
       continue;

@@ -42,8 +42,10 @@ export default async function EmailsPage() {
         lede={
           <>
             Every email the site sends, when it goes and who gets it, previewed with a sample booking: Jordan Taylor,
-            Telluride, December 14 to 18, 2026, Two to a Room, the $100 deposit and the $1,999 balance on Nov 14. Test sends go
-            only to you{user?.email ? <> ({user.email})</> : null}, with [TEST] in the subject, and touch no bookings.
+            Telluride, December 14 to 18, 2026, Two to a Room, the $100 deposit and the $1,999 balance on Nov 14. The
+            spring break versions use the March 8 week instead, and the payment emails are the same on every trip. Test
+            sends go only to you{user?.email ? <> ({user.email})</> : null}, with [TEST] in the subject, and touch no
+            bookings.
           </>
         }
       />

@@ -9,15 +9,19 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   HIDDEN_NAME,
+  agreedAtFor,
+  agreedToAny,
   buildPortalView,
   decideLink,
+  scopeToProgram,
   shortName,
   statusHasAccess,
+  type AmbassadorAcrossPrograms,
   type AmbassadorForView,
   type PortalAccess,
   type PortalView,
 } from "@/lib/ambassador-rules";
-import { TELLURIDE_2026 } from "@/lib/ambassador-program";
+import { SPRING_BREAK_2027, TELLURIDE_2026 } from "@/lib/ambassador-program";
 import { dashboardHandler } from "@/lib/ambassador-api";
 
 const row = (over: Partial<Parameters<typeof decideLink>[1][number]> = {}) => ({
@@ -157,8 +161,18 @@ test("names never carry more than a first name and an initial", () => {
 const STEIN_ACCESS: PortalAccess = {
   kind: "ambassador",
   userId: "user-a",
-  ambassador: { code: "STEIN", name: "Steven Stein", school: "Miami", status: "active", program: "telluride-2026", agreedAt: "2026-10-29T00:00:00Z" },
+  ambassador: {
+    code: "STEIN",
+    name: "Steven Stein",
+    school: "Miami",
+    status: "active",
+    program: "telluride-2026",
+    agreedAt: "2026-10-29T00:00:00Z",
+    agreements: {},
+  },
 };
+
+const STEIN_AMBASSADOR = (STEIN_ACCESS as Extract<PortalAccess, { kind: "ambassador" }>).ambassador;
 
 function handler(access: PortalAccess, opts: { limited?: boolean } = {}) {
   const asked: string[] = [];
@@ -195,9 +209,23 @@ test("signed out, not an ambassador, or not yet agreed: nothing", async () => {
   assert.equal(res.status, 403);
   assert.deepEqual(outsider.asked, []);
   assert.deepEqual(Object.keys(await res.json()), ["error"]);
-  const unagreed = handler({ ...STEIN_ACCESS, ambassador: { ...STEIN_ACCESS.ambassador, agreedAt: null } });
+  const unagreed = handler({ kind: "ambassador", userId: "user-a", ambassador: { ...STEIN_AMBASSADOR, agreedAt: null } });
   assert.equal((await unagreed.GET()).status, 403);
   assert.deepEqual(unagreed.asked, []);
+});
+
+test("having agreed to either program opens the endpoint; neither agreement locks out the other", async () => {
+  const springOnly = handler({
+    kind: "ambassador",
+    userId: "user-a",
+    ambassador: { ...STEIN_AMBASSADOR, agreedAt: null, agreements: { [SPRING_BREAK_2027.id]: "2026-11-03T00:00:00Z" } },
+  });
+  assert.equal((await springOnly.GET()).status, 200);
+  // Telluride's column and spring break's acceptance are read apart.
+  assert.equal(agreedAtFor(STEIN_AMBASSADOR, TELLURIDE_2026), "2026-10-29T00:00:00Z");
+  assert.equal(agreedAtFor(STEIN_AMBASSADOR, SPRING_BREAK_2027), null);
+  assert.equal(agreedToAny(STEIN_AMBASSADOR), true);
+  assert.equal(agreedToAny({ agreedAt: null, agreements: {} }), false);
 });
 
 test("the endpoint is rate limited", async () => {
@@ -229,4 +257,83 @@ test("the view carries the ambassador's own credit so far", () => {
   assert.equal(buildPortalView("STEIN", ALL, TELLURIDE_2026)!.credit, 100);
   assert.equal(buildPortalView("DUNKLE", ALL, TELLURIDE_2026)!.credit, 200);
   assert.equal(buildPortalView("ZERO", ALL, TELLURIDE_2026)!.credit, 0);
+});
+
+/* -- two programs, one code (3 November 2026) ------------------------------------ */
+
+const TWO_PROGRAMS: AmbassadorAcrossPrograms[] = [
+  {
+    code: "STEIN",
+    name: "Steven Stein",
+    school: "Miami",
+    status: "active",
+    leaderboardHidden: false,
+    holdStatus: "held",
+    rewardTripStart: "2026-12-14",
+    rewardClaimedAt: "2026-11-01T00:00:00Z",
+    bookings: [
+      { status: "paid_in_full", traveler: "Sarah Kim", tripStart: "2026-12-14", programId: TELLURIDE_2026.id, counts: true, depositOnly: false, note: null },
+      { status: "paid_in_full", traveler: "Mia Chen", tripStart: "2027-03-08", programId: SPRING_BREAK_2027.id, counts: true, depositOnly: false, note: null },
+      { status: "deposit_paid", traveler: "Ana Ruiz", tripStart: "2027-03-15", programId: SPRING_BREAK_2027.id, counts: false, depositOnly: true, note: null },
+    ],
+  },
+  {
+    code: "DUNKLE",
+    name: "Conner Dunkle",
+    school: "Arkansas",
+    status: "active",
+    leaderboardHidden: false,
+    holdStatus: null,
+    rewardTripStart: null,
+    rewardClaimedAt: null,
+    bookings: [
+      { status: "paid_in_full", traveler: "Ski One", tripStart: "2026-12-14", programId: TELLURIDE_2026.id, counts: true, depositOnly: false, note: null },
+      { status: "paid_in_full", traveler: "Ski Two", tripStart: "2027-01-04", programId: TELLURIDE_2026.id, counts: true, depositOnly: false, note: null },
+    ],
+  },
+];
+
+function viewOn(program: typeof TELLURIDE_2026) {
+  return buildPortalView("STEIN", TWO_PROGRAMS.map((r) => scopeToProgram(r, program)), program)!;
+}
+
+test("each program's view holds its own friends, counts and goal, and nothing of the other's", () => {
+  const telluride = viewOn(TELLURIDE_2026);
+  assert.deepEqual(telluride.friends.map((f) => f.name), ["Sarah K."]);
+  assert.equal(telluride.paid, 1);
+  assert.equal(telluride.onTheWay, 0);
+  assert.equal(telluride.goal, 5);
+  assert.equal(telluride.credit, 100);
+
+  const spring = viewOn(SPRING_BREAK_2027);
+  assert.deepEqual(spring.friends.map((f) => [f.name, f.trip]), [
+    ["Mia C.", "March 8"],
+    ["Ana R.", "March 15"],
+  ]);
+  assert.equal(spring.paid, 1);
+  assert.equal(spring.onTheWay, 1);
+  assert.equal(spring.goal, 10);
+  assert.equal(spring.toGo, 9);
+});
+
+test("rankings count per program", () => {
+  assert.deepEqual(viewOn(TELLURIDE_2026).leaderboard.top.map((e) => [e.rank, e.name, e.paid]), [
+    [1, "Conner D.", 2],
+    [2, "Steven S.", 1],
+  ]);
+  // Conner has no spring break friends, so he isn't listed there, though he has a rank.
+  const spring = viewOn(SPRING_BREAK_2027);
+  assert.deepEqual(spring.leaderboard.top.map((e) => [e.rank, e.name, e.paid]), [[1, "Steven S.", 1]]);
+  assert.deepEqual(spring.leaderboard.you, { rank: 1, of: 2 });
+});
+
+test("spring break offers no credit, no held spot and no free trip already picked", () => {
+  const spring = viewOn(SPRING_BREAK_2027);
+  assert.equal(spring.credit, 0);
+  assert.equal(spring.hold, null);
+  assert.equal(spring.rewards.picked, null);
+  // Telluride's stay where they were.
+  const telluride = viewOn(TELLURIDE_2026);
+  assert.equal(telluride.hold, "held");
+  assert.equal(telluride.rewards.picked, "December");
 });

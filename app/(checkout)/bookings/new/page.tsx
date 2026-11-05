@@ -15,7 +15,9 @@ import {
 } from "@/lib/deposit";
 import { discountCodeAmount, normalizeDiscountCode } from "@/lib/discount-codes";
 import { lookupReferral, referralCodeFromCookie, type Referral } from "@/lib/referral";
-import { closeLabel, signupsClosed, LAST_SIGNUP_DEADLINE_LABEL } from "@/lib/signup-deadline";
+import { closeLabel, signupsClosed, SIGNUPS_CLOSED_LABEL } from "@/lib/signup-deadline";
+import { lineById, lineForDestination } from "@/lib/trip-lines";
+import { departuresByLine, departuresToOffer } from "@/lib/departure-picker";
 import { offerCodeFromCookie } from "@/lib/code-offer-server";
 import {
   WELCOME_CREDIT,
@@ -53,20 +55,26 @@ import {
  *
  * The trip pages link here as /bookings/new?trip=<id>, and a package's Reserve
  * button adds &package=<tier name> so it arrives already selected. Both survive
- * the trip through /login (middleware keeps the query string on `next`).
+ * the trip through /login (middleware keeps the query string on `next`). A page
+ * that sells one line can say ?line=ski or ?line=spring-break instead of a trip,
+ * and the dates are then that line's; ?trip= wins over it.
  *
  * Open to everyone, signed in or not (app/(checkout)/layout.tsx): the account
  * is made at the form's Continue button with an emailed code.
  *
  * With one trip (asked for, or the only one open) the page is the package
  * form. With several and none asked for, it first asks which dates, as a short
- * list of links, since the packages belong to a departure. A trip that was
- * asked for and is not open says so, then offers the rest.
+ * list of links, since the packages belong to a departure. Dates on more than
+ * one line sit under their trip's name, because the weeks of two different trips
+ * are not one list of dates (3 November 2026). A trip that was asked for and is
+ * not open says so, then offers the rest of its line.
  */
 export default async function NewBookingPage(props: {
   searchParams: Promise<{
     error?: string;
     trip?: string;
+    /** ski or spring-break (lib/trip-lines.ts): which trip's dates, when no one trip is named. */
+    line?: string;
     package?: string;
     group?: string;
     code?: string;
@@ -77,9 +85,10 @@ export default async function NewBookingPage(props: {
   }>;
 }) {
   const searchParams = await props.searchParams;
+  const wantedLine = lineById(searchParams.line);
 
-  // Past the signup deadline nothing is booked (lib/signup-deadline.ts), so
-  // there is nothing to choose. createBooking refuses too.
+  // Past the last close of every line nothing is booked (lib/signup-deadline.ts),
+  // so there is nothing to choose. createBooking refuses too.
   if (signupsClosed()) {
     return (
       <main>
@@ -142,7 +151,7 @@ export default async function NewBookingPage(props: {
     return (
       <main>
         <div className="shell max-w-[76rem] pb-20 pt-8 md:pb-28 md:pt-12">
-          <OpensSoon badLink={searchParams.error === "early_access"} />
+          <OpensSoon badLink={searchParams.error === "early_access"} tripHref={wantedLine?.path ?? "/telluride"} />
         </div>
       </main>
     );
@@ -154,9 +163,19 @@ export default async function NewBookingPage(props: {
   const requestedRaw = requestedId ? await getPublishedTrip(requestedId) : null;
   const requestClosedOn = requestedRaw?.bookingClosed ? closeLabel(requestedRaw.startDate) : null;
   const requested = requestClosedOn ? null : requestedRaw;
-  const trips: PublicTrip[] = (requested ? [requested] : await getPublishedTrips()).filter((t) => !t.bookingClosed);
+  // A week closed under someone keeps them on that trip: its other week, not
+  // the other trip. checkoutError (createBooking) sends everyone back with
+  // ?trip=, so that one parameter is what carries the line through a failure.
+  const { trips, lineMissed } = requested
+    ? { trips: [requested] as PublicTrip[], lineMissed: null }
+    : departuresToOffer((await getPublishedTrips()).filter((t) => !t.bookingClosed), {
+        line: wantedLine ?? (requestedRaw ? lineForDestination(requestedRaw.destination) : null),
+        requestedPackage: searchParams.package,
+      });
   const requestMissed = Boolean(requestedId) && requested === null && !requestClosedOn;
   const trip = trips.length === 1 ? trips[0] : null;
+  const lineGroups = departuresByLine(trips);
+  const severalLines = lineGroups.length > 1;
 
   // What the code takes off each package of this trip, since a code can be for
   // one package only, or take a share of the price (lib/discount-codes.ts).
@@ -235,7 +254,10 @@ export default async function NewBookingPage(props: {
   const namedTier = trip?.tiers.find((t) => t.id === wantedPackage || t.name.trim().toLowerCase() === wantedPackage);
   const errorText = checkoutErrorText(searchParams.error, namedTier?.name);
 
-  const alerts = (errorText || requestMissed || requestClosedOn) && (
+  // Said once: a closed week already says what is below it.
+  const lineClosedOut = !requestMissed && !requestClosedOn ? lineMissed : null;
+
+  const alerts = (errorText || requestMissed || requestClosedOn || lineClosedOut) && (
     <div className="mt-8 flex flex-col gap-4">
       {errorText && (
         <Alert tone="warning" title="That did not go through">
@@ -250,6 +272,11 @@ export default async function NewBookingPage(props: {
       {requestClosedOn && (
         <Alert tone="info" title="That week has closed">
           Booking for that week closed on {requestClosedOn}. Everything still open is below.
+        </Alert>
+      )}
+      {lineClosedOut && (
+        <Alert tone="info" title={`${lineClosedOut.place} isn\u2019t taking bookings`}>
+          Nothing on that trip is open right now. Everything still open is below.
         </Alert>
       )}
     </div>
@@ -313,19 +340,34 @@ export default async function NewBookingPage(props: {
         ) : (
           <>
             <header className="mt-8 border-b border-[--rule] pb-6 md:mt-10">
-              <h1 className="t-heading text-[--text]">Choose your dates</h1>
+              <h1 className="t-heading text-[--text]">{severalLines ? "Choose your trip" : "Choose your dates"}</h1>
               <p className="mt-2 font-body text-body text-[--text-secondary]">
-                Every departure is the same trip. Pick the week, then the package.
+                {severalLines
+                  ? "Pick the trip and the week, then the package."
+                  : "Every departure is the same trip. Pick the week, then the package."}
               </p>
             </header>
             {alerts}
-            <Departures
-              trips={trips}
-              requestedPackage={searchParams.package}
-              group={searchParams.group}
-              code={normalizeDiscountCode(searchParams.code) ?? undefined}
-              referred={referral?.from === "typed" ? referral.code : undefined}
-            />
+            {/* One step, still: the same links, with the trip's name over each
+                set when there is more than one trip to tell apart. */}
+            {lineGroups.map(({ line, trips: onLine }) => (
+              <div key={line.id} className={severalLines ? "mt-10" : undefined}>
+                {severalLines && (
+                  <div>
+                    <p className="t-micro text-[--text-secondary]">{line.name}</p>
+                    <h2 className="t-subheading mt-2 text-[--text]">{line.place}</h2>
+                    <p className="mt-2 font-body text-body-s leading-[1.6] text-[--text-secondary]">{line.pickerNote}</p>
+                  </div>
+                )}
+                <Departures
+                  trips={onLine}
+                  requestedPackage={searchParams.package}
+                  group={searchParams.group}
+                  code={normalizeDiscountCode(searchParams.code) ?? undefined}
+                  referred={referral?.from === "typed" ? referral.code : undefined}
+                />
+              </div>
+            ))}
           </>
         )}
       </div>
@@ -337,6 +379,7 @@ export default async function NewBookingPage(props: {
 
 function TripHeader({ trip, showAll }: { trip: PublicTrip; showAll: boolean }) {
   const nights = nightCount(trip.startDate, trip.endDate);
+  const line = lineForDestination(trip.destination);
   return (
     <header className="mt-8 flex flex-col gap-3 border-b border-[--rule] pb-6 sm:flex-row sm:items-end sm:justify-between md:mt-10">
       <div className="min-w-0">
@@ -350,8 +393,9 @@ function TripHeader({ trip, showAll }: { trip: PublicTrip; showAll: boolean }) {
         </p>
       </div>
       {showAll && (
+        // This trip's other dates. Plain /bookings/new is every trip.
         <Link
-          href="/bookings/new"
+          href={`/bookings/new?line=${line.id}`}
           className="inline-flex min-h-11 shrink-0 items-center font-body text-body-s text-[--accent] underline underline-offset-4"
         >
           Change dates
@@ -510,6 +554,7 @@ function Packages({
       initialTierId={initial.id}
       lateNote={latePaymentNote(trip.startDate)}
       contactEmail={CONTACT.email}
+      packagesNote={lineForDestination(trip.destination).packagesNote}
       initialGroupCode={groupCode}
       discount={discount && (applied.code > 0 || attributionOnly) ? { code: discount.code, attributionOnly } : null}
       rejectedCode={rejectedCode}
@@ -634,16 +679,16 @@ function NothingOpen() {
 }
 
 /**
- * After the signup deadline (lib/signup-deadline.ts): said plainly, with the
- * waitlist for the next trip. The same words as the trip pages.
+ * Past the last close of every line (lib/signup-deadline.ts, signupsClosed):
+ * said plainly, with the waitlist for the next trip. It used to name Telluride,
+ * when Telluride was all there was.
  */
 function SignupsClosed() {
   return (
     <div className="mt-10 flex flex-col items-start gap-6 bg-[--surface-raised] px-6 py-14 md:px-10 md:py-16">
       <h1 className="t-heading max-w-[22ch] text-[--text]">Signups are closed</h1>
       <p className="max-w-measure font-body text-body leading-[1.7] text-[--text-secondary]">
-        Signups for Telluride closed on {LAST_SIGNUP_DEADLINE_LABEL}. Join the waitlist to hear about the next trip
-        first.
+        Signups closed on {SIGNUPS_CLOSED_LABEL}. Join the waitlist to hear about the next trip first.
       </p>
       <div className="flex flex-wrap gap-3">
         <Button href="/waitlist" variant="primary" size="md">
@@ -663,7 +708,7 @@ function SignupsClosed() {
  * (mistyped, or its owner unsubscribed), said plainly so nobody thinks the
  * site is broken.
  */
-function OpensSoon({ badLink = false }: { badLink?: boolean }) {
+function OpensSoon({ badLink = false, tripHref }: { badLink?: boolean; tripHref: string }) {
   return (
     <div className="mt-10 flex flex-col items-start gap-6 border border-[--rule] bg-[--surface-raised] px-6 py-14 md:px-10 md:py-16">
       {badLink && (
@@ -678,7 +723,7 @@ function OpensSoon({ badLink = false }: { badLink?: boolean }) {
         list to hear the moment it opens.
       </p>
       <div className="flex flex-wrap gap-3">
-        <Button href="/telluride" variant="primary" size="md">
+        <Button href={tripHref} variant="primary" size="md">
           See the trip
         </Button>
         <Button href="/waitlist" variant="secondary" size="md">

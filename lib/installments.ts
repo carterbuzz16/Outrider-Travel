@@ -2,7 +2,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 import { getStripe } from "@/lib/stripe";
 import { toCents } from "@/lib/balance";
-import { SIGNUP_DEADLINE_DAY, dayInCentral } from "@/lib/signup-deadline";
+import {
+  SIGNUP_DEADLINE_DAY,
+  SPRING_BREAK_DATES_CONFIRMED,
+  SPRING_BREAK_STARTS,
+  dayInCentral,
+} from "@/lib/signup-deadline";
 
 /*
  * When the balance is collected: two equal payments on fixed calendar dates,
@@ -38,6 +43,14 @@ export const INSTALLMENT_DATES_BY_START: Readonly<Record<string, readonly string
   "2026-12-14": [SIGNUP_DEADLINE_DAY],
   // Telluride, January 4 to 8, 2027
   "2027-01-04": ["2026-11-20", "2026-12-01"],
+  // Spring break, March 8 to 12 and March 15 to 19, 2027. CONFIRM WITH CARTER
+  // BEFORE EITHER TRIP IS PUBLISHED: he set the $100 deposit, not these. They
+  // are listed in the Terms from here, and they are the days real cards are
+  // charged. Two payments, the second on the week's booking close
+  // (lib/signup-deadline.ts), as December's last payment is. Check them against
+  // the final payment date in Zemi's Group Agreement, which is not yet written.
+  "2027-03-08": ["2026-12-15", "2027-01-15"],
+  "2027-03-15": ["2026-12-15", "2027-01-22"],
 };
 
 /**
@@ -48,7 +61,39 @@ export const INSTALLMENT_DATES_BY_START: Readonly<Record<string, readonly string
  */
 export const PAY_IN_FULL_FROM_BY_START: Readonly<Record<string, string>> = {
   "2026-12-14": "2026-11-11",
+  // Three days before each spring break week's last payment, as December.
+  // Confirm with the dates above.
+  "2027-03-08": "2027-01-12",
+  "2027-03-15": "2027-01-19",
 };
+
+/*
+ * Spring break's dates above are placeholders until Carter confirms them (3
+ * November 2026), and they are the days real cards are charged. Until this is
+ * true, so the rest of the framework can go live first:
+ *   - its departures stay hidden from the public site even if published
+ *     (lib/trips.ts), and createBooking refuses them;
+ *   - the Terms do not list them and the FAQ does not print them.
+ * Test trips on the same dates still book, under CHECKOUT_SANDBOX.
+ *
+ * To open, in this order:
+ *   1. a signed Group Agreement with Zemi and its deposit paid. Its proposal
+ *      "does not hold guestrooms": until then "$100 holds your spot" is not true;
+ *   2. counsel's spring break text. Every booker has to accept the Assumption of
+ *      Risk at the pay step, and it describes skiing and mountain risks only.
+ *      Never draft that here (AGENTS.md), and hold this flag until it exists;
+ *   3. the real dates above and in lib/signup-deadline.ts;
+ *   4. this flag to true, and the Terms to 6.1.0 or above (lib/legal.ts);
+ *   5. deploy, then publish the trips.
+ * The flag lives in lib/signup-deadline.ts because the nav, a client component,
+ * reads it too, and this module is server-only.
+ */
+export { SPRING_BREAK_DATES_CONFIRMED };
+
+/** False only for a departure whose payment dates are still placeholders. */
+export function scheduleConfirmed(startDate: string): boolean {
+  return SPRING_BREAK_DATES_CONFIRMED || !SPRING_BREAK_STARTS.includes(startDate);
+}
 
 /** Whether a booking made `now` on this departure must be paid in full (see above). */
 export function mustPayInFull(startDate: string, now = new Date()): boolean {
@@ -61,18 +106,23 @@ export function mustPayInFull(startDate: string, now = new Date()): boolean {
  * INSTALLMENT_DATES_BY_START so the FAQ answers move with the schedule:
  * "For December, the rest comes off in one payment on November 14. For
  * January, it's split into two payments, November 20 and December 1."
- * `startDates` picks the departures; all of them when left out.
+ * `startDates` picks the departures. Left out, it means Telluride's two: the
+ * sentence names each by its month, and spring break's two share one, so a
+ * page that sells spring break passes its own (SPRING_BREAK_STARTS) and each
+ * is then named by its day: "For March 8, it's split into two payments".
  */
-export function howTheRestIsPaid(startDates: string[] = Object.keys(INSTALLMENT_DATES_BY_START)): string {
+export function howTheRestIsPaid(startDates: readonly string[] = ["2026-12-14", "2027-01-04"]): string {
   const month = (iso: string) =>
     new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
   const day = (iso: string) =>
     new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
+  const monthsRepeat = new Set(startDates.map(month)).size < startDates.length;
+  const name = (iso: string) => (monthsRepeat ? day(iso) : month(iso));
   const lines = [...startDates].sort().map((start) => {
     const dates = balanceDueDates(start);
     return dates.length === 1
-      ? `For ${month(start)}, the rest comes off in one payment on ${day(dates[0])}.`
-      : `For ${month(start)}, it’s split into ${dates.length === 2 ? "two" : dates.length} payments, ${dates.map(day).join(" and ")}.`;
+      ? `For ${name(start)}, the rest comes off in one payment on ${day(dates[0])}.`
+      : `For ${name(start)}, it’s split into ${dates.length === 2 ? "two" : dates.length} payments, ${dates.map(day).join(" and ")}.`;
   });
   return lines.length > 0 ? lines.join(" ") : "The rest is split into payments before the trip.";
 }

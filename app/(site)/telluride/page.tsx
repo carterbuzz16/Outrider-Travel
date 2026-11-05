@@ -6,6 +6,7 @@ import {
   Button,
   Gallery,
   HeroVideo,
+  Logo,
   Plate,
   Reveal,
   RoomPanel,
@@ -56,7 +57,7 @@ import {
   bookingsCloseAt,
   closeLabel,
   dayInCentral,
-  signupsClosed,
+  tellurideClosed,
 } from "@/lib/signup-deadline";
 import { formatAmount } from "@/lib/balance";
 import { flightTimesPublished } from "@/lib/trip-logistics";
@@ -114,6 +115,11 @@ export const metadata: Metadata = pageMetadata({
 // Same cadence as /trips, so publishing or editing a departure shows up here
 // without a redeploy.
 export const revalidate = 300;
+
+// Every Reserve here stays on Telluride: with no line, /bookings/new lists every
+// open trip, and an ad click for Telluride should not land on a choice of two
+// (3 November 2026, when spring break went on sale beside it).
+const TELLURIDE_BOOKING = "/bookings/new?line=ski";
 
 const LINK = "text-[--accent] underline underline-offset-4";
 
@@ -189,7 +195,7 @@ function monthOf(startDate: string): string {
 
 /** Reserve buttons show only while booking is open and signups have not closed (lib/signup-deadline.ts). */
 function reservable(): boolean {
-  return BOOKINGS_OPEN && !signupsClosed();
+  return BOOKINGS_OPEN && !tellurideClosed();
 }
 
 function isTelluride(trip: PublicTrip): boolean {
@@ -294,7 +300,7 @@ function offerOpen({ trip, tier }: { trip: PublicTrip; tier: PublicTier }): bool
 export default async function TelluridePage() {
   const trips = (await getPublishedTrips()).filter(isTelluride);
   const openTrips = trips.filter((trip) => trip.status !== "soldOut");
-  const closed = BOOKINGS_OPEN && signupsClosed();
+  const closed = BOOKINGS_OPEN && tellurideClosed();
   const bookable = reservable() && openTrips.length > 0;
 
   const nights = shared(trips, (trip) => nightCount(trip.startDate, trip.endDate));
@@ -436,7 +442,7 @@ export default async function TelluridePage() {
                 the package. */}
             <div data-reserve-bar-hide className="mt-5 flex flex-col gap-4">
               {bookable ? (
-                <Button href="/bookings/new" variant="primary" size="lg" block>
+                <Button href={TELLURIDE_BOOKING} variant="primary" size="lg" block>
                   Reserve for {formatAmount(DEPOSIT_AMOUNT)}
                 </Button>
               ) : closed ? (
@@ -879,6 +885,8 @@ export default async function TelluridePage() {
       ) : BOOKINGS_OPEN ? (
         <section data-reserve-bar-hide className="scheme-club scheme-paint" aria-labelledby="close-heading">
           <div className="shell flex flex-col items-start gap-8 py-20 md:py-28">
+            {/* The club's name on its own color (Carter, 3 November 2026). */}
+            <Logo variant="club" className="w-full max-w-[19rem] text-[--text]" />
             <Reveal>
               <h2 id="close-heading" className="t-title max-w-[20ch] text-[--text]">
                 {openTrips.length > 0
@@ -935,10 +943,10 @@ export default async function TelluridePage() {
   if (!bookable) return page;
 
   return (
-    <WelcomeCreditProvider bookHref="/bookings/new">
+    <WelcomeCreditProvider bookHref={TELLURIDE_BOOKING}>
       {page}
       <MobileReserveBar
-        href="/bookings/new"
+        href={TELLURIDE_BOOKING}
         place="Telluride"
         dates={datesLine}
         label={`Reserve for ${formatAmount(DEPOSIT_AMOUNT)}`}
@@ -973,7 +981,7 @@ function RoomCard({ option, tripCount }: { option: PackageOption; tripCount: num
   const href =
     open.length === 1
       ? `/bookings/new?trip=${open[0].trip.id}&package=${open[0].tier.id}`
-      : `/bookings/new?package=${encodeURIComponent(option.offers[0].tier.name)}`;
+      : `${TELLURIDE_BOOKING}&package=${encodeURIComponent(option.offers[0].tier.name)}`;
 
   return (
     <li className="flex w-[82%] max-w-[22rem] shrink-0 snap-start flex-col bg-[--surface-raised] sm:w-[46%] lg:w-auto lg:max-w-none">
@@ -1154,7 +1162,7 @@ function DateRow({ trip }: { trip: PublicTrip }) {
       </div>
       <div className="flex flex-wrap items-center gap-4 [&>span]:whitespace-nowrap">
         {/* Same rule as TripCard: before launch the badge says so, once. */}
-        {BOOKINGS_OPEN && signupsClosed() ? (
+        {BOOKINGS_OPEN && tellurideClosed() ? (
           <Badge tone="closed">Signups closed</Badge>
         ) : BOOKINGS_OPEN ? (
           <StatusBadge status={trip.status} />

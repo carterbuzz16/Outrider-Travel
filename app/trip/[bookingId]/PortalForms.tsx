@@ -12,6 +12,7 @@ import {
   submitTravelerDetails,
 } from "./actions";
 import { ABILITY_LEVELS, MAX_NAME_LENGTH, MAX_ROOMMATES, SKI_OR_BOARD, type PortalActionResult } from "./fields";
+import type { TripLine } from "@/lib/trip-lines";
 
 /*
  * The portal's interactive parts. Everything they show comes from the server
@@ -104,9 +105,12 @@ export function RoomingTask({
   bookingId,
   token,
   existing,
+  slots = MAX_ROOMMATES,
 }: {
   bookingId: string;
   token: string;
+  /** How many name boxes to draw. The server's cap stays MAX_ROOMMATES. */
+  slots?: number;
   /** null until the first request; names are shown back, they are not PII. */
   existing: { names: string[]; noPreference: boolean; submittedLabel: string } | null;
 }) {
@@ -159,8 +163,12 @@ export function RoomingTask({
   return (
     <form action={formAction} onSubmit={onSubmit} className="mt-6 flex max-w-[34rem] flex-col gap-5">
       <AuthFields bookingId={bookingId} token={token} />
-      {Array.from({ length: MAX_ROOMMATES }, (_, i) => (
-        <Field key={i} label={`Roommate ${i + 1}`} hint={i === 0 ? "Their full name, as they booked." : undefined}>
+      {Array.from({ length: slots }, (_, i) => (
+        <Field
+          key={i}
+          label={slots === 1 ? "Roommate" : `Roommate ${i + 1}`}
+          hint={i === 0 ? "Their full name, as they booked." : undefined}
+        >
           {(props) => (
             <Input
               {...props}
@@ -223,6 +231,8 @@ export function DetailsTask({
   submitted,
   needsIdentity,
   smsConsented,
+  line,
+  existingDietary = null,
 }: {
   bookingId: string;
   token: string;
@@ -237,6 +247,15 @@ export function DetailsTask({
   needsIdentity: boolean;
   /** Already opted in to texts: the box is not offered again. */
   smsConsented: boolean;
+  /**
+   * The trip this booking is on (lib/trip-lines.ts). With no rentals there are
+   * no gear questions: the form is who they are, if that is still missing, and
+   * the dietary line. submitTravelerDetails reads the line from the database
+   * too, so this is display only, the same as needsIdentity above.
+   */
+  line: TripLine;
+  /** The dietary line as sent, to edit rather than retype, where it is the whole form. */
+  existingDietary?: string | null;
 }) {
   const [replacing, setReplacing] = useState(false);
   const { state, formAction, pending, onSubmit } = usePortalAction(submitTravelerDetails);
@@ -254,7 +273,7 @@ export function DetailsTask({
         </p>
         <div className="mt-5">
           <Button type="button" variant="secondary" size="md" onClick={() => setReplacing(true)}>
-            Replace my details
+            {line.rentals ? "Replace my details" : "Update dietary needs"}
           </Button>
         </div>
 
@@ -285,7 +304,7 @@ export function DetailsTask({
     >
       <AuthFields bookingId={bookingId} token={token} />
 
-      {submitted && (
+      {submitted && line.rentals && (
         <Alert tone="info" title={needsIdentity ? "Replacing your details" : "Replacing your sizes"}>
           {needsIdentity
             ? "Fill in every field again. This replaces what you sent before."
@@ -295,10 +314,10 @@ export function DetailsTask({
 
       {needsIdentity && (
         <>
-      <Group title="For your records" hint="For your lift tickets and lodging records, and for travel insurance if you choose to add it.">
+      <Group title="For your records" hint={line.recordsHint}>
         <Field
           label="Legal name"
-          hint="Exactly as on your driver's license or passport."
+          hint={line.legalNameHint}
           error={errors.legalName}
           required
           className="sm:col-span-2"
@@ -353,6 +372,7 @@ export function DetailsTask({
           texts go to is the one saved with those details. */}
       {!needsIdentity && !smsConsented && <SmsConsentBox disabled={pending} />}
 
+      {line.rentals && (
       <Group title="Rentals" hint="So your skis or board are ready when you arrive.">
         <Field label="Ski or snowboard" error={errors.skiOrBoard} required>
           {(props) => (
@@ -396,6 +416,7 @@ export function DetailsTask({
           {(props) => <Input {...props} name="shoeSize" maxLength={40} required />}
         </Field>
       </Group>
+      )}
 
       <Group title="Food">
         <Field
@@ -403,18 +424,29 @@ export function DetailsTask({
           hint="Allergies, vegetarian, anything the kitchen should know. Leave blank if none."
           className="sm:col-span-2"
         >
-          {(props) => <Textarea {...props} name="dietaryRestrictions" rows={3} maxLength={1000} />}
+          {(props) => (
+            <Textarea
+              {...props}
+              name="dietaryRestrictions"
+              rows={3}
+              maxLength={1000}
+              defaultValue={existingDietary ?? undefined}
+            />
+          )}
         </Field>
       </Group>
 
       <div className="flex flex-col gap-4">
-        <p className="font-body text-body-s text-[--text-secondary]">
-          Fields marked <span aria-hidden="true" className="text-[--flag-ink]">*</span>
-          <span className="sr-only">with an asterisk</span> are required.
-        </p>
+        {/* Nothing is required when the dietary line is the whole form. */}
+        {(line.rentals || needsIdentity) && (
+          <p className="font-body text-body-s text-[--text-secondary]">
+            Fields marked <span aria-hidden="true" className="text-[--flag-ink]">*</span>
+            <span className="sr-only">with an asterisk</span> are required.
+          </p>
+        )}
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <Button type="submit" variant="primary" size="md" disabled={pending} aria-busy={pending}>
-            {pending ? "Sending" : submitted ? "Replace details" : "Send details"}
+            {pending ? "Sending" : submitted ? (line.rentals ? "Replace details" : "Save") : "Send details"}
           </Button>
           {submitted && (
             <Button

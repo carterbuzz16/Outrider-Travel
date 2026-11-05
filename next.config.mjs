@@ -168,9 +168,12 @@ const nextConfig = {
   // escaped because a glob reads [id] as a character class.
   outputFileTracingIncludes: {
     "/telluride": ["./public/images/peaks/**/*"],
-    "/trips/\\[id\\]": ["./public/images/peaks/**/*"],
-    "/bookings/new": ["./public/images/peaks/**/*"],
-    "/bookings/*/pay": ["./public/images/peaks/**/*"],
+    // Only the room photographs: getRoomMedia checks they exist, and the rest of
+    // the spring folder is served from the CDN and never read on the server.
+    "/spring-break": ["./public/images/spring/zemi-room-*.jpg"],
+    "/trips/\\[id\\]": ["./public/images/peaks/**/*", "./public/images/spring/zemi-room-*.jpg"],
+    "/bookings/new": ["./public/images/peaks/**/*", "./public/images/spring/zemi-room-*.jpg"],
+    "/bookings/*/pay": ["./public/images/peaks/**/*", "./public/images/spring/zemi-room-*.jpg"],
     // The admin email previews read Supabase's auth templates from disk
     // (lib/email/catalog.ts).
     "/admin/emails": ["./supabase/email-templates/*.html"],
@@ -193,6 +196,9 @@ const nextConfig = {
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
+      // A day, not forever, because a re-cut clip keeps its name. Without this, every band a
+      // reader scrolls back to asks the server about its file again before it can play.
+      { source: "/video/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=86400" }] },
       {
         // The trip portal carries its access token in the query string (see
         // lib/portal-token.ts). Listed after the catch-all so these win: no

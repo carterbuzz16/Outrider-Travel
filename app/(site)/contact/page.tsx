@@ -18,9 +18,9 @@ export default function ContactPage() {
         <div>
           <h1 className="t-display mt-6 max-w-[13ch] text-[--text]">Ask us anything</h1>
           <p className="t-lede mt-8 max-w-measure">
-            A question about Telluride, a trip for your chapter, a group of
-            friends who want to go together. It all comes straight to our
-            team.
+            A question about Telluride or Punta Cana, a trip for your chapter, a
+            group of friends who want to go together. It all comes straight to
+            our team.
           </p>
         </div>
       </header>

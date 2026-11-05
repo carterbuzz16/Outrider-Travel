@@ -23,6 +23,7 @@ import { Missing, TaskTicks, linkClass } from "@/app/admin/bookings/bits";
 import { formatShortStamp } from "@/app/admin/bookings/format";
 import { filterHref } from "@/app/admin/bookings/booking-rows";
 import { loadRoster, roomingOrder, type RosterBooking } from "./roster-data";
+import { lineForDestination } from "@/lib/trip-lines";
 
 export const metadata: Metadata = {
   title: "Roster",
@@ -66,6 +67,12 @@ export default async function TripRosterPage(props: { params: Promise<{ id: stri
   const allDone = held.filter((b) => b.tasks.flights && b.tasks.rooming && b.tasks.details).length;
   const rooming = roomingOrder(held);
   const penthouses = tiers.filter((t) => t.isPenthouse);
+  // A trip with no gear to fit has no ski shop to send a file to, and a column
+  // of blanks would read as sizes nobody sent (3 November 2026).
+  const line = lineForDestination(trip.destination);
+  const exportsHere = EXPORTS.filter((e) => line.rentals || e.kind !== "rentals").map((e) =>
+    e.kind === "rooming" ? { ...e, note: `For ${line.property}` } : e,
+  );
 
   return (
     <main className="shell pb-16">
@@ -103,10 +110,10 @@ export default async function TripRosterPage(props: { params: Promise<{ id: stri
       <div className="mt-10">
         <Panel
           title="Downloads"
-          description="CSV, spots held only. Rentals, insurance, dietary and emergency contacts carry personal details: each download is logged against your account. Travelers who have not sent their details yet are listed with blanks."
+          description={`CSV, spots held only. ${line.rentals ? "Rentals, insurance" : "Insurance"}, dietary and emergency contacts carry personal details: each download is logged against your account. Travelers who have not sent their details yet are listed with blanks.`}
         >
           <ul className="grid list-none grid-cols-1 gap-3 p-0 sm:grid-cols-2 lg:grid-cols-3">
-            {EXPORTS.map((e) => (
+            {exportsHere.map((e) => (
               <li key={e.kind}>
                 {/* A plain anchor: a download, not a page, and never prefetched. */}
                 <a

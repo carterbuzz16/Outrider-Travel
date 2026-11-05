@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { getAppUrl } from "@/lib/site-url";
 import { getPublishedTrips, tripPath } from "@/lib/trips";
 import { TRIP_DETAILS_OPEN } from "@/lib/booking-window";
+import { TRIP_LINES } from "@/lib/trip-lines";
 
 /*
  * Static marketing pages plus one entry per published trip. Draft trips are
@@ -23,10 +24,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/destinations`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     // Public before launch as well: both carry dates only until then.
     { url: `${base}/telluride`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
-    { url: `${base}/spring-break`, lastModified: now, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${base}/spring-break`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
     { url: `${base}/flights`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: `${base}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: `${base}/ambassador`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${base}/partners`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${base}/campuses`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
     { url: `${base}/faq`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: `${base}/contact`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: `${base}/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
@@ -40,9 +43,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let tripRoutes: MetadataRoute.Sitemap = [];
   try {
     const trips = await getPublishedTrips();
-    // Only departures with a page of their own: a Telluride one redirects to
-    // /telluride, which is already listed above.
-    tripRoutes = trips.filter((trip) => tripPath(trip) !== "/telluride").map((trip) => ({
+    // Only departures with a page of their own: a Telluride or spring break one
+    // lands on its line's page, which is already listed above.
+    const linePages = new Set(TRIP_LINES.map((line) => line.path));
+    tripRoutes = trips.filter((trip) => !linePages.has(tripPath(trip))).map((trip) => ({
       url: `${base}${tripPath(trip)}`,
       lastModified: now,
       changeFrequency: "weekly" as const,

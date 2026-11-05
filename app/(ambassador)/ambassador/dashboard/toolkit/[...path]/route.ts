@@ -1,4 +1,5 @@
 import { getPortalAccess, signToolkitFile } from "@/lib/ambassador-portal";
+import { agreedToAny } from "@/lib/ambassador-rules";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 /*
@@ -23,7 +24,7 @@ export async function GET(request: Request, props: { params: Promise<{ path: str
     return null;
   });
   if (!access) return new Response("Try again shortly", { status: 503, headers: PRIVATE });
-  if (access.kind !== "ambassador" || !access.ambassador.agreedAt) return notFound();
+  if (access.kind !== "ambassador" || !agreedToAny(access.ambassador)) return notFound();
   // Thumbnails load together, so this is generous; it stops a loop, not a person.
   if (!(await checkRateLimit(`amb-file:${access.userId}`, 200, 10 * 60))) {
     return new Response("Too many requests", { status: 429, headers: { ...PRIVATE, "Retry-After": "60" } });

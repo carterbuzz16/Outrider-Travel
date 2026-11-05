@@ -46,7 +46,16 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
-export type PortalLinkInput = { name: string | null; tripName: string; portalUrl: string };
+export type PortalLinkInput = {
+  name: string | null;
+  tripName: string;
+  portalUrl: string;
+  /**
+   * False on a trip with no gear to fit (lib/trip-lines.ts), whose traveler
+   * details were finished at checkout, so the page is not where they are done.
+   */
+  rentals?: boolean;
+};
 
 export async function sendPortalLinkEmail(opts: PortalLinkInput & { to: string }) {
   const { subject, html, text } = renderPortalLinkEmail(opts);
@@ -67,12 +76,12 @@ export async function sendPortalLinkEmail(opts: PortalLinkInput & { to: string }
 
 /** The fresh-link email's content. Pure; used by the sender and the admin preview. */
 export function renderPortalLinkEmail(opts: PortalLinkInput): { subject: string; html: string; text: string } {
-  const { name, tripName, portalUrl } = opts;
+  const { name, tripName, portalUrl, rentals = true } = opts;
   const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi,";
 
   const bodyHtml = `
     <p>${greeting}</p>
-    <p>Here is a fresh link to your trip page for <strong>${escapeHtml(tripName)}</strong>. It is where you confirm your flights, send your roommate request and fill in your traveler details.</p>
+    <p>Here is a fresh link to your trip page for <strong>${escapeHtml(tripName)}</strong>. It is where you confirm your flights${rentals ? ", send your roommate request and fill in your traveler details" : " and send your roommate request"}.</p>
     <p>The link works for ${LINK_DAYS} days. It opens your booking without a password, so please keep it to yourself rather than sharing it in a group chat.</p>
     <p style="font-size: 13px; color: #6B635C;">If you did not ask for this, you can ignore it. Nothing has changed on your booking.</p>
   `;

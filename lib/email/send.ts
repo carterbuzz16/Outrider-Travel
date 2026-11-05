@@ -6,6 +6,7 @@ import { renderEmailLayout, formatCurrency, formatDate } from "@/lib/email/layou
 import { getAppUrl } from "@/lib/site-url";
 import { BOOKINGS_OPEN } from "@/lib/booking-window";
 import { CONTACT, LEGAL_NAME } from "@/lib/site-content";
+import { lineForDestination } from "@/lib/trip-lines";
 import { springBreakWelcomeHtml, waitlistWelcomeHtml } from "@/lib/email/templates/waitlist-welcome";
 import { EARLY_ACCESS_SUBJECT, earlyAccessHtml } from "@/lib/email/templates/early-access";
 import { BOOKING_OPEN_SUBJECT, bookingOpenHtml } from "@/lib/email/templates/booking-open";
@@ -187,11 +188,17 @@ export function renderBookingConfirmationEmail(opts: BookingConfirmationInput): 
     <p>Share your group code so we know to room you together: <strong style="letter-spacing: 2px;">${escapeHtml(groupCode)}</strong></p>`
     : "";
 
-  const portalHtml = portalUrl
-    ? `
+  // Checkout already took a spring break traveler's details, which with no
+  // rentals is all of them (lib/traveler-details.ts), and they need a passport.
+  const portalHtml = !portalUrl
+    ? ""
+    : lineForDestination(trip.destination).rentals
+      ? `
     <p style="margin: 24px 0 8px; font-weight: 600;">Three things to do now</p>
     <p>Book your flights, tell us who you are rooming with, and add your traveler details. All three are on your trip page: <a href="${escapeHtml(portalUrl)}">open your trip page</a>.</p>`
-    : "";
+      : `
+    <p style="margin: 24px 0 8px; font-weight: 600;">Two things to do now</p>
+    <p>Book your flights into Punta Cana (PUJ), and tell us who you are rooming with. You need a valid passport for this trip. Both are on your trip page: <a href="${escapeHtml(portalUrl)}">open your trip page</a>.</p>`;
 
   const bodyHtml = `
     <p>${greeting}</p>
@@ -484,7 +491,7 @@ export function renderSpringBreakWelcome(token: string): RenderedEmail & { html:
   const url = `${getAppUrl()}/unsubscribe?t=${encodeURIComponent(token)}`;
   const origin = getAppUrl().replace(/\/+$/, "");
   return {
-    subject: "You're in the Outrider Spring Break Club",
+    subject: "You're in the Outrider Beach Club",
     headers: {
       "List-Unsubscribe": `<${getAppUrl()}/api/unsubscribe?t=${encodeURIComponent(token)}>`,
       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
@@ -494,16 +501,16 @@ export function renderSpringBreakWelcome(token: string): RenderedEmail & { html:
       unsubscribeUrl: escapeHtml(url),
       bookingsOpen: BOOKINGS_OPEN,
       addressLine: escapeHtml([LEGAL_NAME, ...(CONTACT.postalAddress ?? [])].join(", ")),
-      preheader: "Spring break 2027, somewhere warm. You'll hear where before anyone else.",
+      preheader: "Spring break 2027, in Punta Cana. Four nights at Zemi Miches, all-inclusive, on the beach.",
     }),
     text: [
-      "You're in. Spring break is next.",
+      "You're in. Punta Cana is next.",
       "",
-      "Spring 2027, somewhere warm, hosted the way we host Telluride. When we announce where, you'll hear it here before anyone else.",
+      "Spring break 2027, hosted the way we host Telluride: four nights at Zemi Miches, all-inclusive, on the beach.",
       "",
-      "One great place for the whole group, one price, and our team there all week.",
+      "Zemi Miches, Curio Collection by Hilton, an hour and a half from Punta Cana airport. Two to a room with two queen beds, airport transfers both ways, a welcome happy hour, a welcome gift, and our team on site the whole trip. Flights aren't included, and you need a valid passport.",
       "",
-      `Ski Telluride this winter: ${origin}/telluride`,
+      `See the trip: ${origin}/spring-break`,
       "",
       "Send this to the friends you'd go with, so the whole group hears at once.",
       "",

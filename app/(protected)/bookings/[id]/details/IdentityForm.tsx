@@ -13,7 +13,8 @@ import { saveIdentityDetails } from "./actions";
  * behind it and the Terms on the next step are agreed to by that person.
  * Six fields, one of them prefilled from the account name. The gear half
  * stays on the trip page, where the rental shop's questions belong and
- * nobody has to know their boot size to book.
+ * nobody has to know their boot size to book. A trip with no rentals has no
+ * gear half: these six are the whole task (lib/traveler-details.ts).
  *
  * Submitted from onSubmit inside a transition rather than through `action`
  * alone, for the same reason the portal's forms are (see usePortalAction in
@@ -27,6 +28,7 @@ import { saveIdentityDetails } from "./actions";
 export default function IdentityForm({
   bookingId,
   defaultName,
+  legalNameHint,
   saved,
   payHref,
   continueLabel = "Continue to payment",
@@ -35,6 +37,8 @@ export default function IdentityForm({
   bookingId: string;
   /** The account's name, so the commonest answer is already filled in. */
   defaultName: string | null;
+  /** Which document the name should match, which depends on the trip (lib/trip-lines.ts). */
+  legalNameHint: string;
   /** Already sent. The form collapses to a confirmation with a way back in. */
   saved: boolean;
   /** The payment step, for a traveler who already sent this and came back. */
@@ -94,7 +98,7 @@ export default function IdentityForm({
         <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
           <Field
             label="Legal name"
-            hint="Exactly as on your driver's license or passport."
+            hint={legalNameHint}
             error={errors.legalName}
             required
             className="sm:col-span-2"

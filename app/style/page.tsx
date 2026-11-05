@@ -309,6 +309,13 @@ export default function StylePage() {
             <div className="grid place-items-center bg-[--color-club] p-10">
               <Logo variant="club" tone="paper" className="w-56" />
             </div>
+            {/* Composed until Devote delivers a master (logo-art.ts). */}
+            <div className="grid place-items-center bg-[--color-paper] p-10 sm:col-span-2 lg:col-span-2">
+              <Logo variant="beach-club" tone="black" className="w-80" />
+            </div>
+            <div className="grid place-items-center bg-[--color-spring] p-10">
+              <Logo variant="beach-club-stacked" tone="espresso" className="w-40" />
+            </div>
           </div>
         </Section>
 

@@ -115,6 +115,7 @@ export default function BookingForm({
   initialTierId,
   lateNote,
   contactEmail,
+  packagesNote,
   initialGroupCode,
   discount = null,
   rejectedCode = null,
@@ -138,6 +139,8 @@ export default function BookingForm({
    */
   lateNote: string | null;
   contactEmail: string;
+  /** The line under the packages, which is true of the trip rather than of Outrider (lib/trip-lines.ts). */
+  packagesNote: string;
   /** From a friend's invite link (?group=), already checked by the page. Opens the code box, filled in. */
   initialGroupCode?: string;
   /**
@@ -276,11 +279,10 @@ export default function BookingForm({
       {/* -- the packages ------------------------------------------------------ */}
       <fieldset className="m-0 min-w-0 border-0 p-0" aria-labelledby={packagesLegend}>
         <legend id={packagesLegend} className="t-subheading float-left w-full p-0 text-[--text]">
-          Choose your package
+          {/* Spring break sells one package, and there is nothing to choose from one. */}
+          {tiers.length === 1 ? "Your package" : "Choose your package"}
         </legend>
-        <p className="clear-both pt-2 font-body text-body-s leading-[1.6] text-[--text-secondary]">
-          Everyone gets the same days on the mountain and the same nights out. Your package decides the room.
-        </p>
+        <p className="clear-both pt-2 font-body text-body-s leading-[1.6] text-[--text-secondary]">{packagesNote}</p>
         <div className="mt-6 flex flex-col gap-4">
           {tiers
             .filter((tier) => !tier.group)

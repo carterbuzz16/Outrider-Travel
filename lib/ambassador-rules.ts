@@ -1,10 +1,18 @@
-import { countByFor, departureLabel, friendCredit, type AmbassadorProgram } from "@/lib/ambassador-program";
+import {
+  TELLURIDE_2026,
+  countByFor,
+  departureLabel,
+  friendCredit,
+  programForDeparture,
+  type AmbassadorProgram,
+} from "@/lib/ambassador-program";
 
 /*
  * The ambassador program's decisions, as pure functions (29 October 2026), so
  * the admin page, the portal and the tests all run the same code:
  *
- *   - whether a friend's booking counts toward the goal (classifyFriend);
+ *   - whether a friend's booking counts toward the goal (classifyFriend), and
+ *     toward which program (tallyProgram, scopeToProgram);
  *   - which ambassador row a signed-in account is, and whether it may link
  *     one (decideLink, accessFor);
  *   - what one ambassador is allowed to see (buildPortalView): their own
@@ -59,6 +67,10 @@ export type FriendVerdict = {
 /**
  * A booking that carries the ambassador's code COUNTS when all of these hold:
  *
+ *   - its trip belongs to this program (programForDeparture). A spring break
+ *     friend is nothing at all to Telluride's count, and the other way round:
+ *     settling a held spot reads Telluride's count, so a leak here is real
+ *     money (3 November 2026);
  *   - it is paid in full (status paid_in_full), and the payment that cleared it
  *     landed by its departure's count deadline (countByFor: the end of
  *     November 14 for December, December 4 for January);
@@ -71,6 +83,9 @@ export type FriendVerdict = {
  * cancellations and late payments are neither.
  */
 export function classifyFriend(f: FriendFacts, program: AmbassadorProgram, sandbox = false): FriendVerdict {
+  if (programForDeparture(f.tripStart).id !== program.id) {
+    return { counts: false, onTheWay: false, note: "On another program" };
+  }
   const countable = !f.isHold && !f.refunded && (!f.isTest || sandbox);
   const onTime = f.paidInFullMs !== null && f.paidInFullMs <= countByFor(program, f.tripStart).getTime();
   const counts = countable && f.status === "paid_in_full" && onTime;
@@ -85,6 +100,27 @@ export function classifyFriend(f: FriendFacts, program: AmbassadorProgram, sandb
   else if (f.status === "pending") note = "Checkout not finished";
 
   return { counts, onTheWay, note };
+}
+
+/** One program's numbers for one ambassador. */
+export type ProgramTally = { paidInFull: number; depositOnly: number; toGoal: number };
+
+/**
+ * An ambassador's numbers on one program, from all their friends. Each friend
+ * was classified against the program that owns their trip, and is added up here
+ * only under that one.
+ */
+export function tallyProgram(
+  bookings: readonly { programId: string; counts: boolean; depositOnly: boolean }[],
+  program: AmbassadorProgram,
+): ProgramTally {
+  const mine = bookings.filter((b) => b.programId === program.id);
+  const paidInFull = mine.filter((b) => b.counts).length;
+  return {
+    paidInFull,
+    depositOnly: mine.filter((b) => b.depositOnly).length,
+    toGoal: Math.max(0, program.goal - paidInFull),
+  };
 }
 
 /* -- names -------------------------------------------------------------------- */
@@ -162,8 +198,30 @@ export type PortalAmbassador = {
   school: string | null;
   status: string;
   program: string;
+  /** When they accepted the Telluride agreement: the ambassadors.agreed_at column. */
   agreedAt: string | null;
+  /**
+   * When they accepted any other program's agreement, by program id, read from
+   * legal_acceptances. Agreeing to spring break is its own step, and adds no
+   * column, so it can never disturb what agreed_at means for Telluride.
+   */
+  agreements: Readonly<Record<string, string>>;
 };
+
+type Agreed = Pick<PortalAmbassador, "agreedAt" | "agreements">;
+
+/** When this ambassador accepted this program's agreement, or null. */
+export function agreedAtFor(ambassador: Agreed, program: AmbassadorProgram): string | null {
+  return program.id === TELLURIDE_2026.id ? ambassador.agreedAt : (ambassador.agreements[program.id] ?? null);
+}
+
+/**
+ * Whether they have accepted anything. What the shared parts of the portal ask,
+ * so that neither program's agreement can lock them out of the other's numbers.
+ */
+export function agreedToAny(ambassador: Agreed): boolean {
+  return Boolean(ambassador.agreedAt) || Object.keys(ambassador.agreements).length > 0;
+}
 
 /**
  * Who is asking, as the portal's pages, actions and endpoints see it. Every one
@@ -193,7 +251,7 @@ export function statusHasAccess(status: string, program: AmbassadorProgram): boo
 
 /* -- what one ambassador sees ------------------------------------------------------ */
 
-/** One ambassador with their friends, as lib/ambassadors.ts loads them. */
+/** One ambassador on one program, with that program's friends and counts (scopeToProgram). */
 export type AmbassadorForView = {
   code: string;
   name: string;
@@ -215,6 +273,39 @@ export type AmbassadorForView = {
   paidInFull: number;
   depositOnly: number;
 };
+
+/** One ambassador across every program, as lib/ambassadors.ts loads them. */
+export type AmbassadorAcrossPrograms = Omit<AmbassadorForView, "program" | "bookings" | "paidInFull" | "depositOnly"> & {
+  bookings: (AmbassadorForView["bookings"][number] & { programId: string })[];
+};
+
+/**
+ * An ambassador as one program sees them: only the friends whose trips belong
+ * to it, and only what that program has. Their held spot and free-trip pick are
+ * one column each and are Telluride's today, so spring break shows neither.
+ */
+export function scopeToProgram(row: AmbassadorAcrossPrograms, program: AmbassadorProgram): AmbassadorForView {
+  const bookings = row.bookings.filter((b) => b.programId === program.id);
+  const tally = tallyProgram(bookings, program);
+  const pickedHere = programForDeparture(row.rewardTripStart).id === program.id;
+  return {
+    ...row,
+    program: program.id,
+    holdStatus: program.heldSpots ? row.holdStatus : null,
+    rewardTripStart: pickedHere ? row.rewardTripStart : null,
+    rewardClaimedAt: pickedHere ? row.rewardClaimedAt : null,
+    bookings: bookings.map((b) => ({
+      status: b.status,
+      traveler: b.traveler,
+      tripStart: b.tripStart,
+      counts: b.counts,
+      depositOnly: b.depositOnly,
+      note: b.note,
+    })),
+    paidInFull: tally.paidInFull,
+    depositOnly: tally.depositOnly,
+  };
+}
 
 export type PortalFriend = {
   name: string;
@@ -259,6 +350,16 @@ export type PortalView = {
   updatedAt: string;
 };
 
+/**
+ * What the open dashboard polls for: a view per program they have agreed to, so
+ * the switch between programs is instant and the request still names nothing
+ * (lib/ambassador-api.ts). The first program's view is also spread at the top,
+ * in the shape the endpoint answered before there were two: ambassadors keep
+ * this open on a home screen, and a tab from before spring break reads it until
+ * it next reloads.
+ */
+export type PortalSnapshot = PortalView & { programs: Readonly<Record<string, PortalView>> };
+
 export const LEADERBOARD_SIZE = 10;
 /** What an ambassador who opted out is called on everyone else's board. */
 export const HIDDEN_NAME = "An ambassador";
@@ -276,8 +377,10 @@ export const HIDDEN_NAME = "An ambassador";
  * Ranks are by friends who count, then friends on the way, ties sharing a
  * rank (1, 2, 2, 4). The top of the board lists only ambassadors with at least
  * one friend; everyone, including those with none, has a rank of their own.
- * Dropped ambassadors and other programs are left off the board entirely.
- * `null` when `selfCode` is not in `all`.
+ * Dropped ambassadors are left off the board entirely. Every row in `all` is
+ * scoped to `program` first (scopeToProgram), so each program has its own
+ * counts and ranks, over the same people. `null` when `selfCode` is not in
+ * `all`.
  */
 export function buildPortalView(
   selfCode: string,

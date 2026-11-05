@@ -1,4 +1,4 @@
-import type { PortalAccess, PortalAmbassador, PortalView } from "@/lib/ambassador-rules";
+import { agreedToAny, type PortalAccess, type PortalAmbassador, type PortalView } from "@/lib/ambassador-rules";
 
 /*
  * GET /api/ambassador/dashboard: the numbers the open dashboard polls for
@@ -10,6 +10,11 @@ import type { PortalAccess, PortalAmbassador, PortalView } from "@/lib/ambassado
  * whose numbers come back. The session does, through getAccess, so there is
  * nothing to change in the request to see someone else's (no IDOR). Every
  * answer is private and never stored, by a CDN or the browser.
+ *
+ * Which program is on screen is not asked either (3 November 2026): the answer
+ * holds every program they have agreed to (PortalSnapshot), and the page keeps
+ * the one it is showing. Having agreed to any program is enough; a program not
+ * agreed to is simply absent from the answer.
  */
 
 export type DashboardDeps = {
@@ -37,7 +42,7 @@ export function dashboardHandler(deps: DashboardDeps) {
     }
     if (access.kind === "signed-out") return json({ error: "signed_out" }, 401);
     if (access.kind !== "ambassador") return json({ error: "not_ambassador" }, 403);
-    if (!access.ambassador.agreedAt) return json({ error: "agreement" }, 403);
+    if (!agreedToAny(access.ambassador)) return json({ error: "agreement" }, 403);
     if (!(await deps.rateLimit(access.userId))) return json({ error: "rate_limited" }, 429, { "Retry-After": "60" });
     const view = await deps.loadView(access.ambassador);
     if (!view) return json({ error: "unavailable" }, 503);

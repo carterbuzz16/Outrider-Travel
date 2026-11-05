@@ -19,7 +19,7 @@ const trips: {
   end_date: string;
   description: string;
   status: Database["public"]["Enums"]["trip_status"];
-  tiers: { name: string; price: number; max_capacity: number; description: string; inclusions: string[] }[];
+  tiers: { name: string; price: number; max_capacity: number | null; description: string; inclusions: string[] }[];
 }[] = [
   // Stand-ins for the two Telluride departures: the same start dates, so they
   // get the real installment dates (INSTALLMENT_DATES_BY_START in
@@ -28,6 +28,44 @@ const trips: {
   // instead of the real trips keeps test bookings from holding real beds,
   // since the sandbox and the live site share one database. The destination
   // is not Telluride, so /telluride does not list them beside the real ones.
+  // The same for spring break's two weeks. The destination has to read as
+  // spring break (lib/trip-lines.ts) so /spring-break, the emails and the portal
+  // treat them as it. scripts/spring-break-test-trips.sql adds only these two,
+  // without clearing the other seed rows.
+  {
+    name: `${SEED_PREFIX}Spring break March 8 test`,
+    destination: "Seed Beach, Punta Cana",
+    start_date: "2027-03-08",
+    end_date: "2027-03-12",
+    description: "Test copy of the March 8 spring break departure, for checkout testing.",
+    status: "published",
+    tiers: [
+      {
+        name: "TWO TO A ROOM",
+        price: 1200,
+        max_capacity: null,
+        description: "Two to a room with two queen beds, at Zemi Miches.",
+        inclusions: ["Four nights, all-inclusive", "Airport transfers, both ways", "A welcome happy hour", "A welcome gift", "Our team on site"],
+      },
+    ],
+  },
+  {
+    name: `${SEED_PREFIX}Spring break March 15 test`,
+    destination: "Seed Beach, Punta Cana",
+    start_date: "2027-03-15",
+    end_date: "2027-03-19",
+    description: "Test copy of the March 15 spring break departure, for checkout testing.",
+    status: "published",
+    tiers: [
+      {
+        name: "TWO TO A ROOM",
+        price: 1200,
+        max_capacity: null,
+        description: "Two to a room with two queen beds, at Zemi Miches.",
+        inclusions: ["Four nights, all-inclusive", "Airport transfers, both ways", "A welcome happy hour", "A welcome gift", "Our team on site"],
+      },
+    ],
+  },
   {
     name: `${SEED_PREFIX}Telluride December test`,
     destination: "Seed Mountain, Colorado",

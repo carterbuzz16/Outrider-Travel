@@ -19,7 +19,7 @@ import {
   referralPath,
   type AmbassadorStatus,
 } from "@/lib/ambassadors";
-import { programFor } from "@/lib/ambassador-program";
+import { PROGRAMS, TELLURIDE_2026, programFor, programForDeparture } from "@/lib/ambassador-program";
 import {
   AdminField,
   BookingStatusBadge,
@@ -63,7 +63,10 @@ export default async function AmbassadorPage(props: {
   ]);
   const a = found?.[0];
   if (!a) notFound();
-  const trips = (tripRows ?? []).filter((t) => CHECKOUT_SANDBOX || !isTestTrip(t.name));
+  // The Trip field is the one a held spot goes on, so it lists Telluride's only.
+  const trips = (tripRows ?? []).filter(
+    (t) => (CHECKOUT_SANDBOX || !isTestTrip(t.name)) && programForDeparture(t.start_date).id === TELLURIDE_2026.id,
+  );
   const done = ambassadorDone(params);
   const error = params.error ? (AMBASSADOR_ERRORS[params.error] ?? "That didn't go through.") : null;
 
@@ -72,9 +75,16 @@ export default async function AmbassadorPage(props: {
       <PageHeader
         eyebrow={a.school ?? "Ambassador"}
         title={a.name}
-        lede={`${a.paidInFull} paid in full, ${a.depositOnly} on the deposit. ${a.toGoal === 0 ? `Reached ${AMBASSADOR_GOAL}.` : `${a.toGoal} more paid in full to reach ${AMBASSADOR_GOAL}.`}`}
+        lede={Object.values(PROGRAMS)
+          .map((p) => {
+            const t = a.byProgram[p.id];
+            return `${p.name}: ${t.paidInFull} paid in full, ${t.depositOnly} on the deposit. ${t.toGoal === 0 ? `Reached ${p.goal}.` : `${t.toGoal} more paid in full to reach ${p.goal}.`}`;
+          })
+          .join(" ")}
         back={{ href: "/admin/ambassadors", label: "Ambassadors" }}
-        actions={<CopyLinkButton path={referralPath(a.code, programFor(a.program))} label="Copy referral link" />}
+        actions={Object.values(PROGRAMS).map((p) => (
+          <CopyLinkButton key={p.id} path={referralPath(a.code, p)} label={`Copy ${p.nameInSentence} link`} />
+        ))}
       />
 
       {(done || error) && (
@@ -134,7 +144,7 @@ export default async function AmbassadorPage(props: {
                         <span className="flex flex-col items-start gap-1">
                           <BookingStatusBadge status={b.status} />
                           {b.counts ? (
-                            <Badge tone="open">Counts</Badge>
+                            <Badge tone="open">Counts toward {programFor(b.programId).nameInSentence}</Badge>
                           ) : (
                             b.note && <span className="text-[--text-secondary]">{b.note}</span>
                           )}
@@ -222,8 +232,8 @@ export default async function AmbassadorPage(props: {
                   Hold a Four to a Room spot
                 </Button>
                 <p className="mt-2 font-body text-body-s text-[--text-muted]">
-                  Booked on the account for their email, with nothing to pay yet. It never counts toward their{" "}
-                  {AMBASSADOR_GOAL}.
+                  Telluride only. Booked on the account for their email, with nothing to pay yet. It never counts
+                  toward their {AMBASSADOR_GOAL}.
                 </p>
               </form>
             )}

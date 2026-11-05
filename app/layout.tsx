@@ -25,6 +25,11 @@ const figtree = Figtree({
   variable: "--font-figtree",
 });
 
+// Both trips as real and current; it was "Telluride ski weeks now, spring break
+// next" until 3 November 2026. Shown wherever a page sets no description of its own.
+const DESCRIPTION =
+  "Small-group trips for college students: ski weeks in Telluride and spring break in Punta Cana. Hosted start to finish by Outrider.";
+
 /*
  * metadataBase is what turns the relative opengraph-image path into the
  * absolute URL a scraper needs. Without it Next warns at build and social
@@ -48,22 +53,19 @@ export const metadata: Metadata = {
     default: "Outrider",
     template: "%s | Outrider",
   },
-  description:
-    "Small-group trips for college friends: Telluride ski weeks now, spring break next. Hosted start to finish by Outrider.",
+  description: DESCRIPTION,
   openGraph: {
     type: "website",
     siteName: "Outrider",
     title: "Outrider",
-    description:
-      "Small-group trips for college friends: Telluride ski weeks now, spring break next. Hosted start to finish by Outrider.",
+    description: DESCRIPTION,
     // No `url` here. Anything inheriting this block would claim to live at
     // the root; pages set their own through lib/metadata.ts.
   },
   twitter: {
     card: "summary_large_image",
     title: "Outrider",
-    description:
-      "Small-group trips for college friends: Telluride ski weeks now, spring break next. Hosted start to finish by Outrider.",
+    description: DESCRIPTION,
   },
 };
 

@@ -1,26 +1,62 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { pageMetadata } from "@/lib/metadata";
-import {
-  Badge,
-  Reveal,
-  SectionDivider,
-  TripCard,
-  WaitlistCTA,
-  type Trip,
-  cellGridClass,
-} from "@/components/ui";
-import { UPCOMING_CATEGORIES } from "@/lib/site-content";
+import { Button, Logo, Reveal, TripCard, WaitlistCTA, type Trip } from "@/components/ui";
+import { SPRING_BREAK_WEEKS } from "@/lib/site-content";
 import { BOOKINGS_OPEN, COMING_SOON_NOTE, TRIP_DETAILS_OPEN } from "@/lib/booking-window";
-import { formatDateRange, formatPrice, getPublishedTrips, nightCount, tripPath } from "@/lib/trips";
+import { SKI, SPRING_BREAK_LINE, tripsOnLine, type TripLine } from "@/lib/trip-lines";
+import { formatDateRange, formatPrice, getPublishedTrips, nightCount, tripPath, type PublicTrip } from "@/lib/trips";
 
 export const metadata: Metadata = pageMetadata({
   title: "All trips and dates",
   path: "/trips",
   description:
-    "Every Outrider trip for college students, with dates: Telluride ski weeks now, spring break next. Small groups, one property, everything planned before you land.",
+    "Every Outrider trip for college students, with dates: ski weeks in Telluride and spring break in Punta Cana. Small groups, one hotel, planned before you land.",
 });
 
 export const revalidate = 300;
+
+/*
+ * /trips leads with the two lines rather than a flat list of departures (3
+ * November 2026, Carter: "we do ski, spring break, etc."). Each line gets the
+ * same block: its name, its place, its hotel, a way to its page, then its
+ * departures. A new line goes in LINES below.
+ *
+ * Spring break shows before its trips are published: the dates are announced,
+ * so it gets those and its page and no price, since the price comes from the
+ * trips. Once a departure is published it becomes a card like any other, and
+ * this replaces itself.
+ */
+const LINES: { line: TripLine; scheme: string; intro: string }[] = [
+  { line: SKI, scheme: "scheme-light", intro: "Four nights, ski-in, ski-out at The Peaks." },
+  {
+    line: SPRING_BREAK_LINE,
+    // Stone rather than a rule, so the two lines read apart (no hairlines).
+    scheme: "scheme-stone",
+    intro: "Four nights, all-inclusive at Zemi Miches, an hour and a half up the coast.",
+  },
+];
+
+function toCard(trip: PublicTrip): Trip {
+  return {
+    name: trip.name,
+    destination: trip.destination,
+    dates: formatDateRange(trip.startDate, trip.endDate),
+    // No figure while nothing can be bought. A price with no way to act on it
+    // invites the reader to shop it against something else. Omitted rather than
+    // set to "Coming soon": the status badge at the top of the card already says
+    // that, and printing it twice on one card is the duplication that got fixed
+    // once before with the destination line. Prices are public with the rest of
+    // the trip detail, even while paying is list-only (DETAILS_PUBLIC).
+    price: TRIP_DETAILS_OPEN ? `From ${formatPrice(trip.priceFrom)}` : undefined,
+    summary: trip.description ?? `${nightCount(trip.startDate, trip.endDate)} nights, everything arranged.`,
+    status: trip.status,
+    image: trip.images[0] ? { src: trip.images[0], alt: `${trip.name}, ${trip.destination}` } : undefined,
+    // Every Telluride departure is the one /telluride page, every spring break
+    // one /spring-break.
+    href: tripPath(trip),
+  };
+}
 
 export default async function TripsPage() {
   const trips = await getPublishedTrips();
@@ -31,119 +67,97 @@ export default async function TripsPage() {
         <div>
           <h1 className="t-display mt-6 max-w-[14ch] text-[--text]">Where we&rsquo;re going</h1>
           <p className="t-lede mt-8 max-w-measure">
-            Every Outrider trip lives here. A trip only goes up once
-            we&rsquo;ve held the hotel and set the price.
+            Ski in Telluride, spring break in Punta Cana. One hotel for the whole
+            group, and our team there the whole trip.
           </p>
         </div>
       </header>
 
-      <SectionDivider variant="rule" className="shell" />
-
-      <section className="shell py-16 md:py-20" aria-labelledby="departures">
-        <h2 id="departures" className="sr-only">
-          Departures
-        </h2>
-        {trips.length > 0 ? (
-          <div
-            className={`grid gap-6 sm:grid-cols-2 ${
-              trips.length > 2 ? "lg:grid-cols-3" : ""
-            }`}
+      {LINES.map(({ line, scheme, intro }, group) => {
+        const departures = tripsOnLine(trips, line);
+        const headingId = `line-${line.id}`;
+        return (
+          <section
+            key={line.id}
+            id={line.id}
+            className={`${scheme} scheme-paint scroll-mt-24 md:scroll-mt-32`}
+            aria-labelledby={headingId}
           >
-            {trips.map((trip, i) => {
-              const card: Trip = {
-                name: trip.name,
-                destination: trip.destination,
-                dates: formatDateRange(trip.startDate, trip.endDate),
-                // No figure while nothing can be bought. A price with no way to act on
-                  // it invites the reader to shop it against something else.
-                  // Omitted rather than set to "Coming soon": the status badge
-                  // at the top of the card already says that, and printing it
-                  // twice on one card is the duplication that got fixed once
-                  // before with the destination line.
-                  // Prices are public with the rest of the trip detail, even
-                  // while paying is list-only (DETAILS_PUBLIC).
-                  price: TRIP_DETAILS_OPEN
-                    ? `From ${formatPrice(trip.priceFrom)}`
-                    : undefined,
-                summary:
-                  trip.description ??
-                  `${nightCount(trip.startDate, trip.endDate)} nights, everything arranged.`,
-                status: trip.status,
-                image: trip.images[0]
-                  ? { src: trip.images[0], alt: `${trip.name}, ${trip.destination}` }
-                  : undefined,
-                // Every Telluride departure is the one /telluride page.
-                href: tripPath(trip),
-              };
-              // The first card is above the fold on most screens, so it renders
-              // plainly rather than sitting at opacity 0 until hydration.
-              return i === 0 ? (
-                <TripCard key={trip.id} trip={card} className="h-full" />
-              ) : (
-                <Reveal key={trip.id} delay={i * 80}>
-                  <TripCard trip={card} className="h-full" />
-                </Reveal>
-              );
-            })}
-          </div>
-        ) : (
-          <Reveal>
-            <div className="border border-[--rule] bg-[--surface-raised] p-8 md:p-12">
-              <p className="t-micro text-[--text-muted]">Nothing open right now</p>
-              <h2 className="t-subheading mt-3 text-[--text]">
-                New trips on the way
-              </h2>
-              <p className="mt-4 max-w-measure font-body text-body leading-[1.75] text-[--text-secondary]">
-                A trip goes up here once the rooms are booked and the tickets
-                are held. Here&rsquo;s what we&rsquo;re working on.
-              </p>
-            </div>
-          </Reveal>
-        )}
-      </section>
+            <div className="shell py-16 md:py-24">
+              <div className="flex flex-wrap items-end justify-between gap-x-12 gap-y-8">
+                <div>
+                  <Logo variant={line.clubLogo} width={`${16 * line.clubLogoRatio}rem`} className="max-w-full text-[--text]" />
+                  <h2 id={headingId} className="t-title mt-6 text-[--text]">
+                    {line.place}
+                  </h2>
+                  <p className="t-lede m-0 mt-5 max-w-measure">{intro}</p>
+                </div>
+                <Button href={line.path} variant="secondary">
+                  See the trip
+                </Button>
+              </div>
 
-      {/* Sits under the cards on purpose: this is the moment someone has
-          just read "Coming soon" and wants to know when that changes. */}
+              {departures.length > 0 && (
+                <div
+                  className={`mt-10 grid gap-6 sm:grid-cols-2 md:mt-14 ${departures.length > 2 ? "lg:grid-cols-3" : ""}`}
+                >
+                  {departures.map((trip, i) =>
+                    // The first card on the page is above the fold on most screens,
+                    // so it renders plainly rather than sitting at opacity 0 until
+                    // hydration.
+                    group === 0 && i === 0 ? (
+                      <TripCard key={trip.id} trip={toCard(trip)} className="h-full" />
+                    ) : (
+                      <Reveal key={trip.id} delay={i * 80}>
+                        <TripCard trip={toCard(trip)} className="h-full" />
+                      </Reveal>
+                    ),
+                  )}
+                </div>
+              )}
+
+              {departures.length === 0 && line.id === SPRING_BREAK_LINE.id && (
+                <Reveal>
+                  <div className="scheme-espresso relative isolate mt-10 flex min-h-[320px] flex-col justify-end overflow-hidden bg-[--color-espresso-deep] md:mt-14 md:min-h-[440px]">
+                    <Image
+                      src="/images/spring/zemi-aerial.jpg"
+                      alt="Zemi Miches from above: the pools and palm trees running down to a sandy beach, with a calm bay and green mountains behind."
+                      fill
+                      sizes="(min-width: 1320px) 1224px, 100vw"
+                      className="-z-10 object-cover"
+                      style={{ objectPosition: "60% 78%" }}
+                    />
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[70%] bg-gradient-to-t from-[rgb(31_26_23_/_0.92)] via-[rgb(31_26_23_/_0.66)] to-transparent"
+                    />
+                    <ul className="m-0 flex list-none flex-col gap-1 p-6 md:p-10">
+                      {SPRING_BREAK_WEEKS.map((week) => (
+                        <li key={week.startDate} className="t-subheading text-[--text]">
+                          {formatDateRange(week.startDate, week.endDate)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </Reveal>
+              )}
+            </div>
+          </section>
+        );
+      })}
+
       <WaitlistCTA
         id="waitlist"
         placement="trips"
         heading="Hear about it first"
         body={
           BOOKINGS_OPEN
-            ? "Telluride is on sale now. Join the list to hear about the next trip first."
+            ? "New dates and new trips go to this list before they reach the site."
             : TRIP_DETAILS_OPEN
               ? COMING_SOON_NOTE
-              : "First dibs on Telluride. The list hears before it goes on sale."
+              : "First dibs on every trip. The list hears before it goes on sale."
         }
       />
-
-      {/* ---- what's coming --------------------------------------------------
-          Deliberately not trip cards: these have no dates, no price and nothing
-          to book, and dressing them as departures would imply otherwise. */}
-      <section className="shell pb-24 pt-20 md:pb-32 md:pt-28">
-        <Reveal>
-          <p className="t-micro mb-10 text-[--text-muted]">Up next</p>
-        </Reveal>
-
-        <div className={cellGridClass(UPCOMING_CATEGORIES.length)}>
-          {UPCOMING_CATEGORIES.map((category, i) => (
-            <Reveal key={category.name} delay={i * 80}>
-              <div className="flex h-full flex-col gap-4 bg-[--surface-raised] p-6 md:p-8">
-                <div className="flex items-center justify-between gap-4">
-                  <h3 className="t-subheading text-[--text]">{category.name}</h3>
-                  <Badge tone="neutral">{category.window}</Badge>
-                </div>
-                <p className="t-micro text-[--text-secondary]">
-                  {category.destination}
-                </p>
-                <p className="max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
-                  {category.note}
-                </p>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </section>
     </main>
   );
 }

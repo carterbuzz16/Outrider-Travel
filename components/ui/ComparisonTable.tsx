@@ -27,33 +27,40 @@ type Row = {
 // penthouses, not every package, so the gear row says so. Voice (Carter, the
 // same day): keep it fun, it's college, but say plainly why we're different,
 // why you'd come, and what you get.
+//
+// Rewritten again 3 November 2026 so every row holds on spring break as well as
+// Telluride. Each detail that belongs to one trip names it, and the gear row is
+// the one row that is Telluride's alone, so its label says so. "Just for your
+// group" and the penthouse SUV went from the airport row: both are Telluride's,
+// and all Carter has said of spring break is airport transfers. "Feels like a
+// private club" went from the size row (Carter: "I don't like the clubs").
 const ROWS: Row[] = [
   {
     label: "The price",
-    usualLong: "A cheap number up front, then lift tickets, rentals, shuttles and resort fees piled on top.",
+    usualLong: "A cheap number up front, then shuttles, resort fees and everything else piled on top.",
     usualShort: "Cheap up front, then fees",
-    outriderLong: "Your room, lifts, rentals, rides and the parties. The only thing you book yourself is your flight.",
+    outriderLong: "Your room, your airport rides and our team, plus lifts and rentals in Telluride and the all-inclusive plan at Zemi Miches. The only thing you have to book is your flight.",
     outriderShort: "One price. Everything in it.",
   },
   {
     label: "Where you stay",
     usualLong: "Whatever is cheapest, usually a budget hotel or condos scattered around town.",
     usualShort: "Whatever is cheapest",
-    outriderLong: "Everyone under one roof at The Peaks, ski-in, ski-out, with its own spa. Walk out the door, click in, go.",
-    outriderShort: "A great hotel, ski-in, ski-out",
+    outriderLong: "Everyone under one roof: The Peaks in Telluride, ski-in, ski-out, or Zemi Miches, all-inclusive on the beach.",
+    outriderShort: "One great hotel for everyone",
   },
   {
-    label: "Lift tickets and gear",
+    label: "Lifts and gear, in Telluride",
     usualLong: "Sold separately, plus a rental line on the first morning.",
     usualShort: "Extra, plus a rental line",
-    outriderLong: "In every package and fitted before you land. Two to a Room and the penthouses get upgraded rentals.",
+    outriderLong: "In every Telluride package and fitted before you land. Two to a Room and the penthouses get upgraded rentals.",
     outriderShort: "Already sorted",
   },
   {
     label: "Getting there",
     usualLong: "Figure out your own ride from the airport.",
     usualShort: "Find your own ride",
-    outriderLong: "Pickup at Montrose and the ride back are booked before you land, just for your group. Penthouses get a private SUV.",
+    outriderLong: "Pickup at the airport and the ride back are booked before you land: Montrose for Telluride, Punta Cana for spring break.",
     outriderShort: "Your ride is waiting",
   },
   {
@@ -67,14 +74,14 @@ const ROWS: Row[] = [
     label: "On the trip",
     usualLong: "Nobody from the company there. Something goes wrong? Good luck.",
     usualShort: "Nobody there to help",
-    outriderLong: "Our team is with you from pickup to drop-off, for anything you need.",
+    outriderLong: "Our team is on site the whole trip, for anything you need.",
     outriderShort: "We've got you all week",
   },
   {
     label: "How many people",
     usualLong: "As many as will pay, often hundreds.",
     usualShort: "As many as will pay",
-    outriderLong: "Capped before a single spot sells, with rooms for four or two and penthouses for eight. It feels like a private club.",
+    outriderLong: "Capped before a single spot sells, so it stays small enough to know everyone by day two.",
     outriderShort: "Small and exclusive",
   },
 ];

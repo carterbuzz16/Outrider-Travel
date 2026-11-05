@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { MARK } from "@/components/ui/Logo";
 import { AMBASSADOR } from "@/lib/site-content";
-import { AMBASSADOR_GOAL } from "@/lib/ambassadors";
+import { openPrograms } from "@/lib/ambassador-program";
 
 /*
  * The card for /ambassador, which travels by text message and group chat from
@@ -18,6 +18,8 @@ import { AMBASSADOR_GOAL } from "@/lib/ambassadors";
 export const alt = "Travel for free. Become an Outrider Ambassador.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
+// Like the page: the offer drops Telluride within the hour of it closing.
+export const revalidate = 3600;
 
 const PAPER = "#F2EFEA";
 // Warm gray for the one short label, not club blue: the program runs every
@@ -25,6 +27,7 @@ const PAPER = "#F2EFEA";
 const WARM_GRAY = "#D7D2CB";
 
 export default async function AmbassadorOpengraphImage() {
+  const goals = AMBASSADOR.goals(openPrograms().map((p) => ({ name: p.nameInSentence, goal: p.goal })));
   const [medium, extrabold, photo] = await Promise.all([
     readFile(path.join(process.cwd(), "app/fonts/Figtree-Medium.ttf")),
     readFile(path.join(process.cwd(), "app/fonts/Figtree-ExtraBold.ttf")),
@@ -94,7 +97,7 @@ export default async function AmbassadorOpengraphImage() {
             </div>
             <div style={{ display: "flex", marginTop: 30, fontSize: 30, maxWidth: 780, lineHeight: 1.3, letterSpacing: -0.3 }}>
               {/* The offer itself, the most useful thing a preview can say. */}
-              {AMBASSADOR.perk(AMBASSADOR_GOAL)}
+              {`${AMBASSADOR.perk} ${goals}`.trim()}
             </div>
           </div>
         </div>

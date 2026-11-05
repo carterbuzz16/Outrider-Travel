@@ -1,12 +1,13 @@
 import { cn } from "./cn";
-import { HORIZONTAL, MARK, SKI_CLUB, VERTICAL, WORDMARK } from "./logo-art";
+import { BEACH_CLUB, HORIZONTAL, MARK, SKI_CLUB, VERTICAL, WORDMARK } from "./logo-art";
 
 /**
  * The Outrider logo, final identity.
  *
- * The nav and page headers use the plain `inline` lock-up. The site otherwise
- * wears the Ski Club look, and the club lock-up appears below the nav:
- * `club-stacked` in the footer, `club` on the share card.
+ * The nav and page headers use the plain `inline` lock-up, and each trip wears
+ * its club's lock-up below the nav: Ski Club for Telluride, Beach Club for spring
+ * break (Carter, 3 November 2026). The Beach Club one is composed until Devote
+ * delivers a master (./logo-art.ts).
  *
  * Five pieces of artwork, all taken verbatim from the delivered SVG masters
  * (see ./logo-art.ts): the brand icon, the OUTRIDER logotype, the primary
@@ -39,7 +40,7 @@ const TONES: Record<LogoTone, string | undefined> = {
 
 // Exported for the Open Graph images, which render in Satori and draw the
 // artwork as raw paths rather than through this component.
-export { HORIZONTAL, MARK, SKI_CLUB, VERTICAL, WORDMARK };
+export { BEACH_CLUB, HORIZONTAL, MARK, SKI_CLUB, VERTICAL, WORDMARK };
 
 type PieceProps = {
   className?: string;
@@ -83,10 +84,11 @@ type LogoProps = PieceProps & {
    * `inline` is the primary horizontal lock-up (nav, most places), `lockup`
    * the secondary vertical one (footer, a centred panel), `club` the Ski Club
    * extension, and `club-stacked` sets SKI CLUB centred under the vertical
-   * lock-up, as on the club tile in the brand book. `mark` and `wordmark` are
-   * the single pieces.
+   * lock-up, as on the club tile in the brand book. `beach-club` and
+   * `beach-club-stacked` are the same two for the Beach Club. `mark` and
+   * `wordmark` are the single pieces.
    */
-  variant?: "inline" | "lockup" | "club" | "club-stacked" | "mark" | "wordmark";
+  variant?: "inline" | "lockup" | "club" | "club-stacked" | "beach-club" | "beach-club-stacked" | "mark" | "wordmark";
   /**
    * The Ski Club lock-up comes in one color and two. Pass a tone here to color
    * the SKI CLUB name separately, e.g. `clubTone="club"` on paper, which is the
@@ -106,6 +108,8 @@ const DEFAULT_WIDTH: Record<NonNullable<LogoProps["variant"]>, string> = {
   lockup: "w-[112px]",
   club: "w-[238px]",
   "club-stacked": "w-[112px]",
+  "beach-club": "w-[262px]",
+  "beach-club-stacked": "w-[112px]",
   mark: "w-8",
   wordmark: "w-[104px]",
 };
@@ -121,8 +125,10 @@ export default function Logo({
   const color = TONES[tone];
   const sized = !width && !/\bw-/.test(className ?? "");
   const wrapper = cn("inline-flex shrink-0", sized && DEFAULT_WIDTH[variant], className);
+  const beach = variant === "beach-club" || variant === "beach-club-stacked";
   const name =
-    label ?? (variant === "club" || variant === "club-stacked" ? "Outrider Ski Club" : "Outrider");
+    label ??
+    (beach ? "Outrider Beach Club" : variant === "club" || variant === "club-stacked" ? "Outrider Ski Club" : "Outrider");
   const clubFill = clubTone ? TONES[clubTone] : undefined;
 
   let art: React.ReactNode;
@@ -130,12 +136,13 @@ export default function Logo({
     art = <OutriderMark className="h-auto w-full" />;
   } else if (variant === "wordmark") {
     art = <OutriderWordmark className="h-auto w-full" />;
-  } else if (variant === "club-stacked") {
+  } else if (variant === "club-stacked" || variant === "beach-club-stacked") {
     // No stacked club master was delivered, so it is composed from two that
     // were: the vertical lock-up, and the SKI CLUB name from the horizontal
     // club master, scaled to 0.6 (its width is then 55% of OUTRIDER's, as on
     // the book's club tile), centred, and set 16 units below. Offsets come
-    // from the measured bounding boxes of both paths.
+    // from the measured bounding boxes of both paths. BEACH CLUB is two letters
+    // longer, so the same scale starts further left to stay centred.
     art = (
       <svg
         className="h-auto w-full"
@@ -147,14 +154,15 @@ export default function Logo({
         <path d={VERTICAL.mark} />
         <path d={VERTICAL.word} />
         <path
-          d={SKI_CLUB.club}
+          d={beach ? BEACH_CLUB.club : SKI_CLUB.club}
           fill={clubFill}
-          transform="translate(-206.07 156.28) scale(0.6)"
+          transform={beach ? "translate(-228.05 156.28) scale(0.6)" : "translate(-206.07 156.28) scale(0.6)"}
         />
       </svg>
     );
   } else {
-    const src = variant === "lockup" ? VERTICAL : variant === "club" ? SKI_CLUB : HORIZONTAL;
+    const src =
+      variant === "lockup" ? VERTICAL : variant === "club" ? SKI_CLUB : variant === "beach-club" ? BEACH_CLUB : HORIZONTAL;
     art = (
       <svg
         className="h-auto w-full"

@@ -7,6 +7,7 @@ import { BOOKINGS_OPEN } from "@/lib/booking-window";
 import { ACCOUNT_LINK } from "./nav-links";
 import { CONTACT, LEGAL_NAME } from "@/lib/site-content";
 import { LEGAL_DOCUMENTS } from "@/lib/legal";
+import { SKI, SPRING_BREAK_LINE } from "@/lib/trip-lines";
 
 /**
  * Footer — the back of the ticket.
@@ -15,6 +16,10 @@ import { LEGAL_DOCUMENTS } from "@/lib/legal";
  * a printed travel document: the lockup and the definition of the name on the
  * left, three short link columns, then a ruled-off line of fine print with the
  * stamped issue line at the far right.
+ *
+ * The lockup is plain Outrider since 3 November 2026. It was the Ski Club one,
+ * and a footer under every page cannot say SKI CLUB now the company also runs
+ * spring break.
  */
 
 type Column = {
@@ -26,12 +31,14 @@ const COLUMNS: Column[] = [
   {
     heading: "Trips",
     links: [
-      { label: "All departures", href: "/trips" },
-      { label: "Telluride", href: "/telluride" },
+      { label: "All trips", href: "/trips" },
+      { label: SKI.place, href: SKI.path },
+      { label: SPRING_BREAK_LINE.name, href: SPRING_BREAK_LINE.path },
       { label: "Destinations", href: "/destinations" },
       { label: "Join the list", href: "/waitlist" },
       { label: "About Outrider", href: "/about" },
       { label: "Become an ambassador", href: "/ambassador" },
+      { label: "For brands", href: "/partners" },
       { label: "FAQ", href: "/faq" },
       { label: "Contact", href: "/contact" },
       // Same href as the nav's account entry, so there is one way in and it
@@ -81,7 +88,7 @@ export default function Footer({
 
         <div className="grid gap-12 py-16 md:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)] md:py-20">
           <div className="flex flex-col gap-6">
-            <Logo variant="club-stacked" clubTone="club" className="w-40 items-start" />
+            <Logo variant="lockup" className="w-36" />
             {/* The name, defined. It's the whole brief in one line, and it
                 earns its place here rather than in a tagline slot. */}
             <p className="max-w-measure-tight font-body text-body-s leading-[1.75] text-[--text-secondary]">

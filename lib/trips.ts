@@ -13,6 +13,8 @@ import {
 import { toSnapshot, type PenthouseSnapshot } from "@/lib/penthouse";
 import { hasDeparted } from "@/lib/mountain-time";
 import { departureClosed } from "@/lib/signup-deadline";
+import { SKI, SPRING_BREAK_LINE, lineForDestination } from "@/lib/trip-lines";
+import { scheduleConfirmed } from "@/lib/installments";
 
 /**
  * Public trip data.
@@ -137,9 +139,14 @@ export async function getPublishedTrip(id: string): Promise<PublicTrip | null> {
   return toPublicTrip(data, taken, claims);
 }
 
-/** Test trips are published so they can be booked, but only the sandbox shows them. */
-function isVisible(trip: { name: string }): boolean {
-  return CHECKOUT_SANDBOX || !isTestTrip(trip.name);
+/**
+ * Test trips are published so they can be booked, but only the sandbox shows
+ * them. The sandbox also shows a departure whose payment dates are still
+ * placeholders (scheduleConfirmed, lib/installments.ts); nobody else sees one,
+ * even if it is published early.
+ */
+function isVisible(trip: { name: string; start_date: string }): boolean {
+  return CHECKOUT_SANDBOX || (!isTestTrip(trip.name) && scheduleConfirmed(trip.start_date));
 }
 
 /** Bookings per tier, so a capped tier can show what's actually left. */
@@ -344,11 +351,14 @@ export function isTellurideDestination(destination: string): boolean {
  * The public page for a trip. Every Telluride departure is one page,
  * /telluride (Carter, 29 September 2026: the trip list sent people to a
  * different page from the home page's "See the trip"), so every link to a
- * Telluride departure goes there and /trips/[id] redirects to it. A departure
- * anywhere else keeps its own /trips/[id] page.
+ * Telluride departure goes there and /trips/[id] redirects to it. Spring break
+ * works the same way, on /spring-break (3 November 2026). A departure anywhere
+ * else keeps its own /trips/[id] page.
  */
 export function tripPath(trip: { id: string; destination: string }): string {
-  return isTellurideDestination(trip.destination) ? "/telluride" : `/trips/${trip.id}`;
+  if (isTellurideDestination(trip.destination)) return SKI.path;
+  const line = lineForDestination(trip.destination);
+  return line.id === SPRING_BREAK_LINE.id ? line.path : `/trips/${trip.id}`;
 }
 
 /* -- formatting ----------------------------------------------------------- */

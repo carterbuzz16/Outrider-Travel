@@ -21,7 +21,8 @@ import {
   type PaymentPlan,
 } from "@/lib/balance";
 import type Stripe from "stripe";
-import { installmentInFlight, mustPayInFull } from "@/lib/installments";
+import { installmentInFlight, mustPayInFull, scheduleConfirmed } from "@/lib/installments";
+import { isTestEmail } from "@/lib/ambassador-rules";
 import { lookupReferral, referralCodeFromCookie } from "@/lib/referral";
 import { attributionSource } from "@/lib/referral-cookie";
 import { departureClosed, signupsClosed } from "@/lib/signup-deadline";
@@ -102,7 +103,8 @@ export async function createBooking(formData: FormData) {
   // later (or anonymous sign-ins turned on) can never let a throwaway address
   // hold a bed. Security review, 27 September 2026.
   if (!user.email_confirmed_at || user.is_anonymous) {
-    redirect(`/login?error=email_not_confirmed&next=${encodeURIComponent("/bookings/new")}`);
+    // Back to this trip, not the picker, which now lists more than one.
+    redirect(`/login?error=email_not_confirmed&next=${encodeURIComponent(`/bookings/new?trip=${encodeURIComponent(tripId)}`)}`);
   }
 
   // A legitimate customer books a handful of trips a year at most — this
@@ -126,7 +128,7 @@ export async function createBooking(formData: FormData) {
     redirect("/bookings/new?error=closed");
   }
 
-  // Past the last booking close (lib/signup-deadline.ts) nothing new is
+  // Past the last close on any line (lib/signup-deadline.ts) nothing new is
   // booked, on any departure; a departure past its own close is refused once
   // its date is read, below. The pages say so too; this is the control, for a
   // form left open across the deadline or a direct POST. Existing bookings,
@@ -151,7 +153,7 @@ export async function createBooking(formData: FormData) {
     checkoutError("unavailable", { tripId, groupCode: requestedGroupCode });
   }
   // This departure's own close: December's on 14 November, January's on 4
-  // December (Carter, 29 October 2026).
+  // December (Carter, 29 October 2026), spring break's in BOOKINGS_CLOSE_BY_START.
   if (departureClosed(tier.trips.start_date)) {
     checkoutError("signups_closed", { tripId });
   }
@@ -165,10 +167,27 @@ export async function createBooking(formData: FormData) {
     checkoutError("unavailable", back);
   }
 
+  // The same for a departure whose payment dates are still placeholders: the
+  // pages hide it (lib/trips.ts), and this keeps a direct POST from scheduling
+  // real charges on dates nobody agreed to.
+  if (!scheduleConfirmed(tier.trips.start_date) && !CHECKOUT_SANDBOX) {
+    checkoutError("unavailable", back);
+  }
+
+  // The sandbox runs on Stripe test keys against the live database, so it books
+  // test trips with test accounts and nothing else. A real account here would
+  // have its live Stripe customer replaced by a test one (lib/customers.ts), and
+  // its real installments would lose their card; a real trip would lose a real bed.
+  if (CHECKOUT_SANDBOX && !(isTestTrip(tier.trips.name) && isTestEmail(user.email))) {
+    checkoutError("unavailable", back);
+  }
+
   // A trip that leaves today, or has left, takes no new bookings. The pages
   // show it as closed (lib/trips.ts); this is the control, for the same reason
-  // as the open check above. Mountain Time, where the trips are, not the
-  // server's UTC. Only new bookings: an existing booking's balance and
+  // as the open check above. Mountain Time, where Telluride is, not the
+  // server's UTC. Spring break reads it too: Punta Cana is a few hours ahead,
+  // which matters only on the day of departure, and those weeks close a month
+  // before it. Only new bookings: an existing booking's balance and
   // installments are not touched by this.
   if (hasDeparted(tier.trips.start_date)) {
     checkoutError("departed", { tripId });

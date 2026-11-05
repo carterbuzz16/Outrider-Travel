@@ -18,6 +18,10 @@ const DISPLAY_NAMES: Record<string, string> = {
   "PENTHOUSE 830": "Penthouse 830",
   // The single top package the two penthouses replaced.
   TOP: "The Penthouse",
+  // Zemi Miches. Spring break's tiers never reuse BASE or MID: lib/room-media.ts
+  // keys its rooms on the tier's name, and those two mean The Peaks' Two King
+  // room, which would put Telluride's photographs on a Punta Cana booking.
+  "TWO TO A ROOM": "Two to a Room",
 };
 
 /** "Penthouse  702 " and "PENTHOUSE 702" are the same name. */

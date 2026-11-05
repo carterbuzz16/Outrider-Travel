@@ -9,23 +9,7 @@ import { createPortalUrl } from "@/lib/portal-token";
 import { confirmationNumber } from "@/lib/confirmation-number";
 import { tierDisplayName } from "@/lib/tier-display";
 import { BOOKINGS_OPEN } from "@/lib/booking-window";
-import {
-  BOOKINGS_CLOSE_BY_START,
-  LAST_SIGNUP_DEADLINE_LABEL,
-  closeLabel,
-  departureClosed,
-  signupsClosed,
-} from "@/lib/signup-deadline";
-
-const MONTH = (start: string) =>
-  new Date(`${start}T12:00:00Z`).toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
-
-/** "Telluride is open: December until November 14, January until December 4." Only the weeks still open. */
-function openUntil(): string {
-  const open = Object.keys(BOOKINGS_CLOSE_BY_START).filter((start) => !departureClosed(start)).sort();
-  if (open.length === 0) return "";
-  return `Telluride is open: ${open.map((start) => `${MONTH(start)} until ${closeLabel(start)}`).join(", ")}.`;
-}
+import { SIGNUPS_CLOSED_LABEL, signupsClosed } from "@/lib/signup-deadline";
 import type { Database } from "@/types/supabase";
 import PenthouseProgress from "@/components/PenthouseProgress";
 import { Countdown } from "@/components/WelcomeCredit";
@@ -110,6 +94,7 @@ export default function BookingsView({
   canBook = BOOKINGS_OPEN,
   credit = null,
   ambassador = false,
+  openLine = "",
 }: {
   email: string;
   name: string | null;
@@ -121,6 +106,8 @@ export default function BookingsView({
   credit?: WelcomeCredit | null;
   /** This account is an Outrider ambassador: show the way to their dashboard. */
   ambassador?: boolean;
+  /** What is open to book, trip by trip (openUntilLine, lib/departure-picker.ts), for the empty account. */
+  openLine?: string;
 }) {
   return (
     <main>
@@ -191,7 +178,7 @@ export default function BookingsView({
         )}
 
         {bookings.length === 0 ? (
-          <EmptyState canBook={canBook} />
+          <EmptyState canBook={canBook} openLine={openLine} />
         ) : (
           <ul className="m-0 flex max-w-[56rem] list-none flex-col gap-8 p-0">
             {bookings.map((booking) => (
@@ -430,17 +417,16 @@ function BookingCard({ booking }: { booking: BookingRow }) {
 
 /* -- nothing booked -------------------------------------------------------- */
 
-function EmptyState({ canBook }: { canBook: boolean }) {
-  // After the signup deadline (lib/signup-deadline.ts) the trips are closed,
-  // not coming: the waitlist is the one way on.
+function EmptyState({ canBook, openLine }: { canBook: boolean; openLine: string }) {
+  // Past the last close of every line (lib/signup-deadline.ts) the trips are
+  // closed, not coming: the waitlist is the one way on.
   if (signupsClosed()) {
     return (
       <div className="flex flex-col items-start gap-6 border border-[--rule] bg-[--surface-raised] px-6 py-14 md:items-center md:px-8 md:py-20 md:text-center">
         <p className="stamp-type text-[--text-muted]">Nothing booked yet</p>
         <h2 className="t-subheading max-w-[20ch] text-[--text]">Signups are closed</h2>
         <p className="max-w-measure-tight font-body text-body leading-[1.7] text-[--text-secondary]">
-          Signups for Telluride closed on {LAST_SIGNUP_DEADLINE_LABEL}. Join the waitlist to hear about the next trip
-          first.
+          Signups closed on {SIGNUPS_CLOSED_LABEL}. Join the waitlist to hear about the next trip first.
         </p>
         <Button href="/waitlist" variant="primary" size="md">
           Join the waitlist
@@ -456,12 +442,11 @@ function EmptyState({ canBook }: { canBook: boolean }) {
         <p className="stamp-type text-[--text-muted]">Nothing booked yet</p>
         <h2 className="t-subheading max-w-[20ch] text-[--text]">Booking opens soon</h2>
         <p className="max-w-measure-tight font-body text-body leading-[1.7] text-[--text-secondary]">
-          Telluride&rsquo;s dates are set for December and January. Join the list and you&rsquo;ll hear
-          the moment spots open.
+          The dates are set. Join the list and you&rsquo;ll hear the moment spots open.
         </p>
         <div className="flex flex-wrap items-center gap-x-8 gap-y-4 md:justify-center">
-          <Button href="/telluride" variant="primary" size="md">
-            See Telluride
+          <Button href="/trips" variant="primary" size="md">
+            See the trips
           </Button>
           <Link href="/waitlist" className="font-body text-body-s text-[--accent] decoration-[--accent]">
             Join the list
@@ -475,7 +460,7 @@ function EmptyState({ canBook }: { canBook: boolean }) {
       <p className="stamp-type text-[--text-muted]">Nothing booked yet</p>
       <h2 className="t-subheading max-w-[20ch] text-[--text]">No trips here yet</h2>
       <p className="max-w-measure-tight font-body text-body leading-[1.7] text-[--text-secondary]">
-        {openUntil()} $100 holds your spot, and the rest is paid before the trip.
+        {openLine} $100 holds your spot, and the rest is paid before the trip.
       </p>
       {/* During the list's head start the public trip pages still say
           "coming soon", so a list member goes straight to the booking page. */}

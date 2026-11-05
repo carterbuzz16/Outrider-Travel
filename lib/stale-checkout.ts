@@ -322,7 +322,19 @@ export async function dropUnpaidTravelerDetails(admin: Admin, bookingId: string)
   if (error) {
     // Code and message only: `details` would carry the row.
     console.error(`dropUnpaidTravelerDetails(${bookingId}) failed: ${error.code} ${error.message}`);
+    return;
   }
+  await clearDetailsFlag(admin, [bookingId]);
+}
+
+/*
+ * Spring break has no rental half, so its details form sets details_submitted
+ * before payment (3 November 2026). Once the row is gone that flag is untrue, and
+ * left set it would show as done on the roster with no legal name behind it.
+ */
+async function clearDetailsFlag(admin: Admin, bookingIds: string[]) {
+  const { error } = await admin.from("bookings").update({ details_submitted: false }).in("id", bookingIds);
+  if (error) console.error(`clearDetailsFlag failed: ${error.code} ${error.message}`);
 }
 
 /**
@@ -358,5 +370,6 @@ export async function sweepUnpaidTravelerDetails(admin: Admin, now: number = Dat
     console.error(`sweepUnpaidTravelerDetails: delete failed: ${deleteError.code} ${deleteError.message}`);
     return 0;
   }
+  await clearDetailsFlag(admin, doomed);
   return doomed.length;
 }

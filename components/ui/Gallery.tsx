@@ -27,6 +27,7 @@ export default function Gallery({
   className,
   label = "Photographs",
   autoplay = false,
+  belowFold = false,
   interval = 5000,
 }: {
   images: GalleryImage[];
@@ -34,6 +35,8 @@ export default function Gallery({
   label?: string;
   /** Advance on its own. Off by default. */
   autoplay?: boolean;
+  /** Far enough down the page that nothing should load until it is near. */
+  belowFold?: boolean;
   /** Milliseconds between advances when `autoplay` is on. */
   interval?: number;
 }) {
@@ -182,8 +185,9 @@ export default function Gallery({
               // The first three are on screen at once on a wide display. An
               // autoplaying gallery reaches every slide, so it loads them all
               // rather than waiting for a scroll that arrives at the same
-              // moment the image is needed.
-              loading={autoplay || i < 3 ? "eager" : "lazy"}
+              // moment the image is needed. A gallery far down the page says
+              // so (belowFold), and a phone only pays for it if it gets there.
+              loading={!belowFold && (autoplay || i < 3) ? "eager" : "lazy"}
             />
           </li>
         ))}

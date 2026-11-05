@@ -1,5 +1,5 @@
 import { dashboardHandler } from "@/lib/ambassador-api";
-import { getPortalAccess, loadPortalView } from "@/lib/ambassador-portal";
+import { getPortalAccess, loadPortalSnapshot } from "@/lib/ambassador-portal";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 /*
@@ -13,5 +13,5 @@ export const dynamic = "force-dynamic";
 export const GET = dashboardHandler({
   getAccess: getPortalAccess,
   rateLimit: (userId) => checkRateLimit(`amb-dash:${userId}`, 40, 10 * 60),
-  loadView: (ambassador) => loadPortalView(ambassador.code),
+  loadView: loadPortalSnapshot,
 });

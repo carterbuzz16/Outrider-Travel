@@ -6,6 +6,7 @@ import { ABILITY_LEVELS, SKI_OR_BOARD, labelFor } from "@/app/trip/[bookingId]/f
 import { readLedger } from "@/app/admin/payment-ledger";
 import { toCsv } from "@/app/admin/csv";
 import { gearComplete } from "@/lib/traveler-details";
+import { lineForDestination } from "@/lib/trip-lines";
 import type { BookingStatus } from "@/app/admin/admin-ui";
 import { loadRoster, loadTravelerPii, roomingOrder, type RosterBooking, type TravelerPiiRow } from "../../roster-data";
 
@@ -13,8 +14,9 @@ import { loadRoster, loadTravelerPii, roomingOrder, type RosterBooking, type Tra
  * The departure's CSV exports:
  *
  *   roster     everyone holding a spot, with money and task state
- *   rooming    for the Peaks: rooming requests in the order they arrived
- *   rentals    for the ski shop: ski or board, ability, height, weight, shoes
+ *   rooming    for the hotel: rooming requests in the order they arrived
+ *   rentals    for the ski shop: ski or board, ability, height, weight, shoes.
+ *              Only on a trip with rentals (lib/trip-lines.ts).
  *   insurance  legal name and date of birth
  *   dietary    anyone who listed a restriction
  *   emergency  phone and emergency contact
@@ -48,6 +50,11 @@ export async function GET(_request: Request, props: { params: Promise<{ id: stri
   const roster = await loadRoster(id);
   if (!roster) return new NextResponse("Not found", { status: 404, headers: NO_STORE });
 
+  const line = lineForDestination(roster.trip.destination);
+  if (kind === "rentals" && !line.rentals) {
+    return new NextResponse("Not found", { status: 404, headers: NO_STORE });
+  }
+
   const held = roster.held;
   let pii = new Map<string, TravelerPiiRow>();
   if (PII_KINDS.includes(kind as Kind)) {
@@ -55,7 +62,7 @@ export async function GET(_request: Request, props: { params: Promise<{ id: stri
     pii = await loadTravelerPii(held.map((b) => b.id));
   }
 
-  const csv = build(kind as Kind, held, pii);
+  const csv = build(kind as Kind, held, pii, line.rentals);
   const filename = `${roster.filePrefix}-${kind}.csv`;
 
   return new NextResponse(csv, {
@@ -83,11 +90,11 @@ function nameFor(booking: RosterBooking, details: TravelerPiiRow | undefined): s
   return details?.legal_name || booking.name || booking.email || "";
 }
 
-function build(kind: Kind, held: RosterBooking[], pii: Map<string, TravelerPiiRow>): string {
+function build(kind: Kind, held: RosterBooking[], pii: Map<string, TravelerPiiRow>, rentals: boolean): string {
   switch (kind) {
     case "roster":
       return toCsv(
-        ["Confirmation", "Name", "School", "Email", "Package", "Status", "Plan", "Group code", "Paid", "Total", "Remaining", "Flights booked", "Rooming sent", "Sizes sent", "SMS opt-in", "Booked at (UTC)"],
+        ["Confirmation", "Name", "School", "Email", "Package", "Status", "Plan", "Group code", "Paid", "Total", "Remaining", "Flights booked", "Rooming sent", rentals ? "Sizes sent" : "Details sent", "SMS opt-in", "Booked at (UTC)"],
         held.map((b) => {
           const ledger = readLedger(b, today());
           return [

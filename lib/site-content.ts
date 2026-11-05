@@ -55,7 +55,8 @@ export const CONTACT = {
  * Lodge, Soho House, Aman and others; Flash Pack, Deer Valley, Black Tomato,
  * Contiki) after Carter said the home page still didn't feel right and should
  * be simple, few words, enough to pique interest, about Outrider the brand,
- * and without clubs. What the best of them share, and this follows:
+ * and, then, without clubs (they came back on 3 November 2026, as each trip's
+ * identity). What the best of them share, and this follows:
  *   - the first screen is a film of people, with almost no words on it;
  *   - one loud line per page (ours was the brand book's "We host. You show
  *     up." until 26 October 2026, now "Go somewhere great."), everything else
@@ -66,6 +67,13 @@ export const CONTACT = {
  *   - short: no business pitch and no long form on the home page.
  * Every line is already promised elsewhere on the site; nothing new is
  * claimed. The stock friend groups are never captioned as Outrider guests.
+ *
+ * Two trips from 3 November 2026 (Carter: "we do ski, spring break, etc., not
+ * just ski with spring break"). The seasonal pair and the hard facts became one
+ * section, each trip's photograph over its own facts, because the same two
+ * places twice on a short page would have doubled the words. About ninety in
+ * all, no more than the page had with one trip. Carter's ask is "simple, not too
+ * many words on the screen", so a new line here should replace one.
  * ------------------------------------------------------------------------- */
 export const HOME = {
   // Carter, 26 October 2026, over "We host. You show up.": the headline says
@@ -75,46 +83,383 @@ export const HOME = {
   // Carter, 1 October 2026: "the exclusive, elevated college trip. It's like
   // luxury." His words, and the one place the home page says what we are.
   tagline: "The exclusive, elevated college trip.",
-  peaks: {
-    title: "Ski-in, ski-out at The Peaks",
-    // Each restates a line of TRIP_WHAT_YOU_GET; change them together.
-    lines: ["Lift tickets and rentals", "Private rides from Montrose", "An après party with a DJ", "Our team, all week"],
+  // Same shape on purpose, so neither trip reads as the extra one. The place
+  // comes from lib/trip-lines.ts, the dates and the price from the published
+  // trips.
+  trips: {
+    ski: {
+      season: "This winter",
+      stay: "Ski-in, ski-out at The Peaks",
+      // Each restates a line of TRIP_WHAT_YOU_GET; change them together.
+      lines: ["Lift tickets and rentals", "Private rides from Montrose"],
+      // Where the dates sit once both weeks have stopped selling (December 4).
+      closed: "Booking closed",
+    },
+    springBreak: {
+      season: "This spring",
+      stay: "All-inclusive at Zemi Miches",
+      // Each restates SPRING_BREAK. The first is there so nobody books expecting
+      // to be in the Punta Cana hotel strip (see the note on SPRING_BREAK).
+      lines: ["An hour and a half up the coast", "Airport transfers, both ways"],
+    },
   },
   // "The luxury version of a college trip" is Carter's own line from the
-  // chapter pitch (30 September 2026).
+  // chapter pitch (30 September 2026). "One roof" stayed out when this was cut
+  // down: Telluride and Zemi Miches each say their own hotel just above it.
   why: {
     title: "The luxury version of a college trip",
-    line: "Small groups, one price, one roof, and our team there all week.",
+    line: "Small groups, one price, our team all week.",
   },
-  winter: { label: "This winter", title: "Telluride" },
-  // No destination yet: nothing is announced (see UPCOMING_CATEGORIES).
-  spring: { label: "This spring", title: "Spring break", line: "2027. Destination soon." },
-  closing: "Four nights in Telluride",
+  // Both trips are four nights. Was "Four nights in Telluride".
+  closing: "Four nights with your friends",
+};
+
+/*
+ * Spring break's two weeks, for pages that have to show them before the trips
+ * are published (3 November 2026). Once a departure is published its page reads
+ * the dates from the trip instead. If a date moves, change it here and in
+ * /admin/trips.
+ */
+export const SPRING_BREAK_WEEKS = [
+  { startDate: "2027-03-08", endDate: "2027-03-12" },
+  { startDate: "2027-03-15", endDate: "2027-03-19" },
+];
+export const SPRING_BREAK_WHEN = "March 8 to 12 or March 15 to 19, 2027";
+
+/* -- the campuses ---------------------------------------------------------------
+ * The rolling list of schools (components/ui/CampusMarquee.tsx), from where our
+ * ambassadors are (public.ambassadors, 3 November 2026). A short list by hand rather
+ * than a live query, so a test row or a typo never reaches the page, and Carter can
+ * take any name out.
+ *
+ * "The top 25 best universities, then leave the rest out" (Carter, 3 November 2026).
+ * Chosen for reputation and for how well students know the name, and every one has
+ * an ambassador. It is a judgment, not a published ranking, so never call it one. The
+ * SEC schools come first (Carter, 3 November 2026), Texas and Oklahoma among them
+ * since 2024, and the rest follow, strongest names first. Everyone else with an
+ * ambassador is in MORE_CAMPUSES, which only /campuses shows.
+ *
+ * /campuses says "ambassador" and never "travelled from". He asked about schools
+ * people have travelled from, but no trip has run: the first departs December 14,
+ * 2026. Add that wording once trips have run and the bookings can back it.
+ *
+ * What the label may claim: "On campus at" says only that we have people there,
+ * which the ambassador list backs. Carter asked for "universities we've worked
+ * with", but no school has worked with us as an institution, and as of 3 November
+ * 2026 there is one real booking, so "worked with", "trusted by", "partners" and
+ * "students from" all claim more than we can show. Change the label when bookings
+ * can back it, and never show a school's logo, seal, mascot or colors.
+ *
+ * Left off for now, for Carter to decide: Liberty and Southern Adventist, whose
+ * conduct rules make a name beside a spring break trip more likely to draw a
+ * complaint; and Test School, which is a test row.
+ * ------------------------------------------------------------------------- */
+export const CAMPUSES_LABEL = "On campus at";
+
+export const CAMPUSES: string[] = [
+  // The SEC.
+  "UGA",
+  "Auburn",
+  "Ole Miss",
+  "Tennessee",
+  "UT Austin",
+  "Oklahoma",
+  "Kentucky",
+  "Texas A&M",
+  "South Carolina",
+  "Arkansas",
+  // Everyone else.
+  "Cornell",
+  "Michigan",
+  "UNC",
+  "Ohio State",
+  "SMU",
+  "Clemson",
+  "Boston University",
+  "Penn State",
+  "TCU",
+  "Florida State",
+  "Miami",
+  "Virginia Tech",
+  "University of Washington",
+  "Illinois",
+  "University of San Diego",
+];
+
+/** Every other school with an ambassador, A to Z. On /campuses, not in the strip. */
+export const MORE_CAMPUSES: string[] = [
+  "Boise State",
+  "Cal State San Marcos",
+  "Cincinnati",
+  "Colorado Mesa",
+  "Fairfield",
+  "FIU",
+  "Mount Royal",
+  "New Mexico",
+  "New Mexico State",
+  "North Florida",
+  "Ohio University",
+  "Roger Williams",
+  "Rutgers",
+  "South Dakota State",
+  "Texas Tech",
+  "UC Irvine",
+  "Wake Tech",
+  "Wyoming",
+];
+
+export const CAMPUSES_PAGE = {
+  line: "Every school with an Outrider ambassador right now.",
+  closeTitle: "Don't see your school?",
+  closeLine: "Be our first ambassador there.",
+  closeCta: "Become an ambassador",
+};
+
+/* -- partners ---------------------------------------------------------------------
+ * /partners, for brands (Carter, 3 November 2026: "so that we can do brand deals
+ * and sponsorships"). NEEDS REAL COPY: the four placements are a first draft of
+ * what we would sell, for Carter to confirm before anyone is quoted them. Sap's
+ * is the only real example (TRIP_SPONSORS). No traveler or reach numbers: a brand
+ * will ask, and the page should only state ones the bookings can back.
+ * ------------------------------------------------------------------------- */
+export const PARTNERS = {
+  label: "For brands",
+  headline: "Come on the trip",
+  lede: "The Outrider Ski Club and the Outrider Beach Club are small, hosted trips for college students. A brand that comes with us is part of the week.",
+  clubsTitle: "Two clubs, one year",
+  placementsTitle: "Where you show up",
+  placements: [
+    { title: "In the welcome gift", body: "In every traveler's hands when they get there." },
+    { title: "On the trip", body: "Your product with the group, at the hotel and at our events." },
+    { title: "On the page", body: "Named on the trip page people book from." },
+    { title: "In what we post", body: "In the photos and video we share from the week." },
+  ],
+  exampleTitle: "Already with us",
+  ctaTitle: "Tell us what you have in mind",
+  cta: "Get in touch",
 };
 
 /* -- spring break ----------------------------------------------------------------
- * /spring-break (1 October 2026). Carter: one list that everyone gets, but the
- * spring break way in branded as its own thing, "Outrider Spring Break Club".
- * A signup from it lands on the same list with placement "spring-break",
- * which sends the spring break welcome (lib/email/send.ts) instead of the
- * Telluride one. No destination is announced (UPCOMING_CATEGORIES), so
- * nothing here names a place or a price; it promises only what every trip
- * already is.
+ * /spring-break. It opened on 1 October 2026 as a door to the list; from 3
+ * November 2026 it is the trip: Punta Cana, at Zemi Miches, March 8 to 12 or
+ * March 15 to 19, 2027, $100 to hold a spot, from $1,200 a person with airport
+ * transfers (Carter's brief).
+ *
+ * The trip's terms are Carter's: that brief, and the note he sends trip leads
+ * (Outrider Instagram/Spring break/Messages.txt, with the "2 Punta Cana" graphic). Say
+ * Punta Cana as the headline and Zemi Miches as the hotel, and keep "an hour and a half
+ * up the coast" close by, so nobody books expecting to be in the Punta Cana hotel strip.
+ * The prices and dates on the page come from the published trips, never from here.
+ *
+ * What the resort has comes from its own fact sheet and media kit (the "Zemi Miches
+ * Digital Assets" library David Schwartz sent on 3 November 2026; general fact sheet
+ * dated 18 June 2026). Careful: the group's rooms are Tropical View, and that sheet
+ * reserves part of the resort for other guests. Name only what these rooms reach:
+ *   Club Azure only: Carey, Caicu, The Royal Palm and its poolside bar, the rooftop pool.
+ *   Bungalows only: Jagua. The Hidden Locker is marked "included for bungalow guests", so
+ *     the speakeasy stays off the page until Zemi says what it means for these rooms.
+ *   Extra fee: mini bowling, laser tag, the escape room and the arcade, so they are
+ *     add-ons, whatever "all-inclusive" suggests.
+ * That leaves five restaurants (Toa, Boba, Yuca, Guacete, Manicato) plus the food truck,
+ * and six bars and lounges (Dujo, Anani, Batey, Serra, Surship, the Cigar Lounge). Never
+ * use the resort's totals of seven and eleven, which count all of the above.
+ *
+ * The fact sheet also lists "unlimited drinks and cocktails", and INCLUDED leaves that
+ * line out on purpose. Our insurance broker told us to stay away from any direct
+ * connection to serving alcohol, and Carter's lawyer has the question (November 2026).
+ *
+ * What it sells (Carter, 3 November 2026, after the first version looked "too
+ * hotely/polished"): "no one cares about a food truck... They care about catamarans
+ * in the bay, bars, cigar lounge, clubs", and that it is "a nice, secluded place".
+ * So the seclusion and the evenings lead, and the resort's own features stay small.
+ * Name only venues the resort publishes. There may not be a nightclub at all
+ * (Carter, 3 November 2026), so the page names none.
+ *
+ * The angle, later the same day: "upscale fun", "not super party but also not
+ * boring", "pitch it like it's a high end nice place". Then on 5 November 2026, after
+ * a version with the resort's lifestyle photographs: "too stock-photo-y, feature
+ * adults, and don't fit the college vibe", and "I don't need to know there's 800 m of
+ * beach". So the page is the Outrider Beach Club now, built like his Punta Cana graphic:
+ * film and big capitals, an orange panel, the schools rolling, and hardly any copy. No
+ * posed people, no fact-sheet numbers. What the reader still has to know before paying
+ * (add-ons cost extra, the airport is 90 minutes away, flights are theirs) stays on the
+ * page, short, and the rest folds away under Good to know.
+ *
+ * A signup from this page's form still carries placement "spring-break", which
+ * sends the spring break welcome (lib/email/send.ts).
  * ------------------------------------------------------------------------- */
 export const SPRING_BREAK_PLACEMENT = "spring-break";
 
 export const SPRING_BREAK = {
-  club: "Outrider Spring Break Club",
-  headline: "Spring break",
-  tagline: "2027. Somewhere warm. Destination soon.",
-  pitchTitle: "Hosted the way we host Telluride",
-  pitch:
-    "One great place for the whole group, one price with everything in it, and our team there all week. Get on the list and you'll hear where we're going before anyone else.",
-  formHeading: "Get in early",
-  formBody: "The list hears where first. It's the same list as every Outrider trip, so you'll hear about the rest too.",
-  doneHeading: "You're in the club",
-  doneBody: "We'll write the moment spring break is announced, before it reaches the site. A welcome note is on its way to your inbox.",
-  shareText: "Outrider is planning spring break 2027. Get on the list and hear where first.",
+  // The Beach Club is Carter's name for it (3 November 2026), on the trip's
+  // masthead and everywhere else it wears a name. "Club" here means belonging to
+  // something: there is no membership and nothing to join beyond booking.
+  label: "Spring break 2027",
+  headline: "Punta Cana",
+  // Carter, 5 November 2026: "Definitely need people to know that it's all-inclusive." So
+  // it opens the orange panel and sits beside every price. Not on the masthead, where he
+  // tried it and took it out the same day. This line is for the share card, which has no
+  // panel to say it for it.
+  strapline: "All-inclusive spring break",
+  // "Your best friends" is how he says to talk to a student (1 October 2026), and
+  // "luxury" is one of the positioning words he allowed the same day.
+  tagline: "Four nights with your best friends at a brand new luxury resort.",
+  // Under the tagline on the page's first screen: the line that stops anyone
+  // expecting the Punta Cana hotel strip.
+  coast: "An hour and a half up the coast. Quiet beach, no crowds.",
+  property: {
+    name: "Zemi Miches",
+    brand: "Curio Collection by Hilton",
+    where: "Miches, Dominican Republic",
+    line: "Brand new and secluded, an hour and a half up the coast in Miches. Quiet beach, no crowds.",
+  },
+  includedHeadline: "All-inclusive",
+  // A list and not a set of tiles: each is only as long as it has to be. "Welcome happy
+  // hour" is Carter's wording (3 November 2026), and Zemi's proposal comps one cocktail
+  // hour for at most 30 people, so a week sold past 30 needs the rest priced. The
+  // Outrider moments are unannounced: fill them in when they are set.
+  whatYouGet: [
+    "Four nights on the beach",
+    // What the word means to someone paying for it. Dinner at five restaurants and 24-hour
+    // room service are on the fact sheet. Drinks are not said: see the note on INCLUDED above.
+    "Dinner every night, room service around the clock",
+    "Two to a room, two queen beds",
+    "Airport transfers, both ways",
+    "A welcome happy hour",
+    "A welcome gift",
+    "Outrider moments along the way",
+    "Our team, the whole trip",
+  ],
+  /*
+   * What "all-inclusive" covers, in the resort's words made shorter. See the note at
+   * the top of this block for what is left out and why.
+   */
+  includedTitle: "All-inclusive, in full",
+  included: [
+    "Dinner at five restaurants",
+    "24-hour room service",
+    "A minibar refilled every day",
+    "Pool and beach service",
+    "Live entertainment every night",
+    "Daily activities and workshops",
+    "Kayaks and paddleboards",
+    "Padel and pickleball",
+    "The fitness center and Wi-Fi",
+  ],
+  /*
+   * Every photograph and clip is the resort's own, from its library, used as supplied
+   * and only resized. Hildebranda Richards OKed the library for the website and social
+   * media on 4 November 2026 (public/images/spring/CREDITS.md). Its brand guide asks for
+   * images that are "colorful, bright, and luminous", which is also the high-end pitch,
+   * so the muted grade these used to get is gone. Left out on purpose: Club Azure, the
+   * Royal Palm rooftop and the bungalows, which these rooms do not reach, and weddings,
+   * families and the Taino show. Never caption these people as Outrider guests.
+   */
+  /*
+   * The film bands, each one cut from the resort's films with no posed faces in it:
+   * the coast, then fire and smoke and sunset, then the water. public/video has the
+   * clips and CREDITS.md says which seconds of which film. One headline each.
+   */
+  crowd: {
+    title: "Where the crowd isn't",
+    alt: "The coast from the air: miles of green running down to a long empty shoreline, clear turquoise shallows, then the bay at dusk.",
+  },
+  nights: {
+    title: "Long dinners, late nights",
+    line: "All-inclusive, so nobody splits the check at dinner.",
+    alt: "A bartender's torch and a smoking cocktail, a pan over blue flame, a plate being dressed at the table, then palms against the last of the sunset.",
+  },
+  days: {
+    title: "On the water by noon",
+    alt: "Two people running down the beach, a swimmer seen from above, someone floating in sunlit water, and the pool from the air.",
+  },
+  out: {
+    title: "Whales, waterfalls and Los Haitises",
+    // Both weeks are inside the season, which the resort's media kit gives as January
+    // to March. Everything in this film is an extra, and the words have to say so.
+    line: "Whale watching runs through March. These are add-ons, and we can help you book them.",
+    alt: "Humpback whales from above, then the green islands of Los Haitises, a swing over the valley at Montaña Redonda, and two people cycling a wire over the hills.",
+  },
+  bay: {
+    title: "Catamarans on the bay",
+    line: "A private boat for your group. It's an add-on, and we can help you book it.",
+    image: {
+      src: "/images/spring/zemi-sailing.jpg",
+      alt: "A small catamaran with three people aboard on calm water, big clouds building over the bay.",
+      position: "60% 72%",
+      mobilePosition: "62% 70%",
+    },
+  },
+  // The names, and nothing about them that a reader has to stop and read. Rooms and bars
+  // with nobody in them: people's own photographs replace these when there are any.
+  // Each `-card` file is its card's own 4:5 crop, made from the resort's original
+  // (CREDITS.md). A 3:2 photograph cropped by CSS throws away half its width after the
+  // browser has picked a size from the card's width, which is why these looked soft.
+  venues: [
+    { name: "Toa", kind: "Taíno kitchen", src: "/images/spring/zemi-toa-card.jpg", alt: "Toa's dining room: dark red walls, warm low lamps and a long table set for dinner." },
+    { name: "The sunken lounges", kind: "Built into the pool", src: "/images/spring/zemi-lounge-night-card.jpg", alt: "A sunken pool lounge glowing at night, the water still and the palms dark behind it." },
+    { name: "Manicato", kind: "Amalfi Coast", src: "/images/spring/zemi-manicato-card.jpg", alt: "Set tables under big woven lanterns at Manicato, a wall of warm round lights behind them." },
+    { name: "Dujo", kind: "Lobby bar", src: "/images/spring/zemi-dujo-card.jpg", alt: "The Dujo lobby bar: a long curved orange sofa, bar stools and big windows onto the palms." },
+    { name: "Yuca", kind: "Beach grill", src: "/images/spring/zemi-yuca-card.jpg", alt: "Yuca's open terrace: tables on blue stone under a pergola, with palms and the beach just past them." },
+    { name: "The Cigar Lounge", kind: "Adults only", src: "/images/spring/zemi-cigar-lounge-card.jpg", alt: "The cigar lounge: leather banquettes and mustard armchairs in front of a lit wall of humidors and a bar with red stools." },
+    { name: "Boba", kind: "Thai street food", src: "/images/spring/zemi-boba-card.jpg", alt: "Orange chairs and dark tables at Boba, hanging lights over the room and a tall wall of bottles behind." },
+    { name: "Serra", kind: "Gastropub, pool tables", src: "/images/spring/zemi-gastropub-card.jpg", alt: "Serra's room: rows of wood tables under big timber beams, a teal wall and screens along the back." },
+    { name: "Surship", kind: "Poolside bar", src: "/images/spring/zemi-surship-card.jpg", alt: "The Surship poolside bar: a green tiled counter under a curved white roof, with a woven daybed beside it." },
+  ],
+  // /destinations' gallery. /spring-break tells the same story in its own sections.
+  gallery: [
+    {
+      src: "/images/spring/zemi-beach-aerial.jpg",
+      alt: "A paddleboarder on still water under tall palms leaning out from the shore.",
+    },
+    {
+      src: "/images/spring/zemi-toa.jpg",
+      alt: "Toa's dining room: dark red walls, warm low lamps and a long table set for dinner.",
+    },
+    {
+      src: "/images/spring/zemi-paddle.jpg",
+      alt: "Two paddleboarders on clear turquoise water, a palm frond overhead and green mountains across the bay.",
+    },
+    {
+      src: "/images/spring/zemi-cigar-lounge.jpg",
+      alt: "The cigar lounge: leather banquettes and mustard armchairs in front of a lit wall of humidors and a bar with red stools.",
+    },
+    {
+      src: "/images/spring/zemi-gastropub.jpg",
+      alt: "Serra's room: rows of wood tables under big timber beams, a teal wall and screens along the back.",
+    },
+    {
+      src: "/images/spring/zemi-dusk.jpg",
+      alt: "Zemi Miches from above at dusk: the lit pools and a big shade tree, the beach and palms, and a quiet bay with mountains behind.",
+    },
+  ],
+  gettingThere:
+    "Everyone books their own flights, into Punta Cana (PUJ). It’s an hour and a half from there to Zemi Miches, and your transfer is included, both ways.",
+  addOnsTitle: "Add-ons, if you want them",
+  addOns: [
+    "ATV tours into the mountains",
+    "Private catamaran days",
+    "Whale watching and day trips",
+    "The spa",
+    "Mini bowling, laser tag and the arcade",
+  ],
+  // Carter, 5 November 2026: "we book them for them. Don't say 'book them yourself.'" They
+  // still cost extra, and the words have to say so, whatever "all-inclusive" suggests.
+  addOnsNote: "These cost extra, and we can help you book them.",
+  notIncluded: "Flights aren’t included. Everyone books their own, into Punta Cana (PUJ).",
+  // A US citizen needs one for the Dominican Republic. Said only this plainly:
+  // entry rules beyond that are not ours to state.
+  passport: "You’ll need a valid passport.",
+  // In writing from Hildebranda Richards, 4 November 2026. The Terms set 18 to book.
+  age: "You have to be 18 to book, and 18-year-olds check in on their own.",
+  formHeading: "Hear it first",
+  formBody: "New dates and new trips go to this list before they reach the site.",
+  // formBody's stand-in while no week is on sale, when the dates are already on
+  // the page and booking is the news.
+  formBodyBeforeBooking: "We’ll email you the moment booking opens.",
+  doneHeading: "You’re on the list",
+  doneBody: "We’ll write as soon as there’s news. A welcome note is on its way to your inbox.",
+  shareText: "Spring break in Punta Cana with Outrider. Four nights at Zemi Miches, $100 holds your spot.",
 };
 
 /* -- /ambassador -------------------------------------------------------------
@@ -127,31 +472,49 @@ export const SPRING_BREAK = {
  * applicant is part of, whoever their chapter is with.
  *
  * Made concrete on 27 October 2026 (Carter: people come from Instagram and
- * should "know exactly what they have to do and what they get"). The page now
- * states the program's one rule: bring AMBASSADOR_GOAL friends who book through
- * your link and pay in full by the signup deadline, and your trip is free. The
- * number and the date are passed in by the page from lib/ambassadors.ts and
- * lib/signup-deadline.ts, the same values /admin/ambassadors counts with, so
+ * should "know exactly what they have to do and what they get"). The page
+ * states the rule: hit your goal with friends who book through your link and
+ * pay in full, and your trip is free. The numbers are passed in by the page from
+ * lib/ambassador-program.ts, the same values /admin/ambassadors counts with, so
  * the promise and the count can never disagree. This file stays client-safe
  * (app/team imports it), which is why they arrive as arguments. The rest of
  * the terms (the held spot, what happens short of the goal) are still for
  * once someone is selected.
+ *
+ * Two programs from 3 November 2026 (Telluride's 5, spring break's 10), so a
+ * single number no longer states the offer. The page reads the programs still
+ * selling (openPrograms) and hands them in as `offers`, so after Telluride
+ * closes it says spring break alone. No dates here:
+ * spring break's closes are placeholders, and "before their week closes" stays
+ * true on every program. A free trip takes hitting a goal, and rewards are for
+ * friends who book, never "every friend" (Carter, 26 October 2026).
  * ------------------------------------------------------------------------- */
+/** A program still selling, as /ambassador states it: "spring break", 10. */
+export type AmbassadorOffer = { name: string; goal: number };
+
+/** "5 friends for Telluride. 10 friends for spring break." Empty once nothing is selling. */
+function ambassadorGoals(offers: readonly AmbassadorOffer[]): string {
+  return offers.map((o) => `${o.goal} friends for ${o.name}.`).join(" ");
+}
+
 export const AMBASSADOR = {
   headline: "Travel for free",
-  // The offer in one line, right under the headline (Carter's form fixes,
-  // 27 October 2026: "Bring X friends, your trip is free").
-  perk: (goal: number) => `Bring ${goal} friends. Your trip is free.`,
+  // The offer in one line, right under the headline, with the numbers under it.
+  perk: "Hit your goal. Your trip is free.",
+  goals: ambassadorGoals,
   subhead: "Outrider is selecting a small team of Campus Leads and Ambassadors.",
   apply: "Apply",
   // What to do, in order: a real sequence, so it is numbered.
   stepsTitle: "How it works",
-  steps: (goal: number, deadline: string) => [
+  steps: (offers: readonly AmbassadorOffer[]) => [
     { title: "Apply", line: "It takes two minutes, right here." },
     { title: "Get your link", line: "If you’re selected, you get your own link to share." },
     {
-      title: `Bring ${goal} friends`,
-      line: `When ${goal} friends book through your link and pay in full by ${deadline}, your trip is free.`,
+      title: "Hit your goal",
+      line:
+        offers.length > 0
+          ? `${ambassadorGoals(offers)} They book through your link and pay in full before their week closes, and that trip is free.`
+          : "Friends book through your link and pay in full before their week closes. Hit your goal and your trip is free.",
     },
   ],
   getTitle: "What you get",
@@ -159,9 +522,9 @@ export const AMBASSADOR = {
   // no full stop; the lines under them are sentences and keep theirs. "Rewards
   // for friends who book" went on 27 October 2026: the program as built pays
   // in the free trip, so the list says exactly that.
-  get: (goal: number) => [
-    { label: "A free trip", line: "Your spot on the trip, on us." },
-    { label: "Your own link", line: `Every friend who books through it counts toward your ${goal}.` },
+  get: [
+    { label: "A free trip", line: "Hit your goal and your trip is on us." },
+    { label: "Your own link", line: "Friends who book through it count toward your goal." },
     { label: "First access", line: "Every trip opens to you before anyone else." },
     { label: "A direct line to the founders", line: "Your input shapes where we go next." },
   ],
@@ -183,9 +546,11 @@ export const AMBASSADOR = {
  * lib/ambassador-program.ts, so they are passed in rather than written here.
  *
  * NEEDS REAL COPY: the scripts are drafted from /telluride's own facts (the
- * dates, The Peaks, ski-in ski-out, "$100 holds your spot"). Swap in the
- * messages from the ambassador doc if Carter prefers those. {link} and {code}
- * are filled in per ambassador.
+ * dates, The Peaks, ski-in ski-out, "$100 holds your spot") and spring break's
+ * (Zemi Miches, 3 November 2026). Swap in the messages from the ambassador doc
+ * if Carter prefers those. {link} and {code} are filled in per ambassador, with
+ * the link for the program on screen. Scripts are short, how a person texts: no
+ * question followed by a scripted next step.
  * ------------------------------------------------------------------------- */
 export const AMBASSADOR_PORTAL = {
   notAmbassadorTitle: "This portal is for Outrider ambassadors",
@@ -207,8 +572,8 @@ export const AMBASSADOR_PORTAL = {
   // "Post today", at the top of Home until their first friend books (Carter,
   // 29 October 2026). Same ask as the welcome email's "First thing today".
   postTodayTitle: "Post today",
-  postTodayLine: (code: string) =>
-    `Share an @outridertravel post or a graphic from your Toolkit. Add your code, ${code}, and tag @outridertravel.`,
+  postTodayLine: (code: string, hasGraphics: boolean) =>
+    `Share an @outridertravel post${hasGraphics ? " or a graphic from your Toolkit" : ""}. Add your code, ${code}, and tag @outridertravel.`,
   postTodayGraphic: "Get a graphic",
   postTodayInstagram: "Open Instagram",
   instagramUrl: "https://www.instagram.com/outridertravel/",
@@ -232,22 +597,44 @@ export const AMBASSADOR_PORTAL = {
   scriptsTitle: "Scripts",
   faqTitle: "Questions",
   help: "Anything else, message us in the GroupMe.",
-  scripts: [
-    {
-      title: "Text a friend",
-      body: "Come to Telluride with me. Outrider has us ski-in, ski-out at The Peaks, December 14 to 18 or January 4 to 8. They book the hotel, the lifts, the rides and the nights out. $100 holds your spot: {link}",
-    },
-    {
-      title: "Group chat",
-      body: "Telluride this winter, four nights at The Peaks, ski-in, ski-out. December 14 to 18 or January 4 to 8. December books until November 14, January until December 4. Book through my link so we’re on the same trip: {link}",
-    },
-    {
-      title: "Story caption",
-      body: "Telluride with Outrider. Link’s in my bio, or put {code} in Referred by at checkout.",
-    },
-  ],
-  /** `countBy` reads like "the end of November 14 for December, December 4 for January". */
-  faq: (countBy: string, goal: number) => [
+  // By program id (lib/ambassador-program.ts).
+  scripts: {
+    "telluride-2026": [
+      {
+        title: "Text a friend",
+        body: "Come to Telluride with me. Outrider has us ski-in, ski-out at The Peaks, December 14 to 18 or January 4 to 8. They book the hotel, the lifts, the rides and the nights out. $100 holds your spot: {link}",
+      },
+      {
+        title: "Group chat",
+        body: "Telluride this winter, four nights at The Peaks, ski-in, ski-out. December 14 to 18 or January 4 to 8. December books until November 14, January until December 4. Book through my link so we’re on the same trip: {link}",
+      },
+      {
+        title: "Story caption",
+        body: "Telluride with Outrider. Link’s in my bio, or put {code} in Referred by at checkout.",
+      },
+    ],
+    "spring-break-2027": [
+      {
+        title: "Text a friend",
+        body: "Come to Punta Cana with me for spring break. Outrider has us at Zemi Miches, all-inclusive, right on the beach. March 8 to 12 or March 15 to 19. $100 holds your spot: {link}",
+      },
+      {
+        title: "Group chat",
+        body: "Spring break in Punta Cana. Four nights at Zemi Miches, all-inclusive, on the beach, two to a room. March 8 to 12 or March 15 to 19. From $1,200 with airport transfers both ways, flights not included. $100 holds your spot. Book through my link so we’re on the same trip: {link}",
+      },
+      {
+        title: "Story caption",
+        body: "Spring break in Punta Cana with Outrider. Link’s in my bio, or put {code} in Referred by at checkout.",
+      },
+    ],
+  } as Readonly<Record<string, readonly { title: string; body: string }[]>>,
+  /**
+   * `countBy` reads like "the end of November 14 for December, December 4 for
+   * January". `heldSpots` says the program has the Telluride deal for falling
+   * short: a held spot and a credit per friend. Without it the question isn't
+   * asked, since nothing has been decided that could answer it.
+   */
+  faq: (countBy: string, goal: number, heldSpots: boolean) => [
     {
       q: "Can I keep this on my home screen?",
       a: "Yes, and it opens like an app. On iPhone, tap Share, then Add to Home Screen. On Android, open the menu, then Add to Home screen.",
@@ -261,6 +648,10 @@ export const AMBASSADOR_PORTAL = {
       a: `When they’ve booked with your code or link and their trip is paid in full by ${countBy}. A friend on a deposit shows as on the way.`,
     },
     {
+      q: "Do I need another code for another trip?",
+      a: "No. One code, every trip. A friend counts toward the trip they book, never two.",
+    },
+    {
       q: "What if they forget my code?",
       a: "Your link remembers you for 30 days on the device they opened it on. If a friend booked without it, message us in the GroupMe and we’ll add it.",
     },
@@ -268,16 +659,25 @@ export const AMBASSADOR_PORTAL = {
       q: "Two ambassadors sent the same friend. Who gets it?",
       a: "The code typed at checkout. With no code typed, the most recent link they opened.",
     },
-    {
-      q: `What if I’m short of ${goal}?`,
-      a: "Every friend who pays in full still takes $100 off your own spot. Your spot is held with no deposit; when the count closes, you pay what’s left or release it.",
-    },
+    ...(heldSpots
+      ? [
+          {
+            q: `What if I’m short of ${goal}?`,
+            a: "Every friend who pays in full still takes $100 off your own spot. Your spot is held with no deposit; when the count closes, you pay what’s left or release it.",
+          },
+        ]
+      : []),
   ],
 };
 
 /* -- what makes Outrider different ------------------------------------------
  * Describes how the company operates, not one destination. Every claim is
  * backed by the tier inclusions in the database.
+ *
+ * Rewritten 3 November 2026 so each line holds on every trip. Lift tickets,
+ * penthouses and the no-resort-fee promise are Telluride facts, so they are named
+ * as Telluride's or left to /telluride. "We've stayed at the property" went: the
+ * repo says nothing of a stay at Zemi Miches, and this claims it of every trip.
  * ------------------------------------------------------------------------- */
 export const VALUE_PROPS = [
   {
@@ -286,25 +686,25 @@ export const VALUE_PROPS = [
     // "Open to every school" is the other half of small (Carter's mission,
     // 1 October 2026): exclusive by size, never by who you are.
     body:
-      "Every trip is sized before it goes on sale and stays that size, small enough that faces are familiar by day two. It's open to students from any school, so you come with your friends and leave knowing people from other campuses. Share a Two King room with three friends or one, or take a whole penthouse with seven.",
+      "Every trip is sized before it goes on sale and stays that size, small enough that faces are familiar by day two. It's open to students from any school, so you come with your friends and leave knowing people from other campuses.",
   },
   {
     eyebrow: "Hosted",
     title: "Your room's ready when you land",
     body:
-      "We scout the hotels, the restaurants and the mountain long before a trip goes on sale, and we only work with places that hold a real standard. When you arrive, your room is ready and your plans are made. Our team knows your name and stays with you the whole trip, so there's always someone to ask.",
+      "We scout the hotels long before a trip goes on sale, and we only work with places that hold a real standard. When you arrive, your room is ready and your plans are made. Our team knows your name and stays with you the whole trip, so there's always someone to ask.",
   },
   {
     eyebrow: "All in",
     title: "One price, all in",
     body:
-      "Lodging, lift tickets and rentals, ground transport, the private events, a welcome package and our team are all in the price. No resort fee at check-in and no surprise shuttle charge. Everyone books and pays for their own spot, all at once or $100 now and the rest later, so nobody fronts the money for friends or spends the semester chasing Venmo requests.",
+      "Your room, your rides from the airport, a welcome gift and our team are in every price. Telluride adds lift tickets, rentals and the private events, and Zemi Miches is all-inclusive. Everyone books and pays for their own spot, all at once or $100 now and the rest later, so nobody fronts the money for friends or spends the semester chasing Venmo requests.",
   },
   {
     eyebrow: "We go first",
-    title: "We've been there first",
+    title: "We go first",
     body:
-      "Before a trip goes on sale, we've stayed at the property, held the rooms, bought the tickets and lined up the rides. Then we come along for the whole thing.",
+      "Before a trip goes on sale, we've picked the hotel, held the rooms and lined up the rides. Then we come along for the whole thing.",
   },
 ];
 
@@ -314,13 +714,19 @@ export const VALUE_PROPS = [
  * headline in Extrabold capitals and two sentences under it, with a
  * photograph. Every line restates something the site already promises
  * (VALUE_PROPS, SHARED_INCLUSIONS, the ComparisonTable rows), so this adds no
- * new claim; change them together. No photograph repeats one used elsewhere
- * on /about.
+ * new claim; change them together. Zemi Miches shows twice on /about, here and
+ * in the masthead, with zemi-aerial.jpg both times. Swap one for another from the
+ * press kit (SPRING_BREAK). Every other photograph appears once.
+ *
+ * Rewritten 3 November 2026 so each reason is true of Telluride and spring
+ * break alike, naming the trip wherever a detail belongs to one of them.
+ * Optional add-ons at Zemi Miches are why it reads "have to book". "We stayed at
+ * the hotel" went for the reason given at VALUE_PROPS.
  * ------------------------------------------------------------------------- */
 export const ABOUT_DIFFERENCES: { title: string; body: string; image: { src: string; alt: string } }[] = [
   {
     title: "One price, everything in it",
-    body: "Your room, three days of lift tickets and rentals, rides from Montrose, the parties and our team. Flights are the only thing you book, and there are no surprise fees at check-in.",
+    body: "Your room, your rides from the airport and our team, plus lift tickets and rentals in Telluride and the all-inclusive plan at Zemi Miches. Flights are the only thing you have to book.",
     image: {
       src: "/images/people/friends-snow-throw.jpg",
       alt: "Four friends on skis, arms linked, laughing as someone throws a handful of powder at them in falling snow.",
@@ -328,10 +734,10 @@ export const ABOUT_DIFFERENCES: { title: string; body: string; image: { src: str
   },
   {
     title: "The whole group under one roof",
-    body: "Everyone stays at The Peaks, ski-in, ski-out. Walk out the door, click in, go. Pick a room for four or two, or take a whole penthouse with your eight.",
+    body: "Everyone stays at one hotel: The Peaks in Telluride, ski-in, ski-out, or Zemi Miches up the coast from Punta Cana, all-inclusive on the beach. Walk out the door and you're on the snow or the sand.",
     image: {
-      src: "/images/peaks/peaks-exterior-night.jpg",
-      alt: "The Peaks Resort from above on a winter night, its windows lit and the heated outdoor pool glowing, with snowy peaks behind.",
+      src: "/images/spring/zemi-aerial.jpg",
+      alt: "Zemi Miches from above: the pools and palm trees running down to a sandy beach, with a calm bay and green mountains behind.",
     },
   },
   {
@@ -343,8 +749,8 @@ export const ABOUT_DIFFERENCES: { title: string; body: string; image: { src: str
     },
   },
   {
-    title: "We've been there first",
-    body: "We stayed at the hotel, held the rooms and lined up the rides before a single spot went on sale. Nothing on this trip is a guess.",
+    title: "Ready before you land",
+    body: "We hold the rooms and line up the rides before a single spot goes on sale. Nothing on these trips is a guess.",
     image: {
       src: "/images/telluride/gondola-night.jpg",
       alt: "A gondola cabin crossing a snowy ridge, the town far below in the valley.",
@@ -352,7 +758,7 @@ export const ABOUT_DIFFERENCES: { title: string; body: string; image: { src: str
   },
   {
     title: "Our team, all week",
-    body: "We're with you from pickup to drop-off. Everyone pays their own way, so nobody fronts the money, and the friend who planned it finally gets to ski.",
+    body: "We're on site with you the whole trip. Everyone pays their own way, so nobody fronts the money, and the friend who planned it finally gets a week off.",
     image: {
       src: "/images/telluride/gorrono-deck.jpg",
       alt: "Gorrono Ranch's old timber barns mid-mountain, skiers in Adirondack chairs on the snow out front and the San Juans behind.",
@@ -372,9 +778,11 @@ export const ORIGIN = {
    * they are the argument the company is built on: the destination is the
    * product. It opens on what a college trip should feel like rather than on
    * what is wrong with the usual one: the marketing lead asked for the earnest
-   * version first, and the side-by-side comparison carries the contrast. */
+   * version first, and the side-by-side comparison carries the contrast.
+   * "One town" became "one place" on 3 November 2026: Zemi Miches is a secluded
+   * resort, not a town. */
   body: [
-    "A trip with your friends should be the best week of your year. A place you've wanted to see for ages, somewhere to stay you'd happily tell your parents about, and everyone you like in one town at the same time.",
+    "A trip with your friends should be the best week of your year. A place you've wanted to see for ages, somewhere to stay you'd happily tell your parents about, and everyone you like in one place at the same time.",
   ],
 };
 
@@ -425,19 +833,6 @@ export const PARTNER = {
     "Chptr runs the day-to-day for fraternities and sororities: events, dues, vendors. Its Collective is a short list of partners chapters can trust, and Outrider is the one for ski trips. If your chapter is on Chptr, we're already vetted.",
   ],
 };
-
-/* -- trips not yet in the database ------------------------------------------
- * Shown on /trips as honest "not open yet" entries. No prices and no CTA,
- * because neither exists yet. Delete an entry when a real trip is created.
- * ------------------------------------------------------------------------- */
-export const UPCOMING_CATEGORIES = [
-  {
-    name: "Spring break",
-    destination: "Destination to be announced",
-    window: "Spring 2027",
-    note: "Somewhere warm, hosted the way we host Telluride. We stay there first and keep the group small. The list hears where before anyone else.",
-  },
-];
 
 /* -- what every Telluride package includes ----------------------------------
  * Shown on /telluride under #included, the anchor the booking emails link to.
@@ -723,7 +1118,11 @@ export const TELLURIDE_AT_A_GLANCE = [
   { label: "Hosts", value: "Our team, on the ground all week" },
 ];
 
-/** The one thing deliberately left out, said next to the list above. */
+/**
+ * The one thing deliberately left out, said next to the list above. Telluride's
+ * alone: /telluride and the WhatYouGet block, which only a Telluride departure
+ * renders, are its only readers, so it can keep naming Montrose.
+ */
 export const NOT_INCLUDED_NOTE =
   "Flights aren't included. Everyone books their own, into Montrose.";
 
@@ -742,7 +1141,10 @@ export const TRAVEL_INSURANCE = {
   url: "https://www.withfaye.com/quote/offer?utm_campaign=carter.busby&utm_source=outrider.travel&utm_medium=bd-traveladvisors&utm_term=glinda",
   eyebrow: "Optional add-on",
   heading: "Cover the trip, if you want to",
-  body: "Travel insurance isn't in any package. A ski trip has more that can go sideways than most, so we point people at Faye: quotes take about a minute, and they cover the usual suspects, canceled flights, delayed bags, and getting hurt on the mountain. What a plan actually covers is on their page. Read it before you buy.",
+  // One sentence for every line since 3 November 2026, when a Punta Cana booker
+  // started reading it: it used to say "getting hurt on the mountain". It names
+  // what plans are for and leaves what this one covers to Faye's page.
+  body: "Travel insurance isn't in any package. A trip away has more that can go sideways than a week at home, so we point people at Faye: quotes take about a minute, and plans are written for the usual suspects, canceled flights, delayed bags, getting hurt while you're away. What a plan actually covers is on their page. Read it before you buy.",
   cta: "Get a quote from Faye",
   /** One line, plain, wherever the link appears. Do not soften or drop it. */
   disclosure: "Faye is a partner of ours. We earn a commission if you buy through this link, and it costs you nothing extra.",

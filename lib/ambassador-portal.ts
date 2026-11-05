@@ -3,17 +3,21 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadAmbassadors, type Ambassador } from "@/lib/ambassadors";
-import { programFor } from "@/lib/ambassador-program";
+import { PROGRAMS, TELLURIDE_2026, programFor, type AmbassadorProgram } from "@/lib/ambassador-program";
 import {
   TOOLKIT_BUCKET,
+  agreedAtFor,
   buildPortalView,
   decideLink,
   isToolkitPathAllowed,
+  scopeToProgram,
   statusHasAccess,
   toolkitFolders,
   type AmbassadorAccessRow,
-  type AmbassadorForView,
+  type AmbassadorAcrossPrograms,
   type PortalAccess,
+  type PortalAmbassador,
+  type PortalSnapshot,
   type PortalView,
 } from "@/lib/ambassador-rules";
 
@@ -32,6 +36,33 @@ import {
 const ACCESS_COLUMNS = "code, name, school, email, user_id, status, program, agreed_at";
 
 type AccessRow = AmbassadorAccessRow & { name: string; school: string | null; agreed_at: string | null };
+
+/**
+ * Which programs beyond Telluride this account has agreed to, from
+ * legal_acceptances (the same slug, each program's own version; no migration).
+ * A failed read comes back as "none": they see the agreement again, and agreeing
+ * a second time changes nothing (the unique index), which is a far smaller wrong
+ * than locking anyone out of Telluride.
+ */
+async function loadOtherAgreements(admin: ReturnType<typeof createAdminClient>, userId: string): Promise<Record<string, string>> {
+  const others = Object.values(PROGRAMS).filter((p) => p.id !== TELLURIDE_2026.id);
+  const { data, error } = await admin
+    .from("legal_acceptances")
+    .select("document_version, accepted_at")
+    .eq("user_id", userId)
+    .eq("document_slug", TELLURIDE_2026.agreement.slug)
+    .in("document_version", others.map((p) => p.agreement.version));
+  if (error) {
+    console.error(`loadOtherAgreements: ${error.code} ${error.message}`);
+    return {};
+  }
+  const accepted: Record<string, string> = {};
+  for (const program of others) {
+    const row = (data ?? []).find((r) => r.document_version === program.agreement.version);
+    if (row?.accepted_at) accepted[program.id] = row.accepted_at;
+  }
+  return accepted;
+}
 
 /**
  * Who is signed in, and which ambassador they are. Memoized per request, so
@@ -98,6 +129,7 @@ export const getPortalAccess = cache(async (): Promise<PortalAccess> => {
       status: row.status,
       program: row.program,
       agreedAt: row.agreed_at,
+      agreements: await loadOtherAgreements(admin, user.id),
     },
   };
 });
@@ -131,14 +163,13 @@ export async function isAmbassadorAccount(user: {
   }
 }
 
-/** An ambassador as buildPortalView reads them. Traveler names only, never an email in their place. */
-function forView(a: Ambassador): AmbassadorForView {
+/** An ambassador across every program. Traveler names only, never an email in their place. */
+function forView(a: Ambassador): AmbassadorAcrossPrograms {
   return {
     code: a.code,
     name: a.name,
     school: a.school,
     status: a.status,
-    program: a.program,
     leaderboardHidden: a.leaderboardHidden,
     holdStatus: a.holdStatus,
     rewardTripStart: a.rewardTrip?.start_date ?? null,
@@ -149,26 +180,44 @@ function forView(a: Ambassador): AmbassadorForView {
       // name, for the admin table. The portal shows "A friend" instead.
       traveler: b.email !== null && b.traveler === b.email ? "" : b.traveler,
       tripStart: b.tripStart,
+      programId: b.programId,
       counts: b.counts,
       depositOnly: b.depositOnly,
       note: b.note,
     })),
-    paidInFull: a.paidInFull,
-    depositOnly: a.depositOnly,
   };
 }
 
 /**
- * What the dashboard shows `code`: their counts and friends, the leaderboard
- * and their rewards. Null when the data cannot be read. The caller passes the
- * code from getPortalAccess, never one from the request.
+ * What one program shows `code`: their counts and friends, its leaderboard and
+ * their rewards. Null when the data cannot be read. The caller passes the code
+ * from getPortalAccess, never one from the request.
  */
-export async function loadPortalView(code: string): Promise<PortalView | null> {
+export async function loadPortalView(code: string, program: AmbassadorProgram): Promise<PortalView | null> {
   const all = await loadAmbassadors(createAdminClient());
   if (!all) return null;
-  const self = all.find((a) => a.code === code);
-  if (!self) return null;
-  return buildPortalView(code, all.map(forView), programFor(self.program));
+  return buildPortalView(code, all.map((a) => scopeToProgram(forView(a), program)), program);
+}
+
+/**
+ * A view for each program this ambassador has agreed to, and nothing about one
+ * they haven't: agreeing comes first, program by program. Null when the data
+ * cannot be read, or there is nothing they have agreed to yet. Takes the
+ * ambassador from getPortalAccess, never anything from the request.
+ */
+export async function loadPortalSnapshot(ambassador: PortalAmbassador): Promise<PortalSnapshot | null> {
+  const agreed = Object.values(PROGRAMS).filter((p) => agreedAtFor(ambassador, p));
+  if (agreed.length === 0) return null;
+  const all = await loadAmbassadors(createAdminClient());
+  if (!all) return null;
+  const rows = all.map(forView);
+  const programs: Record<string, PortalView> = {};
+  for (const program of agreed) {
+    const view = buildPortalView(ambassador.code, rows.map((r) => scopeToProgram(r, program)), program);
+    if (view) programs[program.id] = view;
+  }
+  const first = programs[agreed[0].id];
+  return first ? { ...first, programs } : null;
 }
 
 export type Announcement = { body: string; createdAt: string };

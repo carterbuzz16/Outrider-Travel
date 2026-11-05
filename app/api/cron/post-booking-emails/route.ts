@@ -88,6 +88,11 @@ export async function GET(request: Request) {
   // ones that can go. Filtering them out is permanent in effect: a trip's
   // start date only gets further behind, and nothing is written, so a send
   // stays claimable exactly once as before.
+  //
+  // details_submitted is the same flag on every line, because checkout sets it
+  // on a trip with no rentals (bookings/[id]/details/actions.ts). So a spring
+  // breaker is never selected for want of a shoe size. sendChaseEmailOnce asks
+  // the line again for what the flag cannot see (detailsTaskDone).
   const { data: candidates, error: chaseError } = await admin
     .from("bookings")
     .select("id, trips!inner(start_date)")

@@ -4,7 +4,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPortalAccess, loadPortalView } from "@/lib/ambassador-portal";
-import { programFor } from "@/lib/ambassador-program";
+import { TELLURIDE_2026, programFor } from "@/lib/ambassador-program";
+import { agreedAtFor, agreedToAny } from "@/lib/ambassador-rules";
 import { isTestTrip } from "@/lib/booking-window";
 import { checkRateLimit, FAIL_CLOSED } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/client-ip";
@@ -35,12 +36,19 @@ async function ambassadorOrBack() {
   return access;
 }
 
+/**
+ * Accepts one program's agreement. The form says which program (a form with no
+ * program, from a page open since before spring break, is Telluride's), and each
+ * is its own step, so agreeing to one never changes the other.
+ */
 export async function acceptAgreement(formData: FormData) {
   const { userId, ambassador } = await ambassadorOrBack();
-  if (ambassador.agreedAt) back();
-  if (formData.get("agree") !== "yes") back({ error: "agree" });
+  const program = programFor(String(formData.get("program") ?? ""));
+  const home = { program: program.id };
+  if (agreedAtFor(ambassador, program)) back(home);
+  if (formData.get("agree") !== "yes") back({ error: "agree", ...home });
 
-  const { agreement } = programFor(ambassador.program);
+  const { agreement } = program;
   const admin = createAdminClient();
   const ip = await clientIp();
   // Append-only evidence, like a booking's acceptance (lib/legal-acceptance.ts):
@@ -56,18 +64,22 @@ export async function acceptAgreement(formData: FormData) {
   });
   if (error && error.code !== "23505") {
     console.error(`acceptAgreement ${ambassador.code}: ${error.code} ${error.message}`);
-    back({ error: "save" });
+    back({ error: "save", ...home });
   }
 
   const now = new Date().toISOString();
-  const { error: agreedError } = await admin
-    .from("ambassadors")
-    .update({ agreed_at: now, updated_at: now })
-    .eq("code", ambassador.code)
-    .is("agreed_at", null);
-  if (agreedError) {
-    console.error(`acceptAgreement ${ambassador.code}: ${agreedError.code} ${agreedError.message}`);
-    back({ error: "save" });
+  // agreed_at is Telluride's. Any other program's acceptance is the row above
+  // and nothing else (lib/ambassador-portal.ts reads it back).
+  if (program.id === TELLURIDE_2026.id) {
+    const { error: agreedError } = await admin
+      .from("ambassadors")
+      .update({ agreed_at: now, updated_at: now })
+      .eq("code", ambassador.code)
+      .is("agreed_at", null);
+    if (agreedError) {
+      console.error(`acceptAgreement ${ambassador.code}: ${agreedError.code} ${agreedError.message}`);
+      back({ error: "save", ...home });
+    }
   }
   // Agreeing is what makes a selected ambassador active. Any later status
   // (earned, released) is the team's, and stays.
@@ -76,7 +88,7 @@ export async function acceptAgreement(formData: FormData) {
     .update({ status: "active", updated_at: now })
     .eq("code", ambassador.code)
     .in("status", ["onboarded", "accepted"]);
-  back();
+  back(home);
 }
 
 export type ToggleResult = { ok: true; hidden: boolean } | { ok: false; message: string };
@@ -89,7 +101,7 @@ export type ToggleResult = { ok: true; hidden: boolean } | { ok: false; message:
  */
 export async function setLeaderboardVisibility(hidden: boolean): Promise<ToggleResult> {
   const access = await getPortalAccess();
-  if (access.kind !== "ambassador" || !access.ambassador.agreedAt) {
+  if (access.kind !== "ambassador" || !agreedToAny(access.ambassador)) {
     return { ok: false, message: "Sign in again to change this." };
   }
   if (!(await checkRateLimit(`amb-write:${access.userId}`, 20, 10 * 60, FAIL_CLOSED))) {
@@ -108,21 +120,26 @@ export async function setLeaderboardVisibility(hidden: boolean): Promise<ToggleR
 
 /**
  * The free trip, once earned: the ambassador picks December or January. Only
- * a departure their program names, only once, and only when the same count
- * the dashboard shows says they have reached the goal. The team hears about
- * it by email (ADMIN_NOTIFY_TO), and the admin page shows the pick.
+ * a departure Telluride names, only once, and only when the same count the
+ * dashboard shows says they have reached the goal. The team hears about it by
+ * email (ADMIN_NOTIFY_TO), and the admin page shows the pick.
+ *
+ * Telluride only (3 November 2026): spring break's week isn't decided, its
+ * dashboard offers no pick, and a spring break count must never open this one.
  */
 export async function claimFreeTrip(formData: FormData) {
   const { ambassador } = await ambassadorOrBack();
   if (!ambassador.agreedAt) back();
-  const program = programFor(ambassador.program);
+  const program = TELLURIDE_2026;
+  // Back to Telluride's own view, which isn't the default once it has closed.
+  const home = { program: program.id };
 
-  const view = await loadPortalView(ambassador.code);
-  if (!view?.rewards.goal) back({ error: "not_yet" });
-  if (view.rewards.picked) back();
+  const view = await loadPortalView(ambassador.code, program);
+  if (!view?.rewards.goal) back({ error: "not_yet", ...home });
+  if (view.rewards.picked) back(home);
 
   const tripId = String(formData.get("trip_id") ?? "");
-  if (!/^[0-9a-f-]{36}$/i.test(tripId)) back({ error: "trip" });
+  if (!/^[0-9a-f-]{36}$/i.test(tripId)) back({ error: "trip", ...home });
   const admin = createAdminClient();
   const { data: trip } = await admin
     .from("trips")
@@ -130,7 +147,7 @@ export async function claimFreeTrip(formData: FormData) {
     .eq("id", tripId)
     .maybeSingle();
   if (!trip || trip.status !== "published" || isTestTrip(trip.name) || !program.departures[trip.start_date]) {
-    back({ error: "trip" });
+    back({ error: "trip", ...home });
   }
 
   const now = new Date().toISOString();
@@ -143,7 +160,7 @@ export async function claimFreeTrip(formData: FormData) {
     .maybeSingle();
   if (error) {
     console.error(`claimFreeTrip ${ambassador.code}: ${error.code} ${error.message}`);
-    back({ error: "save" });
+    back({ error: "save", ...home });
   }
 
   const to = process.env.ADMIN_NOTIFY_TO?.trim();
@@ -164,5 +181,5 @@ export async function claimFreeTrip(formData: FormData) {
       console.error(`claimFreeTrip ${ambassador.code}: alert not sent: ${err instanceof Error ? err.message : err}`);
     }
   }
-  back({ done: "picked" });
+  back({ done: "picked", ...home });
 }

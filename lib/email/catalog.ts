@@ -34,6 +34,9 @@ import { createPortalUrl } from "@/lib/portal-token";
 import { getAppUrl } from "@/lib/site-url";
 import { endOfMountainDay, offerExpiry } from "@/lib/code-offer";
 import { todayInMountain } from "@/lib/mountain-time";
+import { balanceDueDates, splitBalance } from "@/lib/installments";
+import { SPRING_BREAK_LINE } from "@/lib/trip-lines";
+import { SPRING_BREAK_STARTS } from "@/lib/signup-deadline";
 
 /*
  * Every email the site sends, for the back office's preview page
@@ -110,6 +113,49 @@ const SAMPLE_CHASE_FLAGS: ChaseFlags = {
   details_submitted: SAMPLE_BOOKING.details_submitted,
 };
 
+/*
+ * The same booking on spring break (3 November 2026), for the versions of the
+ * post-booking emails that booker gets. The March 8 week, with its payment dates
+ * read from lib/installments.ts, so a preview always shows the real schedule.
+ * The price is the sample's own: it is a number in a preview, not the trip's
+ * price, which lives on the tier. Details are done (checkout took them), so the
+ * chase lists flights and the roommate.
+ */
+const SAMPLE_SPRING_TRIP = {
+  name: "Punta Cana",
+  destination: "Punta Cana, Dominican Republic",
+  start_date: SPRING_BREAK_STARTS[0],
+  end_date: "2027-03-12",
+  logistics: null,
+};
+const SAMPLE_SPRING_TOTAL = 1200;
+const SAMPLE_SPRING_DATES = balanceDueDates(SAMPLE_SPRING_TRIP.start_date);
+const SAMPLE_SPRING_AMOUNTS = splitBalance(SAMPLE_SPRING_TOTAL - 100, SAMPLE_SPRING_DATES.length);
+
+const SAMPLE_SPRING_BOOKING: BookingForEmail = {
+  ...SAMPLE_BOOKING,
+  total_amount: SAMPLE_SPRING_TOTAL,
+  flights_booked: false,
+  details_submitted: true,
+  trips: SAMPLE_SPRING_TRIP,
+  tiers: { name: "TWO TO A ROOM" },
+  payments: [
+    { status: "succeeded", amount: 100, scheduled_date: null },
+    ...SAMPLE_SPRING_DATES.map((date, i) => ({
+      status: "scheduled",
+      amount: SAMPLE_SPRING_AMOUNTS[i],
+      scheduled_date: date,
+    })),
+  ],
+  traveler_details: { submitted_at: "2026-11-03T12:00:00Z" },
+};
+
+const SAMPLE_SPRING_CHASE_FLAGS: ChaseFlags = {
+  flights_booked: false,
+  rooming_submitted: false,
+  details_submitted: true,
+};
+
 const SAMPLE_PENTHOUSE_TIER = {
   id: SAMPLE_PENTHOUSE_TIER_ID,
   name: "PENTHOUSE 702",
@@ -129,8 +175,8 @@ const GAP_LABELS: Record<string, string> = {
   postal_address: "Postal address (lib/site-content.ts)",
 };
 
-function designedVariables(placeholders: boolean) {
-  return buildTemplateVariables(SAMPLE_BOOKING, {
+function designedVariables(placeholders: boolean, booking: BookingForEmail = SAMPLE_BOOKING) {
+  return buildTemplateVariables(booking, {
     firstName: SAMPLE_FIRST_NAME,
     // For the gap check, whether this environment could sign a real link; the
     // token itself is thrown away.
@@ -145,9 +191,12 @@ function designedVariables(placeholders: boolean) {
  * off. Settings are read from this environment, which may differ from
  * production's.
  */
-function productionGaps(render: (variables: ReturnType<typeof designedVariables>) => unknown): string[] {
+function productionGaps(
+  render: (variables: ReturnType<typeof designedVariables>) => unknown,
+  booking: BookingForEmail = SAMPLE_BOOKING,
+): string[] {
   try {
-    render(designedVariables(false));
+    render(designedVariables(false, booking));
     return [];
   } catch (err) {
     if (!(err instanceof TemplateRenderError)) throw err;
@@ -207,6 +256,14 @@ export type EmailEntry = {
 export function emailCatalog(): EmailEntry[] {
   const confirmationGaps = productionGaps((v) => renderConfirmationEmail(v, false));
   const chaseGaps = productionGaps((v) => renderChaseEmail(v, SAMPLE_CHASE_FLAGS, SAMPLE_FIRST_NAME));
+  const springConfirmationGaps = productionGaps(
+    (v) => renderConfirmationEmail(v, false, SPRING_BREAK_LINE),
+    SAMPLE_SPRING_BOOKING,
+  );
+  const springChaseGaps = productionGaps(
+    (v) => renderChaseEmail(v, SAMPLE_SPRING_CHASE_FLAGS, SAMPLE_FIRST_NAME, SPRING_BREAK_LINE),
+    SAMPLE_SPRING_BOOKING,
+  );
   const adminNotify = process.env.ADMIN_NOTIFY_TO?.trim() ? "set" : "not set";
   const waitlistNotify = process.env.WAITLIST_NOTIFY_TO ? "set" : "not set";
 
@@ -281,6 +338,75 @@ export function emailCatalog(): EmailEntry[] {
           trips: { name: SAMPLE_TRIP.name, start_date: SAMPLE_TRIP.start_date },
           tiers: SAMPLE_BOOKING.tiers,
           payments: SAMPLE_BOOKING.payments,
+        }),
+    },
+
+    /* -- after booking, spring break ---------------------------------------- */
+    {
+      id: "confirmation-spring",
+      section: "After booking, spring break",
+      name: "Booking confirmation, spring break (designed)",
+      trigger:
+        "When a spring break booking's first payment clears, in place of the Telluride confirmation. Picked by the trip's destination. Once per booking, with the same three-day retry.",
+      recipient: TRAVELER,
+      sandbox: "Book the spring break test trip (scripts/spring-break-test-trips.sql) and pay with 4242 4242 4242 4242 (any future date, any CVC).",
+      replyToBookings: true,
+      notes: [
+        "Sample: the March 8 week, Two to a Room, with the payment dates from lib/installments.ts. The price is a sample figure.",
+        "Two things to do, not three: checkout takes the traveler's details before the card, and with no rentals that is the whole task.",
+        "Asks for no trip capacity and no rooming date, which spring break doesn't have yet.",
+      ],
+      gaps: {
+        missing: springConfirmationGaps,
+        consequence: "Until these are filled in, production sends the plain fallback (below) instead of this one.",
+      },
+      render: () => renderConfirmationEmail(designedVariables(true, SAMPLE_SPRING_BOOKING), false, SPRING_BREAK_LINE),
+    },
+    {
+      id: "confirmation-plain-spring",
+      section: "After booking, spring break",
+      name: "Booking confirmation, spring break (plain fallback)",
+      trigger: "Same moment as the designed one, sent in its place if it can't be filled in completely.",
+      recipient: TRAVELER,
+      sandbox: "The sandbox sends the designed one instead, so use Send test.",
+      replyToBookings: true,
+      render: () => renderPlainConfirmationFor(SAMPLE_SPRING_BOOKING, SAMPLE_PORTAL_URL),
+    },
+    {
+      id: "chase-spring",
+      section: "After booking, spring break",
+      name: "72-hour reminder, spring break (flights, roommate)",
+      trigger:
+        "72 hours after the confirmation, if a spring break traveler still hasn't booked flights or sent a roommate request. Once per booking, never once the trip has started. Never asks for rental sizes.",
+      recipient: TRAVELER,
+      sandbox: CRON_ONLY_16,
+      replyToBookings: true,
+      notes: ["Sample: flights and the roommate both open, details done at checkout."],
+      gaps: {
+        missing: springChaseGaps,
+        consequence: "This one has no fallback: until these are filled in, production skips it and tries again the next day.",
+      },
+      render: () =>
+        renderChaseEmail(
+          designedVariables(true, SAMPLE_SPRING_BOOKING),
+          SAMPLE_SPRING_CHASE_FLAGS,
+          SAMPLE_FIRST_NAME,
+          SPRING_BREAK_LINE,
+        ),
+    },
+    {
+      id: "portal-link-spring",
+      section: "After booking, spring break",
+      name: "Fresh trip page link, spring break",
+      trigger: "As the fresh trip page link below, on a spring break booking. Leaves out traveler details, done at checkout.",
+      recipient: "The booking's own email address",
+      sandbox: "Use Send test.",
+      render: () =>
+        renderPortalLinkEmail({
+          name: SAMPLE_NAME,
+          tripName: SAMPLE_SPRING_TRIP.name,
+          portalUrl: SAMPLE_PORTAL_URL,
+          rentals: false,
         }),
     },
 
@@ -515,7 +641,7 @@ export function emailCatalog(): EmailEntry[] {
       recipient: "The person who joined",
       sandbox: "Join the list on /spring-break with an address you can read that hasn't joined before.",
       notes: [
-        "Branded Outrider Spring Break Club, with the palm photograph. No destination, dates or price, because none are announced.",
+        "Branded Outrider Beach Club, with the resort's beach photograph. Says where and when; no price and no payment dates.",
         "The real one carries a one-click unsubscribe header. The test leaves it off, and its unsubscribe link goes nowhere.",
       ],
       render: () => renderSpringBreakWelcome("sample-preview-token"),

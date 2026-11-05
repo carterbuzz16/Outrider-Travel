@@ -43,9 +43,10 @@ export default function AmbassadorLayout({ children }: { children: React.ReactNo
       <header className="pt-[env(safe-area-inset-top)]">
         <nav className="shell flex min-h-14 items-center justify-between gap-4 md:min-h-20" aria-label="Ambassador">
           <Link href="/" className="no-underline" aria-label="Outrider, home">
-            <Logo variant="inline" className="text-[--text]" />
+            {/* Narrower on a phone: at 320px the default width pushed Log out off the edge. */}
+            <Logo variant="inline" className="w-[112px] text-[--text] sm:w-[148px]" />
           </Link>
-          <div className="flex items-center gap-x-5">
+          <div className="flex items-center gap-x-3 sm:gap-x-5">
             {/* Their own trip and payments live on the bookings page. */}
             <Link
               href="/bookings"

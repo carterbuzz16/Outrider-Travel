@@ -27,6 +27,11 @@
      sage (Pantone 4179 C) is deliberately not used. */
   --color-club: #89b2c4;        /* Pantone 2205 C        */
 
+  /* Spring break's panel color, from Carter's own Punta Cana graphic (3 November
+     2026). It does for spring break what club blue does for ski: one panel, and
+     short copy on it. Not in the brand book, so it stays out of everything else. */
+  --color-spring: #cb7a3f;
+
   /* Derived — mixed from the colors above, never sampled from anywhere else.
      Contrast figures are WCAG 2 ratios, measured, not estimated. */
   --color-paper: #f2efea;       /* warm gray lifted toward white — page ground */
@@ -266,6 +271,33 @@
 }
 
 /*
+ * The spring break panel, built as .scheme-club is and with the same rule: a
+ * single panel with short copy, never alternated. Deep espresso on it measures
+ * 4.7:1, so its text stays at full strength (no reduced-opacity secondary, which
+ * would fall under 4.5:1).
+ */
+.scheme-spring {
+  --surface: var(--color-spring);
+  --surface-raised: #d38a55;
+  --surface-inset: #bd6f37;
+  --text: var(--color-espresso-deep);
+  --text-secondary: var(--color-espresso-deep);
+  --text-muted: var(--color-espresso-deep);
+  --rule: rgb(var(--rgb-espresso-deep) / 0.24);
+  --rule-strong: rgb(var(--rgb-espresso-deep) / 0.58);
+  --rule-faint: rgb(var(--rgb-espresso-deep) / 0.12);
+  --control-rule: rgb(var(--rgb-espresso-deep) / 0.58);
+  --control-rule-soft: rgb(var(--rgb-espresso-deep) / 0.24);
+  --accent: var(--color-espresso-deep);
+  --accent-solid: var(--color-espresso-deep);
+  --accent-solid-hover: var(--color-black);
+  --accent-contrast: var(--color-paper);
+  --flag: var(--color-espresso-deep);
+  --flag-ink: var(--color-espresso-deep);
+  --focus-ring: var(--color-espresso-deep);
+}
+
+/*
  * Paper by day, espresso by night: the one scheme that follows the reader's
  * light or dark setting, for the ambassador portal (29 October 2026), which
  * is opened on phones at all hours from a text. Light is .scheme-light
@@ -362,7 +394,7 @@
    a visible edge, so they draw it from --control-rule, which this leaves
    alone. The booking flow and admin are outside (site) and keep their rules. */
 .site-quiet,
-.site-quiet :is(.scheme-light, .scheme-stone, .scheme-espresso, .scheme-club, .scheme-auto) {
+.site-quiet :is(.scheme-light, .scheme-stone, .scheme-espresso, .scheme-club, .scheme-spring, .scheme-auto) {
   --rule: transparent;
   --rule-strong: transparent;
   --rule-faint: transparent;
@@ -755,8 +787,16 @@
     animation: marquee 80s linear infinite;
   }
 
-  .marquee:hover .marquee-track,
-  .marquee:focus-within .marquee-track {
+  /* Only where hover is real. A phone keeps :hover after a tap or a swipe, which
+     would leave the strip stopped until the next tap somewhere else. */
+  @media (hover: hover) {
+    .marquee:hover .marquee-track {
+      animation-play-state: paused;
+    }
+  }
+
+  .marquee:focus-within .marquee-track,
+  .marquee[data-away] .marquee-track {
     animation-play-state: paused;
   }
 
@@ -768,7 +808,9 @@
   @media (prefers-reduced-motion: reduce) {
     .drift { animation: none; }
     .marquee-track { animation: none; }
-    .marquee { overflow-x: auto; }
+    /* !important because each strip also sets the overflow-hidden utility, and
+       utilities come after this layer. Without it, a stopped strip can't be scrolled. */
+    .marquee { overflow-x: auto !important; }
   }
 
   /* The confirmation seal. Stroke lengths are the circumference of r=22 and

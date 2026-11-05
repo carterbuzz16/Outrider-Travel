@@ -4,14 +4,23 @@ import { Reveal, SectionDivider } from "@/components/ui";
 import { pageMetadata } from "@/lib/metadata";
 import { CONTACT } from "@/lib/site-content";
 import { getTripLogistics } from "@/lib/trip-logistics";
+import { SPRING_BREAK_LINE, tripsOnLine } from "@/lib/trip-lines";
 import { formatDateRange, getPublishedTrips, type PublicTrip } from "@/lib/trips";
 import DraftCopy from "../DraftCopy";
 
 /*
- * /flights: how to get to Telluride for the trip.
+ * /flights: how to get to the trip, Telluride or Punta Cana.
  *
  * The most-visited link in the booking confirmation email, which hard-codes
- * https://outrider.travel/flights. Do not move this route.
+ * https://outrider.travel/flights. Do not move this route. Spring break's mail
+ * and trip page link to /flights#punta-cana (lib/trip-lines.ts): one page with a
+ * part per trip, because a link that has been sent can only keep working if the
+ * address stays. Telluride's part is the page as it was, under its own heading.
+ *
+ * Punta Cana's part says only what Carter has given: the airport, the hour and
+ * a half, the included transfer, flights not included, a valid passport. There
+ * are no arrival times or draft placeholders for it, so it has none of Telluride's
+ * "land by" wording, and the days come off the trip row.
  *
  * What is stated as fact here is either already said elsewhere on the site
  * (Montrose, the distance, transfers from Montrose being included) or general
@@ -26,11 +35,11 @@ import DraftCopy from "../DraftCopy";
  */
 
 export const metadata: Metadata = pageMetadata({
-  title: "Flights to Telluride",
+  title: "Flights to Telluride and Punta Cana",
   path: "/flights",
   description:
-    "How to fly to an Outrider Telluride trip: which airport, when to land, when to fly home, and what to do if the only connection is a bad one.",
-  shareTitle: "Getting to Telluride | Outrider",
+    "How to fly to an Outrider trip, Telluride or Punta Cana: which airport, when to fly, and what to do if the only connection is a bad one.",
+  shareTitle: "Getting there | Outrider",
 });
 
 // Same cadence as /trips, so a new or edited departure appears without a deploy.
@@ -54,21 +63,36 @@ function longDay(date: string): string {
 }
 
 export default async function FlightsPage() {
-  const trips = (await getPublishedTrips()).filter(isTelluride);
+  const published = await getPublishedTrips();
+  const trips = published.filter(isTelluride);
+  const springTrips = tripsOnLine(published, SPRING_BREAK_LINE);
 
   return (
     <main className="scheme-light scheme-paint">
       <header className="shell pb-14 pt-32 md:pb-20 md:pt-40">
-        <h1 className="t-display mt-6 max-w-[14ch] text-[--text]">Getting to Telluride</h1>
+        <h1 className="t-display mt-6 max-w-[14ch] text-[--text]">Getting there</h1>
         <p className="t-lede mt-8 max-w-measure">
           Flights are the one part of the trip you book yourself. Everyone is
           coming from somewhere different, and nobody should pay for a routing
           that suits someone else. This page is what you need to book the right
           one.
         </p>
+        <p className="mt-6 font-body text-body text-[--text-secondary]">
+          <a href="#telluride" className={LINK}>
+            Going to Telluride
+          </a>
+          <span className="mx-4" aria-hidden="true" />
+          <a href="#punta-cana" className={LINK}>
+            Going to Punta Cana
+          </a>
+        </p>
       </header>
 
       <SectionDivider variant="rule" className="shell" />
+
+      <div id="telluride" className="shell scroll-mt-24 pt-14 md:pt-16">
+        <h2 className="t-title text-[--text]">Telluride</h2>
+      </div>
 
       {/* ---- the short version --------------------------------------------- */}
       <Block heading="The short version">
@@ -230,6 +254,69 @@ export default async function FlightsPage() {
           </Link>
           .
         </p>
+      </Block>
+
+      <SectionDivider variant="rule" className="shell" />
+
+      {/* ---- Punta Cana ------------------------------------------------------ */}
+      <div id="punta-cana" className="shell scroll-mt-24 pt-14 md:pt-16">
+        <h2 className="t-title text-[--text]">Punta Cana</h2>
+      </div>
+
+      <Block heading="The short version">
+        <p className="font-body text-lede leading-[1.8] text-[--text]">
+          Fly into Punta Cana (PUJ). Zemi Miches is in Miches, an hour and a half
+          from the airport, and your transfers both ways are included. Flights
+          aren&rsquo;t, so those are yours to book.
+        </p>
+        <p className="font-body text-body leading-[1.85] text-[--text]">
+          You need a valid passport for this trip. Check yours before you book.
+        </p>
+        <p className="font-body text-body leading-[1.85] text-[--text-secondary]">
+          Once your flights are booked, tell us on your trip page. Anything else
+          is in the{" "}
+          <Link href="/faq" className={LINK}>
+            FAQ
+          </Link>
+          , or see{" "}
+          <Link href={SPRING_BREAK_LINE.path} className={LINK}>
+            the spring break trip
+          </Link>
+          .
+        </p>
+      </Block>
+
+      <SectionDivider variant="rule" className="shell" />
+
+      <Block heading="When to fly">
+        <p className="font-body text-body leading-[1.85] text-[--text]">
+          Fly in on the first day of your trip, and home on the last.
+        </p>
+
+        {springTrips.length > 0 ? (
+          <div className="grid gap-3">
+            {springTrips.map((trip) => (
+              <div key={trip.id} className="flex flex-col gap-5 bg-[--surface-raised] p-6 md:p-8">
+                <h3 className="t-subheading text-[--text]">{formatDateRange(trip.startDate, trip.endDate)}</h3>
+                <dl className="grid gap-5 sm:grid-cols-2">
+                  <div>
+                    <dt className="stamp-type text-[--text-muted]">Fly in</dt>
+                    <dd className="mt-2 font-body text-body text-[--text]">{longDay(trip.startDate)}</dd>
+                  </div>
+                  <div>
+                    <dt className="stamp-type text-[--text-muted]">Fly home</dt>
+                    <dd className="mt-2 font-body text-body text-[--text]">{longDay(trip.endDate)}</dd>
+                  </div>
+                </dl>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="font-body text-body leading-[1.85] text-[--text-secondary]">
+            The departures aren&rsquo;t on the site at the moment. The days for
+            each set of dates will be here when they are.
+          </p>
+        )}
       </Block>
     </main>
   );

@@ -11,11 +11,16 @@ import Image from "next/image";
  * Alt text follows the Destinations page, which was written by looking at the
  * photographs: the filenames in public/images/telluride do not match what is in
  * them.
+ *
+ * Zemi Miches comes second, so the strip shows both places before it has moved
+ * far, and the two places alternate from there.
  */
 
 const PHOTOS = [
   { src: "/images/telluride/groomers.jpg", alt: "Telluride's brick Main Street and clock tower, a snow-covered peak rising straight up behind.", caption: "Main Street" },
+  { src: "/images/spring/zemi-aerial.jpg", alt: "Zemi Miches from above: the pools and palm trees running down to a sandy beach, with a calm bay and green mountains behind.", caption: "Zemi Miches" },
   { src: "/images/telluride/gondola-night.jpg", alt: "A gondola cabin above the valley with the San Juans behind.", caption: "The free gondola" },
+  { src: "/images/spring/zemi-sailing.jpg", alt: "A small catamaran with three people aboard on calm water, big clouds building over the bay.", caption: "Catamarans on the bay" },
   { src: "/images/telluride/apres.jpg", alt: "A skier in a pink jacket turning through deep powder among snow-loaded pines.", caption: "Knee-deep by lunch" },
   { src: "/images/people/friend-dinner-laughing.jpg", alt: "A young man in a mustard sweater laughing across a candlelit dinner table.", caption: "Main Street, 8 pm" },
   { src: "/images/telluride/town-christmas.jpg", alt: "Main Street at dusk through strings of big colored holiday bulbs, the mountains behind.", caption: "The town after dark" },
@@ -25,7 +30,7 @@ const PHOTOS = [
 
 export default function PhotoStrip() {
   return (
-    <div className="marquee overflow-hidden" role="region" aria-label="Photographs of Telluride">
+    <div className="marquee overflow-hidden" role="region" aria-label="Photographs of Telluride and Zemi Miches">
       <ul className="marquee-track m-0 list-none gap-4 p-0 md:gap-6">
         {[0, 1].map((copy) =>
           PHOTOS.map((photo) => (

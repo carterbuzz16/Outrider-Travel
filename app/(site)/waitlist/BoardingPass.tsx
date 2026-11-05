@@ -8,8 +8,8 @@ import { OutriderMark } from "@/components/ui";
  *
  * Everything printed on it is real: the trip, the dates and the night count
  * all come from the published trip, and nothing is invented to fill the
- * layout (no seat, no gate, no flight number). The count runs to the start date at local
- * midnight in Mountain time, because that is the clock the trip runs on.
+ * layout (no seat, no gate, no flight number). The count runs to the start date at
+ * midnight in Mountain time.
  *
  * On a pointer that can hover, the pass tilts a few degrees toward the cursor
  * and a sheen follows it. It is the one piece of the page that answers the
@@ -57,8 +57,9 @@ export default function BoardingPass({
   dates: string;
   nights: number;
 }) {
-  // Mountain Standard Time: every departure here is in winter, when Colorado
-  // is on UTC-7. If a summer trip is ever listed this wants the real zone.
+  // Mountain Standard Time, UTC-7, for every departure. Telluride runs on it. A
+  // spring break pass reaches zero three hours after midnight in the Dominican
+  // Republic, which is close enough for a countdown on a signup page.
   const target = Date.parse(`${startDate}T00:00:00-07:00`);
   const [left, setLeft] = useState<Remaining | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);

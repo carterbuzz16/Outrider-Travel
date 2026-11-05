@@ -5,6 +5,7 @@
  * to Tailwind in tailwind.config.ts. Nothing in here hard-codes a hex.
  */
 export { default as Logo, OutriderMark, OutriderWordmark } from "./Logo";
+export { default as CampusMarquee } from "./CampusMarquee";
 export type { LogoTone } from "./Logo";
 
 export { default as Button } from "./Button";

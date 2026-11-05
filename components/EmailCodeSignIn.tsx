@@ -110,6 +110,15 @@ export default function EmailCodeSignIn({
     };
   }
 
+  // Right above the button that was just pressed. Under the links it fell below the
+  // fold in a short window, and pressing Continue looked like nothing happened
+  // (Carter, 3 November 2026).
+  const errorLine = error && (
+    <p role="alert" className="m-0 font-body text-body-s text-[--flag-ink]">
+      {error}
+    </p>
+  );
+
   return (
     <div className="flex flex-col gap-4">
       {step === "email" ? (
@@ -151,6 +160,7 @@ export default function EmailCodeSignIn({
               {EMAIL_CONSENT_LABEL}
             </CheckRow>
           )}
+          {errorLine}
           <Button type="button" variant="primary" size="lg" block onClick={send} disabled={busy} aria-busy={busy}>
             {busy ? "Sending your code" : "Email me a code"}
           </Button>
@@ -179,6 +189,7 @@ export default function EmailCodeSignIn({
               />
             )}
           </Field>
+          {errorLine}
           <Button
             type="button"
             variant="primary"
@@ -215,11 +226,6 @@ export default function EmailCodeSignIn({
             </button>
           </div>
         </>
-      )}
-      {error && (
-        <p role="alert" className="m-0 font-body text-body-s text-[--flag-ink]">
-          {error}
-        </p>
       )}
     </div>
   );

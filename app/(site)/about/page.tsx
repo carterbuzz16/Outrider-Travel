@@ -4,6 +4,7 @@ import { Button, ComparisonTable, HeroSlideshow, Plate, Reveal } from "@/compone
 import SectionNav, { type SectionLink } from "@/components/SectionNav";
 import { pageMetadata } from "@/lib/metadata";
 import { ABOUT_DIFFERENCES, FOUNDER, ORIGIN, PARTNER } from "@/lib/site-content";
+import { SKI, SPRING_BREAK_LINE } from "@/lib/trip-lines";
 
 export const metadata: Metadata = pageMetadata({
   title: "About",
@@ -19,8 +20,9 @@ export const metadata: Metadata = pageMetadata({
  * dense table), and said its main job is to show why Outrider is better than
  * the usual college trip. So, in page order:
  *
- *   masthead      the village in alpenglow, with "We go first" in the brand
- *                 book's Extrabold capitals: what the name means
+ *   masthead      the village in alpenglow and Zemi Miches crossfading, with "We
+ *                 go first" in the brand book's Extrabold capitals: what the
+ *                 name means
  *   Why us        five reasons, each a big headline, two sentences and a
  *                 photograph, alternating sides (#difference)
  *   Side by side  the big college trip companies against us, row by row, Outrider's answer
@@ -30,6 +32,9 @@ export const metadata: Metadata = pageMetadata({
  *
  * A sticky row of section links under the masthead, as on /telluride, so any
  * part of the page is one tap away. No hairlines anywhere (.site-quiet).
+ *
+ * Every claim here is the brand's, so from 3 November 2026 it has to hold on
+ * spring break as well as Telluride (see ABOUT_DIFFERENCES, ComparisonTable).
  */
 
 /** Fixed site nav (h-16, md:h-20) plus the sticky section row (h-14). */
@@ -51,12 +56,20 @@ export default function AboutPage() {
   return (
     <main className="scheme-light scheme-paint">
       {/* ---- masthead -------------------------------------------------------
-          One full-resolution photograph, the village in alpenglow, easing
-          slowly closer (HeroSlideshow). It replaced a 1600-wide video clip
-          that Carter found blurry (1 October 2026). Full-bleed under the
-          transparent nav, with
-          the words on the dark foot of the frame. Two fades and no even scrim,
-          as on /telluride. Above the fold, so nothing is wrapped in Reveal. */}
+          Full-resolution photographs of both places, easing slowly closer
+          (HeroSlideshow). They replaced a 1600-wide video clip that Carter
+          found blurry (1 October 2026). Zemi Miches joined the village on 3
+          November 2026. Full-bleed under
+          the transparent nav, with the words on the dark foot of the frame. Above
+          the fold, so nothing is wrapped in Reveal.
+
+          The washes were two fades until Zemi: its pale water and sand put the
+          headline under 3:1 and the eyebrow under 2:1 on a phone. So there is now
+          a light even wash, as on the home page, a deeper head fade, a fade from
+          the left where the words are, and a foot fade that climbs higher on a
+          phone, where they take up more of the frame. Measured on Zemi at 1280
+          and 375: the nav 4.6:1 or better, the eyebrow 4.7:1, the headline 6.2:1,
+          the lede 8:1. */}
       <header className="scheme-espresso relative isolate flex min-h-[78svh] flex-col justify-end overflow-hidden bg-[--color-espresso-deep] md:min-h-[88svh]">
         <div className="absolute inset-0 -z-10">
           <HeroSlideshow
@@ -66,16 +79,27 @@ export default function AboutPage() {
                 alt: "Mountain Village and the ski runs in alpenglow at dusk, snowy peaks behind.",
                 position: "50% 45%",
               },
+              {
+                src: "/images/spring/zemi-aerial.jpg",
+                alt: "Zemi Miches from above: the pools and palm trees running down to a sandy beach, with a calm bay and green mountains behind.",
+                position: "50% 78%",
+                mobilePosition: "66% 50%",
+              },
             ]}
           />
         </div>
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 bg-[rgb(31_26_23_/_0.12)]" />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-40 bg-gradient-to-b from-[rgb(42_35_32_/_0.6)] to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-40 bg-gradient-to-b from-[rgb(42_35_32_/_0.72)] to-transparent"
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[70%] bg-gradient-to-t from-[rgb(31_26_23_/_0.9)] via-[rgb(31_26_23_/_0.55)] to-transparent"
+          className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[88%] bg-gradient-to-t from-[rgb(31_26_23_/_0.92)] via-[rgb(31_26_23_/_0.72)] to-transparent md:h-[70%]"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 left-0 -z-10 hidden w-[62%] bg-gradient-to-r from-[rgb(31_26_23_/_0.55)] to-transparent md:block"
         />
         <div className="shell pb-12 pt-40 md:pb-20">
           <p className="t-label text-[--text]">{ORIGIN.title}</p>
@@ -144,7 +168,7 @@ export default function AboutPage() {
               Other trips, and ours
             </h2>
             <p className="t-lede mt-6 max-w-measure text-[--text-secondary]">
-              Same mountain, very different week. Here&rsquo;s how the big
+              Same week off, very different trip. Here&rsquo;s how the big
               college trip companies do it, and how we do.
             </p>
           </Reveal>
@@ -267,15 +291,18 @@ export default function AboutPage() {
       )}
 
       {/* ---- close ---------------------------------------------------------------
-          Club blue, the Ski Club tile, handing into the espresso footer. Every
-          Telluride link goes to /telluride. */}
+          Club blue, handing into the espresso footer. Both trips get a button of
+          the same weight. It used to print Telluride's dates, which stop being
+          useful once they close; each trip's page keeps its own. */}
       <section className="scheme-club scheme-paint">
         <div className="shell flex flex-col items-start gap-8 py-20 md:py-28">
-          <h2 className={`max-w-[16ch] text-display-l ${DISPLAY}`}>Two trips to Telluride this winter</h2>
-          <p className="t-lede m-0 text-[--text-secondary]">December 14 to 18, and January 4 to 8.</p>
+          <h2 className={`max-w-[16ch] text-display-l ${DISPLAY}`}>Telluride or Punta Cana</h2>
           <div className="flex flex-wrap gap-4">
-            <Button href="/telluride" variant="primary" size="lg">
-              See the trip
+            <Button href={SKI.path} variant="primary" size="lg">
+              See Telluride
+            </Button>
+            <Button href={SPRING_BREAK_LINE.path} variant="primary" size="lg">
+              See spring break
             </Button>
             <Button href="/contact" variant="secondary" size="lg">
               Ask a question

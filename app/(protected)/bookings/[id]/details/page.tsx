@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { chooseAgainPath, isStalePending, recheckStaleCheckout, staleCheckoutCode } from "@/lib/stale-checkout";
 import { formatDateRange } from "@/lib/trips";
 import { tierDisplayName } from "@/lib/tier-display";
+import { lineForDestination } from "@/lib/trip-lines";
 import CheckoutSteps from "@/components/CheckoutSteps";
 import IdentityForm from "./IdentityForm";
 
@@ -35,7 +36,7 @@ export default async function DetailsPage(props: { params: Promise<{ id: string 
   // RLS ("Users can view own bookings") scopes this to the signed-in user.
   const { data: booking } = await supabase
     .from("bookings")
-    .select("id, status, created_at, total_amount, trips(name, start_date, end_date), tiers(name)")
+    .select("id, status, created_at, total_amount, trips(name, destination, start_date, end_date), tiers(name)")
     .eq("id", params.id)
     .single();
 
@@ -63,6 +64,7 @@ export default async function DetailsPage(props: { params: Promise<{ id: string 
     .maybeSingle();
 
   const trip = booking.trips;
+  const line = lineForDestination(trip?.destination);
   const payHref = `/bookings/${booking.id}/pay`;
 
   return (
@@ -73,9 +75,8 @@ export default async function DetailsPage(props: { params: Promise<{ id: string 
         <header className="mt-8 border-b border-[--rule] pb-6 md:mt-10">
           <h1 className="t-heading text-[--text]">Who&rsquo;s going</h1>
           <p className="mt-2 max-w-measure font-body text-body leading-[1.65] text-[--text-secondary]">
-            Your legal name and date of birth go on your lift tickets and lodging records. The rest
-            is so we can reach you, and reach someone else if we ever need to. Your place is held
-            for 30 minutes while you finish.
+            {line.identityUse} The rest is so we can reach you, and reach someone else if we ever
+            need to. Your place is held for 30 minutes while you finish.
           </p>
           {trip && (
             <p className="mt-4 font-body text-body-s text-[--text-secondary]">
@@ -89,6 +90,7 @@ export default async function DetailsPage(props: { params: Promise<{ id: string 
           className="mt-8"
           bookingId={booking.id}
           defaultName={typeof user.user_metadata?.name === "string" ? user.user_metadata.name : null}
+          legalNameHint={line.legalNameHint}
           saved={Boolean(saved)}
           payHref={payHref}
           // A code that covers the whole trip: the next step is a button, not a card.

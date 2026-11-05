@@ -2,6 +2,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 import confirmationTemplate from "@/lib/email/templates/confirmation";
 import chaseTemplate from "@/lib/email/templates/chase";
+import springConfirmationTemplate, {
+  SPRING_CONFIRMATION_SUBJECT,
+  springConfirmationText,
+} from "@/lib/email/templates/confirmation-spring";
+import springChaseTemplate, { springChaseSubject, springChaseText } from "@/lib/email/templates/chase-spring";
 import { renderTemplate, TemplateRenderError, type TemplateVariables } from "@/lib/email/render-template";
 import {
   getFromAddress,
@@ -13,6 +18,8 @@ import {
 } from "@/lib/email/send";
 import { PORTAL_ANCHORS, createPortalUrl } from "@/lib/portal-token";
 import { getTripLogistics } from "@/lib/trip-logistics";
+import { SKI, lineForDestination, type TripLine } from "@/lib/trip-lines";
+import { detailsTaskDone } from "@/lib/traveler-details";
 import { confirmationNumber } from "@/lib/confirmation-number";
 import { tierDisplayName } from "@/lib/tier-display";
 import { formatAmount, toCents } from "@/lib/balance";
@@ -35,6 +42,10 @@ import { todayInMountain } from "@/lib/mountain-time";
  * not yet done all three things (flights, roommates, details). Sent only by
  * the daily cron. Travelers who have done all three are never selected, so
  * nothing is written for them and they never get it.
+ *
+ * Each has a version for each line (lib/trip-lines.ts). A spring break booking
+ * gets its own from lib/email/templates/*-spring.ts: same shell, its own facts.
+ * The plain fallback in lib/email/send.ts picks its own words the same way.
  *
  * ONCE AND ONLY ONCE. Each email is claimed before it is sent, with a
  * conditional write only one caller can win:
@@ -67,7 +78,7 @@ type Admin = SupabaseClient<Database>;
 const CONFIRMED_STATUSES = ["deposit_paid", "paid_in_full"] as const;
 
 const BOOKING_SELECT =
-  "id, user_id, trip_id, status, total_amount, group_code, flights_booked, rooming_submitted, details_submitted, confirmation_email_sent_at, chase_email_sent_at, users(email, name), trips(name, destination, start_date, end_date, logistics), tiers(name), payments(status, amount, scheduled_date)";
+  "id, user_id, trip_id, status, total_amount, group_code, flights_booked, rooming_submitted, details_submitted, confirmation_email_sent_at, chase_email_sent_at, users(email, name), trips(name, destination, start_date, end_date, logistics), tiers(name), payments(status, amount, scheduled_date), traveler_details(submitted_at)";
 
 // The same booking read without the post-booking columns, for a database the
 // migration adding them has not reached yet (see sendConfirmationEmailOnce).
@@ -98,6 +109,8 @@ export type BookingForEmail = {
   } | null;
   tiers: { name: string } | null;
   payments: PaymentLite[];
+  /** A timestamp only: whether the row exists is the question (detailsTaskDone). */
+  traveler_details?: { submitted_at: string } | null;
 };
 
 async function loadBooking(admin: Admin, bookingId: string) {
@@ -398,11 +411,17 @@ function chaseText(v: TemplateVariables, flags: Record<string, boolean>): string
 export function renderConfirmationEmail(
   variables: TemplateVariables,
   paidInFull: boolean,
+  line: TripLine = SKI,
 ): RenderedEmail & { html: string; text: string } {
-  const html = render(confirmationTemplate, variables, {
-    paid_in_full: paidInFull,
-    has_balance: !paidInFull,
-  });
+  const flags = { paid_in_full: paidInFull, has_balance: !paidInFull };
+  if (line.id === "spring-break") {
+    return {
+      subject: SPRING_CONFIRMATION_SUBJECT,
+      html: render(springConfirmationTemplate, variables, flags),
+      text: springConfirmationText(variables),
+    };
+  }
+  const html = render(confirmationTemplate, variables, flags);
   return {
     // The template's own subject line (its SUBJECT comment).
     subject: "You're in. Three things to do today.",
@@ -418,7 +437,15 @@ export function renderChaseEmail(
   variables: TemplateVariables,
   flags: ChaseFlags,
   firstName: string | null,
+  line: TripLine = SKI,
 ): RenderedEmail & { html: string; text: string } {
+  if (line.id === "spring-break") {
+    return {
+      subject: springChaseSubject(firstName),
+      html: render(springChaseTemplate, variables, flags),
+      text: springChaseText(variables, flags),
+    };
+  }
   const html = render(chaseTemplate, variables, flags);
   return {
     // The template's own subject line, without the name when there is none.
@@ -480,7 +507,11 @@ export async function sendConfirmationEmailOnce(
     let designed: ReturnType<typeof renderConfirmationEmail> | null = null;
     let missing: string[] = [];
     try {
-      designed = renderConfirmationEmail(variables, booking.status === "paid_in_full");
+      designed = renderConfirmationEmail(
+        variables,
+        booking.status === "paid_in_full",
+        lineForDestination(booking.trips.destination),
+      );
     } catch (err) {
       if (!(err instanceof TemplateRenderError)) throw err;
       missing = err.missing.length > 0 ? err.missing : [err.message];
@@ -612,10 +643,15 @@ export async function sendChaseEmailOnce(admin: Admin, bookingId: string): Promi
       return "not-due";
     }
 
+    const line = lineForDestination(booking.trips.destination);
     const flags: ChaseFlags = {
       flights_booked: booking.flights_booked,
       rooming_submitted: booking.rooming_submitted,
-      details_submitted: booking.details_submitted,
+      // On a trip with no rentals, checkout's row is the whole task.
+      details_submitted: detailsTaskDone(line, {
+        detailsSubmitted: booking.details_submitted,
+        hasDetailsRow: Boolean(booking.traveler_details),
+      }),
     };
     // Done already: no chase, ever. Nothing is written, and the cron's query
     // does not select such a booking again.
@@ -629,7 +665,7 @@ export async function sendChaseEmailOnce(admin: Admin, bookingId: string): Promi
     const { variables, firstName } = await variablesFor(admin, booking);
     let email: ReturnType<typeof renderChaseEmail>;
     try {
-      email = renderChaseEmail(variables, flags, firstName);
+      email = renderChaseEmail(variables, flags, firstName, line);
     } catch (err) {
       if (!(err instanceof TemplateRenderError)) throw err;
       console.warn(

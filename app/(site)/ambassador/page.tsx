@@ -2,23 +2,33 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Button, HeroSlideshow, Reveal, SplitHeading } from "@/components/ui";
 import { pageMetadata } from "@/lib/metadata";
-import { AMBASSADOR } from "@/lib/site-content";
-// The program's own numbers, the ones /admin/ambassadors counts with, so the
+import { AMBASSADOR, type AmbassadorOffer } from "@/lib/site-content";
+// The programs' own numbers, the ones /admin/ambassadors counts with, so the
 // page's promise and the count can never disagree.
-import { AMBASSADOR_GOAL } from "@/lib/ambassadors";
-import { LAST_SIGNUP_DEADLINE_LABEL, SIGNUP_DEADLINE_LABEL } from "@/lib/signup-deadline";
+import { openPrograms } from "@/lib/ambassador-program";
 import ApplicationForm from "./ApplicationForm";
 
-export const metadata: Metadata = pageMetadata({
-  title: "Become an Outrider Ambassador",
-  // The whole tab title as given; the template would make it "... | Outrider".
-  absoluteTitle: true,
-  path: "/ambassador",
-  description: `Travel for free. ${AMBASSADOR.perk(AMBASSADOR_GOAL)} ${AMBASSADOR.subhead} Limited spots per campus.`,
-  // The share card is ./opengraph-image.tsx: the hero photograph and the
-  // headline, because this link travels by text message.
-  ownImage: true,
-});
+// Built ahead and refreshed hourly, so the offer drops Telluride within the hour
+// of it closing with no deploy.
+export const revalidate = 3600;
+
+/** The programs still selling, as the copy states them. */
+function offers(): AmbassadorOffer[] {
+  return openPrograms().map((p) => ({ name: p.nameInSentence, goal: p.goal }));
+}
+
+export function generateMetadata(): Metadata {
+  return pageMetadata({
+    title: "Become an Outrider Ambassador",
+    // The whole tab title as given; the template would make it "... | Outrider".
+    absoluteTitle: true,
+    path: "/ambassador",
+    description: `Travel for free. ${AMBASSADOR.perk} ${AMBASSADOR.goals(offers())} ${AMBASSADOR.subhead} Limited spots per campus.`.replace(/ +/g, " "),
+    // The share card is ./opengraph-image.tsx: the hero photograph and the
+    // headline, because this link travels by text message.
+    ownImage: true,
+  });
+}
 
 /*
  * /ambassador, 19 October 2026: the application for the Campus Lead and
@@ -57,6 +67,10 @@ export const metadata: Metadata = pageMetadata({
  * taken off the same day (Carter). The bar has no button here (SiteNav). The finer terms
  * (the held spot, what happens short of the goal) are still for once someone
  * is selected: "Full details are shared once you're selected."
+ *
+ * Both programs from 3 November 2026 (lib/site-content.ts, AMBASSADOR). The form
+ * is exactly as it was: the same fields, the same action, one program of
+ * applicants whichever trips are selling.
  */
 
 const HEADING =
@@ -73,6 +87,7 @@ const GRID = "grid gap-7 md:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] md:gap-16
 const BLOCK = "scheme-stone scheme-paint p-6 sm:p-9 lg:p-12";
 
 export default function AmbassadorPage() {
+  const selling = offers();
   return (
     <>
       <section
@@ -116,8 +131,13 @@ export default function AmbassadorPage() {
           <section className="shell flex flex-col gap-7 pb-20 pt-8 md:flex-row md:items-end md:justify-between md:gap-16 md:pb-28 md:pt-12">
             <div>
               <p className="m-0 max-w-[15ch] text-balance font-display text-display-m font-extrabold uppercase leading-[1.02] tracking-display text-[--text]">
-                {AMBASSADOR.perk(AMBASSADOR_GOAL)}
+                {AMBASSADOR.perk}
               </p>
+              {selling.length > 0 && (
+                <p className="m-0 mt-4 max-w-[34ch] font-body text-lede leading-snug text-[--text]">
+                  {AMBASSADOR.goals(selling)}
+                </p>
+              )}
               <p className="m-0 mt-4 max-w-[34ch] font-body text-lede leading-snug text-[--text-secondary]">
                 {AMBASSADOR.subhead}
               </p>
@@ -153,7 +173,7 @@ export default function AmbassadorPage() {
                       and the order here is the point. The digits are drawn
                       for the eye; the list itself says first, second, third. */}
                   <ol role="list" className="m-0 flex list-none flex-col gap-8 p-0 lg:gap-10">
-                    {AMBASSADOR.steps(AMBASSADOR_GOAL, `${SIGNUP_DEADLINE_LABEL} (December) or ${LAST_SIGNUP_DEADLINE_LABEL} (January)`).map((step, i) => (
+                    {AMBASSADOR.steps(selling).map((step, i) => (
                       <li key={step.title} className="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-4 sm:grid-cols-[3rem_minmax(0,1fr)] sm:gap-5">
                         <span
                           aria-hidden="true"
@@ -186,7 +206,7 @@ export default function AmbassadorPage() {
                       "A direct line to the founders" in a half: the full
                       shell from sm, the right column again from lg. */}
                   <ul className="m-0 grid list-none gap-8 p-0 sm:grid-cols-2 sm:gap-x-10 md:grid-cols-1 lg:grid-cols-2 lg:gap-y-10">
-                    {AMBASSADOR.get(AMBASSADOR_GOAL).map((item) => (
+                    {AMBASSADOR.get.map((item) => (
                       <li key={item.label}>
                         {/* The book's HEADLINE at label size: Extrabold
                             capitals, so each benefit reads as a headline,

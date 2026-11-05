@@ -9,6 +9,8 @@ import { ACCOUNT_ERRORS, ACCOUNT_ERROR_FALLBACK, flashText } from "@/lib/flash";
 import { bookingsOpenForViewer } from "@/lib/early-access";
 import { welcomeCreditFor } from "@/lib/welcome-credit";
 import { isAmbassadorAccount } from "@/lib/ambassador-portal";
+import { getPublishedTrips } from "@/lib/trips";
+import { openUntilLine } from "@/lib/departure-picker";
 
 /**
  * The account dashboard: a thin loader in front of BookingsView.
@@ -92,6 +94,8 @@ export default async function BookingsPage(props: { searchParams: Promise<{ erro
       canBook={await bookingsOpenForViewer()}
       credit={credit}
       ambassador={ambassador}
+      // Only the empty account says what is open, so only it asks.
+      openLine={rows.length === 0 ? openUntilLine(await getPublishedTrips()) : ""}
       // A code, turned into words here; the query string never carries a sentence.
       error={flashText(ACCOUNT_ERRORS, searchParams.error, ACCOUNT_ERROR_FALLBACK)}
     />

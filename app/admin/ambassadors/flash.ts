@@ -27,6 +27,7 @@ export const AMBASSADOR_ERRORS: Readonly<Record<string, string>> = {
   has_hold: "This ambassador already has a held spot.",
   no_email: "Add the ambassador's email first: the spot is booked on their account.",
   no_trip: "Choose the ambassador's trip first.",
+  hold_telluride_only: "Held spots are Telluride only. Spring break doesn't hold spots.",
   no_base_tier: "That trip has no Four to a Room package.",
   sold_out: "Four to a Room is full on that trip.",
   bad_date: "That pay-by date didn't read as a date.",

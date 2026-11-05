@@ -18,13 +18,14 @@ import {
   type AmbassadorStatus,
 } from "@/lib/ambassadors";
 import { ANNOUNCEMENT_MAX, NO_PORTAL_STATUSES, TOOLKIT_BUCKET, TOOLKIT_SHARED, schoolSlug } from "@/lib/ambassador-rules";
-import { programFor } from "@/lib/ambassador-program";
+import { PROGRAMS, TELLURIDE_2026, programForDeparture, type AmbassadorProgram } from "@/lib/ambassador-program";
 import { isToolkitObjectPath, MAX_UPLOAD_BYTES } from "@/lib/toolkit-upload";
 import {
+  LAST_BOOKING_CLOSE_LABEL,
   LAST_SIGNUP_DEADLINE_DAY,
   LAST_SIGNUP_DEADLINE_LABEL,
   SIGNUP_DEADLINE_LABEL,
-  signupsClosed,
+  tellurideClosed,
 } from "@/lib/signup-deadline";
 import {
   AdminField,
@@ -63,14 +64,21 @@ export const dynamic = "force-dynamic";
  * (lib/ambassadors.ts has the counting rule). One row each; the name opens
  * their bookings. Below the table: settling the held spots at the deadline,
  * adding an ambassador, and the December bookings still on the old schedule.
+ *
+ * Counts are per program (3 November 2026). Settle and release are Telluride
+ * only and read Telluride's count; the other columns are there to be seen.
  */
+
+/** Every program but Telluride, which the table's own columns already are. */
+const OTHER_PROGRAMS: readonly AmbassadorProgram[] = Object.values(PROGRAMS).filter((p) => p.id !== TELLURIDE_2026.id);
+
 export default async function AmbassadorsPage(props: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   await requireAdmin();
   const params = await props.searchParams;
   const admin = createAdminClient();
-  const [ambassadors, oldSchedule, { data: tripRows }, lastSignIn, { data: announcements }] = await Promise.all([
+  const [ambassadors, oldSchedule, { data: tripRows }, lastSignIn, { data: announcements }, otherAgreed] = await Promise.all([
     loadAmbassadors(admin),
     loadOldScheduleBookings(admin),
     admin.from("trips").select("id, name, start_date").eq("status", "published").order("start_date"),
@@ -80,6 +88,7 @@ export default async function AmbassadorsPage(props: {
       .select("id, body, created_at, published")
       .order("created_at", { ascending: false })
       .limit(10),
+    loadOtherAgreements(admin),
   ]);
   // Every school with an ambassador gets a folder to upload into.
   const schools = [...new Map(
@@ -88,10 +97,13 @@ export default async function AmbassadorsPage(props: {
       .filter((pair): pair is readonly [string, string] => pair[0] !== null && pair[1] !== null),
   ).entries()].sort((x, y) => x[1].localeCompare(y[1]));
   const toolkit = await loadToolkitFiles(admin, schools.map(([slug]) => slug));
-  const trips = (tripRows ?? []).filter((t) => CHECKOUT_SANDBOX || !isTestTrip(t.name));
+  // The Trip field is the one a held spot goes on, so it lists Telluride's only.
+  const trips = (tripRows ?? []).filter(
+    (t) => (CHECKOUT_SANDBOX || !isTestTrip(t.name)) && programForDeparture(t.start_date).id === TELLURIDE_2026.id,
+  );
   const done = ambassadorDone(params);
   const error = params.error ? (AMBASSADOR_ERRORS[params.error] ?? "That didn't go through.") : null;
-  const closed = signupsClosed();
+  const closed = tellurideClosed();
   const holds = (ambassadors ?? []).filter((a) => a.holdStatus === "held" || a.holdStatus === "paying");
   // The final roster has the portal; code-only and dropped rows are listed
   // apart, with nothing to send them.
@@ -103,7 +115,7 @@ export default async function AmbassadorsPage(props: {
       <PageHeader
         eyebrow="Back office"
         title="Ambassadors"
-        lede={`A booking counts toward an ambassador's ${AMBASSADOR_GOAL} once it carries their code and is paid in full by the end of ${countByWords()}, Central. Cancelled and refunded bookings, held spots and test bookings never count. Ambassadors see the same count at /ambassador/dashboard.`}
+        lede={`A booking counts toward the trip it is on, once it carries the ambassador's code and is paid in full by the end of its week's date, Central. ${Object.values(PROGRAMS).map((p) => `${p.name}: ${p.goal} friends, by ${countByWords(p)}.`).join(" ")} Cancelled and refunded bookings, held spots and test bookings never count. Ambassadors see the same count at /ambassador/dashboard.`}
         back={{ href: "/admin", label: "Overview" }}
         actions={
           <Button href="/admin/ambassadors/export" variant="secondary" size="sm">
@@ -135,7 +147,7 @@ export default async function AmbassadorsPage(props: {
           <EmptyState title="No ambassadors yet">Add the first one below. Their $0 code is made with them.</EmptyState>
         ) : (
           <div className="flex flex-col gap-8">
-            <Panel title={`${inPortal.length} ambassadors with the portal`} bleed>
+            <Panel title={`${inPortal.length} ambassadors with the portal`} description={programTotals(ambassadors)} bleed>
               {/* "Welcome to Outrider" goes only when you send it: tick the rows
                   and send them together, or use a row's own button. Each is
                   sent once (welcome_email_sent_at); rows already sent, or with
@@ -148,7 +160,7 @@ export default async function AmbassadorsPage(props: {
                   {inPortal.filter((a) => a.welcomeEmailSentAt).length} of {inPortal.length} sent.
                 </span>
               </form>
-              <AmbassadorTable rows={inPortal} label="Ambassadors with the portal" lastSignIn={lastSignIn} />
+              <AmbassadorTable rows={inPortal} label="Ambassadors with the portal" lastSignIn={lastSignIn} otherAgreed={otherAgreed} />
             </Panel>
             {noPortal.length > 0 && (
               <Panel
@@ -156,7 +168,7 @@ export default async function AmbassadorsPage(props: {
                 description="Earlier ambassadors who keep their $0 code, and anyone dropped. Bookings with their codes still count here. They can't open the portal and never get the welcome email."
                 bleed
               >
-                <AmbassadorTable rows={noPortal} label="Codes only, no portal" lastSignIn={lastSignIn} />
+                <AmbassadorTable rows={noPortal} label="Codes only, no portal" lastSignIn={lastSignIn} otherAgreed={otherAgreed} />
               </Panel>
             )}
           </div>
@@ -165,8 +177,8 @@ export default async function AmbassadorsPage(props: {
 
       <div className="mt-10 grid gap-8 lg:grid-cols-2">
         <Panel
-          title="Settle held spots"
-          description={`For each held spot: ${AMBASSADOR_GOAL} or more paid in full by the deadline makes it free. Anyone short pays the spot less $100 for each friend who paid in full, by a Stripe link emailed to them for the date below (it shows on their row to text as well). Run it after ${LAST_SIGNUP_DEADLINE_LABEL}, when every count is final. Safe to run again: links are never sent twice, and anyone who reaches ${AMBASSADOR_GOAL} later is made free.`}
+          title="Settle held spots, Telluride"
+          description={`Telluride only: spring break friends never count here, and spring break holds no spots. For each held spot: ${AMBASSADOR_GOAL} or more paid in full by the deadline makes it free. Anyone short pays the spot less $100 for each friend who paid in full, by a Stripe link emailed to them for the date below (it shows on their row to text as well). Run it after ${LAST_SIGNUP_DEADLINE_LABEL}, when every count is final. Safe to run again: links are never sent twice, and anyone who reaches ${AMBASSADOR_GOAL} later is made free.`}
         >
           <p className="font-body text-body-s text-[--text-secondary]">
             {holds.length === 0
@@ -192,13 +204,16 @@ export default async function AmbassadorsPage(props: {
             </Button>
             {!closed && (
               <p className="mt-2 font-body text-body-s text-[--text-muted]">
-                Available after the last booking close, {LAST_SIGNUP_DEADLINE_LABEL}.
+                Available after Telluride&rsquo;s last close, {LAST_SIGNUP_DEADLINE_LABEL}.
               </p>
             )}
           </form>
         </Panel>
 
-        <Panel title="Add an ambassador" description="Makes their $0 code too, expiring at the signup deadline.">
+        <Panel
+          title="Add an ambassador"
+          description={`Makes their $0 code too, good for every trip, expiring at the last booking close, ${LAST_BOOKING_CLOSE_LABEL}. The Trip field is where a Telluride spot is held.`}
+        >
           <form action={saveAmbassador} className="grid gap-4 sm:grid-cols-2">
             <AmbassadorFields trips={trips} />
             <div className="sm:col-span-2">
@@ -357,9 +372,38 @@ export default async function AmbassadorsPage(props: {
 }
 
 /** "November 14 (December), December 4 (January)", from the program config. */
-function countByWords(): string {
-  const parts = Object.values(programFor(null).departures).map((d) => `${d.countByLabel} (${d.label})`);
-  return parts.length > 0 ? parts.join(", ") : SIGNUP_DEADLINE_LABEL;
+function countByWords(program: AmbassadorProgram): string {
+  return Object.values(program.departures)
+    .map((d) => `${d.countByLabel} (${d.closingName ?? d.label})`)
+    .join(", ");
+}
+
+/** "Telluride: 12 paid in full, 8 on a deposit. Spring break: ..." Every ambassador, each program its own. */
+function programTotals(ambassadors: Ambassador[]): string {
+  const totals = Object.values(PROGRAMS).map((p) => {
+    const tallies = ambassadors.map((a) => a.byProgram[p.id]);
+    const paid = tallies.reduce((sum, t) => sum + t.paidInFull, 0);
+    const deposit = tallies.reduce((sum, t) => sum + t.depositOnly, 0);
+    return `${p.name}: ${paid} paid in full, ${deposit} on a deposit.`;
+  });
+  return `Across every code. ${totals.join(" ")}`;
+}
+
+/** Which accounts have accepted which program beyond Telluride, from legal_acceptances. */
+async function loadOtherAgreements(admin: ReturnType<typeof createAdminClient>): Promise<Map<string, Set<string>>> {
+  const out = new Map<string, Set<string>>();
+  for (const program of OTHER_PROGRAMS) {
+    const { data, error } = await admin
+      .from("legal_acceptances")
+      .select("user_id")
+      .eq("document_slug", program.agreement.slug)
+      .eq("document_version", program.agreement.version);
+    if (error) console.error(`loadOtherAgreements: ${error.code} ${error.message}`);
+    for (const row of data ?? []) {
+      out.set(row.user_id, (out.get(row.user_id) ?? new Set()).add(program.id));
+    }
+  }
+  return out;
 }
 
 /** When each linked portal account last signed in, by user id. One call: the accounts are few. */
@@ -390,10 +434,12 @@ function AmbassadorTable({
   rows,
   label,
   lastSignIn,
+  otherAgreed,
 }: {
   rows: Ambassador[];
   label: string;
   lastSignIn: Map<string, string | null>;
+  otherAgreed: Map<string, Set<string>>;
 }) {
   return (
     <TableScroll label={label}>
@@ -409,15 +455,25 @@ function AmbassadorTable({
             <Th>Portal</Th>
             <Th>Welcome</Th>
             <Th>Trip</Th>
-            <Th align="right">Deposit only</Th>
-            <Th align="right">Paid in full</Th>
+            <Th align="right">Telluride deposit only</Th>
+            <Th align="right">Telluride paid in full</Th>
             <Th align="right">To {AMBASSADOR_GOAL}</Th>
+            {OTHER_PROGRAMS.map((p) => (
+              <Th key={p.id} align="right">
+                {p.name}
+              </Th>
+            ))}
             <Th>Held spot</Th>
           </tr>
         </thead>
         <tbody>
           {rows.map((a) => (
-            <AmbassadorRow key={a.code} a={a} lastSignIn={a.userId ? (lastSignIn.get(a.userId) ?? null) : null} />
+            <AmbassadorRow
+              key={a.code}
+              a={a}
+              lastSignIn={a.userId ? (lastSignIn.get(a.userId) ?? null) : null}
+              agreedTo={a.userId ? otherAgreed.get(a.userId) : undefined}
+            />
           ))}
         </tbody>
       </Table>
@@ -425,7 +481,16 @@ function AmbassadorTable({
   );
 }
 
-function AmbassadorRow({ a, lastSignIn }: { a: Ambassador; lastSignIn: string | null }) {
+function AmbassadorRow({
+  a,
+  lastSignIn,
+  agreedTo,
+}: {
+  a: Ambassador;
+  lastSignIn: string | null;
+  /** The programs beyond Telluride this account has accepted. */
+  agreedTo?: Set<string>;
+}) {
   const reached = a.toGoal === 0;
   const portal = !NO_PORTAL_STATUSES.includes(a.status);
   const canWelcome = portal && !a.welcomeEmailSentAt && Boolean(a.email);
@@ -453,11 +518,16 @@ function AmbassadorRow({ a, lastSignIn }: { a: Ambassador; lastSignIn: string | 
       </Td>
       <Td>
         <span className="block font-medium">{a.code}</span>
-        <CopyLinkButton
-          path={referralPath(a.code, programFor(a.program))}
-          label="Copy link"
-          className="mt-1.5 min-h-9 px-3"
-        />
+        <span className="mt-1.5 flex flex-col items-start gap-1.5">
+          {Object.values(PROGRAMS).map((p) => (
+            <CopyLinkButton
+              key={p.id}
+              path={referralPath(a.code, p)}
+              label={`Copy ${p.nameInSentence} link`}
+              className="min-h-9 px-3"
+            />
+          ))}
+        </span>
       </Td>
       <Td>
         {AMBASSADOR_STATUS_LABEL[a.status as AmbassadorStatus] ?? a.status}
@@ -476,6 +546,11 @@ function AmbassadorRow({ a, lastSignIn }: { a: Ambassador; lastSignIn: string | 
             <span className="text-[--text-secondary]">
               {lastSignIn ? `Last in ${formatDay(lastSignIn.slice(0, 10))}` : "Linked"}
             </span>
+            {OTHER_PROGRAMS.filter((p) => agreedTo?.has(p.id)).map((p) => (
+              <span key={p.id} className="text-[--text-secondary]">
+                {p.name} agreed
+              </span>
+            ))}
           </span>
         )}
         {a.rewardClaimedAt && a.rewardTrip && (
@@ -502,6 +577,15 @@ function AmbassadorRow({ a, lastSignIn }: { a: Ambassador; lastSignIn: string | 
       <Td align="right">{a.depositOnly}</Td>
       <Td align="right">{a.paidInFull}</Td>
       <Td align="right">{reached ? <Badge tone="open">Reached</Badge> : a.toGoal}</Td>
+      {OTHER_PROGRAMS.map((p) => {
+        const t = a.byProgram[p.id];
+        return (
+          <Td key={p.id} align="right">
+            {t.toGoal === 0 ? <Badge tone="open">Reached</Badge> : `${t.paidInFull} of ${p.goal}`}
+            {t.depositOnly > 0 && <span className="block text-[--text-secondary]">{t.depositOnly} on a deposit</span>}
+          </Td>
+        );
+      })}
       <Td>
         <HoldCell a={a} />
       </Td>

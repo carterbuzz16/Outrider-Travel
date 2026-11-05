@@ -30,9 +30,17 @@ const LAUNCHED = true;
  *  - the Stripe publishable key is a test key, so no card is really charged.
  *
  * Every value here is inlined at build time, so changing one needs a redeploy.
+ *
+ * LAUNCHED switched the sandbox off, which left no way to see a test trip once
+ * the site opened. NEXT_PUBLIC_SHOW_TEST_TRIPS=1 (launch config
+ * "dev-test-trips") brings it back on a local or preview build, under the same
+ * three checks, so a departure can be booked end to end on a test trip before
+ * the real one is published (3 November 2026, spring break).
+ *
+ * Every value here is inlined at build time, so changing one needs a redeploy.
  */
 export const CHECKOUT_SANDBOX =
-  !LAUNCHED &&
+  (!LAUNCHED || process.env.NEXT_PUBLIC_SHOW_TEST_TRIPS === "1") &&
   process.env.NEXT_PUBLIC_CHECKOUT_SANDBOX === "1" &&
   process.env.NEXT_PUBLIC_VERCEL_ENV !== "production" &&
   (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "").startsWith("pk_test_");

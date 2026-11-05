@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import { Alert, Badge, Button, Facts, ScheduleTable, cn, type BadgeTone } from "@/components/ui";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PORTAL_ANCHORS, verifyPortalToken } from "@/lib/portal-token";
-import { gearComplete } from "@/lib/traveler-details";
+import { detailsTaskComplete } from "@/lib/traveler-details";
+import { lineForDestination, type TripLine } from "@/lib/trip-lines";
 import { formatDay } from "@/app/(protected)/dates";
 import { formatDateRange } from "@/lib/trips";
 import { formatAmount } from "@/lib/balance";
@@ -54,17 +55,22 @@ const PAYMENT_LABEL: Partial<Record<PaymentStatus, string>> = {
 };
 
 /*
- * Submission times are shown in Mountain time, the trip's own zone, with the
- * zone printed. The server renders in UTC on Vercel, so leaving the zone
+ * Submission times are shown in the trip's own zone (lib/trip-lines.ts), with
+ * the zone printed. The server renders in UTC on Vercel, so leaving the zone
  * implicit would show a late-evening submission as the next day.
  */
 /**
- * Who to name, by package. The form always offers three name boxes
- * (MAX_ROOMMATES); this says how many of them a package can actually use, so a
- * Two to a Room traveler is not left wondering why there are three. Matched on
- * the raw tier name, like everything else in lib/room-media.ts.
+ * Who to name, by package. The form offers three name boxes (MAX_ROOMMATES);
+ * this says how many of them a package can actually use, so a Two to a Room
+ * traveler is not left wondering why there are three. Matched on the raw tier
+ * name, like everything else in lib/room-media.ts.
+ *
+ * Spring break is two to a room whatever the tier is called, and draws one box
+ * (below). It does not repeat "rooms are same-gender": that is a rule set for
+ * The Peaks, and nobody has said it of Zemi Miches.
  */
-function roomingGuidance(tierName: string | null): string {
+function roomingGuidance(tierName: string | null, line: TripLine): string {
+  if (!line.rentals) return "Two to a room. Name the one person you want to share with, or tell us you're happy anywhere.";
   switch (tierName ? roomKeyFor(tierName) : null) {
     case "BASE":
       return "Name up to three people you want to share your room with, or tell us you're happy anywhere. Rooms are same-gender.";
@@ -78,9 +84,9 @@ function roomingGuidance(tierName: string | null): string {
   }
 }
 
-function formatSubmitted(iso: string): string {
+function formatSubmitted(iso: string, timeZone: string): string {
   return new Date(iso).toLocaleString("en-US", {
-    timeZone: "America/Denver",
+    timeZone,
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -129,6 +135,7 @@ export default async function TripPortalPage(props: {
   if (!booking) notFound();
 
   const trip = booking.trips;
+  const line = lineForDestination(trip?.destination);
   const open = OPEN_STATUSES.includes(booking.status);
   const rooming = booking.rooming_requests;
   const details = booking.traveler_details;
@@ -160,18 +167,20 @@ export default async function TripPortalPage(props: {
    * identity half is asked in checkout, before the card, so a row can be here
    * with every gear column still null (and a booking paid before that step
    * existed can have no row at all). What this page asks for, and when it
-   * calls the task done, follows the gear half.
+   * calls the task done, follows the gear half, on a trip that has one. A trip
+   * with no rentals is done with the identity half, and all this page then
+   * offers is the optional dietary line.
    */
   const identityDone = Boolean(details);
-  const detailsDone = gearComplete(details);
+  const detailsDone = detailsTaskComplete(line, details);
 
   let detailsLabel: string | null = null;
   if (detailsDone && details) {
-    detailsLabel = `Submitted on ${formatSubmitted(details.submitted_at)}.`;
+    detailsLabel = `Submitted on ${formatSubmitted(details.submitted_at, line.timeZone)}.`;
     // The trigger bumps updated_at on every replace; a minute's grace keeps
     // the first save from reading as an edit.
     if (new Date(details.updated_at).getTime() - new Date(details.submitted_at).getTime() > 60_000) {
-      detailsLabel = `Submitted on ${formatSubmitted(details.submitted_at)}, last replaced ${formatSubmitted(details.updated_at)}.`;
+      detailsLabel = `Submitted on ${formatSubmitted(details.submitted_at, line.timeZone)}, last replaced ${formatSubmitted(details.updated_at, line.timeZone)}.`;
     }
   }
 
@@ -257,31 +266,32 @@ export default async function TripPortalPage(props: {
         <ol className="m-0 flex list-none flex-col p-0">
           <Task id={PORTAL_ANCHORS.flights} number={1} title="Flights" done={booking.flights_booked}>
             <p className="max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
-              Flights are yours to book. The{" "}
-              <Link href="/flights" className="text-[--accent] decoration-[--accent]">
+              Flights are yours to book.{line.flightsLead ? ` ${line.flightsLead}` : ""} The{" "}
+              <Link href={line.flightGuidePath} className="text-[--accent] decoration-[--accent]">
                 flight guide
               </Link>{" "}
-              has the airports and the times to land and leave by. Tell us here once they are
-              booked.
+              {line.flightGuideHas}. Tell us here once they are booked.
             </p>
             {open && <FlightsToggle bookingId={booking.id} token={token} booked={booking.flights_booked} />}
           </Task>
 
           <Task id={PORTAL_ANCHORS.rooming} number={2} title="Roommate request" done={Boolean(rooming)}>
             <p className="max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
-              {roomingGuidance(booking.tiers?.name ?? null)} Requests are assigned in the order they
+              {roomingGuidance(booking.tiers?.name ?? null, line)} Requests are assigned in the order they
               arrive.
             </p>
             {open ? (
               <RoomingTask
                 bookingId={booking.id}
                 token={token}
+                // Two to a room is one roommate to name (roomingGuidance).
+                slots={line.rentals ? undefined : 1}
                 existing={
                   rooming
                     ? {
                         names: rooming.roommate_names,
                         noPreference: rooming.no_preference,
-                        submittedLabel: formatSubmitted(rooming.submitted_at),
+                        submittedLabel: formatSubmitted(rooming.submitted_at, line.timeZone),
                       }
                     : null
                 }
@@ -289,7 +299,7 @@ export default async function TripPortalPage(props: {
             ) : (
               rooming && (
                 <p className="mt-4 font-body text-body-s text-[--text-secondary]">
-                  Received {formatSubmitted(rooming.submitted_at)}.
+                  Received {formatSubmitted(rooming.submitted_at, line.timeZone)}.
                 </p>
               )
             )}
@@ -298,11 +308,15 @@ export default async function TripPortalPage(props: {
           <Task
             id={PORTAL_ANCHORS.details}
             number={3}
-            title={identityDone ? "Your rental sizes" : "Traveler details"}
+            title={line.rentals && identityDone ? "Your rental sizes" : "Traveler details"}
             done={detailsDone}
           >
             <p className="max-w-measure font-body text-body-s leading-[1.7] text-[--text-secondary]">
-              {identityDone
+              {!line.rentals
+                ? identityDone
+                  ? "We have your name, your date of birth and your emergency contact, so this one is done. You need a valid passport for this trip, so check yours now. If there's anything the hotel should know about what you eat, add it here."
+                  : `Your legal name and date of birth, ${line.recordsHint.charAt(0).toLowerCase()}${line.recordsHint.slice(1)} A number to reach you and someone at home. You need a valid passport for this trip.`
+                : identityDone
                 ? "We have your name and your emergency contact already. This is the last piece: what you ride and what size, so your rentals are fitted before you arrive."
                 : "Your legal name and date of birth, for your lift tickets and lodging records and for travel insurance if you choose to add it. A number to reach you and someone at home, and your sizes so your ski or snowboard rentals are ready when you arrive."}
             </p>
@@ -312,11 +326,15 @@ export default async function TripPortalPage(props: {
                 className="mt-6"
                 columns={3}
                 items={[
-                  { label: "Riding", value: labelFor(SKI_OR_BOARD, details.ski_or_board) },
-                  { label: "Ability", value: labelFor(ABILITY_LEVELS, details.ability_level) },
-                  { label: "Height", value: details.height ?? "Not given" },
-                  { label: "Weight", value: details.weight ?? "Not given" },
-                  { label: "Shoe size", value: details.shoe_size ?? "Not given" },
+                  ...(line.rentals
+                    ? [
+                        { label: "Riding", value: labelFor(SKI_OR_BOARD, details.ski_or_board) },
+                        { label: "Ability", value: labelFor(ABILITY_LEVELS, details.ability_level) },
+                        { label: "Height", value: details.height ?? "Not given" },
+                        { label: "Weight", value: details.weight ?? "Not given" },
+                        { label: "Shoe size", value: details.shoe_size ?? "Not given" },
+                      ]
+                    : []),
                   { label: "Dietary", value: details.dietary_restrictions ?? "None" },
                 ]}
               />
@@ -329,6 +347,10 @@ export default async function TripPortalPage(props: {
                 submitted={detailsLabel ? { label: detailsLabel } : null}
                 needsIdentity={!identityDone}
                 smsConsented={booking.sms_consent}
+                line={line}
+                // What is on screen in the Facts above already. Telluride's form
+                // comes up blank to be replaced whole; this one is the only field.
+                existingDietary={line.rentals ? null : (details?.dietary_restrictions ?? null)}
               />
             ) : (
               detailsLabel && (

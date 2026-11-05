@@ -15,7 +15,7 @@ import { BOOKINGS_OPEN } from "@/lib/booking-window";
  * Extrabold capitals.
  */
 
-export const alt = "Join the Outrider list. Telluride, winter 2026 and 2027.";
+export const alt = "Join the Outrider list. Ski weeks and spring break.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -99,7 +99,7 @@ export default async function WaitlistOpengraphImage() {
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 21, letterSpacing: 2.5 }}>
-            <div style={{ display: "flex" }}>TELLURIDE, WINTER 2026 / 2027</div>
+            <div style={{ display: "flex" }}>TELLURIDE AND PUNTA CANA</div>
             <div style={{ display: "flex" }}>outrider.travel/waitlist</div>
           </div>
         </div>

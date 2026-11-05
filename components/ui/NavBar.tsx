@@ -8,6 +8,7 @@ import Button from "./Button";
 import WaitlistButton from "./WaitlistModal";
 import { cn } from "./cn";
 import { BOOKINGS_OPEN } from "@/lib/booking-window";
+import { SKI, SPRING_BREAK_LINE } from "@/lib/trip-lines";
 import { ACCOUNT_LINK, type NavLink } from "./nav-links";
 
 /**
@@ -31,8 +32,15 @@ export { ACCOUNT_LINK };
 
 // Every entry here has a page behind it. A nav that links to a 404 is worse
 // than a short nav, so this grows when the routes do.
+//
+// Both trips by name since 3 November 2026, in place of a generic "Trips" that
+// hid what we do behind a click (Carter: the site "only reads for ski right
+// now"). /trips stays one step away, from the home page's button and the footer.
 export const DEFAULT_LINKS: NavLink[] = [
-  { label: "Trips", href: "/trips" },
+  // The kind of trip rather than the place (Carter, 3 November 2026), to sit
+  // beside "Spring break". It still opens /telluride.
+  { label: "Ski trips", href: SKI.path },
+  { label: SPRING_BREAK_LINE.name, href: SPRING_BREAK_LINE.path },
   { label: "About", href: "/about" },
   // The Campus Lead and Ambassador application, in the nav since 26 October
   // 2026 (Carter: "somewhere accessible on our site for people to see").
@@ -48,6 +56,7 @@ export default function NavBar({
   // Once booking is open the button goes straight to the booking page, which
   // asks for the dates and then the package. Sending "Reserve your spot" to
   // the trip list first left people hunting for a second, smaller button.
+  // A trip's own page passes its own link (ctaFor, app/(site)/SiteNav.tsx).
   cta = BOOKINGS_OPEN
     ? { label: "Reserve your spot", href: "/bookings/new" }
     : { label: "View trips", href: "/trips" },
@@ -131,12 +140,14 @@ export default function NavBar({
           aria-label="Outrider, home"
           onClick={() => setOpen(false)}
         >
-          {/* The primary horizontal lock-up. The nav stays plain OUTRIDER;
-              the Ski Club lock-up appears further down the page (footer). */}
+          {/* The primary horizontal lock-up: plain OUTRIDER, here and in the
+              footer's vertical cut of it. */}
           <Logo variant="inline" className="w-[128px] text-[--text] md:w-[148px]" />
         </Link>
 
-        <ul className="hidden list-none items-center gap-8 md:flex">
+        {/* From lg, not md: four links, Account and the button need about 900px,
+            and a 768 tablet runs out. It gets the logo, the button and Menu. */}
+        <ul className="hidden list-none items-center gap-8 lg:flex">
           {links.map((link) => {
             const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
             return (
@@ -176,7 +187,7 @@ export default function NavBar({
             <Link
               href={account.href}
               className={cn(
-                "t-label -my-2.5 hidden py-2.5 no-underline transition-colors duration-fast md:block",
+                "t-label -my-2.5 hidden py-2.5 no-underline transition-colors duration-fast lg:block",
                 solid
                   ? "text-[--text-secondary] hover:text-[--text]"
                   : "text-[--text] hover:text-[--accent]",
@@ -202,7 +213,7 @@ export default function NavBar({
 
           <button
             type="button"
-            className="t-label -m-2 p-2 md:hidden"
+            className="t-label -m-2 p-2 lg:hidden"
             aria-expanded={open}
             aria-controls="nav-sheet"
             onClick={() => setOpen((v) => !v)}
@@ -217,7 +228,7 @@ export default function NavBar({
       <div
         id="nav-sheet"
         hidden={!open}
-        className="scheme-light bg-[--surface] text-[--text] shadow-[0_28px_36px_-18px_rgb(31_26_23_/_0.45)] md:hidden"
+        className="scheme-light bg-[--surface] text-[--text] shadow-[0_28px_36px_-18px_rgb(31_26_23_/_0.45)] lg:hidden"
       >
         <ul className="shell flex list-none flex-col gap-0 py-2">
           {links.map((link) => (
