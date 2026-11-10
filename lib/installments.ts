@@ -43,14 +43,13 @@ export const INSTALLMENT_DATES_BY_START: Readonly<Record<string, readonly string
   "2026-12-14": [SIGNUP_DEADLINE_DAY],
   // Telluride, January 4 to 8, 2027
   "2027-01-04": ["2026-11-20", "2026-12-01"],
-  // Spring break, March 8 to 12 and March 15 to 19, 2027. CONFIRM WITH CARTER
-  // BEFORE EITHER TRIP IS PUBLISHED: he set the $100 deposit, not these. They
-  // are listed in the Terms from here, and they are the days real cards are
-  // charged. Two payments, the second on the week's booking close
-  // (lib/signup-deadline.ts), as December's last payment is. Check them against
-  // the final payment date in Zemi's Group Agreement, which is not yet written.
-  "2027-03-08": ["2026-12-15", "2027-01-15"],
-  "2027-03-15": ["2026-12-15", "2027-01-22"],
+  // Spring break, March 8 to 12 and March 15 to 19, 2027. One payment of the
+  // whole balance on January 8, 2027, for both weeks: Carter's date (10 November
+  // 2026, "Final balance is due January 8, 2027"), which his trip terms also
+  // print (lib/spring-break-terms.ts; a test keeps the two in step). They are
+  // listed in the Terms from here, and they are the days real cards are charged.
+  "2027-03-08": ["2027-01-08"],
+  "2027-03-15": ["2027-01-08"],
 };
 
 /**
@@ -61,16 +60,18 @@ export const INSTALLMENT_DATES_BY_START: Readonly<Record<string, readonly string
  */
 export const PAY_IN_FULL_FROM_BY_START: Readonly<Record<string, string>> = {
   "2026-12-14": "2026-11-11",
-  // Three days before each spring break week's last payment, as December.
-  // Confirm with the dates above.
-  "2027-03-08": "2027-01-12",
-  "2027-03-15": "2027-01-19",
+  // Three days before spring break's January 8 balance, as December.
+  "2027-03-08": "2027-01-05",
+  "2027-03-15": "2027-01-05",
 };
 
 /*
- * Spring break's dates above are placeholders until Carter confirms them (3
- * November 2026), and they are the days real cards are charged. Until this is
- * true, so the rest of the framework can go live first:
+ * Spring break opened on 10 November 2026 (Carter: "just make sure people can pay
+ * the deposit for spring break no problem"), with the January 8 balance above and
+ * his own trip terms (lib/spring-break-terms.ts) in place of steps 1 and 2 below:
+ * a deposit is refundable if Outrider has not confirmed the week by December 1,
+ * which is what covers taking deposits before Zemi's Group Agreement is signed.
+ * Counsel's spring break waiver is still owed. While the flag was false:
  *   - its departures stay hidden from the public site even if published
  *     (lib/trips.ts), and createBooking refuses them;
  *   - the Terms do not list them and the FAQ does not print them.

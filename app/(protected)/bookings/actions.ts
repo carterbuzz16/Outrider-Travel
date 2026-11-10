@@ -23,7 +23,8 @@ import {
 import type Stripe from "stripe";
 import { installmentInFlight, mustPayInFull, scheduleConfirmed } from "@/lib/installments";
 import { isTestEmail } from "@/lib/ambassador-rules";
-import { lookupReferral, referralCodeFromCookie } from "@/lib/referral";
+import { isAmbassadorDiscountCode, lookupReferral, referralCodeFromCookie } from "@/lib/referral";
+import { lineForDestination } from "@/lib/trip-lines";
 import { attributionSource } from "@/lib/referral-cookie";
 import { departureClosed, signupsClosed } from "@/lib/signup-deadline";
 import { paymentKindOf, settleFreeBooking } from "@/lib/payments";
@@ -143,7 +144,7 @@ export async function createBooking(formData: FormData) {
   // clean "no longer available" error instead of an RLS-shaped one).
   const { data: tier, error: tierError } = await supabase
     .from("tiers")
-    .select("id, name, price, trip_id, group_exclusive, trips!inner(status, name, start_date)")
+    .select("id, name, price, trip_id, group_exclusive, trips!inner(status, name, start_date, destination)")
     .eq("id", tierId)
     .eq("trip_id", tripId)
     .eq("trips.status", "published")
@@ -250,6 +251,19 @@ export async function createBooking(formData: FormData) {
   if (discountCode && (await lookupReferral(admin, discountCode))) {
     referralCode = referralCode ?? discountCode;
     discountCode = null;
+  }
+  // And the other way on spring break, whose box reads "Ambassador code": an
+  // ambassador's money-off code typed there goes to the discount box, as the
+  // checkout page moves it when it is applied (isAmbassadorDiscountCode).
+  if (
+    referralCode &&
+    !discountCode &&
+    lineForDestination(tier.trips.destination).id === "spring-break" &&
+    !(await lookupReferral(admin, referralCode)) &&
+    (await isAmbassadorDiscountCode(admin, referralCode))
+  ) {
+    discountCode = referralCode;
+    referralCode = null;
   }
   const referral = referralCode ? await lookupReferral(admin, referralCode) : null;
   if (referralCode && !referral) {
@@ -545,6 +559,25 @@ export async function createBooking(formData: FormData) {
     const claim = await claimDiscountCode(admin, referral.code, bookingId, referralSource);
     if (!claim.ok) {
       console.error(`createBooking: booking ${bookingId} could not be credited to ${referral.code} (${claim.reason})`);
+    }
+  } else if (
+    // Spring break only (10 November 2026): an ambassador's money-off code (the
+    // $400 ones) is a discount, which claim_discount_code records as kind
+    // 'discount', and lib/ambassadors.ts credits an ambassador by kind
+    // 'attribution' alone. So the friend got the money off and the ambassador got
+    // nothing, under a box that says "so they get credit". Here the same code is
+    // also written as the credit, at $0, as /admin/ambassadors writes one by hand.
+    // Telluride keeps its behaviour unchanged until Carter says otherwise.
+    claimCode &&
+    lineForDestination(tier.trips.destination).id === "spring-break" &&
+    (await isAmbassadorDiscountCode(admin, claimCode))
+  ) {
+    const { error: creditError } = await admin.from("discount_redemptions").upsert(
+      { booking_id: bookingId, code: claimCode, amount: 0, kind: "attribution", source: "typed" },
+      { onConflict: "booking_id,kind" },
+    );
+    if (creditError) {
+      console.error(`createBooking: booking ${bookingId} could not be credited to ${claimCode}: ${creditError.message}`);
     }
   } else if (carried) {
     await dropDiscountCode(admin, bookingId, "attribution");

@@ -32,6 +32,11 @@ import { Countdown, useWelcomeCredit } from "@/components/WelcomeCredit";
  * is in view. Inside a WelcomeCreditProvider, a live new-account credit
  * replaces the place name with its countdown, and a $100 code the visitor
  * asked for (lib/code-offer.ts) with a line saying it comes off.
+ *
+ * Espresso with a club-blue button is the Ski Club's colours. /spring-break passes
+ * `scheme="spring"` for its own orange with the deep espresso button its panel uses
+ * (Carter, 5 November 2026: the blue and brown bar "fits the ski club theme, not the
+ * spring break theme"). Deep espresso on that orange is 4.7:1, the panel's own pair.
  */
 export default function MobileReserveBar({
   href,
@@ -39,6 +44,7 @@ export default function MobileReserveBar({
   dates,
   label = "Reserve",
   fromStart = false,
+  scheme = "espresso",
 }: {
   href: string;
   place: string;
@@ -46,6 +52,7 @@ export default function MobileReserveBar({
   /** The button's words. "Reserve" unless the page says otherwise. */
   label?: string;
   fromStart?: boolean;
+  scheme?: "espresso" | "spring";
 }) {
   const welcome = useWelcomeCredit();
   const credit = welcome?.state;
@@ -83,7 +90,8 @@ export default function MobileReserveBar({
   return (
     <div
       className={cn(
-        "scheme-espresso fixed inset-x-0 bottom-0 z-30 border-t border-[--rule] bg-[--surface] text-[--text] md:hidden",
+        scheme === "spring" ? "scheme-spring" : "scheme-espresso",
+        "fixed inset-x-0 bottom-0 z-30 border-t border-[--rule] bg-[--surface] text-[--text] md:hidden",
         "pb-[env(safe-area-inset-bottom)] transition-transform duration-[--dur] ease-out",
         visible ? "translate-y-0" : "pointer-events-none translate-y-full",
       )}

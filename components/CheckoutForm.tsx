@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe, type Appearance } from "@stripe/stripe-js";
 import { Alert, Button } from "@/components/ui";
-import AuthorizeCharge, { type ScheduledCharge } from "@/components/AuthorizeCharge";
+import AuthorizeCharge, { type ScheduledCharge, type TripTerms } from "@/components/AuthorizeCharge";
 import { acceptTermsForBooking } from "@/app/(protected)/bookings/actions";
 import { pixelEvent } from "@/lib/meta-pixel";
 
@@ -158,6 +158,7 @@ export default function CheckoutForm({
    */
   acceptTerms = false,
   cardOnly = false,
+  tripTerms,
 }: {
   clientSecret: string;
   bookingId: string;
@@ -175,6 +176,8 @@ export default function CheckoutForm({
    * hides that tab.
    */
   cardOnly?: boolean;
+  /** A trip's own terms, agreed to in the one box (components/AuthorizeCharge.tsx). */
+  tripTerms?: TripTerms;
 }) {
   // Computed once per mount. The result never reaches the DOM this component
   // renders, only Stripe's iframe, so the server/client difference is not a
@@ -191,6 +194,7 @@ export default function CheckoutForm({
         label={submitLabel ?? `Pay ${amountLabel} deposit`}
         returnPath={returnPath ?? `/bookings/${bookingId}/confirmation`}
         cardOnly={cardOnly}
+        tripTerms={tripTerms}
       />
     </Elements>
   );
@@ -204,6 +208,7 @@ function PaymentForm({
   label,
   returnPath,
   cardOnly,
+  tripTerms,
 }: {
   bookingId: string;
   acceptTerms: boolean;
@@ -212,6 +217,7 @@ function PaymentForm({
   label: string;
   returnPath: string;
   cardOnly: boolean;
+  tripTerms?: TripTerms;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -336,6 +342,7 @@ function PaymentForm({
           amountLabel={amountLabel}
           scheduled={scheduledCharges}
           withTerms={acceptTerms}
+          tripTerms={tripTerms}
         />
       </div>
 

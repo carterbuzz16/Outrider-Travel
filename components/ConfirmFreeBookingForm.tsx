@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Alert, Button, CheckRow } from "@/components/ui";
 import { confirmFreeBooking } from "@/app/(protected)/bookings/actions";
+import { TripTermsBox, type TripTerms } from "@/components/AuthorizeCharge";
 
 /**
  * The payment step of a booking its code pays for in full: no card, so the
@@ -13,10 +14,13 @@ import { confirmFreeBooking } from "@/app/(protected)/bookings/actions";
  * the place. confirmFreeBooking records the agreement before it confirms
  * anything.
  *
+ * A trip with terms of its own (spring break) shows them and agrees to them
+ * instead, as AuthorizeCharge does on a paid checkout.
+ *
  * No Meta Pixel events, unlike CheckoutForm: a place given away is not a sale,
  * and a $0 Purchase would teach the ads to find people who pay nothing.
  */
-export default function ConfirmFreeBookingForm({ bookingId }: { bookingId: string }) {
+export default function ConfirmFreeBookingForm({ bookingId, tripTerms }: { bookingId: string; tripTerms?: TripTerms }) {
   const router = useRouter();
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -58,16 +62,29 @@ export default function ConfirmFreeBookingForm({ bookingId }: { bookingId: strin
 
   return (
     <form onSubmit={handleSubmit}>
+      {tripTerms && <TripTermsBox terms={tripTerms} />}
       <CheckRow required checked={agreed} disabled={submitting} onChange={(e) => setAgreed(e.target.checked)}>
-        I agree to the{" "}
-        <Link href="/terms" target="_blank" rel="noreferrer" className={LINK}>
-          Terms of Service
-        </Link>{" "}
-        and the{" "}
-        <Link href="/assumption-of-risk" target="_blank" rel="noreferrer" className={LINK}>
-          Assumption of Risk and Liability Waiver
-        </Link>
-        .
+        {tripTerms ? (
+          <>
+            {tripTerms.agree.replace(/trip terms\.?$/, "")}
+            <Link href="/terms#spring-break" target="_blank" rel="noreferrer" className={LINK}>
+              trip terms
+            </Link>
+            .
+          </>
+        ) : (
+          <>
+            I agree to the{" "}
+            <Link href="/terms" target="_blank" rel="noreferrer" className={LINK}>
+              Terms of Service
+            </Link>{" "}
+            and the{" "}
+            <Link href="/assumption-of-risk" target="_blank" rel="noreferrer" className={LINK}>
+              Assumption of Risk and Liability Waiver
+            </Link>
+            .
+          </>
+        )}
       </CheckRow>
 
       {error && (

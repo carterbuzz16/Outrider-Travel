@@ -43,6 +43,32 @@ export async function lookupReferral(admin: Admin, raw: unknown): Promise<Referr
   return { code: data.code, name: data.ambassadors?.name ?? data.code };
 }
 
+/**
+ * Whether `raw` is a live code that belongs to an ambassador and takes money off:
+ * the twenty set to $400 off since early November 2026, say. lookupReferral says
+ * no to those, since the Referred by box is for $0 codes, but spring break labels
+ * that box "Ambassador code" (10 November 2026), which is where a friend holding
+ * one will type it. There it is moved to the discount box, where it has always
+ * worked, rather than refused. Answers only for ambassadors' codes, which they
+ * hand out themselves, so the box still cannot be used to test other codes.
+ */
+export async function isAmbassadorDiscountCode(admin: Admin, raw: unknown): Promise<boolean> {
+  const code = normalizeReferralCode(raw);
+  if (!code) return false;
+  const { data, error } = await admin
+    .from("discount_codes")
+    .select("code, active, expires_at, ambassadors(code)")
+    .eq("code", code)
+    .maybeSingle();
+  if (error) {
+    console.error(`isAmbassadorDiscountCode: ${error.code} ${error.message}`);
+    return false;
+  }
+  return Boolean(
+    data?.ambassadors && data.active && (data.expires_at === null || Date.parse(data.expires_at) > Date.now()),
+  );
+}
+
 /** The code in this browser's referral cookie, unchecked. */
 export async function referralCodeFromCookie(): Promise<string | null> {
   return normalizeReferralCode((await cookies()).get(REFERRAL_COOKIE)?.value);

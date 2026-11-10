@@ -22,6 +22,17 @@ import ConfirmFreeBookingForm from "@/components/ConfirmFreeBookingForm";
 import CheckoutSteps from "@/components/CheckoutSteps";
 import { TravelInsuranceNote } from "@/components/TravelInsurance";
 import { PENTHOUSE_DISCLAIMER } from "@/lib/penthouse";
+import { SPRING_BREAK_TERMS } from "@/lib/spring-break-terms";
+import { lineForDestination } from "@/lib/trip-lines";
+
+/**
+ * The trip terms the pay step's one box agrees to, for a trip whose waiver is not
+ * the Assumption of Risk: spring break's (lib/spring-break-terms.ts). Undefined
+ * keeps the Terms-and-waiver box Telluride has always had.
+ */
+function tripTermsFor(destination: string | null | undefined) {
+  return lineForDestination(destination).assumptionOfRisk ? undefined : SPRING_BREAK_TERMS;
+}
 
 /**
  * Step 3 of checkout: the deposit, or the whole trip when the traveler chose
@@ -311,8 +322,20 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
                   note in the order rather than a warning box: it is a term of
                   the purchase, not an alarm. */}
               <p className="mt-6 border-t border-[--rule] pt-5 font-body text-body-s leading-[1.65] text-[--text-secondary]">
-                <span className="font-medium text-[--text]">The deposit is non-refundable. </span>
-                {payingInFull ? (
+                {/* Spring break's deposit is refundable until the week is confirmed
+                    (lib/spring-break-terms.ts), so it gets Carter's own sentence in
+                    place of "non-refundable". The sliding scale is the Terms' own,
+                    for both trips. */}
+                {tripTermsFor(booking.trips?.destination) ? (
+                  <>
+                    <span className="font-medium text-[--text]">{SPRING_BREAK_TERMS.paragraphs[0]} </span>
+                    Anything you pay above the deposit is refunded on a sliding scale that closes 30 days
+                    before the trip.{payingInFull ? "" : " If an installment is missed, your spot may be released."}
+                  </>
+                ) : (
+                  <span className="font-medium text-[--text]">The deposit is non-refundable. </span>
+                )}
+                {tripTermsFor(booking.trips?.destination) ? null : payingInFull ? (
                   <>
                     Of this payment, <span className="tabular-nums">{formatAmount(depositAmount)}</span> is
                     the deposit, and once it clears that part is not refundable, whatever the reason for
@@ -357,6 +380,7 @@ export default async function PayPage(props: { params: Promise<{ id: string }> }
               amountLabel={formatAmount(dueToday)}
               submitLabel={payingInFull ? `Pay ${formatAmount(dueToday)}` : undefined}
               acceptTerms
+              tripTerms={tripTermsFor(booking.trips?.destination)}
               cardOnly={!payingInFull}
               scheduledCharges={schedule.map((row) => ({
                 dateLabel: formatDay(row.date),
@@ -398,7 +422,7 @@ const LINK = "text-[--accent] underline underline-offset-2";
 type FreeBookingRow = {
   id: string;
   total_amount: number;
-  trips: { name: string; start_date: string; end_date: string } | null;
+  trips: { name: string; destination: string; start_date: string; end_date: string } | null;
   tiers: { name: string; price: number } | null;
 };
 
@@ -498,7 +522,7 @@ async function FreeBooking({ booking }: { booking: FreeBookingRow }) {
           </aside>
 
           <section aria-label="Confirm" className="min-w-0 lg:order-1">
-            <ConfirmFreeBookingForm bookingId={booking.id} />
+            <ConfirmFreeBookingForm bookingId={booking.id} tripTerms={tripTermsFor(booking.trips?.destination)} />
 
             <div className="mt-10 flex flex-col gap-3 border-t border-[--rule] pt-6 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap gap-x-6">

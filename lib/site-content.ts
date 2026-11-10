@@ -452,6 +452,14 @@ export const SPRING_BREAK = {
   passport: "You’ll need a valid passport.",
   // In writing from Hildebranda Richards, 4 November 2026. The Terms set 18 to book.
   age: "You have to be 18 to book, and 18-year-olds check in on their own.",
+  // Beside Reserve in the orange panel (Carter, 10 November 2026), where people
+  // decide; the boxes themselves sit open at checkout on spring break.
+  codesLine: "Have a discount or ambassador code? Enter it at checkout.",
+  // A week at its cap (the package's capacity in /admin/trips): its tile and its
+  // row say this and lead to the list form, in place of Reserve.
+  weekFull: "Week full \u2014 join the waitlist",
+  waitlistHeading: "Join the waitlist",
+  waitlistBody: "We\u2019ll be in touch if a spot opens up.",
   formHeading: "Hear it first",
   formBody: "New dates and new trips go to this list before they reach the site.",
   // formBody's stand-in while no week is on sale, when the dates are already on

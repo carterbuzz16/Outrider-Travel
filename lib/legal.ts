@@ -128,10 +128,18 @@ export const TERMS: LegalDocumentMeta = {
   // untouched. On 27 October 2026 the only December booking was the $0 comp
   // paid in full, so nobody on a payment plan needed notice; counsel
   // sign-off is still owed.
-  version: "6.0.0",
+  // 6.1.0: MINOR. Spring break goes on sale (10 November 2026), and with it a
+  // new section, "Spring break", holding Carter's trip terms verbatim
+  // (lib/spring-break-terms.ts): the deposit is refundable if Outrider has not
+  // confirmed the week by December 1, 2026, the balance is due January 8, 2027,
+  // and each traveler answers for room damage and resort incidentals. Section 5
+  // lists the spring break dates from lib/installments.ts. Nothing changes for
+  // a Telluride booking, made before or after, so no re-acceptance or notice.
+  // Carter's lawyer may revise the spring break text; counsel sign-off is owed.
+  version: "6.1.0",
   status: "in-force",
-  effectiveDate: "2026-10-27",
-  lastUpdated: "2026-10-27",
+  effectiveDate: "2026-11-10",
+  lastUpdated: "2026-11-10",
   sections: [
     { id: "about", title: "Who these terms are between" },
     { id: "eligibility", title: "Eligibility and your account" },
@@ -140,6 +148,9 @@ export const TERMS: LegalDocumentMeta = {
     { id: "payment-plan", title: "The balance installments and paying ahead" },
     { id: "failed-payments", title: "Missed payments, retries and bank authentication" },
     { id: "cancellation", title: "If you cancel" },
+    // After "If you cancel" so the sections the text cites by number (5 and 7)
+    // keep their numbers.
+    { id: "spring-break", title: "Spring break" },
     { id: "outrider-changes", title: "If Outrider cancels or changes a trip" },
     { id: "force-majeure", title: "Weather, snow and events outside anyone's control" },
     { id: "suppliers", title: "Third-party suppliers" },

@@ -15,6 +15,7 @@ import {
 import { MAX_INSTALLMENT_ATTEMPTS, INSTALLMENT_RETRY_AFTER_DAYS } from "@/lib/payments";
 import { MIN_BALANCE_PAYMENT, formatAmount } from "@/lib/balance";
 import { PENTHOUSE_DISCLAIMER } from "@/lib/penthouse";
+import { SPRING_BREAK_TERMS } from "@/lib/spring-break-terms";
 import LegalDocument, { LegalList, LegalSection } from "../legal/LegalDocument";
 
 /**
@@ -637,6 +638,17 @@ export default function TermsPage() {
           we receive it, through the bookings page or in writing at{" "}
           {CONTACT.email}.
         </p>
+      </LegalSection>
+
+      {/* Carter's trip terms, verbatim, from the one file his lawyer edits
+          (lib/spring-break-terms.ts). The same words sit beside the pay button
+          on a spring break booking. Only the first sentence here is ours: it
+          says which trip they belong to. */}
+      <LegalSection doc={TERMS} id="spring-break">
+        <p>These apply to the spring break trip to Zemi Miches, in Miches, Dominican Republic.</p>
+        {SPRING_BREAK_TERMS.paragraphs.map((paragraph) => (
+          <p key={paragraph}>{paragraph}</p>
+        ))}
       </LegalSection>
 
       <LegalSection doc={TERMS} id="outrider-changes">

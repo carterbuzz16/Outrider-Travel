@@ -8,6 +8,7 @@ import { DEPOSIT_AMOUNT, KLARNA_PAY_IN_4_MAX, PAY_IN_FULL_DISCOUNT } from "@/lib
 import { flightTimesPublished } from "@/lib/trip-logistics";
 import { SPRING_BREAK_DATES_CONFIRMED, howTheRestIsPaid } from "@/lib/installments";
 import { SPRING_BREAK_STARTS } from "@/lib/signup-deadline";
+import { SPRING_BREAK_TERMS } from "@/lib/spring-break-terms";
 
 export const metadata: Metadata = pageMetadata({
   title: "FAQ",
@@ -76,8 +77,9 @@ const GROUPS: Group[] = [
             {`$${KLARNA_PAY_IN_4_MAX.toLocaleString("en-US")}`} and over time
             above that. Everyone books and pays for their own spot, so nobody fronts
             money for friends or spends the spring chasing a group chat.
-            Deposits are non-refundable. If an installment is missed, your spot
-            may be released. The deposit and paying in full are set out in{" "}
+            Deposits are non-refundable
+            {SPRING_BREAK_DATES_CONFIRMED ? `, except on spring break: ${SPRING_BREAK_TERMS.paragraphs[0]}` : "."} If an
+            installment is missed, your spot may be released. The deposit and paying in full are set out in{" "}
             <Link href="/terms#booking-and-deposit" className="text-[--accent] underline underline-offset-4">
               the booking section of the Terms
             </Link>

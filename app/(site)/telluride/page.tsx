@@ -110,6 +110,7 @@ export const metadata: Metadata = pageMetadata({
   path: "/telluride",
   description:
     "Four nights in Telluride with your best friends: ski-in, ski-out at The Peaks, with lifts, rentals, rides and private nights out in one price.",
+  ownImage: true,
 });
 
 // Same cadence as /trips, so publishing or editing a departure shows up here

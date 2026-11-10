@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Alert, Button, cn } from "@/components/ui";
 import CheckoutSteps from "@/components/CheckoutSteps";
 import BookingForm, { type CheckoutTier } from "./BookingForm";
@@ -14,7 +15,7 @@ import {
   payInFullSaving,
 } from "@/lib/deposit";
 import { discountCodeAmount, normalizeDiscountCode } from "@/lib/discount-codes";
-import { lookupReferral, referralCodeFromCookie, type Referral } from "@/lib/referral";
+import { isAmbassadorDiscountCode, lookupReferral, referralCodeFromCookie, type Referral } from "@/lib/referral";
 import { closeLabel, signupsClosed, SIGNUPS_CLOSED_LABEL } from "@/lib/signup-deadline";
 import { lineById, lineForDestination } from "@/lib/trip-lines";
 import { departuresByLine, departuresToOffer } from "@/lib/departure-picker";
@@ -33,6 +34,7 @@ import { balanceDueDates, installmentSchedule, latePaymentNote, mustPayInFull } 
 import { formatDay } from "@/app/(protected)/dates";
 import { countPenthouses, getRoomMedia, tierDisplayName, tierGrouping } from "@/lib/room-media";
 import { CONTACT } from "@/lib/site-content";
+import { SPRING_BREAK_TERMS } from "@/lib/spring-break-terms";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { bookingsOpenForViewer } from "@/lib/early-access";
 import { hasDeparted } from "@/lib/mountain-time";
@@ -219,7 +221,23 @@ export default async function NewBookingPage(props: {
   if (typedReferral) {
     const found = await lookupReferral(admin, typedReferral);
     if (found) referral = { ...found, from: "typed" };
-    else referralRejected = typedReferral;
+    else if (
+      // Spring break's box is labelled "Ambassador code", so a friend types an
+      // ambassador's money-off code there: it goes to the discount box, where it
+      // takes its money off (isAmbassadorDiscountCode). Not when that box already
+      // holds a code, since a booking carries one discount.
+      trip &&
+      lineForDestination(trip.destination).id === "spring-break" &&
+      !linkCode &&
+      (await isAmbassadorDiscountCode(admin, typedReferral))
+    ) {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(searchParams)) {
+        if (typeof value === "string" && key !== "referred" && key !== "code" && key !== "error") params.set(key, value);
+      }
+      params.set("code", typedReferral);
+      redirect(`/bookings/new?${params.toString()}`);
+    } else referralRejected = typedReferral;
   } else if (movedReferral) {
     referral = { ...movedReferral, from: "moved" };
   } else if (searchParams.referred === undefined) {
@@ -555,6 +573,11 @@ function Packages({
       lateNote={latePaymentNote(trip.startDate)}
       contactEmail={CONTACT.email}
       packagesNote={lineForDestination(trip.destination).packagesNote}
+      // Spring break's deposit is refundable until the week is confirmed, so its
+      // own term replaces "Deposits are non-refundable." (lib/spring-break-terms.ts).
+      depositTerm={lineForDestination(trip.destination).assumptionOfRisk ? null : SPRING_BREAK_TERMS.paragraphs[0]}
+      // Spring break's code boxes sit open, under their own labels (BookingForm).
+      codesOpen={lineForDestination(trip.destination).id === "spring-break"}
       initialGroupCode={groupCode}
       discount={discount && (applied.code > 0 || attributionOnly) ? { code: discount.code, attributionOnly } : null}
       rejectedCode={rejectedCode}

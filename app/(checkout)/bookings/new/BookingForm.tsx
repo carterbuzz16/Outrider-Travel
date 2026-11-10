@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Field, Input, RadioControl, RoomPanel, RoomPhotosButton, cn, type RoomView } from "@/components/ui";
 import { PendingSubmitButton, SubmitOnceForm } from "@/components/SubmitOnce";
 import EmailCodeSignIn from "@/components/EmailCodeSignIn";
@@ -127,6 +127,8 @@ export default function BookingForm({
   credit = null,
   setAside = null,
   creditOffer = null,
+  depositTerm = null,
+  codesOpen = false,
 }: {
   tripId: string;
   tiers: CheckoutTier[];
@@ -174,6 +176,17 @@ export default function BookingForm({
   setAside?: { kind: "code"; code: string } | { kind: "credit"; label: string } | null;
   /** Signed out: what a new account takes off, said beside the total. */
   creditOffer?: string | null;
+  /**
+   * The deposit's refund rule when the trip has its own (spring break's first trip
+   * term, lib/spring-break-terms.ts), said in place of "Deposits are non-refundable."
+   */
+  depositTerm?: string | null;
+  /**
+   * The code boxes sit open, each under its own label, rather than folded under
+   * "Have a code?" (spring break, Carter, 10 November 2026: "the discount box is
+   * easy to miss"). Telluride keeps the folded boxes it has always had.
+   */
+  codesOpen?: boolean;
 }) {
   const router = useRouter();
   const [tierId, setTierId] = useState(initialTierId);
@@ -396,13 +409,15 @@ export default function BookingForm({
           </div>
         </fieldset>
 
-        <details className="group border-b border-[--rule] px-5 sm:px-6" open={Boolean(initialGroupCode)}>
-          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 font-body text-body-s text-[--text] [&::-webkit-details-marker]:hidden">
-            Have a group code?
-            <Chevron />
-          </summary>
-          <div className="pb-5">
-            <Field label="Group code" hint="Friends already booked? Their code puts you in the same group.">
+        <CodeBox open={codesOpen} folded={!initialGroupCode} summary="Have a group code?">
+            <Field
+              label={codesOpen ? "Roommate / group code" : "Group code"}
+              hint={
+                codesOpen
+                  ? "Optional. Friends already booked? Their code puts you in the same group, so you can room together."
+                  : "Friends already booked? Their code puts you in the same group."
+              }
+            >
               {(field) => (
                 <Input
                   {...field}
@@ -417,18 +432,9 @@ export default function BookingForm({
                 />
               )}
             </Field>
-          </div>
-        </details>
+        </CodeBox>
 
-        <details
-          className="group border-b border-[--rule] px-5 sm:px-6"
-          open={Boolean(discount || rejectedCode || codeSetAside)}
-        >
-          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 font-body text-body-s text-[--text] [&::-webkit-details-marker]:hidden">
-            Have a discount code?
-            <Chevron />
-          </summary>
-          <div className="pb-5">
+        <CodeBox open={codesOpen} folded={!(discount || rejectedCode || codeSetAside)} summary="Have a discount code?">
             <Field
               label="Discount code"
               hint={
@@ -478,30 +484,27 @@ export default function BookingForm({
                 </div>
               )}
             </Field>
-          </div>
-        </details>
+        </CodeBox>
 
         {/* Referred by (lib/referral.ts): the ambassador who sent them. It
             takes nothing off and sits beside any discount code, so a code of
             each kind can go on one booking. Open whenever it holds something,
             which a ?ref= link sees to. */}
-        <details
-          className="group border-b border-[--rule] px-5 sm:px-6"
-          open={Boolean(referral || rejectedReferral)}
+        <CodeBox
+          open={codesOpen}
+          folded={!(referral || rejectedReferral)}
+          summary={referral ? `Referred by ${referral.name}` : "Referred by an ambassador?"}
         >
-          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 font-body text-body-s text-[--text] [&::-webkit-details-marker]:hidden">
-            {referral ? `Referred by ${referral.name}` : "Referred by an ambassador?"}
-            <Chevron />
-          </summary>
-          <div className="pb-5">
             <Field
-              label="Referred by"
+              label={codesOpen ? "Ambassador code \u2014 who sent you?" : "Referred by"}
               hint={
                 referral?.from === "moved"
                   ? `${referral.code} is an ambassador's code, so it goes here. Referred by ${referral.name}.`
                   : referral
                     ? `Referred by ${referral.name}.`
-                    : "Their code, if an ambassador sent you. It doesn't change the price."
+                    : codesOpen
+                      ? "Enter your friend's ambassador code so they get credit."
+                      : "Their code, if an ambassador sent you. It doesn't change the price."
               }
               error={rejectedReferral ? "We couldn't find that ambassador code. Check it with whoever sent you." : undefined}
             >
@@ -545,8 +548,7 @@ export default function BookingForm({
                 </div>
               )}
             </Field>
-          </div>
-        </details>
+        </CodeBox>
 
         <div ref={panelRef} className="p-5 sm:p-6">
           <dl className="m-0 flex flex-col gap-2.5 font-body text-body-s">
@@ -634,10 +636,15 @@ export default function BookingForm({
             </li>
             {!selected.free && (
               <li className="pl-[1.375rem]">
-                Deposits are non-refundable.
+                {depositTerm ?? "Deposits are non-refundable."}
                 {plan === "deposit" && " If an installment is missed, your spot may be released."} Here are the{" "}
-                <Link href="/terms#cancellation" target="_blank" rel="noreferrer" className={LINK}>
-                  cancellation terms
+                <Link
+                  href={depositTerm ? "/terms#spring-break" : "/terms#cancellation"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={LINK}
+                >
+                  {depositTerm ? "trip terms" : "cancellation terms"}
                 </Link>
                 .
               </li>
@@ -895,6 +902,34 @@ function Line({ label, value }: { label: string; value: string }) {
       <dt className="text-[--text-secondary]">{label}</dt>
       <dd className="m-0 tabular-nums text-[--text]">{value}</dd>
     </div>
+  );
+}
+
+/**
+ * One code box under the order. Folded, as Telluride's always have been, with the
+ * summary as its line and open whenever it holds something (`folded` false); or,
+ * with `open`, laid out flat under its field's own label (codesOpen).
+ */
+function CodeBox({
+  open,
+  folded,
+  summary,
+  children,
+}: {
+  open: boolean;
+  folded: boolean;
+  summary: ReactNode;
+  children: ReactNode;
+}) {
+  if (open) return <div className="border-b border-[--rule] px-5 py-5 sm:px-6">{children}</div>;
+  return (
+    <details className="group border-b border-[--rule] px-5 sm:px-6" open={!folded}>
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 font-body text-body-s text-[--text] [&::-webkit-details-marker]:hidden">
+        {summary}
+        <Chevron />
+      </summary>
+      <div className="pb-5">{children}</div>
+    </details>
   );
 }
 

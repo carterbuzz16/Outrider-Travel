@@ -38,6 +38,9 @@ const COLUMNS: Column[] = [
       { label: "Join the list", href: "/waitlist" },
       { label: "About Outrider", href: "/about" },
       { label: "Become an ambassador", href: "/ambassador" },
+      // Straight to the dashboard for those already in (Carter, 10 November 2026),
+      // through the same sign-in the /ambassador page links to.
+      { label: "Ambassador sign-in", href: "/login?next=%2Fambassador%2Fdashboard" },
       { label: "For brands", href: "/partners" },
       { label: "FAQ", href: "/faq" },
       { label: "Contact", href: "/contact" },

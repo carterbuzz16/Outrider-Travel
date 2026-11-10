@@ -64,13 +64,14 @@ const TELLURIDE_CLOSES: Readonly<Record<string, Date>> = {
 /*
  * Spring break, Zemi Miches (3 November 2026).
  *
- * CONFIRM WITH CARTER BEFORE EITHER TRIP IS PUBLISHED. He gave the trip dates
- * and the $100 deposit, not the closes, and the Group Agreement will set the
- * hotel's real cut-off. These follow December's pattern: a week closes on the
- * day its last payment is charged (lib/installments.ts). Zemi's proposal takes
- * "no deviations" within 45 days of arrival, January 22 and January 29, so each
- * week closes seven days before that and the rooming list has the week between.
- * The end of the day Central; CST, UTC-6, is in force on both.
+ * Carter gave the trip dates, the $100 deposit and the January 8 balance
+ * (lib/installments.ts), not the closes, and the Group Agreement will set the
+ * hotel's real cut-off. Zemi's proposal takes "no deviations" within 45 days of
+ * arrival, January 22 and January 29, so each week closes seven days before
+ * that and the rooming list has the week between. From January 5 a booking is
+ * paid in full (PAY_IN_FULL_FROM_BY_START), so between then and the close
+ * people can still join, paying the whole price. The end of the day Central;
+ * CST, UTC-6, is in force on both.
  */
 const SPRING_BREAK_CLOSES: Readonly<Record<string, Date>> = {
   // March 8 to 12, 2027: the end of January 15.
@@ -79,8 +80,11 @@ const SPRING_BREAK_CLOSES: Readonly<Record<string, Date>> = {
   "2027-03-15": new Date("2027-01-23T05:59:59Z"),
 };
 
-/** True once Carter has confirmed spring break's dates. What it holds back: lib/installments.ts. */
-export const SPRING_BREAK_DATES_CONFIRMED = false;
+/**
+ * Spring break is on sale (Carter, 10 November 2026). What this held back while
+ * false: the note above scheduleConfirmed in lib/installments.ts.
+ */
+export const SPRING_BREAK_DATES_CONFIRMED = true;
 
 /** The start dates of the spring break departures, for copy that lists them. */
 export const SPRING_BREAK_STARTS: readonly string[] = Object.keys(SPRING_BREAK_CLOSES).sort();

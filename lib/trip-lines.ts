@@ -49,6 +49,13 @@ export type TripLine = {
    * nothing chases it.
    */
   rentals: boolean;
+  /**
+   * Whether a booking also accepts the Assumption of Risk (lib/legal-acceptance.ts).
+   * That waiver describes skiing, snowboarding and mountain travel only, so spring
+   * break books on the Terms, whose "Spring break" section holds Carter's trip terms
+   * (10 November 2026), until counsel writes a waiver for it.
+   */
+  assumptionOfRisk: boolean;
   /** The list signup's `placement` for this line's way in, when it has its own. */
   waitlistPlacement: string | null;
   /**
@@ -91,6 +98,7 @@ export const SKI: TripLine = {
   property: "The Peaks",
   airport: { code: "MTJ", name: "Montrose" },
   rentals: true,
+  assumptionOfRisk: true,
   waitlistPlacement: null,
   timeZone: "America/Denver",
   flightGuidePath: "/flights",
@@ -121,6 +129,7 @@ export const SPRING_BREAK_LINE: TripLine = {
   property: "Zemi Miches",
   airport: { code: "PUJ", name: "Punta Cana" },
   rentals: false,
+  assumptionOfRisk: false,
   waitlistPlacement: "spring-break",
   timeZone: "America/Santo_Domingo",
   flightGuidePath: "/flights#punta-cana",

@@ -5,6 +5,9 @@ import { CheckRow } from "@/components/ui";
 
 export type ScheduledCharge = { dateLabel: string; amountLabel: string };
 
+/** A trip's own terms, read in full above the box and agreed to in its first words (lib/spring-break-terms.ts). */
+export type TripTerms = { agree: string; paragraphs: readonly string[] };
+
 /**
  * The tick that sits directly above the pay button.
  *
@@ -31,6 +34,12 @@ export type ScheduledCharge = { dateLabel: string; amountLabel: string };
  *
  * Controlled, because CheckoutForm keeps the pay button disabled and refuses to
  * confirm until it is ticked.
+ *
+ * A trip with terms of its own (`tripTerms`, spring break since 10 November 2026)
+ * shows them in full above the box, and the box opens with Carter's sentence, "I
+ * agree to the trip terms." It names no waiver, since spring break accepts the
+ * Terms alone (lib/legal-acceptance.ts), and it drops "the deposit is
+ * non-refundable": his terms make it refundable until the week is confirmed.
  */
 export default function AuthorizeCharge({
   checked,
@@ -39,6 +48,7 @@ export default function AuthorizeCharge({
   amountLabel,
   scheduled = [],
   withTerms = false,
+  tripTerms,
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
@@ -49,9 +59,35 @@ export default function AuthorizeCharge({
   scheduled?: ScheduledCharge[];
   /** Also agree to the Terms and the Assumption of Risk (the first payment). */
   withTerms?: boolean;
+  /** Agree to these instead, on a trip that has its own. Only with `withTerms`. */
+  tripTerms?: TripTerms;
 }) {
   const onPlan = scheduled.length > 0;
   const amount = <span className="tabular-nums text-[--text]">{amountLabel}</span>;
+
+  if (withTerms && tripTerms) {
+    return (
+      <>
+        <TripTermsBox terms={tripTerms} />
+        <CheckRow required checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)}>
+          {tripTerms.agree.replace(/trip terms\.?$/, "")}
+          <Link href="/terms#spring-break" target="_blank" rel="noreferrer" className={LINK}>
+            trip terms
+          </Link>
+          .{" "}
+          {onPlan ? (
+            <>
+              I authorize Outrider to charge {amount} to this card today as my deposit, and to charge the
+              balance to the same card automatically, without asking me again, on the dates shown on this
+              page: <span className="tabular-nums text-[--text]">{listCharges(scheduled)}</span>.
+            </>
+          ) : (
+            <>I authorize Outrider to charge {amount} today, by the payment method I chose above.</>
+          )}
+        </CheckRow>
+      </>
+    );
+  }
 
   return (
     <CheckRow
@@ -95,6 +131,22 @@ export default function AuthorizeCharge({
 }
 
 const LINK = "text-[--accent] underline underline-offset-2";
+
+/** The terms themselves, on the page and not behind a link, so they are read before the box is ticked. */
+export function TripTermsBox({ terms }: { terms: TripTerms }) {
+  return (
+    <div className="mb-5 bg-[--surface-raised] p-4 sm:p-5">
+      <p className="t-micro m-0 text-[--text-secondary]">Trip terms</p>
+      <div className="mt-2 flex flex-col gap-2 font-body text-body-s leading-[1.55] text-[--text]">
+        {terms.paragraphs.map((paragraph) => (
+          <p key={paragraph} className="m-0">
+            {paragraph}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /** "$1,200 on Nov 1, 2026 and $1,200 on Dec 1, 2026", for any number of rows. */
 function listCharges(rows: ScheduledCharge[]) {

@@ -13,6 +13,8 @@ import type { PublicTrip } from "@/lib/trips";
  *   SPRING_BREAK_PREVIEW=1 npm run dev        launch config "dev-spring-preview"
  *   SPRING_BREAK_PREVIEW=first-closed         the first week past its close, the
  *                                             state from mid-January on
+ *   SPRING_BREAK_PREVIEW=first-full           the first week at its 20-a-week cap,
+ *                                             which shows "Week full" and the list
  *   plus SIGNUPS_CLOSED_PREVIEW=1             both weeks closed
  *
  * Ignored on Vercel production, where only the database decides.
@@ -36,10 +38,13 @@ function fourNightsFrom(start: string): string {
 /** The sample trips, or null when the page should read the database as usual. */
 export function springBreakPreview(): PublicTrip[] | null {
   const mode = process.env.SPRING_BREAK_PREVIEW;
-  if ((mode !== "1" && mode !== "first-closed") || process.env.VERCEL_ENV === "production") return null;
+  if ((mode !== "1" && mode !== "first-closed" && mode !== "first-full") || process.env.VERCEL_ENV === "production") {
+    return null;
+  }
 
   return SPRING_BREAK_STARTS.map((start, i) => {
     const closed = departureClosed(start) || (mode === "first-closed" && i === 0);
+    const full = !closed && mode === "first-full" && i === 0;
     return {
       id: `preview-${start}`,
       name: `Preview, ${start}`,
@@ -56,15 +61,15 @@ export function springBreakPreview(): PublicTrip[] | null {
           price: 1200,
           description: "Two to a room with two queen beds, at Zemi Miches.",
           inclusions: ["Four nights, all-inclusive", "Airport transfers, both ways", "A welcome happy hour", "A welcome gift", "Our team on site"],
-          maxCapacity: null,
-          spotsLeft: null,
+          maxCapacity: full ? 20 : null,
+          spotsLeft: full ? 0 : null,
           groupExclusive: false,
           claimed: false,
         },
       ],
       priceFrom: 1200,
-      spotsLeft: null,
-      status: closed ? "soldOut" : "open",
+      spotsLeft: full ? 0 : null,
+      status: closed || full ? "soldOut" : "open",
       bookingClosed: closed,
     };
   });

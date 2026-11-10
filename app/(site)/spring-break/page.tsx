@@ -241,7 +241,19 @@ function barDates(trips: PublicTrip[]): string {
 
 /** How a week stands, in words: nothing for a plain open one. */
 function tripNote(trip: PublicTrip): string | null {
+  if (weekFull(trip)) return SPRING_BREAK.weekFull;
   return trip.status === "open" ? null : availabilityLabel(trip.status, trip.bookingClosed);
+}
+
+/**
+ * A week at its cap and still before its close: it says so and points at the list
+ * (Carter, 10 November 2026: "show 'Week full, join the waitlist' instead of letting
+ * people pay for it"). The cap is the package's capacity in /admin/trips, 20 a week
+ * at opening, raised there with no deploy; createBooking and the database's
+ * check_tier_capacity are what refuse a booking past it.
+ */
+function weekFull(trip: PublicTrip): boolean {
+  return trip.status === "soldOut" && !trip.bookingClosed;
 }
 
 /** What the words say when nothing can be reserved. */
@@ -322,10 +334,13 @@ type WeekView = {
   note: string | null;
   href: string | null;
   reserve: string;
+  /** At its cap: the row leads to the waitlist instead (weekFull). */
+  full?: boolean;
 };
 
 function offerWeek({ trip, tier }: { trip: PublicTrip; tier: PublicTier }, preview: boolean): WeekView {
   const open = !tier.claimed && !(tier.spotsLeft !== null && tier.spotsLeft <= 0) && trip.status !== "soldOut";
+  const full = !trip.bookingClosed && !tier.claimed && !open;
   return {
     key: tier.id,
     startDate: trip.startDate,
@@ -335,9 +350,12 @@ function offerWeek({ trip, tier }: { trip: PublicTrip; tier: PublicTier }, previ
     // count, which can be full while the week is not.
     note: trip.bookingClosed
       ? availabilityLabel(trip.status, true)
-      : (tierAvailabilityLabel(tier.spotsLeft, tier.claimed) ?? tripNote(trip)),
+      : full
+        ? null
+        : (tierAvailabilityLabel(tier.spotsLeft, tier.claimed) ?? tripNote(trip)),
     href: open && BOOKINGS_OPEN ? reserveHref(preview, trip, tier) : null,
     reserve: reserveWords(trip),
+    full,
   };
 }
 
@@ -370,6 +388,7 @@ export default async function SpringBreakPage() {
         startDate: trip.startDate,
         endDate: trip.endDate,
         note: tripNote(trip),
+        full: weekFull(trip),
         // Straight to the form when this week has one package to choose.
         href:
           bookable && trip.status !== "soldOut"
@@ -542,9 +561,12 @@ export default async function SpringBreakPage() {
                 is on screen, so there is one ask at a time. */}
             <div data-reserve-bar-hide className="mt-4 flex flex-col gap-4">
               {bookable ? (
-                <Button href={reserveHref(preview)} variant="primary" size="lg" block>
-                  {deposit ? `Reserve for ${DEPOSIT}` : "Reserve"}
-                </Button>
+                <>
+                  <Button href={reserveHref(preview)} variant="primary" size="lg" block>
+                    {deposit ? `Reserve for ${DEPOSIT}` : "Reserve"}
+                  </Button>
+                  <p className="m-0 font-body text-body-s leading-[1.5] text-[--text]">{SPRING_BREAK.codesLine}</p>
+                </>
               ) : (
                 <>
                   <p className="t-heading m-0 text-[--text]">{shutTitle(trips)}</p>
@@ -765,10 +787,28 @@ export default async function SpringBreakPage() {
                   ))}
                 </div>
               </Reveal>
+              {/* A week at its cap points here (weekFull): the list, on its paper
+                  block, under the weeks that can still be reserved. */}
+              {trips.some(weekFull) && (
+                <Reveal delay={180}>
+                  <div id="waitlist" className="scheme-light scheme-paint mt-10 scroll-mt-20 md:mt-14">
+                    <WaitlistCTA
+                      tone="light"
+                      placement={SPRING_BREAK_PLACEMENT}
+                      heading={SPRING_BREAK.waitlistHeading}
+                      body={SPRING_BREAK.waitlistBody}
+                      doneHeading={SPRING_BREAK.doneHeading}
+                      doneBody={SPRING_BREAK.doneBody}
+                      sharePath={SPRING_BREAK_LINE.path}
+                      shareText={SPRING_BREAK.shareText}
+                    />
+                  </div>
+                </Reveal>
+              )}
             </>
           ) : (
             <Reveal delay={90}>
-              <div className="scheme-light scheme-paint mt-8 md:mt-12">
+              <div id="waitlist" className="scheme-light scheme-paint mt-8 scroll-mt-20 md:mt-12">
                 <WaitlistCTA
                   tone="light"
                   placement={SPRING_BREAK_PLACEMENT}
@@ -801,6 +841,7 @@ export default async function SpringBreakPage() {
         dates={barDates(openTrips)}
         label={deposit ? `Reserve for ${DEPOSIT}` : "Reserve"}
         fromStart
+        scheme="spring"
       />
     </>
   );
@@ -814,6 +855,8 @@ type WeekTileView = {
   endDate: string;
   note: string | null;
   href: string | null;
+  /** At its cap: the tile leads to the waitlist (weekFull). */
+  full?: boolean;
 };
 
 /**
@@ -839,7 +882,11 @@ function WeekTile({ week }: { week: WeekTileView }) {
   const box = "flex h-full flex-col bg-[--surface-raised] p-4";
   return (
     <li>
-      {week.href ? (
+      {week.full ? (
+        <a href="#waitlist" className={`${box} no-underline`}>
+          {inner}
+        </a>
+      ) : week.href ? (
         <Link href={week.href} className={`${box} no-underline`}>
           {inner}
         </Link>
@@ -959,6 +1006,11 @@ function WeekRow({ week }: { week: WeekView }) {
         {weekday(week.startDate)} to {weekday(week.endDate)}
         {week.note && `, ${week.note}`}
       </p>
+      {week.full && (
+        <a href="#waitlist" className="mt-3 font-body text-body-s text-[--text] underline underline-offset-4">
+          {SPRING_BREAK.weekFull}
+        </a>
+      )}
       {week.href && (
         <div className="mt-3">
           <Button

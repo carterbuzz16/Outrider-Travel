@@ -2,6 +2,7 @@ import "server-only";
 import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { LEGAL_DOCUMENTS } from "@/lib/legal";
+import { lineForDestination } from "@/lib/trip-lines";
 
 /**
  * Recording that a traveler accepted the Terms and the Assumption of Risk.
@@ -20,9 +21,31 @@ import { LEGAL_DOCUMENTS } from "@/lib/legal";
  *     was made, so these rows are never updated or deleted.
  */
 
-/** The documents a traveler must accept to book. */
+/** The documents a traveler may be asked to accept to book. */
 export const REQUIRED_DOCUMENTS = ["terms", "assumption-of-risk"] as const;
 export type RequiredDocument = (typeof REQUIRED_DOCUMENTS)[number];
+
+/**
+ * The ones a booking on this trip accepts: both on Telluride, the Terms alone on
+ * spring break (TripLine.assumptionOfRisk, lib/trip-lines.ts). The pay step's
+ * box names exactly these, so the record never claims a document nobody saw.
+ */
+export function requiredDocumentsFor(destination: string | null | undefined): readonly RequiredDocument[] {
+  return lineForDestination(destination).assumptionOfRisk ? REQUIRED_DOCUMENTS : ["terms"];
+}
+
+/** The booking's own list, read from its trip. Throws if the booking can't be read. */
+async function requiredForBooking(bookingId: string): Promise<readonly RequiredDocument[]> {
+  const { data, error } = await createAdminClient()
+    .from("bookings")
+    .select("trips(destination)")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (error || !data) {
+    throw new Error(`Could not read the trip for booking ${bookingId}: ${error?.code ?? "not found"} ${error?.message ?? ""}`);
+  }
+  return requiredDocumentsFor(data.trips?.destination);
+}
 
 /** Version of each required document as currently published. */
 export function currentVersions(): Record<RequiredDocument, string> {
@@ -49,11 +72,12 @@ export async function recordAcceptance(opts: {
   userId: string;
 }): Promise<void> {
   const versions = currentVersions();
+  const required = await requiredForBooking(opts.bookingId);
   const h = await headers();
   const ipAddress = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
   const userAgent = h.get("user-agent")?.slice(0, 500) ?? null;
 
-  const rows = REQUIRED_DOCUMENTS.map((slug) => ({
+  const rows = required.map((slug) => ({
     booking_id: opts.bookingId,
     user_id: opts.userId,
     document_slug: slug,
@@ -80,6 +104,13 @@ export async function recordAcceptance(opts: {
  * means "not proven", the safe reading.
  */
 export async function hasAcceptedAll(bookingId: string): Promise<boolean> {
+  let required: readonly RequiredDocument[];
+  try {
+    required = await requiredForBooking(bookingId);
+  } catch (err) {
+    console.error(`hasAcceptedAll(${bookingId}): ${err instanceof Error ? err.message : err}`);
+    return false;
+  }
   const { data, error } = await createAdminClient()
     .from("legal_acceptances")
     .select("document_slug")
@@ -90,7 +121,7 @@ export async function hasAcceptedAll(bookingId: string): Promise<boolean> {
     return false;
   }
   const slugs = new Set((data ?? []).map((row) => row.document_slug));
-  return REQUIRED_DOCUMENTS.every((slug) => slugs.has(slug));
+  return required.every((slug) => slugs.has(slug));
 }
 
 /** What a traveler accepted, for their own booking page. */

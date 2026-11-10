@@ -115,9 +115,15 @@ text/background pair on a page should clear 4.5:1 (3:1 for large text).
   `lib/trip-lines.ts`, because an unrecognized destination is treated as ski. Never
   reuse the tier names BASE or MID elsewhere: `lib/room-media.ts` keys The Peaks'
   rooms on them.
-- **Spring break stays off sale until `SPRING_BREAK_DATES_CONFIRMED`**
-  (`lib/signup-deadline.ts`) is true. The comment above `scheduleConfirmed` in
-  `lib/installments.ts` lists the steps to open it.
+- **Spring break is on sale** (Carter, 10 Nov 2026: `SPRING_BREAK_DATES_CONFIRMED` in
+  `lib/signup-deadline.ts`). $100 down, the balance on January 8, 2027. Its trip terms
+  are Carter's words in `lib/spring-break-terms.ts`, the one place his lawyer edits;
+  they are a section of the Terms, so change `TERMS.version` with them. Spring break
+  books on the Terms alone (`TripLine.assumptionOfRisk`): the ski waiver stays
+  Telluride's until counsel writes one for the beach. Each week's cap is its package
+  capacity in `/admin/trips` (20 at opening), and a full week reads "Week full —
+  join the waitlist". Anything new on checkout stays spring break only unless Carter
+  says Telluride too: he wants Telluride's pricing, codes and flow untouched.
 
 ## Conventions
 

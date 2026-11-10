@@ -47,7 +47,9 @@ export function pageMetadata({
           url: "/opengraph-image",
           width: 1200,
           height: 630,
-          alt: "Outrider. Small-group travel for college.",
+          // A photograph since 5 November 2026 (app/opengraph-image.tsx).
+          type: "image/jpeg",
+          alt: "Outrider. Ski trips in Telluride and spring break in Punta Cana.",
         },
       ];
 
